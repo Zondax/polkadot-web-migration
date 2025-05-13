@@ -43,55 +43,75 @@ import {
 const HOURS_IN_A_DAY = 24
 
 // Get API and Provider
-export async function getApiAndProvider(rpcEndpoint: string): Promise<{ api?: ApiPromise; provider?: WsProvider }> {
-  try {
-    // Create a provider with default settings (will allow first connection)
-    const provider = new WsProvider(rpcEndpoint)
+const MAX_CONNECTION_RETRIES = 5
 
-    // Add an error handler to prevent the automatic reconnection loops
-    provider.on('error', error => {
-      console.error('WebSocket error:', error)
-    })
+export async function getApiAndProvider(rpcEndpoint: string): Promise<{ api?: ApiPromise; provider?: WsProvider; error?: string }> {
+  let retryCount = 0
+  let currentProvider: WsProvider | undefined
 
-    // Set a timeout for the connection attempt
-    const connectionPromise = new Promise<ApiPromise>((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error(InternalErrorType.CONNECTION_TIMEOUT))
-      }, 15000) // 15 second timeout
+  while (retryCount < MAX_CONNECTION_RETRIES) {
+    try {
+      // Create a provider with default settings (will allow first connection)
+      currentProvider = new WsProvider(rpcEndpoint, 5)
 
-      ApiPromise.create({
-        provider,
-        throwOnConnect: true,
-        throwOnUnknown: true,
+      // Add an error handler to prevent the automatic reconnection loops
+      currentProvider.on('error', error => {
+        console.error('WebSocket error:', error)
       })
-        .then(api => {
-          clearTimeout(timeoutId)
-          resolve(api)
+
+      // Set a timeout for the connection attempt
+      const connectionPromise = new Promise<ApiPromise>((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          reject(new Error('Connection timeout: The node is not responding.'))
+        }, 15000) // 15 second timeout
+
+        ApiPromise.create({
+          provider: currentProvider,
+          throwOnConnect: true,
+          throwOnUnknown: true,
         })
-        .catch(err => {
-          clearTimeout(timeoutId)
-          reject(err)
-        })
-    })
+          .then(api => {
+            clearTimeout(timeoutId)
+            resolve(api)
+          })
+          .catch(err => {
+            clearTimeout(timeoutId)
+            reject(err)
+          })
+      })
 
-    const api = await connectionPromise
+      const api = await connectionPromise
 
-    // If connection is successful, return the API and provider
-    return { api, provider }
-  } catch (e) {
-    console.error('Error creating API for RPC endpoint:', rpcEndpoint, e)
+      // If connection is successful, return the API and provider
+      return { api, provider: currentProvider }
+    } catch (e) {
+      console.error('Error creating API for RPC endpoint:', rpcEndpoint, e)
 
-    // More specific error messages based on the error
-    const errorMessage = e instanceof Error ? e.message : 'Unknown error'
+      // More specific error messages based on the error
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error'
 
-    if (errorMessage.includes('timeout')) {
-      throw InternalErrorType.CONNECTION_TIMEOUT
-    }
-    if (errorMessage.includes('refused') || errorMessage.includes('WebSocket')) {
-      throw InternalErrorType.CONNECTION_REFUSED
-    }
-    throw InternalErrorType.FAILED_TO_CONNECT_TO_BLOCKCHAIN
+      retryCount++
+      console.debug(`Connection attempt ${retryCount} failed. Retrying... (${MAX_CONNECTION_RETRIES - retryCount} attempts remaining)`)
+
+      // Disconnect the current provider before retrying
+      if (currentProvider) {
+        await disconnectSafely(undefined, currentProvider)
+        currentProvider = undefined
+      }
+
+      // Wait for 2 seconds before retrying
+      await new Promise(resolve => setTimeout(resolve, 2000))
   }
+
+  // If we've exhausted all retries, disconnect the provider
+  if (currentProvider) {
+    await disconnectSafely(undefined, currentProvider)
+    currentProvider = undefined
+  }
+
+  console.debug(`Failed to connect to the blockchain after ${MAX_CONNECTION_RETRIES} attempts: The node is not responding.`)
+
+  throw InternalErrorType.FAILED_TO_CONNECT_TO_BLOCKCHAIN
 }
 
 // Get Balance
