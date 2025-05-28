@@ -55,11 +55,6 @@ export async function getApiAndProvider(rpcEndpoint: string): Promise<{ api?: Ap
       // Create a provider with default settings (will allow first connection)
       currentProvider = new WsProvider(rpcEndpoint, AUTO_CONNECT_MS)
 
-      // Add an error handler to prevent the automatic reconnection loops
-      currentProvider.on('error', error => {
-        console.error('WebSocket error:', error)
-      })
-
       // Set a timeout for the connection attempt
       const connectionPromise = new Promise<ApiPromise>((resolve, reject) => {
         const timeoutId = setTimeout(() => {
@@ -86,11 +81,6 @@ export async function getApiAndProvider(rpcEndpoint: string): Promise<{ api?: Ap
       // If connection is successful, return the API and provider
       return { api, provider: currentProvider }
     } catch (e) {
-      console.error('Error creating API for RPC endpoint:', rpcEndpoint, e)
-
-      // More specific error messages based on the error
-      const errorMessage = e instanceof Error ? e.message : 'Unknown error'
-
       retryCount++
       console.debug(`Connection attempt ${retryCount} failed. Retrying... (${MAX_CONNECTION_RETRIES - retryCount} attempts remaining)`)
 
