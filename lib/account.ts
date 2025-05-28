@@ -43,7 +43,8 @@ import {
 const HOURS_IN_A_DAY = 24
 
 // Get API and Provider
-const MAX_CONNECTION_RETRIES = 5
+const MAX_CONNECTION_RETRIES = 3
+const AUTO_CONNECT_MS = 5
 
 export async function getApiAndProvider(rpcEndpoint: string): Promise<{ api?: ApiPromise; provider?: WsProvider; error?: string }> {
   let retryCount = 0
@@ -52,7 +53,7 @@ export async function getApiAndProvider(rpcEndpoint: string): Promise<{ api?: Ap
   while (retryCount < MAX_CONNECTION_RETRIES) {
     try {
       // Create a provider with default settings (will allow first connection)
-      currentProvider = new WsProvider(rpcEndpoint, 5)
+      currentProvider = new WsProvider(rpcEndpoint, AUTO_CONNECT_MS)
 
       // Add an error handler to prevent the automatic reconnection loops
       currentProvider.on('error', error => {
@@ -101,8 +102,8 @@ export async function getApiAndProvider(rpcEndpoint: string): Promise<{ api?: Ap
 
       // Wait for 2 seconds before retrying
       await new Promise(resolve => setTimeout(resolve, 2000))
+    }
   }
-
   // If we've exhausted all retries, disconnect the provider
   if (currentProvider) {
     await disconnectSafely(undefined, currentProvider)
