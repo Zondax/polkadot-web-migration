@@ -92,7 +92,7 @@ describe('getStakingInfo', () => {
         {
           value: 500,
           era: 105,
-          timeRemaining: '20 hours',
+          timeRemaining: '1 day and 6 hours',
           canWithdraw: false,
         },
       ],
@@ -147,7 +147,7 @@ describe('getStakingInfo', () => {
         {
           value: 200,
           era: 95,
-          timeRemaining: '-1 day and 6 hours',
+          timeRemaining: '0 hours',
           canWithdraw: true,
         },
       ],

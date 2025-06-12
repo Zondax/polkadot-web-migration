@@ -1007,6 +1007,11 @@ export async function getEnrichedNftMetadata(metadataUrl: string): Promise<{
  * @returns The human-readable time string
  */
 export function eraToHumanTime(era: number, currentEra: number, eraTimeInHours = 24): string {
+  // If current era is greater than the specified era, return "0 hours"
+  if (currentEra > era) {
+    return '0 hours'
+  }
+
   const erasRemaining = era - currentEra
   const hoursRemaining = erasRemaining * eraTimeInHours
   const daysRemaining = Math.floor(hoursRemaining / 24)
@@ -1015,9 +1020,9 @@ export function eraToHumanTime(era: number, currentEra: number, eraTimeInHours =
   const hoursFormatted: string = remainingHours === 1 ? 'hour' : 'hours'
   const daysFormatted: string = daysRemaining === 1 ? 'day' : 'days'
 
-  if (Math.abs(daysRemaining) > 0) {
-    if (Math.abs(remainingHours) > 0) {
-      return `${daysRemaining} ${daysFormatted} and ${Math.abs(remainingHours)} ${hoursFormatted}`
+  if (daysRemaining > 0) {
+    if (remainingHours > 0) {
+      return `${daysRemaining} ${daysFormatted} and ${remainingHours} ${hoursFormatted}`
     }
     return `${daysRemaining} ${daysFormatted}`
   }
