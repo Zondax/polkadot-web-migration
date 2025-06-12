@@ -423,7 +423,7 @@ export const ledgerState$ = observable({
       const accounts: Address[] = await Promise.all(
         response.result.map(async address => {
           // Balance Info
-          const { balances: balancesResponse, collections, error } = await getBalance(address, api)
+          const { balances: balancesResponse, collections, error } = await getBalance(address, api, app.id)
           const balances = balancesResponse.filter(balance => hasBalance([balance]))
 
           if (error) {
@@ -486,7 +486,7 @@ export const ledgerState$ = observable({
             balances: multisigBalancesResponse,
             collections: multisigCollections,
             error: multisigError,
-          } = await getBalance(multisigAddress, api)
+          } = await getBalance(multisigAddress, api, app.id)
           const multisigBalances = multisigBalancesResponse.filter(balance => hasBalance([balance]))
 
           if (multisigCollections) {
@@ -823,7 +823,7 @@ export const ledgerState$ = observable({
     }
 
     try {
-      const { balances, collections, error } = await getBalance(address, api)
+      const { balances, collections, error } = await getBalance(address, api, appId)
       if (!error) {
         updateAccount(appId, address.address, {
           ...address,

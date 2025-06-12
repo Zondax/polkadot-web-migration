@@ -52,6 +52,7 @@ interface AppConfigJSON {
   token: Token
   subscanId?: string
   explorer?: AppExplorerConfig
+  eraTimeInHours?: number
 }
 
 /**
@@ -99,6 +100,10 @@ export interface AppConfig {
    * Explorer configuration
    */
   explorer?: AppExplorerConfig
+  /**
+   * Era time in hours
+   */
+  eraTimeInHours?: number
 }
 
 /**
@@ -120,6 +125,7 @@ export const polkadotAppConfig: AppConfig = {
     id: 'subscan',
     network: 'polkadot',
   },
+  eraTimeInHours: 24,
 }
 
 /**
@@ -193,4 +199,10 @@ export const getChainPath = (appId: AppId): string | undefined => {
 export const getChainPrefix = (appId: AppId): number | undefined => {
   const appConfig = appsConfigs.get(appId)
   return appConfig ? appConfig.ss58Prefix : undefined
+}
+
+export const getEraTimeByAppId = (appId: AppId): number | undefined => {
+  const appConfig = appsConfigs.get(appId)
+  console.log('appConfig', appConfig)
+  return appConfig ? appConfig.eraTimeInHours : 24
 }

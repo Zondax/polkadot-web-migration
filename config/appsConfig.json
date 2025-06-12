@@ -12,7 +12,8 @@
     "explorer": {
       "id": "subscan",
       "network": "acala"
-    }
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "ajuna",
@@ -27,7 +28,8 @@
     "explorer": {
       "id": "subscan",
       "network": "ajuna"
-    }
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "astar",
@@ -42,7 +44,8 @@
     "explorer": {
       "id": "subscan",
       "network": "astar"
-    }
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "bifrost",
@@ -57,7 +60,8 @@
     "explorer": {
       "id": "subscan",
       "network": "bifrost"
-    }
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "centrifuge",
@@ -72,7 +76,8 @@
     "explorer": {
       "id": "subscan",
       "network": "bifrost"
-    }
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "darwinia",
@@ -87,7 +92,8 @@
     "explorer": {
       "id": "subscan",
       "network": "darwinia"
-    }
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "edgeware",
@@ -102,7 +108,8 @@
     "explorer": {
       "id": "edgeware-edgscan",
       "network": ""
-    }
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "hydradx",
@@ -117,7 +124,8 @@
     "explorer": {
       "id": "hydradx-subscan",
       "network": ""
-    }
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "karura",
@@ -132,7 +140,8 @@
     "explorer": {
       "id": "subscan",
       "network": "karura"
-    }
+    },
+    "eraTimeInHours": 6
   },
   {
     "id": "khala",
@@ -146,7 +155,8 @@
     "explorer": {
       "id": "subscan",
       "network": "khala"
-    }
+    },
+    "eraTimeInHours": 6
   },
   {
     "id": "kusama",
@@ -163,7 +173,8 @@
       "id": "subscan",
       "network": "kusama"
     },
-    "subscanId": "kusama"
+    "subscanId": "kusama",
+    "eraTimeInHours": 6
   },
   {
     "id": "nodle",
@@ -178,7 +189,8 @@
     "explorer": {
       "id": "subscan",
       "network": "nodle"
-    }
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "parallel",
@@ -188,7 +200,8 @@
     "token": {
       "symbol": "PARA",
       "decimals": 12
-    }
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "pendulum",
@@ -203,7 +216,8 @@
     "explorer": {
       "id": "subscan",
       "network": "pendulum"
-    }
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "phala",
@@ -218,7 +232,8 @@
     "explorer": {
       "id": "subscan",
       "network": "pendulum"
-    }
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "polkadex",
@@ -233,7 +248,8 @@
     "explorer": {
       "id": "polkadex-subscan",
       "network": ""
-    }
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "kusama-asset-hub",
@@ -250,7 +266,8 @@
       "id": "subscan",
       "network": "assethub-kusama"
     },
-    "subscanId": "assethub-kusama"
+    "subscanId": "assethub-kusama",
+    "eraTimeInHours": 6
   },
   {
     "id": "unique",
@@ -264,7 +281,8 @@
     "explorer": {
       "id": "subscan",
       "network": "unique"
-    }
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "xxnetwork",
@@ -279,6 +297,7 @@
     "explorer": {
       "id": "xxnetwork-explorer",
       "network": ""
-    }
+    },
+    "eraTimeInHours": 24
   }
 ]

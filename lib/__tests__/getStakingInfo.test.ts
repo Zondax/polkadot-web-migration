@@ -45,14 +45,14 @@ describe('getStakingInfo', () => {
 
   it('returns undefined if no controller (not bonded)', async () => {
     mockApi.query.staking.bonded.mockResolvedValue(mockOption<AccountId32>(undefined))
-    const result = await getStakingInfo('address', mockApi as unknown as ApiPromise)
+    const result = await getStakingInfo('address', mockApi as unknown as ApiPromise, 'polkadot')
     expect(result).toBeUndefined()
   })
 
   it('returns undefined if no staking ledger', async () => {
     mockApi.query.staking.bonded.mockResolvedValue(mockOption<AccountId32>('controllerAddress' as unknown as GenericAccountId))
     mockApi.query.staking.ledger.mockResolvedValue(mockOption<StakingLedger>(undefined))
-    const result = await getStakingInfo('address', mockApi as unknown as ApiPromise)
+    const result = await getStakingInfo('address', mockApi as unknown as ApiPromise, 'polkadot')
     expect(result).toBeUndefined()
   })
 
@@ -78,7 +78,7 @@ describe('getStakingInfo', () => {
       } as any)
     )
     mockApi.query.staking.currentEra.mockResolvedValue(mockOption<u32>({ toString: () => '8' } as any))
-    const result = await getStakingInfo('address', mockApi as unknown as ApiPromise)
+    const result = await getStakingInfo('address', mockApi as unknown as ApiPromise, 'polkadot')
     expect(result).toMatchObject({
       controller: mockStakingInfo.controller,
       canUnstake: false,
@@ -103,7 +103,7 @@ describe('getStakingInfo', () => {
       } as any)
     )
     mockApi.query.staking.currentEra.mockResolvedValue(mockOption<u32>({ toString: () => '0' } as any))
-    const result = await getStakingInfo(mockAddress, mockApi as unknown as ApiPromise)
+    const result = await getStakingInfo(mockAddress, mockApi as unknown as ApiPromise, 'polkadot')
     expect(result?.canUnstake).toBe(true)
   })
 })

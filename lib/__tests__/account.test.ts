@@ -462,7 +462,7 @@ describe('getNativeBalance', () => {
       query: { system: { account: vi.fn().mockResolvedValue(mockAccountInfo) } },
     } as unknown as ApiPromise
 
-    const result = await getNativeBalance('address', mockApi)
+    const result = await getNativeBalance('address', mockApi, 'polkadot')
     expect(result).toEqual({
       free: 1000000000000,
       reserved: 0,
@@ -497,17 +497,28 @@ describe('ipfsToHttpUrl', () => {
 
 describe('eraToHumanTime', () => {
   it('should return hours when less than 24 hours remaining', () => {
-    expect(eraToHumanTime(101, 100)).toBe('6 hours')
+    expect(eraToHumanTime(101, 100, 6)).toBe('6 hours')
   })
 
   it('should return days and hours when more than 24 hours remaining', () => {
-    expect(eraToHumanTime(105, 100)).toBe('1 days and 6 hours')
+    expect(eraToHumanTime(105, 100, 6)).toBe('1 day and 6 hours')
   })
 
   it('should handle zero values', () => {
-    expect(eraToHumanTime(0, 0)).toBe('0 hours')
-    expect(eraToHumanTime(1, 0)).toBe('6 hours')
-    expect(eraToHumanTime(4, 0)).toBe('1 days and 0 hours')
+    expect(eraToHumanTime(0, 0, 6)).toBe('0 hours')
+    expect(eraToHumanTime(1, 0, 6)).toBe('6 hours')
+    expect(eraToHumanTime(4, 0, 6)).toBe('1 day')
+  })
+
+  it('should handle default Polkadot era time (24h)', () => {
+    expect(eraToHumanTime(101, 100, 24)).toBe('1 day')
+    expect(eraToHumanTime(105, 100, 24)).toBe('5 days')
+  })
+
+  it('should handle Kusama era time (4h)', () => {
+    expect(eraToHumanTime(101, 100, 4)).toBe('4 hours')
+    expect(eraToHumanTime(105, 100, 4)).toBe('20 hours')
+    expect(eraToHumanTime(110, 100, 4)).toBe('1 day and 16 hours')
   })
 })
 
