@@ -151,7 +151,9 @@ function MultisigCallForm({
       {/* Existing Approvals */}
       {depositorAddress && existingApprovals && existingApprovals.length > 0 && (
         <div>
-          <div className="text-xs text-muted-foreground mb-1">Existing Approvals</div>
+          <div className="text-xs text-muted-foreground mb-1">
+            Existing Approvals ({existingApprovals.length}/{account.threshold})
+          </div>
           <div className="space-y-1">
             {existingApprovals.map(approval => (
               <div key={approval} className="flex items-center gap-1">
