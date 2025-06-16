@@ -1326,8 +1326,6 @@ export const prepareApproveAsMultiTx = async (
     estimatedWeight
   ) as SubmittableExtrinsic<'promise', ISubmittableResult>
 
-  const multisigTxCallHash = multisigTx.method.hash.toHex()
-
   return multisigTx
 }
 
@@ -1606,71 +1604,5 @@ export async function getProxyInfo(address: string, api: ApiPromise): Promise<Ac
   } catch (error) {
     console.error('Error fetching proxy information:', error)
     return undefined
-  }
-}
-
-/**
- * Checks if an account is a proxy for other accounts
- * @param proxyAddress The address to check if it is a proxy for others
- * @param api The API instance
- * @returns An array of accounts for which the provided address is a proxy, along with proxy type and delay info
- */
-export async function isProxyForOtherAccounts(
-  proxyAddress: string,
-  api: ApiPromise
-): Promise<
-  Array<{
-    delegator: string
-    type: string
-    delay: number
-  }>
-> {
-  try {
-    // Query storage entries with keys matching the proxy pallet
-    // This is an advanced approach that requires iterating through proxy entries
-    const entries = await api.query.proxy.proxies.entries()
-
-    // Filter and map entries where our address acts as a proxy
-    const proxiedAccounts: Array<{
-      delegator: string
-      type: string
-      delay: number
-    }> = entries
-      .filter(([_, proxiesData]) => {
-        // Extract proxies data
-        const [proxies] = proxiesData as unknown as ProxiesResult
-
-        // Check if our address is in the list of proxies
-        return proxies.some(proxy => {
-          const delegate = proxy.delegate.toString()
-          return delegate === proxyAddress
-        })
-      })
-      .map(([storageKey, proxiesData]) => {
-        // Extract the delegator (account being proxied) from the storage key
-        const delegator = storageKey.args[0].toString()
-
-        // Extract proxies data
-        const [proxies] = proxiesData as unknown as ProxiesResult
-
-        // Find the specific proxy definition for our address
-        const proxyDef = proxies.find(proxy => proxy.delegate.toString() === proxyAddress)
-
-        // This should never happen due to our filter above
-        if (!proxyDef) {
-          throw new Error(`Could not find proxy definition for ${proxyAddress} in ${delegator}'s proxies`)
-        }
-
-        return {
-          delegator,
-          type: proxyDef.proxyType.toString(),
-          delay: Number(proxyDef.delay.toString()),
-        }
-      })
-
-    return proxiedAccounts
-  } catch (error) {
-    console.error('Error checking if address is proxy for others:', error)
-    return []
   }
 }
