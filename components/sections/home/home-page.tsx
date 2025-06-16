@@ -48,7 +48,7 @@ export function HomePage({
                       damping: 25,
                     }}
                     className="inline-block text-transparent bg-clip-text 
-                    bg-gradient-to-r from-white to-white/80"
+                    bg-linear-to-r from-white to-white/80"
                   >
                     {letter}
                   </motion.span>
@@ -78,7 +78,7 @@ export function HomePage({
             }}
             className="mb-6"
           >
-            <div className="inline-block px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
+            <div className="inline-block px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-xs border border-white/20">
               <span className="text-sm text-white/80 italic ">Beta: This project is still in development</span>
             </div>
           </motion.div>
@@ -117,7 +117,7 @@ export function HomePage({
                 <Button
                   variant="ghost"
                   className="rounded-[1.15rem] px-8 py-6 text-lg font-semibold backdrop-blur-md 
-                          bg-white/95 hover:bg-white/100 
+                          bg-white/95 hover:bg-white 
                           border border-white/20 hover:shadow-md
                           group-hover:-translate-y-0.5 transition-all duration-300"
                   style={{ color: '#FF2670' }}

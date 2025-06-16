@@ -30,7 +30,7 @@ function TransactionDropdown({ transaction, appId }: TransactionDropdownProps) {
             <ExplorerLink value={transaction.callData ?? ''} tooltipBody={transaction.callData} className="break-all" disableLink />
             <CustomTooltip
               tooltipBody="The full call data that can be supplied to a final call to multi approvals."
-              className="!normal-case font-normal"
+              className="normal-case! font-normal"
             >
               <Info className="h-4 w-4 inline-block ml-1 text-gray-400" />
             </CustomTooltip>
