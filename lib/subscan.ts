@@ -51,7 +51,6 @@ async function subscanPost<T extends SubscanBaseResponse>(network: string, endpo
     const data: T = await response.json()
     return data
   } catch (error) {
-    console.error('Error making Subscan API request through proxy:', error)
     throw error
   }
 }
