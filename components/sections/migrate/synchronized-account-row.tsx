@@ -27,6 +27,7 @@ import { canUnstake, hasNonTransferableBalance, hasStakedBalance, isNativeBalanc
 import { ExplorerLink } from '@/components/ExplorerLink'
 import type { UpdateTransaction } from '@/components/hooks/useSynchronization'
 import { Spinner } from '@/components/icons'
+import { Badge } from '@/components/ui/badge'
 import { Button, type ButtonVariant } from '@/components/ui/button'
 import { ExplorerItemType } from '@/config/explorers'
 import { getIdentityItems } from '@/lib/utils/ui'
@@ -208,14 +209,39 @@ const SynchronizedAccountRow = observer(
         items.push({ label: 'Multisig member of', value: account.memberMultisigAddresses?.[0] ?? '-', icon: User, hasCopyButton: true })
       }
       if (isMultisigAddress) {
+        const multisigAccount = account as MultisigAddress
+        const memberCount = multisigAccount.members?.length ?? 0
+
+        // Create members component to display member addresses
+        const membersComponent = (
+          <div className="flex flex-col gap-1">
+            {multisigAccount.members?.map((member, index) => (
+              <div key={member.address} className="flex items-center gap-1">
+                <ExplorerLink
+                  value={member.address}
+                  appId={appId}
+                  explorerLinkType={ExplorerItemType.Address}
+                  disableTooltip
+                  className="break-all"
+                />
+                {member.internal && (
+                  <Badge variant="light-gray" className="text-[10px] leading-tight flex-shrink-0">
+                    Internal
+                  </Badge>
+                )}
+              </div>
+            ))}
+          </div>
+        )
+
         items.push(
           { label: 'Multisig address', value: account.address, icon: User, hasCopyButton: true },
-          { label: 'Threshold', value: (account as MultisigAddress).threshold?.toString() ?? '-', icon: Shield },
-          { label: 'Members', value: (account as MultisigAddress).members?.length.toString() ?? '-', icon: Users }
+          { label: 'Threshold', value: multisigAccount.threshold?.toString() ?? '-', icon: Shield },
+          { label: `Members (${memberCount})`, value: membersComponent, icon: Users }
         )
       }
       return (
-        <div className="p-2 min-w-[240px]">
+        <div className="p-2 min-w-[320px]">
           <TooltipBody items={items} />
         </div>
       )
