@@ -108,7 +108,6 @@ export interface MultisigCall {
 export interface MultisigAddress extends Address {
   threshold: number
   members: MultisigMember[]
-  memberMultisigAddresses: undefined // if an account is a multisig account, it will not be a member of any multisig address
   pendingMultisigCalls: MultisigCall[]
 }
 
