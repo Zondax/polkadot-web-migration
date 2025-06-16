@@ -90,7 +90,7 @@ const BalanceHoverCard = ({ balances, collections, token, isMigration }: Balance
  * - Only renders the visualization when balance data is available
  */
 const LockedBalanceHoverCard = ({ balance, token }: { balance?: Native; token: Token }) => {
-  const lockedBalance = balance?.frozen ?? 0
+  const lockedBalance = (balance?.total ?? 0) - (balance?.transferable ?? 0)
 
   const formattedLockedBalance = useMemo(() => {
     return lockedBalance !== undefined ? formatBalance(lockedBalance, token) : null

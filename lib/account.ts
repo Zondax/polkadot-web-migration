@@ -2,13 +2,14 @@ import { merkleizeMetadata } from '@polkadot-api/merkleize-metadata'
 import { ApiPromise, WsProvider } from '@polkadot/api'
 import type { SubmittableExtrinsic } from '@polkadot/api/types'
 import type { GenericExtrinsicPayload } from '@polkadot/types'
-import type { Option, Vec, u32 } from '@polkadot/types-codec'
+import type { Option, u128, u32, Vec } from '@polkadot/types-codec'
 import type {
   AccountId32,
   Balance,
   Multisig,
   OpaqueMetadata,
   Registration as PolkadotRegistration,
+  ProxyDefinition,
   RuntimeDispatchInfo,
   StakingLedger,
 } from '@polkadot/types/interfaces'
@@ -16,11 +17,12 @@ import type { ExtrinsicPayloadValue, ISubmittableResult } from '@polkadot/types/
 import { hexToU8a } from '@polkadot/util'
 import type { AppConfig, AppId } from 'config/apps'
 import { DEFAULT_ERA_TIME_IN_HOURS, getEraTimeByAppId } from 'config/apps'
-import { MULTISIG_WEIGHT_BUFFER, defaultWeights } from 'config/config'
+import { defaultWeights, MULTISIG_WEIGHT_BUFFER } from 'config/config'
 import { errorDetails } from 'config/errors'
 import { errorAddresses, mockBalances } from 'config/mockData'
 import { getMultisigInfo } from 'lib/subscan'
 import {
+  type AccountProxy,
   type Address,
   type AddressBalance,
   BalanceType,
@@ -174,12 +176,17 @@ export async function getNativeBalance(addressString: string, api: ApiPromise, a
     if (balance && 'data' in balance) {
       const { free, reserved, frozen } = balance.data as any // AccountData is not updated in @polkadot/types
 
+      // According to the official Polkadot documentation:
+      // https://wiki.polkadot.network/learn/learn-guides-accounts/#query-account-data-in-polkadot-js
+      // The Existential Deposit is not taking into account to calculate the transferable balance because it is not necessary to keep the account alive
+
       const nativeBalance: Native = {
         free: Number.parseFloat(free.toString()),
         reserved: Number.parseFloat(reserved.toString()),
         frozen: Number.parseFloat(frozen.toString()),
         total: Number.parseFloat(free.toString()) + Number.parseFloat(reserved.toString()),
-        transferable: Number.parseFloat(free.toString()) - Number.parseFloat(frozen.toString()),
+        transferable:
+          Number.parseFloat(free.toString()) - Math.max(Number.parseFloat(frozen.toString()) - Number.parseFloat(reserved.toString()), 0),
       }
 
       if (nativeBalance.frozen > 0) {
@@ -389,6 +396,12 @@ export async function prepareRemoveIdentityTransaction(
   const removeIdentityTx = api.tx.identity?.killIdentity(address) as SubmittableExtrinsic<'promise', ISubmittableResult>
 
   return removeIdentityTx
+}
+
+export async function prepareRemoveProxiesTransaction(api: ApiPromise): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>> {
+  const removeProxyTx = api.tx.proxy.removeProxies() as SubmittableExtrinsic<'promise', ISubmittableResult>
+
+  return removeProxyTx
 }
 
 export async function getTxFee(tx: SubmittableExtrinsic<'promise', ISubmittableResult>, senderAddress: string): Promise<string> {
@@ -1565,5 +1578,99 @@ export function validateCallDataMatchesHash(api: ApiPromise, callData: string, e
     return matches
   } catch (error) {
     return false
+  }
+}
+
+// The storage item proxies(AccountId32) returns [Vec<ProxyDefinition>, u128]
+// See: https://polkadot.js.org/docs/substrate/storage#proxies-accountid32---vecproxydefinition-u128
+type ProxiesResult = [Vec<ProxyDefinition>, u128]
+
+export async function getProxyInfo(address: string, api: ApiPromise): Promise<AccountProxy | undefined> {
+  try {
+    const proxiesResult = (await api.query.proxy.proxies(address)) as unknown as ProxiesResult
+    const [proxies, deposit] = proxiesResult
+
+    const proxiesHuman = proxies.toHuman() as ProxyDefinition[] | undefined
+    const proxy: AccountProxy = {
+      proxies: Array.isArray(proxiesHuman)
+        ? proxiesHuman.map((proxy: any) => ({
+            type: proxy.proxyType,
+            address: proxy.delegate,
+            delay: proxy.delay,
+          }))
+        : [],
+      deposit: Number(deposit.toString()),
+    }
+
+    return proxy
+  } catch (error) {
+    console.error('Error fetching proxy information:', error)
+    return undefined
+  }
+}
+
+/**
+ * Checks if an account is a proxy for other accounts
+ * @param proxyAddress The address to check if it is a proxy for others
+ * @param api The API instance
+ * @returns An array of accounts for which the provided address is a proxy, along with proxy type and delay info
+ */
+export async function isProxyForOtherAccounts(
+  proxyAddress: string,
+  api: ApiPromise
+): Promise<
+  Array<{
+    delegator: string
+    type: string
+    delay: number
+  }>
+> {
+  try {
+    // Query storage entries with keys matching the proxy pallet
+    // This is an advanced approach that requires iterating through proxy entries
+    const entries = await api.query.proxy.proxies.entries()
+
+    // Filter and map entries where our address acts as a proxy
+    const proxiedAccounts: Array<{
+      delegator: string
+      type: string
+      delay: number
+    }> = entries
+      .filter(([_, proxiesData]) => {
+        // Extract proxies data
+        const [proxies] = proxiesData as unknown as ProxiesResult
+
+        // Check if our address is in the list of proxies
+        return proxies.some(proxy => {
+          const delegate = proxy.delegate.toString()
+          return delegate === proxyAddress
+        })
+      })
+      .map(([storageKey, proxiesData]) => {
+        // Extract the delegator (account being proxied) from the storage key
+        const delegator = storageKey.args[0].toString()
+
+        // Extract proxies data
+        const [proxies] = proxiesData as unknown as ProxiesResult
+
+        // Find the specific proxy definition for our address
+        const proxyDef = proxies.find(proxy => proxy.delegate.toString() === proxyAddress)
+
+        // This should never happen due to our filter above
+        if (!proxyDef) {
+          throw new Error(`Could not find proxy definition for ${proxyAddress} in ${delegator}'s proxies`)
+        }
+
+        return {
+          delegator,
+          type: proxyDef.proxyType.toString(),
+          delay: Number(proxyDef.delay.toString()),
+        }
+      })
+
+    return proxiedAccounts
+  } catch (error) {
+    console.error('Error checking if address is proxy for others:', error)
+    return []
   }
 }

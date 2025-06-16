@@ -1,6 +1,7 @@
 import { observer } from '@legendapp/state/react'
 import {
   AlertCircle,
+  Banknote,
   BanknoteArrowDown,
   Group,
   Info,
@@ -11,6 +12,7 @@ import {
   Trash2,
   TriangleAlert,
   User,
+  UserCog,
   Users,
 } from 'lucide-react'
 import { useState } from 'react'
@@ -35,6 +37,7 @@ import ApproveMultisigCallDialog from './approve-multisig-call-dialog'
 import { BalanceHoverCard, LockedBalanceHoverCard } from './balance-hover-card'
 import DestinationAddressSelect from './destination-address-select'
 import RemoveIdentityDialog from './remove-identity-dialog'
+import RemoveProxyDialog from './remove-proxy-dialog'
 import UnstakeDialog from './unstake-dialog'
 import WithdrawDialog from './withdraw-dialog'
 
@@ -78,6 +81,7 @@ const SynchronizedAccountRow = observer(
     const [withdrawOpen, setWithdrawOpen] = useState<boolean>(false)
     const [removeIdentityOpen, setRemoveIdentityOpen] = useState<boolean>(false)
     const [approveMultisigCallOpen, setApproveMultisigCallOpen] = useState<boolean>(false)
+    const [removeProxyOpen, setRemoveProxyOpen] = useState<boolean>(false)
     const isNoBalance: boolean = balance === undefined
     const isFirst: boolean = balanceIndex === 0 || isNoBalance
     const isNative = isNativeBalance(balance)
@@ -90,6 +94,7 @@ const SynchronizedAccountRow = observer(
     const isMultisigAddress: boolean = isMultisigAddressFunction(account)
     const internalMultisigMembers: MultisigMember[] = (account as MultisigAddress).members?.filter(member => member.internal) ?? []
     const signatoryAddress: string = balance?.transaction?.signatoryAddress ?? ''
+    const isProxied: boolean = (account.proxy?.proxies.length ?? 0) > 0
 
     if (isMultisigAddress && internalMultisigMembers.length === 0) {
       // it shouldn't happen, but if it does, we don't want to render the row
@@ -139,6 +144,16 @@ const SynchronizedAccountRow = observer(
         onClick: () => setApproveMultisigCallOpen(true),
         disabled: false,
         icon: <Users className="h-4 w-4" />,
+      })
+    }
+
+    if (isProxied) {
+      actions.push({
+        label: 'Proxy',
+        tooltip: 'Remove proxy',
+        onClick: () => setRemoveProxyOpen(true),
+        disabled: false,
+        icon: <Trash2 className="h-4 w-4" />,
       })
     }
 
@@ -212,12 +227,13 @@ const SynchronizedAccountRow = observer(
         // Create members component to display member addresses
         const membersComponent = (
           <div className="flex flex-col gap-1">
-            {multisigAccount.members?.map((member, index) => (
+            {multisigAccount.members?.map(member => (
               <div key={member.address} className="flex items-center gap-1">
                 <ExplorerLink
                   value={member.address}
                   appId={appId}
                   explorerLinkType={ExplorerItemType.Address}
+                  truncate={false}
                   disableTooltip
                   className="break-all"
                 />
@@ -254,6 +270,37 @@ const SynchronizedAccountRow = observer(
           <TooltipBody items={getIdentityItems(account.registration)} />
         </div>
       )
+    }
+
+    const tooltipProxy = (): React.ReactNode => {
+      const items: TooltipItem[] = []
+      if (isProxied) {
+        // Create members component to display member addresses
+        const proxiesComponent = account.proxy?.proxies ? (
+          <div className="flex flex-col gap-1">
+            {account.proxy?.proxies?.map(proxy => (
+              <div key={proxy.address} className="flex items-center gap-1">
+                <ExplorerLink
+                  value={proxy.address}
+                  appId={appId}
+                  explorerLinkType={ExplorerItemType.Address}
+                  truncate={false}
+                  disableTooltip
+                  className="break-all"
+                />
+              </div>
+            ))}
+          </div>
+        ) : null
+
+        items.push({ label: 'Proxied by', value: proxiesComponent ?? '-', icon: User, hasCopyButton: true })
+        items.push({ label: 'Deposit', value: formatBalance(account.proxy?.deposit ?? 0, token), icon: Banknote, className: 'font-mono' })
+      }
+      return items.length > 0 ? (
+        <div className="p-2 min-w-[240px]">
+          <TooltipBody items={items} />
+        </div>
+      ) : null
     }
 
     const renderMultisigSignatoryAddress = () => {
@@ -343,6 +390,11 @@ const SynchronizedAccountRow = observer(
                   <Group className="h-4 w-4 text-polkadot-pink" />
                 </CustomTooltip>
               ) : null}
+              {isProxied && (
+                <CustomTooltip tooltipBody={tooltipProxy()}>
+                  <UserCog className="h-4 w-4 text-polkadot-pink" />
+                </CustomTooltip>
+              )}
             </div>
           </TableCell>
         )}
@@ -399,6 +451,7 @@ const SynchronizedAccountRow = observer(
           account={account as MultisigAddress}
           appId={appId}
         />
+        <RemoveProxyDialog open={removeProxyOpen} setOpen={setRemoveProxyOpen} token={token} account={account} appId={appId} />
       </TableRow>
     )
   }
