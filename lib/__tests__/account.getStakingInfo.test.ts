@@ -1,7 +1,7 @@
 import type { ApiPromise } from '@polkadot/api'
 import type { u32 } from '@polkadot/types'
-import type { Option, Vec } from '@polkadot/types-codec'
-import type { AccountId32, Balance, StakingLedger } from '@polkadot/types/interfaces'
+import type { Option } from '@polkadot/types-codec'
+import type { AccountId32, StakingLedger } from '@polkadot/types/interfaces'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getStakingInfo } from '../account'
 
@@ -36,12 +36,16 @@ describe('getStakingInfo', () => {
   it('returns undefined when account is not staking (no controller)', async () => {
     const bonded = { isSome: false } as Option<AccountId32>
     const api = createApiMock({ bonded })
-    const result = await getStakingInfo(mockAddress, api)
+    const result = await getStakingInfo(mockAddress, api, 'polkadot')
     expect(result).toBeUndefined()
   })
 
   it('returns staking info with no unlocking chunks', async () => {
     const bonded = { isSome: true, toHuman: () => mockController } as unknown as Option<AccountId32>
+    const unlockingChunk = {
+      value: { toNumber: () => 500 },
+      era: { toString: () => '105' },
+    }
     const stakingLedger = {
       isEmpty: false,
       unwrap: () => ({
@@ -52,7 +56,7 @@ describe('getStakingInfo', () => {
     } as unknown as Option<StakingLedger>
     const currentEra = { isSome: true, unwrap: () => ({ toString: () => '100' }) } as unknown as Option<u32>
     const api = createApiMock({ bonded, ledger: stakingLedger, currentEra })
-    const result = await getStakingInfo(mockAddress, api)
+    const result = await getStakingInfo(mockAddress, api, 'kusama')
     expect(result).toEqual({
       controller: mockController,
       canUnstake: false,
@@ -78,7 +82,7 @@ describe('getStakingInfo', () => {
     } as unknown as Option<StakingLedger>
     const currentEra = { isSome: true, unwrap: () => ({ toString: () => '100' }) } as unknown as Option<u32>
     const api = createApiMock({ bonded, ledger: stakingLedger, currentEra })
-    const result = await getStakingInfo(mockAddress, api)
+    const result = await getStakingInfo(mockAddress, api, 'kusama')
     expect(result).toEqual({
       controller: mockController,
       canUnstake: false,
@@ -88,7 +92,7 @@ describe('getStakingInfo', () => {
         {
           value: 500,
           era: 105,
-          timeRemaining: '1 days and 6 hours',
+          timeRemaining: '1 day and 6 hours',
           canWithdraw: false,
         },
       ],
@@ -121,7 +125,7 @@ describe('getStakingInfo', () => {
     } as unknown as Option<StakingLedger>
     const currentEra = { isSome: true, unwrap: () => ({ toString: () => '100' }) } as unknown as Option<u32>
     const api = createApiMock({ bonded, ledger: stakingLedger, currentEra })
-    const result = await getStakingInfo(mockAddress, api)
+    const result = await getStakingInfo(mockAddress, api, 'kusama')
     expect(result).toEqual({
       controller: mockController,
       canUnstake: false,
@@ -131,7 +135,7 @@ describe('getStakingInfo', () => {
         {
           value: 500,
           era: 105,
-          timeRemaining: '1 days and 6 hours',
+          timeRemaining: '1 day and 6 hours',
           canWithdraw: false,
         },
         {
@@ -143,7 +147,7 @@ describe('getStakingInfo', () => {
         {
           value: 200,
           era: 95,
-          timeRemaining: '-6 hours',
+          timeRemaining: '0 hours',
           canWithdraw: true,
         },
       ],
@@ -154,7 +158,7 @@ describe('getStakingInfo', () => {
     const bonded = { isSome: true, toHuman: () => mockController } as unknown as Option<AccountId32>
     const stakingLedger = { isEmpty: true } as unknown as Option<StakingLedger>
     const api = createApiMock({ bonded, ledger: stakingLedger })
-    const result = await getStakingInfo(mockAddress, api)
+    const result = await getStakingInfo(mockAddress, api, 'polkadot')
     expect(result).toBeUndefined()
   })
 })
