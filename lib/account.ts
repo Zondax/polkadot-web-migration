@@ -16,7 +16,7 @@ import type { ExtrinsicPayloadValue, ISubmittableResult } from '@polkadot/types/
 import { hexToU8a } from '@polkadot/util'
 import { createKeyMulti, encodeAddress } from '@polkadot/util-crypto'
 import type { AppConfig, AppId } from 'config/apps'
-import { getEraTimeByAppId } from 'config/apps'
+import { DEFAULT_ERA_TIME_IN_HOURS, getEraTimeByAppId } from 'config/apps'
 import { MULTISIG_WEIGHT_BUFFER, defaultWeights } from 'config/config'
 import { errorDetails } from 'config/errors'
 import { errorAddresses, mockBalances } from 'config/mockData'
@@ -36,6 +36,8 @@ import {
   type TransactionDetails,
   TransactionStatus,
 } from 'state/types/ledger'
+
+const HOURS_IN_A_DAY = 24
 
 // Get API and Provider
 export async function getApiAndProvider(rpcEndpoint: string): Promise<{ api?: ApiPromise; provider?: WsProvider; error?: string }> {
@@ -1006,7 +1008,7 @@ export async function getEnrichedNftMetadata(metadataUrl: string): Promise<{
  * @param eraTimeInHours The duration of one era in hours (defaults to 24 for Polkadot)
  * @returns The human-readable time string
  */
-export function eraToHumanTime(era: number, currentEra: number, eraTimeInHours = 24): string {
+export function eraToHumanTime(era: number, currentEra: number, eraTimeInHours = DEFAULT_ERA_TIME_IN_HOURS): string {
   // If current era is greater than the specified era, return "0 hours"
   if (currentEra > era) {
     return '0 hours'
@@ -1014,8 +1016,8 @@ export function eraToHumanTime(era: number, currentEra: number, eraTimeInHours =
 
   const erasRemaining = era - currentEra
   const hoursRemaining = erasRemaining * eraTimeInHours
-  const daysRemaining = Math.floor(hoursRemaining / 24)
-  const remainingHours = hoursRemaining % 24
+  const daysRemaining = Math.floor(hoursRemaining / HOURS_IN_A_DAY)
+  const remainingHours = hoursRemaining % HOURS_IN_A_DAY
 
   const hoursFormatted: string = remainingHours === 1 ? 'hour' : 'hours'
   const daysFormatted: string = daysRemaining === 1 ? 'day' : 'days'

@@ -3,6 +3,8 @@ import type { ExplorerId } from './explorers'
 // Import the JSON data directly
 const appsConfigData: AppConfigJSON[] = require('./appsConfig.json')
 
+export const DEFAULT_ERA_TIME_IN_HOURS = 24
+
 /**
  * Token configuration
  */
@@ -203,6 +205,5 @@ export const getChainPrefix = (appId: AppId): number | undefined => {
 
 export const getEraTimeByAppId = (appId: AppId): number | undefined => {
   const appConfig = appsConfigs.get(appId)
-  console.log('appConfig', appConfig)
-  return appConfig ? appConfig.eraTimeInHours : 24
+  return appConfig ? appConfig.eraTimeInHours : DEFAULT_ERA_TIME_IN_HOURS
 }
