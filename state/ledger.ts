@@ -453,8 +453,9 @@ export const ledgerState$ = observable({
 
           // Multisig Addresses
           let memberMultisigAddresses: string[] | undefined
-          if (app.subscanId) {
-            const multisigAddresses = await getMultisigAddresses(address.address, address.path, app.subscanId, api)
+          if (app.explorer?.id === 'subscan') {
+            // a subscan endpoint is used to get the multisig addresses
+            const multisigAddresses = await getMultisigAddresses(address.address, address.path, app.explorer.network || app.id, api)
             memberMultisigAddresses = multisigAddresses?.map(multisigAddress => multisigAddress.address)
 
             if (memberMultisigAddresses && multisigAddresses) {
