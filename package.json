@@ -21,6 +21,7 @@
     "format:check": "biome format . && sort-package-json -c",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write --unsafe .",
+    "prepare-pr": "pnpm format && pnpm lint:fix && pnpm test && pnpm test:e2e && pnpm build",
     "start": "next start",
     "start:docker": "PORT=${PORT:-3000} && docker run --rm -p $PORT:3000 polkadot-migration",
     "test": "vitest run --coverage",
@@ -77,7 +78,7 @@
     "next": "15.2.4",
     "next-auth": "5.0.0-beta.28",
     "next-themes": "^0.4.6",
-    "postcss": "^8.5.3",
+    "postcss": "^8.5.6",
     "prop-types": "^15.8.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
@@ -88,7 +89,7 @@
     "tailwindcss": "^3.4.17",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^11.1.0",
-    "zod": "^3.24.2"
+    "zod": "^3.25.64"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
