@@ -25,31 +25,32 @@ export function ConnectTabContent({ onContinue }: ConnectTabContentProps) {
       <div className="max-w-md text-center">
         <p className="mb-6">To begin the migration process, please follow these steps:</p>
         <ol className="text-center space-y-3">
-          <li className="flex items-center justify-center">
-            <span className={`mr-3 font-medium ${isLedgerConnected ? 'text-polkadot-green' : ''}`}>1.</span>
-            <span className={isLedgerConnected ? 'text-polkadot-green' : ''}>Connect your Ledger device to your computer</span>
+          <li className={`flex items-center justify-center ${isLedgerConnected ? 'text-polkadot-green' : ''}`} data-testid="connect-step-1">
+            <span className="mr-3 font-medium">1.</span>
+            <span>Connect your Ledger device to your computer</span>
           </li>
-          <li className="flex items-center justify-center">
-            <span className={`mr-3 font-medium ${isLedgerConnected ? 'text-polkadot-green' : ''}`}>2.</span>
-            <span className={isLedgerConnected ? 'text-polkadot-green' : ''}>Enter your PIN code on the device</span>
+          <li className={`flex items-center justify-center ${isLedgerConnected ? 'text-polkadot-green' : ''}`} data-testid="connect-step-2">
+            <span className="mr-3 font-medium">2.</span>
+            <span>Enter your PIN code on the device</span>
           </li>
-          <li className="flex items-center justify-center">
-            <span
-              className={`mr-3 font-medium ${isLedgerConnected && !isAppOpen ? 'text-rose-400' : isAppOpen ? 'text-polkadot-green' : ''}`}
-            >
-              3.
-            </span>
-            <span className={isLedgerConnected && !isAppOpen ? 'text-rose-400' : isAppOpen ? 'text-polkadot-green' : ''}>
-              Open the Migration App on your Ledger
-            </span>
+          <li
+            className={`flex items-center justify-center ${isLedgerConnected && !isAppOpen ? 'text-rose-400' : isAppOpen ? 'text-polkadot-green' : ''}`}
+            data-testid="connect-step-3"
+          >
+            <span className="mr-3 font-medium">3.</span>
+            <span>Open the Migration App on your Ledger</span>
           </li>
-          <li className="flex items-center justify-center">
+          <li className="flex items-center justify-center" data-testid="connect-step-4">
             <span className="mr-3 font-medium">4.</span>
             <span>Click the Connect button below</span>
           </li>
         </ol>
       </div>
-      <Button className="mt-10 bg-gray-900 hover:bg-gray-800 text-white px-6 py-2 rounded-md" onClick={handleConnect}>
+      <Button
+        className="mt-10 bg-gray-900 hover:bg-gray-800 text-white px-6 py-2 rounded-md"
+        onClick={handleConnect}
+        data-testid="connect-ledger-button"
+      >
         Connect Ledger
       </Button>
     </div>
