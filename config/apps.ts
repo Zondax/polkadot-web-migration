@@ -52,7 +52,6 @@ interface AppConfigJSON {
   rpcEndpoint?: string
   peopleRpcEndpoint?: string
   token: Token
-  subscanId?: string
   explorer?: AppExplorerConfig
   eraTimeInHours?: number
 }
@@ -95,10 +94,6 @@ export interface AppConfig {
    */
   token: Token
   /**
-   * Subscan api id of the network: https://support.subscan.io/
-   */
-  subscanId?: string
-  /**
    * Explorer configuration
    */
   explorer?: AppExplorerConfig
@@ -117,7 +112,6 @@ export const polkadotAppConfig: AppConfig = {
   bip44Path: "m/44'/354'/0'/0'/0'", // 354 = 0x80000162
   ss58Prefix: 0,
   rpcEndpoint: 'wss://rpc.polkadot.io',
-  subscanId: 'polkadot',
   token: {
     symbol: 'DOT',
     decimals: 10,
@@ -143,7 +137,6 @@ export const apps: AppConfig[] = [
       decimals: app.token.decimals,
       logoId: app.token.logoId || app.id,
     },
-    subscanId: app.subscanId,
   })),
   polkadotAppConfig,
 ]

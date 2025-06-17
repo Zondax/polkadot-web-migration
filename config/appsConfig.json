@@ -173,7 +173,6 @@
       "id": "subscan",
       "network": "kusama"
     },
-    "subscanId": "kusama",
     "eraTimeInHours": 6
   },
   {
@@ -266,7 +265,6 @@
       "id": "subscan",
       "network": "assethub-kusama"
     },
-    "subscanId": "assethub-kusama",
     "eraTimeInHours": 6
   },
   {
