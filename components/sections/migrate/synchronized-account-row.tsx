@@ -205,9 +205,6 @@ const SynchronizedAccountRow = observer(
 
     const tooltipMultisig = (): React.ReactNode => {
       const items: TooltipItem[] = []
-      if (isMultisigMember) {
-        items.push({ label: 'Multisig member of', value: account.memberMultisigAddresses?.[0] ?? '-', icon: User, hasCopyButton: true })
-      }
       if (isMultisigAddress) {
         const multisigAccount = account as MultisigAddress
         const memberCount = multisigAccount.members?.length ?? 0
@@ -239,6 +236,9 @@ const SynchronizedAccountRow = observer(
           { label: 'Threshold', value: multisigAccount.threshold?.toString() ?? '-', icon: Shield },
           { label: `Members (${memberCount})`, value: membersComponent, icon: Users }
         )
+      }
+      if (isMultisigMember) {
+        items.push({ label: 'Multisig member of', value: account.memberMultisigAddresses?.[0] ?? '-', icon: User, hasCopyButton: true })
       }
       return (
         <div className="p-2 min-w-[320px]">

@@ -14,7 +14,6 @@ import type {
 } from '@polkadot/types/interfaces'
 import type { ExtrinsicPayloadValue, ISubmittableResult } from '@polkadot/types/types/extrinsic'
 import { hexToU8a } from '@polkadot/util'
-import { createKeyMulti, encodeAddress } from '@polkadot/util-crypto'
 import type { AppConfig, AppId } from 'config/apps'
 import { DEFAULT_ERA_TIME_IN_HOURS, getEraTimeByAppId } from 'config/apps'
 import { MULTISIG_WEIGHT_BUFFER, defaultWeights } from 'config/config'
@@ -1158,20 +1157,6 @@ export async function getIdentityInfo(address: string, api: ApiPromise): Promise
 }
 
 /**
- * Computes the multisig address from signatories and threshold (manual computation)
- * @param signatories Array of signatory addresses (will be sorted internally)
- * @param threshold The threshold number of signatures required
- * @param ss58Prefix The SS58 prefix for the target network (default: 0 for Polkadot)
- * @returns The computed multisig address
- */
-export function computeMultisigAddress(addresses: string[], threshold: number, ss58Format: number): string {
-  const multiAddress = createKeyMulti(addresses, threshold)
-  // Convert byte array to SS58 encoding.
-  const Ss58Address = encodeAddress(multiAddress, ss58Format)
-  return Ss58Address
-}
-
-/**
  * Gets the multisig addresses for a given address
  * @param address The address to check
  * @param path The derivation path or identifier for the address
@@ -1188,84 +1173,105 @@ export async function getMultisigAddresses(
   try {
     const multisigInfo = await getMultisigInfo(address, network)
 
-    if (!multisigInfo?.multi_account || multisigInfo.multi_account.length === 0) {
+    // If no multisig info is available, return undefined
+    if (!multisigInfo) {
       return undefined
     }
 
-    // Map the multisig addresses to the required format
-    const multisigAddresses: MultisigAddress[] = multisigInfo.multi_account.map(account => ({
-      address: account.address,
-      path: '', // it's not an internal address, so the information is not available
-      pubKey: '', // it's not an internal address, so the information is not available
-      threshold: multisigInfo.threshold,
-      members:
-        multisigInfo.multi_account_member?.map(member => ({
+    const multisigAddresses: MultisigAddress[] = []
+
+    // Case 1: Address is a multisig account itself (has threshold and members). It should not happen, because the synchroniser should not have multisig accounts
+    if (multisigInfo.threshold && multisigInfo.multi_account_member && multisigInfo.multi_account_member.length > 0) {
+      multisigAddresses.push({
+        address,
+        path,
+        pubKey: '', // Not available for multisig accounts
+        threshold: multisigInfo.threshold,
+        members: multisigInfo.multi_account_member.map(member => ({
           address: member.address,
           internal: member.address === address,
           path: member.address === address ? path : undefined,
-        })) || [],
-      memberMultisigAddresses: undefined,
-      pendingMultisigCalls: [],
-    }))
+        })),
+        memberMultisigAddresses: undefined,
+        pendingMultisigCalls: [],
+      })
+    }
 
-    // If multi_account_member is not available, fetch member info for each multisig address
-    if (!multisigInfo.multi_account_member) {
-      // Process each multisig address sequentially
-      for (const [index, multisigAddress] of Object.entries(multisigAddresses)) {
+    // Case 2: Address is part of other multisig accounts
+    if (multisigInfo.multi_account && multisigInfo.multi_account.length > 0) {
+      // Process each multisig account the address is part of
+      for (const account of multisigInfo.multi_account) {
         try {
           // Get member info for this specific multisig address
-          const memberInfo = await getMultisigInfo(multisigAddress.address, network)
-
+          const memberInfo = await getMultisigInfo(account.address, network)
           if (memberInfo?.multi_account_member) {
-            multisigAddresses[Number(index)].members = memberInfo.multi_account_member.map(member => ({
-              address: member.address,
-              internal: member.address === address,
-              path: member.address === address ? path : undefined,
-            }))
-          }
-          if (memberInfo?.threshold) {
-            multisigAddresses[Number(index)].threshold = memberInfo.threshold
-          }
-
-          // Check if there's an existing multisig for this call
-          const pendingMultisigCalls: MultisigCall[] = []
-          const multisigscheck = await api.query.multisig.multisigs.entries(multisigAddress.address)
-
-          if (multisigscheck.length !== 0) {
-            console.debug(`Found ${multisigscheck.length} pending multisig call(s).`)
-
-            multisigscheck.forEach(([key, value], index) => {
-              // Extract call hash from the storage key
-              const keyArgs = key.args
-              const multisigAccount = keyArgs[0].toString()
-
-              if (multisigAccount !== multisigAddress.address) {
-                return
-              }
-
-              // Parse the multisig value if it exists
-              const optionValue = value as Option<Multisig>
-              if (optionValue.isSome) {
-                const multisigInfo = optionValue.unwrap()
-
-                const multisigCall: MultisigCall = {
-                  callHash: key.args[1].toHex(),
-                  deposit: multisigInfo.deposit.toNumber(),
-                  depositor: multisigInfo.depositor.toString(),
-                  signatories: multisigInfo.approvals.map(approval => approval.toString()),
-                }
-
-                pendingMultisigCalls.push(multisigCall)
-              }
+            multisigAddresses.push({
+              address: account.address,
+              path: '', // Not available for external multisig accounts
+              pubKey: '', // Not available for external multisig accounts
+              threshold: memberInfo.threshold || multisigInfo.threshold,
+              members: memberInfo.multi_account_member.map(member => ({
+                address: member.address,
+                internal: member.address === address,
+                path: member.address === address ? path : undefined,
+              })),
+              memberMultisigAddresses: memberInfo.multi_account?.map(account => account.address),
+              pendingMultisigCalls: [],
             })
           }
-          multisigAddresses[Number(index)].pendingMultisigCalls = pendingMultisigCalls
-        } catch (err) {}
+        } catch (err) {
+          console.error(`Error fetching member info for multisig account ${account.address}:`, err)
+        }
+      }
+    }
+
+    // If no multisig addresses were found, return undefined
+    if (multisigAddresses.length === 0) {
+      return undefined
+    }
+
+    // Process pending multisig calls for each address
+    for (const [index, multisigAddress] of Object.entries(multisigAddresses)) {
+      try {
+        const pendingMultisigCalls: MultisigCall[] = []
+        const multisigsCheck = await api.query.multisig.multisigs.entries(multisigAddress.address)
+
+        if (multisigsCheck.length !== 0) {
+          console.debug(`Found ${multisigsCheck.length} pending multisig call(s).`)
+
+          for (const [key, value] of multisigsCheck) {
+            const keyArgs = key.args
+            const multisigAccount = keyArgs[0].toString()
+
+            if (multisigAccount !== multisigAddress.address) {
+              continue
+            }
+
+            const optionValue = value as Option<Multisig>
+
+            if (optionValue.isSome) {
+              const multisigInfo = optionValue.unwrap()
+
+              const multisigCall: MultisigCall = {
+                callHash: key.args[1].toHex(),
+                deposit: multisigInfo.deposit.toNumber(),
+                depositor: multisigInfo.depositor.toString(),
+                signatories: multisigInfo.approvals.map(approval => approval.toString()),
+              }
+
+              pendingMultisigCalls.push(multisigCall)
+            }
+          }
+        }
+        multisigAddresses[Number(index)].pendingMultisigCalls = pendingMultisigCalls
+      } catch (err) {
+        console.error(`Error fetching pending calls for multisig account ${multisigAddress.address}:`, err)
       }
     }
 
     return multisigAddresses
   } catch (error) {
+    console.error('Error in getMultisigAddresses:', error)
     return undefined
   }
 }
