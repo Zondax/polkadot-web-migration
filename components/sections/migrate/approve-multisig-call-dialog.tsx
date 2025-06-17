@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { type AppId, type Token, getChainName } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { formatBalance } from '@/lib/utils/format'
-import { callDataValidationMessages, validateCallData } from '@/lib/utils/multisig'
+import { callDataValidationMessages, getAvailableSigners, validateCallData } from '@/lib/utils/multisig'
 import { ledgerState$ } from '@/state/ledger'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -244,21 +244,25 @@ function MultisigCallForm({
 
 export default function ApproveMultisigCallDialog({ open, setOpen, token, appId, account }: ApproveMultisigCallDialogProps) {
   const pendingCalls = account.pendingMultisigCalls ?? []
-  const internalMembers: MultisigMember[] = account.members?.filter(m => m.internal) ?? []
-  const existingApprovals = pendingCalls.map(call => call.depositor)
 
-  // Filter available signers (exclude those who already approved and are not internal members)
-  const availableSigners = internalMembers.filter(member => !existingApprovals?.includes(member.address) && member.internal)
+  if (pendingCalls.length === 0) {
+    return null
+  }
 
   // Initialize form with React Hook Form + Zod
   const form = useForm<MultisigCallFormData>({
     resolver: zodResolver(multisigCallFormSchema),
     defaultValues: {
       callHash: pendingCalls[0]?.callHash ?? '',
-      signer: availableSigners[0]?.address ?? undefined,
+      signer: getAvailableSigners(pendingCalls[0], account.members)[0]?.address ?? undefined,
       callData: '',
     },
   })
+
+  const availableSigners = useMemo(() => {
+    const selectedCall = pendingCalls.find(call => call.callHash === form.getValues('callHash'))
+    return selectedCall ? getAvailableSigners(selectedCall, account.members) : []
+  }, [pendingCalls, account.members, form])
 
   // State for call data validation (moved to parent)
   const [isValidatingCallData, setIsValidatingCallData] = useState(false)

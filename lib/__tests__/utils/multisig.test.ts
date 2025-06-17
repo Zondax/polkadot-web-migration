@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi, type MockedFunction } from 'vitest'
 
 import type { AppId } from '@/config/apps'
-import { callDataValidationMessages, validateCallData, type CallDataValidationResult } from '../../utils/multisig'
+import type { MultisigCall, MultisigMember } from '@/state/types/ledger'
+import { callDataValidationMessages, getAvailableSigners, validateCallData, type CallDataValidationResult } from '../../utils/multisig'
 
 // Mock the ledgerClient module
 vi.mock('@/state/client/ledger', () => ({
@@ -375,5 +376,96 @@ describe('validateCallData', () => {
       }
       expect(mockedValidateCallDataMatchesHash).toHaveBeenCalledTimes(10)
     })
+  })
+})
+
+describe('getAvailableSigners', () => {
+  const mockMembers: MultisigMember[] = [
+    { address: '0x1', internal: true },
+    { address: '0x2', internal: true },
+    { address: '0x3', internal: false },
+    { address: '0x4', internal: true },
+  ]
+
+  const mockPendingCall: MultisigCall = {
+    callHash: '0xabc',
+    deposit: 100,
+    depositor: '0x1',
+    signatories: ['0x1', '0x3'],
+  }
+
+  it('should return only internal members who have not signed', () => {
+    const result = getAvailableSigners(mockPendingCall, mockMembers)
+
+    expect(result).toHaveLength(2)
+    expect(result).toEqual([
+      { address: '0x2', internal: true },
+      { address: '0x4', internal: true },
+    ])
+  })
+
+  it('should return empty array when all internal members have signed', () => {
+    const allSignedCall: MultisigCall = {
+      ...mockPendingCall,
+      signatories: ['0x1', '0x2', '0x4'],
+    }
+
+    const result = getAvailableSigners(allSignedCall, mockMembers)
+
+    expect(result).toHaveLength(0)
+    expect(result).toEqual([])
+  })
+
+  it('should return all internal members when no one has signed', () => {
+    const noSignaturesCall: MultisigCall = {
+      ...mockPendingCall,
+      signatories: [],
+    }
+
+    const result = getAvailableSigners(noSignaturesCall, mockMembers)
+
+    expect(result).toHaveLength(3)
+    expect(result).toEqual([
+      { address: '0x1', internal: true },
+      { address: '0x2', internal: true },
+      { address: '0x4', internal: true },
+    ])
+  })
+
+  it('should handle empty members array', () => {
+    const result = getAvailableSigners(mockPendingCall, [])
+
+    expect(result).toHaveLength(0)
+    expect(result).toEqual([])
+  })
+
+  it('should handle members with path property', () => {
+    const membersWithPath: MultisigMember[] = [
+      { address: '0x1', internal: true, path: 'm/44/0/0' },
+      { address: '0x2', internal: true, path: 'm/44/0/1' },
+      { address: '0x3', internal: false, path: 'm/44/0/2' },
+    ]
+
+    const result = getAvailableSigners(mockPendingCall, membersWithPath)
+
+    expect(result).toHaveLength(1)
+    expect(result).toEqual([{ address: '0x2', internal: true, path: 'm/44/0/1' }])
+  })
+
+  it('should handle case-sensitive address matching', () => {
+    const caseSensitiveMembers: MultisigMember[] = [
+      { address: '0x1', internal: true },
+      { address: '0X2', internal: true }, // Different case
+    ]
+
+    const caseSensitiveCall: MultisigCall = {
+      ...mockPendingCall,
+      signatories: ['0x1', '0X2'], // Different case
+    }
+
+    const result = getAvailableSigners(caseSensitiveCall, caseSensitiveMembers)
+
+    expect(result).toHaveLength(0)
+    expect(result).toEqual([])
   })
 })
