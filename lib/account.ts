@@ -1234,12 +1234,12 @@ export async function getMultisigAddresses(
     for (const [index, multisigAddress] of Object.entries(multisigAddresses)) {
       try {
         const pendingMultisigCalls: MultisigCall[] = []
-        const multisigscheck = await api.query.multisig.multisigs.entries(multisigAddress.address)
+        const multisigsCheck = await api.query.multisig.multisigs.entries(multisigAddress.address)
 
-        if (multisigscheck.length !== 0) {
-          console.debug(`Found ${multisigscheck.length} pending multisig call(s).`)
+        if (multisigsCheck.length !== 0) {
+          console.debug(`Found ${multisigsCheck.length} pending multisig call(s).`)
 
-          for (const [key, value] of multisigscheck) {
+          for (const [key, value] of multisigsCheck) {
             const keyArgs = key.args
             const multisigAccount = keyArgs[0].toString()
 
