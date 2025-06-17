@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { type AppId, type Token, getChainName } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { formatBalance } from '@/lib/utils/format'
-import { callDataValidationMessages, validateCallData } from '@/lib/utils/multisig'
+import { callDataValidationMessages, getAvailableSigners, validateCallData } from '@/lib/utils/multisig'
 import { ledgerState$ } from '@/state/ledger'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -40,7 +40,7 @@ interface ApproveMultisigCallDialogProps {
 
 interface MultisigCallFormProps {
   pendingCalls: MultisigCall[]
-  internalMembers: MultisigMember[]
+  availableSigners: MultisigMember[]
   token: Token
   appId: AppId
   account: MultisigAddress
@@ -52,7 +52,7 @@ interface MultisigCallFormProps {
 
 function MultisigCallForm({
   pendingCalls,
-  internalMembers,
+  availableSigners,
   token,
   appId,
   account,
@@ -91,9 +91,6 @@ function MultisigCallForm({
     clearErrors('callData')
   }
 
-  // Filter available signers (exclude those who already approved)
-  const availableSigners = internalMembers.filter(member => !existingApprovals?.includes(member.address))
-
   const renderCallDataHelperText = (): string | undefined => {
     if (isValidatingCallData) {
       return callDataValidationMessages.validating
@@ -106,6 +103,9 @@ function MultisigCallForm({
     }
     return undefined
   }
+
+  // Helper for signer select error state
+  const noAvailableSigners = availableSigners.length === 0
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -191,18 +191,29 @@ function MultisigCallForm({
           name="signer"
           control={control}
           render={({ field }) => (
-            <Select value={field.value} onValueChange={field.onChange}>
-              <SelectTrigger className={errors.signer ? 'border-red-500' : ''}>
-                <SelectValue placeholder="Select Signer" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableSigners.map(member => (
-                  <SelectItem key={member.address} value={member.address}>
-                    <ExplorerLink value={member.address} appId={appId as AppId} hasCopyButton={false} disableTooltip disableLink />
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div>
+              <Select value={field.value} onValueChange={field.onChange} disabled={noAvailableSigners}>
+                <SelectTrigger className={errors.signer || noAvailableSigners ? 'border-red-500' : ''}>
+                  <SelectValue placeholder="Select Signer" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableSigners.length > 0 ? (
+                    availableSigners.map(member => (
+                      <SelectItem key={member.address} value={member.address}>
+                        <ExplorerLink value={member.address} appId={appId as AppId} hasCopyButton={false} disableTooltip disableLink />
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="px-3 py-2 text-xs text-muted-foreground">No available signers</div>
+                  )}
+                </SelectContent>
+              </Select>
+              {noAvailableSigners && (
+                <div className="mt-1 text-xs text-red-500">
+                  No internal member is enabled to sign. All internal members have already approved this call.
+                </div>
+              )}
+            </div>
           )}
         />
       </div>
@@ -233,17 +244,25 @@ function MultisigCallForm({
 
 export default function ApproveMultisigCallDialog({ open, setOpen, token, appId, account }: ApproveMultisigCallDialogProps) {
   const pendingCalls = account.pendingMultisigCalls ?? []
-  const internalMembers: MultisigMember[] = account.members?.filter(m => m.internal) ?? []
+
+  if (pendingCalls.length === 0) {
+    return null
+  }
 
   // Initialize form with React Hook Form + Zod
   const form = useForm<MultisigCallFormData>({
     resolver: zodResolver(multisigCallFormSchema),
     defaultValues: {
       callHash: pendingCalls[0]?.callHash ?? '',
-      signer: internalMembers[0]?.address ?? '',
+      signer: getAvailableSigners(pendingCalls[0], account.members)[0]?.address ?? undefined,
       callData: '',
     },
   })
+
+  const availableSigners = useMemo(() => {
+    const selectedCall = pendingCalls.find(call => call.callHash === form.getValues('callHash'))
+    return selectedCall ? getAvailableSigners(selectedCall, account.members) : []
+  }, [pendingCalls, account.members, form])
 
   // State for call data validation (moved to parent)
   const [isValidatingCallData, setIsValidatingCallData] = useState(false)
@@ -251,7 +270,9 @@ export default function ApproveMultisigCallDialog({ open, setOpen, token, appId,
   // Check if form is ready for submission
   const callData = form.watch('callData')
   const selectedCallHash = form.watch('callHash')
-  const isFormReadyForSubmission = Boolean(callData && selectedCallHash && !Object.keys(form.formState.errors).length)
+  const isFormReadyForSubmission = Boolean(
+    callData && selectedCallHash && !Object.keys(form.formState.errors).length && availableSigners.length > 0
+  )
 
   // Validate call data using utility function
   const validateCallDataHandler = useCallback(
@@ -328,7 +349,7 @@ export default function ApproveMultisigCallDialog({ open, setOpen, token, appId,
           ) : (
             <MultisigCallForm
               pendingCalls={pendingCalls}
-              internalMembers={internalMembers}
+              availableSigners={availableSigners}
               token={token}
               appId={appId}
               account={account}

@@ -1,5 +1,6 @@
 import type { AppId } from '@/config/apps'
 import { ledgerClient } from '@/state/client/ledger'
+import type { MultisigCall, MultisigMember } from '@/state/types/ledger'
 
 export const callDataValidationMessages = {
   correct: 'Call data matches the expected hash ✓',
@@ -54,4 +55,16 @@ export async function validateCallData(appId: AppId, callDataValue: string, call
       error: callDataValidationMessages.failed,
     }
   }
+}
+
+/**
+ * Returns the list of internal multisig members who have not yet approved the given pending call.
+ *
+ * @param pendingCall - The multisig call for which to check approvals
+ * @param members - The list of all multisig members
+ * @returns MultisigMember[] - Members who are internal and have not yet signed the call
+ */
+export const getAvailableSigners = (pendingCall: MultisigCall, members: MultisigMember[]): MultisigMember[] => {
+  const existingApprovals = pendingCall.signatories
+  return members.filter(member => !existingApprovals?.includes(member.address) && member.internal)
 }
