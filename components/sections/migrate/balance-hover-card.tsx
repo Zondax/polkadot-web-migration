@@ -5,7 +5,7 @@ import type { Collections } from 'state/ledger'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import type { Token } from '@/config/apps'
 import { formatBalance } from '@/lib/utils'
-import { isNativeBalance, isNftBalanceType, isUniqueBalanceType } from '@/lib/utils/balance'
+import { getNonTransferableBalance, isNativeBalance, isNftBalanceType, isUniqueBalanceType } from '@/lib/utils/balance'
 import { createNftBalances } from '@/lib/utils/nft'
 
 import { Info } from 'lucide-react'
@@ -90,7 +90,7 @@ const BalanceHoverCard = ({ balances, collections, token, isMigration }: Balance
  * - Only renders the visualization when balance data is available
  */
 const LockedBalanceHoverCard = ({ balance, token }: { balance?: Native; token: Token }) => {
-  const lockedBalance = balance?.frozen ?? 0
+  const lockedBalance = balance ? getNonTransferableBalance(balance) : undefined
 
   const formattedLockedBalance = useMemo(() => {
     return lockedBalance !== undefined ? formatBalance(lockedBalance, token) : null

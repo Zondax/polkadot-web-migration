@@ -125,6 +125,7 @@ export interface Address extends GenericeResponseAddress {
   path: string
   registration?: Registration
   memberMultisigAddresses?: string[] // addresses of the multisig addresses that the account is a member of
+  proxy?: AccountProxy
 }
 
 export type VerificationStatus = 'pending' | 'verifying' | 'verified' | 'failed'
@@ -233,6 +234,17 @@ export interface Registration {
   identity?: IdentityInfo
   subIdentities?: SubIdentities // review the type
   canRemove: boolean
+}
+
+export interface ProxyDefinition {
+  type: string // Any, NonTransfer, Governance, Staking from @polkadot/types/interfaces/proxy/types.d.ts
+  address: string
+  delay: number
+}
+
+export interface AccountProxy {
+  proxies: ProxyDefinition[]
+  deposit?: number
 }
 
 export interface MigratingItem {

@@ -313,52 +313,6 @@ describe('Account Integration', () => {
     })
   })
 
-  // Used in: isProxyForOtherAccounts
-  describe('api.query.proxy.proxies.entries', () => {
-    it('should return an array of [StorageKey, [Vec<ProxyDefinition>, u128]] entries', async () => {
-      if (!api || !provider || error) {
-        throw new Error('Failed to initialize API', { cause: error })
-      }
-      const entries = await api.query.proxy.proxies.entries()
-
-      // Check that entries is an array
-      expect(Array.isArray(entries)).toBe(true)
-
-      if (entries.length > 0) {
-        // Check the structure of the first entry
-        const [key, value] = entries[0]
-
-        // Check storage key
-        expect(key).toBeDefined()
-        expect(Array.isArray(key.args)).toBe(true)
-        expect(key.args.length).toBe(1) // Should have one argument (the account)
-        expect(typeof key.args[0].toString()).toBe('string') // Account should be a string
-
-        // Check value structure
-        const [proxies, deposit] = value as unknown as [Vec<ProxyDefinition>, u128]
-
-        // Check proxies array
-        expect(Array.isArray(proxies.toHuman())).toBe(true)
-
-        // Check deposit
-        expect(typeof deposit.toString()).toBe('string')
-        expect(!Number.isNaN(Number(deposit.toString()))).toBe(true)
-
-        // If there are proxies, check their structure
-        const proxiesHuman = proxies.toHuman() as ProxyDefinition[] | undefined
-        if (proxiesHuman && proxiesHuman.length > 0) {
-          const proxy = proxiesHuman[0]
-          expect(proxy).toHaveProperty('proxyType')
-          expect(proxy).toHaveProperty('delegate')
-          expect(proxy).toHaveProperty('delay')
-          expect(typeof proxy.proxyType).toBe('string')
-          expect(typeof proxy.delegate).toBe('string')
-          expect(typeof proxy.delay).toBe('string')
-        }
-      }
-    })
-  })
-
   // Used in: prepareApproveAsMultiTx
   describe('api.query.multisig.multisigs', () => {
     it('should return Option<Multisig> for a multisig address and call hash', async () => {
@@ -456,6 +410,67 @@ describe('Account Integration', () => {
           }
         }
       }
+    })
+  })
+
+  // Used in: getProxyInfo
+  describe('api.query.proxy.proxies', () => {
+    it('should return a tuple [Vec<ProxyDefinition>, u128] for an address', async () => {
+      if (!api || !provider || error) {
+        throw new Error('Failed to initialize API', { cause: error })
+      }
+      const address = TEST_ADDRESSES.ADDRESS2
+      const proxiesResult = (await api.query.proxy.proxies(address)) as unknown as [Vec<ProxyDefinition>, u128]
+
+      // Check that the result is defined and is a tuple
+      expect(proxiesResult).toBeDefined()
+      expect(Array.isArray(proxiesResult)).toBe(true)
+      expect(proxiesResult.length).toBe(2)
+
+      // Extract the proxies and deposit
+      const [proxies, deposit] = proxiesResult
+
+      // Check proxies array
+      expect(Array.isArray(proxies.toHuman())).toBe(true)
+
+      // Check deposit
+      expect(typeof deposit.toString()).toBe('string')
+      expect(!Number.isNaN(Number(deposit.toString()))).toBe(true)
+
+      // If there are proxies, check their structure
+      const proxiesHuman = proxies.toHuman() as ProxyDefinition[] | undefined
+      if (proxiesHuman && proxiesHuman.length > 0) {
+        const proxy = proxiesHuman[0]
+        expect(proxy).toHaveProperty('proxyType')
+        expect(proxy).toHaveProperty('delegate')
+        expect(proxy).toHaveProperty('delay')
+        expect(typeof proxy.proxyType).toBe('string')
+        expect(typeof proxy.delegate).toBe('string')
+        expect(typeof proxy.delay).toBe('string')
+      }
+    })
+  })
+
+  // Used in: prepareRemoveProxiesTransaction
+  describe('api.tx.proxy.removeProxies', () => {
+    it('should create a valid remove proxies extrinsic', async () => {
+      if (!api || !provider || error) {
+        throw new Error('Failed to initialize API', { cause: error })
+      }
+      const extrinsic = api.tx.proxy.removeProxies()
+
+      // Check that the extrinsic is of the correct type: SubmittableExtrinsic<'promise', ISubmittableResult>
+      expect(typeof extrinsic.send).toBe('function')
+      expect(typeof extrinsic.addSignature).toBe('function')
+      expect(extrinsic.method).toBeDefined()
+
+      // Check that method.toHex returns a string starting with '0x'
+      expect(typeof extrinsic.method.toHex()).toBe('string')
+      expect(extrinsic.method.toHex().startsWith('0x')).toBe(true)
+
+      // Check that the method section and method name are correct
+      expect(extrinsic.method.section).toBe('proxy')
+      expect(extrinsic.method.method).toBe('removeProxies')
     })
   })
 })

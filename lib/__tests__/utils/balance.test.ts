@@ -1,8 +1,9 @@
-import { type Address, type AddressBalance, BalanceType, type NativeBalance } from 'state/types/ledger'
+import { type Address, type AddressBalance, BalanceType, type Native, type NativeBalance } from 'state/types/ledger'
 import { describe, expect, it } from 'vitest'
 
 import {
   canUnstake,
+  getNonTransferableBalance,
   hasAddressBalance,
   hasNonTransferableBalance,
   hasStakedBalance,
@@ -225,5 +226,37 @@ describe('hasBalance', () => {
       ],
     }
     expect(hasAddressBalance(addressWithZeroBalances)).toBe(false)
+  })
+})
+
+describe('getNonTransferableBalance', () => {
+  it('should return 0 if accountData is undefined', () => {
+    expect(getNonTransferableBalance(undefined as unknown as Native)).toBe(0)
+  })
+
+  it('should return 0 if accountData has total and transferable as 0', () => {
+    expect(getNonTransferableBalance(mockEmptyNativeBalance)).toBe(0)
+  })
+
+  it('should return correct non-transferable amount (total - transferable)', () => {
+    const accountData = {
+      ...mockFreeNativeBalance,
+      frozen: 50,
+      total: 150,
+      transferable: 100,
+      reserved: 50,
+    }
+    expect(getNonTransferableBalance(accountData)).toBe(50)
+  })
+
+  it('should return 0 if total equals transferable', () => {
+    const accountData = {
+      ...mockFreeNativeBalance,
+      frozen: 50,
+      total: 200,
+      transferable: 200,
+      reserved: 0,
+    }
+    expect(getNonTransferableBalance(accountData)).toBe(0)
   })
 })

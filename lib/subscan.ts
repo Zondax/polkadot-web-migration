@@ -32,28 +32,23 @@ interface SubscanSearchResponse extends SubscanBaseResponse {
  * @throws Error if the API call fails
  */
 async function subscanPost<T extends SubscanBaseResponse>(network: string, endpoint: string, body: any): Promise<T> {
-  try {
-    const response = await fetch(`/api/${endpoint}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        network,
-        address: body.key,
-      }),
-    })
+  const response = await fetch(`/api/${endpoint}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      network,
+      address: body.key,
+    }),
+  })
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    const data: T = await response.json()
-    return data
-  } catch (error) {
-    console.error('Error making Subscan API request through proxy:', error)
-    throw error
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
   }
+
+  const data: T = await response.json()
+  return data
 }
 
 /**

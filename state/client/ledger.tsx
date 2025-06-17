@@ -10,6 +10,7 @@ import {
   getTxFee,
   prepareAsMultiTx,
   prepareRemoveIdentityTransaction,
+  prepareRemoveProxiesTransaction,
   prepareTransaction,
   prepareTransactionPayload,
   prepareUnstakeTransaction,
@@ -126,7 +127,7 @@ export const ledgerClient = {
       if (callData) {
         updateTransactionStatus(TransactionStatus.IS_LOADING, 'Transaction is loading', {
           callData,
-        }) // TODO: should we add another internal status?
+        })
       }
 
       const txPromise = submitAndHandleTransaction(transfer, updateTransactionStatus, api)
@@ -433,6 +434,71 @@ export const ledgerClient = {
         throw new Error(error ?? 'Failed to connect to the blockchain.')
       }
       return validateCallDataMatchesHash(api, callData, expectedCallHash)
+    }, InternalErrors.UNKNOWN_ERROR)
+  },
+
+  async removeProxies(appId: AppId, address: string, path: string, updateTxStatus: UpdateTransactionStatus) {
+    const appConfig = appsConfigs.get(appId)
+    if (!appConfig?.rpcEndpoint) {
+      throw InternalErrors.APP_CONFIG_NOT_FOUND
+    }
+
+    return withErrorHandling(async () => {
+      const { api, error } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+      if (error || !api) {
+        throw new Error(error ?? 'Failed to connect to the blockchain.')
+      }
+
+      const removeProxyTx = await prepareRemoveProxiesTransaction(api)
+
+      if (!removeProxyTx) {
+        throw new Error('Failed to prepare transaction')
+      }
+
+      // Prepare transaction payload
+      const preparedTx = await prepareTransactionPayload(api, address, appConfig, removeProxyTx)
+      if (!preparedTx) {
+        throw new Error('Failed to prepare transaction')
+      }
+      const { transfer, payload, metadataHash, nonce, proof1, payloadBytes } = preparedTx
+
+      // Get chain ID from app config
+      const chainId = appConfig.token.symbol.toLowerCase()
+
+      // Sign transaction with Ledger
+      const { signature } = await ledgerService.signTransaction(path, payloadBytes, chainId, proof1)
+      if (!signature) {
+        throw new Error('Failed to sign transaction')
+      }
+
+      // Create signed extrinsic
+      createSignedExtrinsic(api, transfer, address, signature, payload, nonce, metadataHash)
+
+      // Create and wait for transaction to be submitted
+      await submitAndHandleTransaction(transfer, updateTxStatus, api)
+    }, InternalErrors.UNKNOWN_ERROR)
+  },
+
+  async getRemoveProxiesFee(appId: AppId, address: string): Promise<string | undefined> {
+    const appConfig = appsConfigs.get(appId)
+    if (!appConfig?.rpcEndpoint) {
+      throw InternalErrors.APP_CONFIG_NOT_FOUND
+    }
+
+    return withErrorHandling(async () => {
+      const { api, error } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+      if (error || !api) {
+        throw new Error(error ?? 'Failed to connect to the blockchain.')
+      }
+
+      const removeProxyTx = await prepareRemoveProxiesTransaction(api)
+      if (!removeProxyTx) {
+        throw new Error('Failed to prepare transaction')
+      }
+
+      const estimatedFee = await getTxFee(removeProxyTx, address)
+
+      return estimatedFee
     }, InternalErrors.UNKNOWN_ERROR)
   },
 

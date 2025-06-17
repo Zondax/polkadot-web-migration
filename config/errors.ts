@@ -31,6 +31,7 @@ export enum InternalErrors {
   NO_SIGNATORY_ADDRESS = 'no_signatory_address',
   NO_MULTISIG_ADDRESS = 'no_multisig_address',
   APPROVE_MULTISIG_CALL_ERROR = 'approve_multisig_call_error',
+  REMOVE_PROXY_ERROR = 'remove_proxy_error',
 }
 
 export enum LedgerErrors {
@@ -197,6 +198,11 @@ export const errorDetails: ErrorDetailsMap = {
   approve_multisig_call_error: {
     title: 'Approve Multisig Call Error',
     description: 'Failed to approve multisig call.',
+    content: 'Please try again later or contact support if the issue persists.',
+  },
+  remove_proxy_error: {
+    title: 'Remove Proxy Error',
+    description: 'Failed to remove proxy.',
     content: 'Please try again later or contact support if the issue persists.',
   },
 }

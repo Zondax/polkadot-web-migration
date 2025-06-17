@@ -5,7 +5,14 @@ import { errorApps, syncApps } from 'config/mockData'
 
 import type { Token } from '@/config/apps'
 import { maxAddressesToFetch } from '@/config/config'
-import { type UpdateTransactionStatus, getApiAndProvider, getBalance, getIdentityInfo, getMultisigAddresses } from '@/lib/account'
+import {
+  type UpdateTransactionStatus,
+  getApiAndProvider,
+  getBalance,
+  getIdentityInfo,
+  getMultisigAddresses,
+  getProxyInfo,
+} from '@/lib/account'
 import type { DeviceConnectionProps } from '@/lib/ledger/types'
 import { convertSS58Format, isMultisigAddress } from '@/lib/utils/address'
 import { hasAddressBalance, hasBalance } from '@/lib/utils/balance'
@@ -451,6 +458,8 @@ export const ledgerState$ = observable({
             }
           }
 
+          const proxy = await getProxyInfo(address.address, api)
+
           // Multisig Addresses
           let memberMultisigAddresses: string[] | undefined
           if (app.explorer?.id === 'subscan') {
@@ -470,6 +479,7 @@ export const ledgerState$ = observable({
             balances,
             registration,
             memberMultisigAddresses,
+            proxy,
             status: AddressStatus.SYNCHRONIZED,
             error: undefined,
             isLoading: false,
@@ -1186,6 +1196,23 @@ export const ledgerState$ = observable({
     } catch (error) {
       const errorDetail = (error as LedgerClientError).message || errorDetails.approve_multisig_call_error.description
       updateTxStatus(TransactionStatus.ERROR, errorDetail)
+    }
+  },
+
+  async removeProxies(appId: AppId, address: string, path: string, updateTxStatus: UpdateTransactionStatus) {
+    try {
+      await ledgerClient.removeProxies(appId, address, path, updateTxStatus)
+    } catch (error) {
+      const errorDetail = (error as LedgerClientError).message || errorDetails.remove_proxy_error.description
+      updateTxStatus(TransactionStatus.ERROR, errorDetail)
+    }
+  },
+
+  async getRemoveProxiesFee(appId: AppId, address: string): Promise<string | undefined> {
+    try {
+      return await ledgerClient.getRemoveProxiesFee(appId, address)
+    } catch (error) {
+      return undefined
     }
   },
 })

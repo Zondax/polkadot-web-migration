@@ -1,5 +1,13 @@
 import { MINIMUM_AMOUNT } from '@/config/mockData'
-import { type Address, type AddressBalance, BalanceType, type NativeBalance, type Nft, type NftBalance } from '@/state/types/ledger'
+import {
+  type Address,
+  type AddressBalance,
+  BalanceType,
+  type Native,
+  type NativeBalance,
+  type Nft,
+  type NftBalance,
+} from '@/state/types/ledger'
 
 /**
  * Type guard to check if a balance is a native balance
@@ -123,4 +131,15 @@ export function getTransferableAndNfts(
   }
 
   return { nftsToTransfer, nativeAmount, transferableAmount }
+}
+
+/**
+ * Calculates the non-transferable (locked or reserved) portion of a native balance.
+ * This is the difference between the total balance and the transferable balance.
+ * @param balance - The native balance object.
+ * @returns The amount of non-transferable funds.
+ */
+export const getNonTransferableBalance = (balance: Native): number | undefined => {
+  if (!balance) return 0
+  return balance.total - balance.transferable
 }
