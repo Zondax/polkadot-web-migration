@@ -5,8 +5,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { ApiPromise, WsProvider } from '@polkadot/api'
 import type { Option, Vec, u128, u32 } from '@polkadot/types-codec'
 import type { AccountId32, Balance, Multisig, ProxyDefinition, Registration, StakingLedger } from '@polkadot/types/interfaces'
-import type { Option, Vec, u128, u32 } from '@polkadot/types-codec'
-import type { AccountId32, Balance, ProxyDefinition, Registration, StakingLedger } from '@polkadot/types/interfaces'
 import { disconnectSafely, getApiAndProvider } from '../account'
 import { KUSAMA_ASSET_HUB_RPC, KUSAMA_PEOPLE_RPC, KUSAMA_RPC, TEST_ADDRESSES } from './utils/__mocks__/mockData'
 
