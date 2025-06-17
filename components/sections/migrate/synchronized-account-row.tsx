@@ -28,7 +28,7 @@ import { ExplorerLink } from '@/components/ExplorerLink'
 import type { UpdateTransaction } from '@/components/hooks/useSynchronization'
 import { Spinner } from '@/components/icons'
 import { Badge } from '@/components/ui/badge'
-import { Button, type ButtonVariant } from '@/components/ui/button'
+import { Button, type ButtonProps, type ButtonVariant } from '@/components/ui/button'
 import { ExplorerItemType } from '@/config/explorers'
 import { getIdentityItems } from '@/lib/utils/ui'
 import ApproveMultisigCallDialog from './approve-multisig-call-dialog'
@@ -58,7 +58,7 @@ interface Action {
   onClick: () => void
   disabled: boolean
   icon?: React.ReactNode
-  variant?: ButtonVariant
+  variant?: ButtonProps['variant']
 }
 
 const SynchronizedAccountRow = observer(
@@ -225,7 +225,7 @@ const SynchronizedAccountRow = observer(
                   className="break-all"
                 />
                 {member.internal && (
-                  <Badge variant="light-gray" className="text-[10px] leading-tight flex-shrink-0">
+                  <Badge variant="light-gray" className="text-[10px] leading-tight shrink-0">
                     Internal
                   </Badge>
                 )}

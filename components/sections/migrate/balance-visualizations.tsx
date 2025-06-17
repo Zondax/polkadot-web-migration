@@ -39,7 +39,7 @@ const BalanceCard = ({ value, total, label, icon, colorScheme, details, hidePerc
 
   return (
     <Card
-      className={`w-full min-w-[150px] p-4 bg-gradient-to-br ${colorScheme.gradient} ${colorScheme.border} transition-all duration-300 hover:shadow-md`}
+      className={`w-full min-w-[150px] p-4 bg-linear-to-br ${colorScheme.gradient} ${colorScheme.border} transition-all duration-300 hover:shadow-md`}
     >
       <CardContent className="p-0 flex flex-col items-center justify-between min-h-[150px]">
         <div className="flex flex-col items-center justify-center">

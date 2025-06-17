@@ -66,7 +66,7 @@ function SynchronizedApp({
   }
 
   return (
-    <div className="bg-gray-50 rounded-lg shadow-sm border border-gray-200 mb-4">
+    <div className="bg-gray-50 rounded-lg shadow-xs border border-gray-200 mb-4">
       {/* Overview */}
       <div
         className={`flex flex-row items-center justify-between gap-4 px-4 py-3 cursor-pointer select-none transition-colors rounded-lg ${accounts?.length !== 0 ? 'hover:bg-gray-50' : ''}`}

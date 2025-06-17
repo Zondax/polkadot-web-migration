@@ -39,7 +39,7 @@ export default function CallToAction() {
                 <Button
                   variant="ghost"
                   className="rounded-[1.15rem] px-8 py-6 text-lg font-semibold backdrop-blur-md 
-                          bg-white/95 hover:bg-white/100 
+                          bg-white/95 hover:bg-white 
                           border border-white/20 hover:shadow-md
                           group-hover:-translate-y-0.5 transition-all duration-300"
                   style={{ color: '#FF2670' }}

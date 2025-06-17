@@ -58,8 +58,8 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
       return null
     }
     return (
-      <div className="flex flex-col sm:flex-row items-start sm:items-center text-sm text-gray-600 gap-2 p-3 border border-polkadot-cyan rounded-lg bg-polkadot-cyan bg-opacity-10">
-        <Info className="h-5 w-5 sm:h-8 sm:w-8 text-polkadot-cyan flex-shrink-0" />
+      <div className="flex flex-col sm:flex-row items-start sm:items-center text-sm text-gray-600 gap-2 p-3 border border-polkadot-cyan bg-polkadot-cyan-light rounded-lg">
+        <Info className="h-5 w-5 sm:h-8 sm:w-8 text-polkadot-cyan shrink-0" />
         <span>
           <CustomTooltip
             tooltipBody={

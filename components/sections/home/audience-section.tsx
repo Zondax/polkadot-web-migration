@@ -35,7 +35,7 @@ export default function AudienceSection() {
           transition={{ duration: 0.8 }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-pink-600">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6 bg-clip-text text-transparent bg-linear-to-r from-purple-700 to-pink-600">
             Who It&apos;s For
           </h2>
           <p className="text-lg text-gray-700 max-w-3xl mx-auto">
@@ -53,7 +53,7 @@ export default function AudienceSection() {
               transition={{ duration: 0.6, delay: audience.delay }}
               className="bg-white p-8 rounded-xl shadow-md border border-purple-100 text-center"
             >
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-purple-600/20 to-pink-600/20 mb-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-linear-to-r from-purple-600/20 to-pink-600/20 mb-6">
                 <audience.icon className="w-8 h-8 text-purple-600" />
               </div>
               <h3 className="text-xl font-semibold mb-3 text-gray-800">{audience.title}</h3>

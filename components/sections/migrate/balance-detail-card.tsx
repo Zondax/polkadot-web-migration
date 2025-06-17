@@ -2,7 +2,7 @@ import { BalanceType, type Collection, type Native } from 'state/types/ledger'
 
 import TokenIcon from '@/components/TokenIcon'
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
-import { Badge, type BadgeVariant } from '@/components/ui/badge'
+import { Badge, type BadgeProps, type BadgeVariant } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { Token } from '@/config/apps'
 import { formatBalance } from '@/lib/utils/format'
@@ -23,7 +23,7 @@ const NftDetailCard = ({ balance, collection, isUnique }: NftDetailCardProps) =>
 
   return (
     <Card className="flex flex-row items-center p-3">
-      <div className="h-12 w-12 rounded-full overflow-hidden mr-3 flex-shrink-0">
+      <div className="h-12 w-12 rounded-full overflow-hidden mr-3 shrink-0">
         {imageUrl ? (
           <img
             src={imageUrl}
@@ -41,11 +41,11 @@ const NftDetailCard = ({ balance, collection, isUnique }: NftDetailCardProps) =>
       <div className="flex-1">
         <CardHeader className="p-0 pb-2">
           <CardTitle className="text-base flex items-center gap-2 w-full">
-            <div className="flex-grow min-w-0 flex items-center gap-2">
+            <div className="grow min-w-0 flex items-center gap-2">
               <span className="truncate block max-w-[250px]">{collection?.name || `Collection #${collection.collectionId}`}</span>
               <BalanceTypeFlag type={isUnique ? BalanceType.UNIQUE : BalanceType.NFT} />
             </div>
-            <span className="flex-shrink-0 font-medium font-mono ml-auto">{balance}</span>
+            <span className="shrink-0 font-medium font-mono ml-auto">{balance}</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="flex gap-1 p-0 text-sm text-left">
@@ -92,12 +92,12 @@ const NativeTokensDetailCard = ({ balance, token }: NativeTokensDetailCardProps)
  */
 interface BalanceTypeFlagProps {
   type: string
-  variant?: BadgeVariant
+  variant?: BadgeProps['variant']
 }
 
-const BalanceTypeFlag = ({ type, variant = 'gray' }: BalanceTypeFlagProps) => {
+const BalanceTypeFlag = ({ type, variant }: BalanceTypeFlagProps) => {
   return (
-    <Badge variant={variant} className="text-[10px] leading-tight uppercase flex-shrink-0">
+    <Badge variant={variant} className="text-[10px] leading-tight uppercase shrink-0">
       {type}
     </Badge>
   )

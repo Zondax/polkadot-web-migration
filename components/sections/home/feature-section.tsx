@@ -14,7 +14,7 @@ export default function FeatureSection() {
           transition={{ duration: 0.8 }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-pink-600">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6 bg-clip-text text-transparent bg-linear-to-r from-purple-700 to-pink-600">
             Why This Matters
           </h2>
           <p className="text-lg md:text-xl text-gray-700 max-w-3xl mx-auto">
@@ -34,7 +34,7 @@ export default function FeatureSection() {
           className="flex justify-center"
         >
           <div className="relative w-full max-w-3xl">
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-2xl transform rotate-1 scale-105" />
+            <div className="absolute inset-0 bg-linear-to-r from-purple-500/20 to-pink-500/20 rounded-2xl transform rotate-1 scale-105" />
             <div className="relative bg-white p-8 md:p-10 rounded-2xl shadow-xl border border-purple-100">
               <div className="flex items-center justify-center mb-6">
                 <a
@@ -43,7 +43,7 @@ export default function FeatureSection() {
                   rel="noopener noreferrer"
                   className="block"
                 >
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center hover:scale-105 transition-transform">
+                  <div className="w-16 h-16 rounded-full bg-linear-to-r from-purple-600 to-pink-600 flex items-center justify-center hover:scale-105 transition-transform">
                     <ArrowRight className="w-8 h-8 text-white" />
                   </div>
                 </a>
@@ -51,25 +51,25 @@ export default function FeatureSection() {
               <h3 className="text-2xl font-bold text-center mb-4 text-gray-800">The Universal Ledger App Advantage</h3>
               <ul className="space-y-4">
                 <li className="flex items-start">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center mt-1">
+                  <div className="shrink-0 w-6 h-6 rounded-full bg-linear-to-r from-purple-600 to-pink-600 flex items-center justify-center mt-1">
                     <span className="text-white text-xs">✓</span>
                   </div>
                   <span className="ml-3 text-gray-700">One app for all Substrate-based chains</span>
                 </li>
                 <li className="flex items-start">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center mt-1">
+                  <div className="shrink-0 w-6 h-6 rounded-full bg-linear-to-r from-purple-600 to-pink-600 flex items-center justify-center mt-1">
                     <span className="text-white text-xs">✓</span>
                   </div>
                   <span className="ml-3 text-gray-700">Enhanced security features</span>
                 </li>
                 <li className="flex items-start">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center mt-1">
+                  <div className="shrink-0 w-6 h-6 rounded-full bg-linear-to-r from-purple-600 to-pink-600 flex items-center justify-center mt-1">
                     <span className="text-white text-xs">✓</span>
                   </div>
                   <span className="ml-3 text-gray-700">Improved transaction management</span>
                 </li>
                 <li className="flex items-start">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center mt-1">
+                  <div className="shrink-0 w-6 h-6 rounded-full bg-linear-to-r from-purple-600 to-pink-600 flex items-center justify-center mt-1">
                     <span className="text-white text-xs">✓</span>
                   </div>
                   <span className="ml-3 text-gray-700">Future-proof for ecosystem growth</span>

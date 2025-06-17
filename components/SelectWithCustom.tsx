@@ -94,10 +94,10 @@ export function SelectWithCustom({
   if (isCustomMode && customValue) {
     return (
       <div className={cn('relative', className)}>
-        <div className="flex items-center gap-2 min-h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors">
+        <div className="flex items-center gap-2 min-h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors">
           <div className="flex-1 flex items-center gap-2">
             <span className="text-foreground font-medium">{customValue}</span>
-            <Badge variant="light-gray" className="text-[10px] leading-tight flex-shrink-0">
+            <Badge variant="light-gray" className="text-[10px] leading-tight shrink-0">
               Custom
             </Badge>
           </div>

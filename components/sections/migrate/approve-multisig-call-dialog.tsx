@@ -157,7 +157,7 @@ function MultisigCallForm({
               <div key={approval} className="flex items-center gap-1">
                 <ExplorerLink value={approval} appId={appId as AppId} explorerLinkType={ExplorerItemType.Address} />
                 {approval === depositorAddress && (
-                  <Badge variant="light-gray" className="text-[10px] leading-tight flex-shrink-0">
+                  <Badge variant="light-gray" className="text-[10px] leading-tight shrink-0">
                     Depositor
                   </Badge>
                 )}

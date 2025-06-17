@@ -34,7 +34,7 @@ const CustomTooltip = ({
         <TooltipContent
           side="top"
           align="center"
-          className={cn('z-[100] break-words whitespace-normal', isString ? 'text-center max-w-[250px]' : 'text-left', className)}
+          className={cn('z-100 break-words whitespace-normal', isString ? 'text-center max-w-[250px]' : 'text-left', className)}
           sideOffset={5}
         >
           {isString ? <p>{tooltipBody}</p> : tooltipBody}

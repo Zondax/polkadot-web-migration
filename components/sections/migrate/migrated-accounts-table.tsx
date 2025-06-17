@@ -17,7 +17,7 @@ const MigratedAccountsTable = ({ apps, multisigAddresses }: MigratedAccountsTabl
   return (
     <div className="mb-8">
       <h3 className="text-lg font-semibold mb-4">{multisigAddresses ? 'Multisig Addresses' : 'Regular Addresses'}</h3>
-      <Table className="shadow-sm border border-gray-200">
+      <Table className="shadow-xs border border-gray-200">
         <TableHeader>
           <TableRow>
             <TableHead className="hidden sm:table-cell">Chain</TableHead>
@@ -30,7 +30,7 @@ const MigratedAccountsTable = ({ apps, multisigAddresses }: MigratedAccountsTabl
               Balance
               <CustomTooltip
                 tooltipBody="Balance to be transferred. The transaction fee will be deducted from this amount."
-                className="!normal-case font-normal"
+                className="normal-case! font-normal"
               >
                 <Info className="h-4 w-4 inline-block ml-1 text-gray-400" />
               </CustomTooltip>
