@@ -2,6 +2,7 @@ import { type Transaction, TransactionStatus } from '@/state/types/ledger'
 import { useCallback, useMemo, useState } from 'react'
 
 import type { UpdateTransactionStatus } from '@/lib/account'
+import type { BN } from '@polkadot/util'
 
 type GenericFunction = (...args: any[]) => Promise<void>
 
@@ -12,9 +13,9 @@ interface TransactionStatusReturn<T extends GenericFunction> {
   isTxFailed: boolean
   updateSynchronization: (syncFn?: GenericFunction, ...args: any[]) => Promise<void>
   isSynchronizing: boolean
-  estimatedFee: string | undefined
+  estimatedFee: BN | undefined
   estimatedFeeLoading: boolean
-  getEstimatedFee: (...args: Parameters<T>) => Promise<string | undefined>
+  getEstimatedFee: (...args: Parameters<T>) => Promise<BN | undefined>
   clearTx: () => void
 }
 
@@ -24,10 +25,10 @@ interface TransactionStatusReturn<T extends GenericFunction> {
  */
 export const useTransactionStatus = <T extends GenericFunction>(
   transactionFn: (updateTxStatus: UpdateTransactionStatus, ...args: Parameters<T>) => Promise<void>,
-  feeTxFn?: (...args: Parameters<T>) => Promise<string | undefined>
+  feeTxFn?: (...args: Parameters<T>) => Promise<BN | undefined>
 ): TransactionStatusReturn<T> => {
   // Track the status of transactions
-  const [fee, setFee] = useState<string | undefined>(undefined)
+  const [fee, setFee] = useState<BN | undefined>(undefined)
   const [feeLoading, setFeeLoading] = useState<boolean>(false)
   const [txStatus, setTxStatus] = useState<Transaction | undefined>(undefined)
   const [isTxFinished, setIsTxFinished] = useState<boolean>(false)

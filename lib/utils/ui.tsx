@@ -3,6 +3,9 @@ import { AlertCircle, AtSign, CheckCircle, Clock, Globe, Mail, Twitter, User, Us
 
 import type { TooltipItem } from '@/components/CustomTooltip'
 import { Spinner } from '@/components/icons'
+import type { Token } from '@/config/apps'
+import { BN } from '@polkadot/util'
+import { formatBalance } from './format'
 
 /**
  * Returns a status icon and message corresponding to the given transaction status.
@@ -75,19 +78,22 @@ export const getTransactionStatus = (
  * @param max - The maximum allowed value (inclusive).
  * @returns An object with a boolean `valid` flag and a `helperText` message for user feedback.
  */
-export const validateNumberInput = (value: string, max: number): { valid: boolean; helperText: string } => {
-  if (value === '') {
+export const validateNumberInput = (value: number, max: BN, token: Token): { valid: boolean; helperText: string } => {
+  if (Number.isNaN(value)) {
     return { valid: false, helperText: 'Amount is required.' }
   }
-  const numValue = Number(value)
-  if (Number.isNaN(numValue)) {
+  // Convert value to BN for comparison
+  let inputBN: BN
+  try {
+    inputBN = new BN(value)
+  } catch (e) {
     return { valid: false, helperText: 'Amount must be a number.' }
   }
-  if (numValue <= 0) {
+  if (inputBN.lte(new BN(0))) {
     return { valid: false, helperText: 'Amount must be greater than zero.' }
   }
-  if (numValue > max) {
-    return { valid: false, helperText: `Amount cannot exceed your staked balance (${max}).` }
+  if (inputBN.gt(max)) {
+    return { valid: false, helperText: `Amount cannot exceed your staked balance (${formatBalance(max, token)}).` }
   }
   return { valid: true, helperText: '' }
 }

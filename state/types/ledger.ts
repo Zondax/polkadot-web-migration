@@ -1,3 +1,4 @@
+import type { BN } from '@polkadot/util'
 import type { GenericeResponseAddress } from '@zondax/ledger-substrate/dist/common'
 import type { AppId } from 'config/apps'
 
@@ -97,7 +98,7 @@ export interface MultisigMember {
 
 export interface MultisigCall {
   callHash: string
-  deposit: number
+  deposit: BN
   depositor: string
   signatories: string[]
 }
@@ -186,15 +187,15 @@ export interface NftsInfo {
  * Information about a staking balance
  */
 export interface Staking {
-  total?: number
-  active?: number
+  total?: BN
+  active?: BN
   unlocking?: {
-    value: number
+    value: BN
     era: number
     timeRemaining: string
     canWithdraw: boolean
   }[]
-  claimedRewards?: number[]
+  claimedRewards?: BN[]
   stash?: string
   controller?: string
   canUnstake: boolean
@@ -204,21 +205,21 @@ export interface Staking {
  * Information about the reserved balance, including breakdown by source.
  */
 export interface Reserved {
-  total: number
-  proxy?: { deposit: number }
-  identity?: { deposit: number }
-  multisig?: { total: number; deposits: { callHash: string; deposit: number }[] }
+  total: BN
+  proxy?: { deposit: BN }
+  identity?: { deposit: BN }
+  multisig?: { total: BN; deposits: { callHash: string; deposit: BN }[] }
 }
 
 /**
  * Information about a native balance
  */
 export interface Native {
-  free: number
+  free: BN
   reserved: Reserved
-  frozen: number
-  total: number // free + reserved.total
-  transferable: number // free - max(frozen - reserved.total, 0)
+  frozen: BN
+  total: BN
+  transferable: BN
   staking?: Staking
 }
 
@@ -235,12 +236,12 @@ export interface IdentityInfo {
 }
 
 export interface SubIdentities {
-  deposit?: number
+  deposit?: BN
   subAccounts?: string[]
 }
 
 export interface Registration {
-  deposit?: number
+  deposit?: BN
   identity?: IdentityInfo
   subIdentities?: SubIdentities // review the type
   canRemove: boolean
@@ -254,7 +255,7 @@ export interface ProxyDefinition {
 
 export interface AccountProxy {
   proxies: ProxyDefinition[]
-  deposit?: number
+  deposit?: BN
 }
 
 export interface MigratingItem {
@@ -265,6 +266,6 @@ export interface MigratingItem {
 }
 
 export interface PreTxInfo {
-  fee: string
+  fee: BN
   callHash: string
 }

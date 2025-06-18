@@ -8,6 +8,7 @@ import { formatBalance } from '@/lib/utils'
 import { getNonTransferableBalance, isNativeBalance, isNftBalanceType, isUniqueBalanceType } from '@/lib/utils/balance'
 import { createNftBalances } from '@/lib/utils/nft'
 
+import { BN } from '@polkadot/util'
 import { Info } from 'lucide-react'
 import BalanceGallery from './balance-gallery'
 import { NativeBalanceVisualization } from './balance-visualizations'
@@ -91,7 +92,7 @@ const BalanceHoverCard = ({ balances, collections, token, isMigration }: Balance
  */
 const LockedBalanceHoverCard = ({ balance, token }: { balance?: Native; token: Token }) => {
   const lockedBalance = balance ? getNonTransferableBalance(balance) : undefined
-
+  const hasLockedBalance = lockedBalance?.gt(new BN(0))
   const formattedLockedBalance = useMemo(() => {
     return lockedBalance !== undefined ? formatBalance(lockedBalance, token) : null
   }, [lockedBalance, token])
@@ -101,10 +102,10 @@ const LockedBalanceHoverCard = ({ balance, token }: { balance?: Native; token: T
       <HoverCardTrigger asChild>
         <div className="flex items-center gap-2 cursor-pointer">
           <span className="font-mono">{formattedLockedBalance}</span>
-          {lockedBalance ? <Info className="w-4 h-4 text-gray-400" /> : null}
+          {hasLockedBalance ? <Info className="w-4 h-4 text-gray-400" /> : null}
         </div>
       </HoverCardTrigger>
-      {lockedBalance && balance ? (
+      {hasLockedBalance && balance ? (
         <HoverCardContent className="w-[calc(100vw-32px)] sm:w-auto max-w-full p-0 ml-4 mr-0 sm:mx-0" align="end">
           <NativeBalanceVisualization data={balance} token={token} types={['staking', 'reserved']} hidePercentage />
         </HoverCardContent>

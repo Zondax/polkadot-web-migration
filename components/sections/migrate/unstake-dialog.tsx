@@ -13,13 +13,14 @@ import { type AppId, type Token, getChainName } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { convertToRawUnits, formatBalance } from '@/lib/utils/format'
 import { validateNumberInput } from '@/lib/utils/ui'
+import { BN } from '@polkadot/util'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
 interface UnstakeDialogProps {
   appId: AppId
   open: boolean
   setOpen: (open: boolean) => void
-  maxUnstake: number
+  maxUnstake: BN
   token: Token
   account: Address
 }
@@ -27,7 +28,7 @@ interface UnstakeDialogProps {
 interface UnstakeFormProps {
   unstakeAmount?: number
   setUnstakeAmount: (amount: number | undefined) => void
-  maxUnstake: number
+  maxUnstake: BN
   token: Token
   account: Address
   appId: AppId
@@ -51,10 +52,11 @@ function UnstakeForm({
   const appName = getChainName(appId)
 
   const [helperText, setHelperText] = useState<string>('')
+  const maxUnstakeFormatted = useMemo(() => formatBalance(maxUnstake, token, undefined, true), [maxUnstake, token])
 
   const handleUnstakeAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
-    const { valid, helperText } = validateNumberInput(val, maxUnstake)
+    const { valid, helperText } = validateNumberInput(convertToRawUnits(Number(val), token), maxUnstake, token)
     setIsUnstakeAmountValid(valid)
     setUnstakeAmount(Number(val))
     setHelperText(helperText)
@@ -79,14 +81,12 @@ function UnstakeForm({
       <div>
         <div className="flex justify-between items-center mb-1">
           <span className="text-xs text-muted-foreground">Amount to Unstake</span>
-          <span className="text-xs text-muted-foreground">
-            Available Balance: {maxUnstake} {token.symbol}
-          </span>
+          <span className="text-xs text-muted-foreground">Available Balance: {maxUnstakeFormatted}</span>
         </div>
         <Input
           type="number"
           min={0}
-          max={maxUnstake}
+          max={maxUnstake.toNumber()}
           value={unstakeAmount}
           onChange={handleUnstakeAmountChange}
           placeholder="Amount"
@@ -110,10 +110,9 @@ function UnstakeForm({
   )
 }
 
-export default function UnstakeDialog({ open, setOpen, maxUnstake: maxUnstakeRaw, token, account, appId }: UnstakeDialogProps) {
+export default function UnstakeDialog({ open, setOpen, maxUnstake, token, account, appId }: UnstakeDialogProps) {
   const [unstakeAmount, setUnstakeAmount] = useState<number | undefined>(undefined)
   const [isUnstakeAmountValid, setIsUnstakeAmountValid] = useState<boolean>(true)
-  const maxUnstake = useMemo(() => Number(formatBalance(maxUnstakeRaw, token, undefined, true)), [maxUnstakeRaw, token])
 
   // Wrap ledgerState$.unstakeBalance to match the generic hook's expected signature
   const unstakeTxFn = async (
@@ -121,7 +120,7 @@ export default function UnstakeDialog({ open, setOpen, maxUnstake: maxUnstakeRaw
     appId: AppId,
     address: string,
     path: string,
-    amount: number
+    amount: BN
   ) => {
     await ledgerState$.unstakeBalance(appId, address, path, amount, updateTxStatus)
   }
@@ -147,7 +146,7 @@ export default function UnstakeDialog({ open, setOpen, maxUnstake: maxUnstakeRaw
     getEstimatedFee(appId, account.address, rawUnstakeAmount)
   }, [open, getEstimatedFee, appId, account.address, unstakeAmount, token])
 
-  const formattedFee = useMemo(() => (estimatedFee ? formatBalance(Number(estimatedFee), token) : undefined), [estimatedFee, token])
+  const formattedFee = useMemo(() => (estimatedFee ? formatBalance(new BN(estimatedFee), token) : undefined), [estimatedFee, token])
 
   const signUnstakeTx = async () => {
     if (!unstakeAmount) return

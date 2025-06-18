@@ -8,6 +8,7 @@ import {
   type Nft,
   type NftBalance,
 } from '@/state/types/ledger'
+import { BN } from '@polkadot/util'
 
 /**
  * Type guard to check if a balance is a native balance
@@ -51,7 +52,7 @@ export const isUniqueBalanceType = (balance?: AddressBalance): boolean => {
  * @returns true if transferable amount is less than total amount, indicating non-transferable funds exist
  */
 export const hasNonTransferableBalance = (balance: NativeBalance): boolean => {
-  return balance.balance.transferable < balance.balance.total
+  return balance.balance.transferable.lt(balance.balance.total)
 }
 
 /**
@@ -61,7 +62,7 @@ export const hasNonTransferableBalance = (balance: NativeBalance): boolean => {
  */
 export const hasStakedBalance = (balance?: NativeBalance): boolean => {
   if (!balance || !balance.balance.staking) return false
-  return Boolean(balance.balance.staking?.total && balance.balance.staking?.total > 0)
+  return Boolean(balance.balance.staking?.total?.gt(new BN(0)))
 }
 
 /**
@@ -71,7 +72,7 @@ export const hasStakedBalance = (balance?: NativeBalance): boolean => {
  */
 export const canUnstake = (balance?: NativeBalance): boolean => {
   if (!balance || !balance.balance.staking) return false
-  return Boolean(balance.balance.staking?.canUnstake && balance.balance.staking?.active !== 0)
+  return Boolean(balance.balance.staking?.canUnstake && balance.balance.staking.active?.gt(new BN(0)))
 }
 
 /**
@@ -84,7 +85,7 @@ export const hasBalance = (balances: AddressBalance[], checkTransferable = false
   if (!balances) return false
   return balances.some(balance => {
     if (isNativeBalance(balance)) {
-      return checkTransferable ? balance.balance.transferable > 0 : balance.balance.total > 0
+      return checkTransferable ? balance.balance.transferable.gt(new BN(0)) : balance.balance.total.gt(new BN(0))
     }
     return Array.isArray(balance.balance) && balance.balance.length > 0
   })
@@ -111,10 +112,10 @@ export const hasAddressBalance = (account: Address): boolean => {
 export function getTransferableAndNfts(
   balance: AddressBalance,
   account: Address
-): { nftsToTransfer: Nft[]; nativeAmount: number | undefined; transferableAmount: number } {
+): { nftsToTransfer: Nft[]; nativeAmount: BN | undefined; transferableAmount: BN } {
   let nftsToTransfer: Nft[] = []
-  let nativeAmount: number | undefined = undefined
-  let transferableAmount = 0
+  let nativeAmount: BN | undefined = undefined
+  let transferableAmount = new BN(0)
 
   if (isNativeBalance(balance)) {
     nativeAmount = balance.balance.transferable
@@ -122,12 +123,12 @@ export function getTransferableAndNfts(
   } else if (isNftBalance(balance)) {
     nftsToTransfer = balance.balance
     // Find the native balance in the account to get its transferable amount
-    transferableAmount = account.balances?.find(b => isNativeBalance(b))?.balance.transferable ?? 0
+    transferableAmount = account.balances?.find(b => isNativeBalance(b))?.balance.transferable ?? new BN(0)
   }
 
   // Use minimum amount for development if needed
   if (process.env.NEXT_PUBLIC_NODE_ENV === 'development' && MINIMUM_AMOUNT && isNativeBalance(balance)) {
-    nativeAmount = MINIMUM_AMOUNT
+    nativeAmount = new BN(MINIMUM_AMOUNT)
   }
 
   return { nftsToTransfer, nativeAmount, transferableAmount }
@@ -139,9 +140,11 @@ export function getTransferableAndNfts(
  * @param balance - The native balance object.
  * @returns The amount of non-transferable funds.
  */
-export const getNonTransferableBalance = (balance: Native): number | undefined => {
-  if (!balance) return 0
-  return balance.total - balance.transferable
+export const getNonTransferableBalance = (balance: Native): BN => {
+  if (!balance) return new BN(0)
+  const total = new BN(balance.total)
+  const transferable = new BN(balance.transferable)
+  return total.sub(transferable)
 }
 
 /**
@@ -154,15 +157,10 @@ export const getNonTransferableBalance = (balance: Native): number | undefined =
  * @param total - The total reserved amount.
  * @returns True if the sum of the components equals the total, false otherwise.
  */
-export const validateReservedBreakdown = (
-  identityDeposit: number,
-  multisigDeposit: number,
-  proxyDeposit: number,
-  total: number
-): boolean => {
+export const validateReservedBreakdown = (identityDeposit: BN, multisigDeposit: BN, proxyDeposit: BN, total: BN): boolean => {
   // Check that no value is negative
-  if (identityDeposit < 0 || multisigDeposit < 0 || proxyDeposit < 0 || total < 0) {
+  if (identityDeposit.isNeg() || multisigDeposit.isNeg() || proxyDeposit.isNeg() || total.isNeg()) {
     return false
   }
-  return identityDeposit + multisigDeposit + proxyDeposit === total
+  return identityDeposit.add(multisigDeposit).add(proxyDeposit).eq(total)
 }

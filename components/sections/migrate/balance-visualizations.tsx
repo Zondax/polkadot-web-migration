@@ -1,6 +1,7 @@
 'use client'
 
 import type { Native, Reserved, Staking } from '@/state/types/ledger'
+import { BN } from '@polkadot/util'
 import { LockClosedIcon } from '@radix-ui/react-icons'
 import { ArrowRightLeftIcon, BarChartIcon, Check, ClockIcon, Group, LockOpenIcon, User, UserCog } from 'lucide-react'
 import type { ReactNode } from 'react'
@@ -19,8 +20,8 @@ interface NativeBalanceVisualizationProps {
 }
 
 interface BalanceCardProps {
-  value: number
-  total: number
+  value: BN
+  total: BN
   label: string
   icon: ReactNode
   colorScheme: {
@@ -33,10 +34,11 @@ interface BalanceCardProps {
   }
   details?: ReactNode
   hidePercentage?: boolean
+  token?: Token
 }
 
-const BalanceCard = ({ value, total, label, icon, colorScheme, details, hidePercentage }: BalanceCardProps) => {
-  const percentage = Number(((value / total) * 100).toFixed(2))
+const BalanceCard = ({ value, total, label, icon, colorScheme, details, hidePercentage, token }: BalanceCardProps) => {
+  const percentage = Number(value.div(total).mul(new BN(100)).toString()).toFixed(2)
 
   return (
     <Card
@@ -45,7 +47,7 @@ const BalanceCard = ({ value, total, label, icon, colorScheme, details, hidePerc
       <CardContent className="p-0 flex flex-col items-center justify-between min-h-[150px]">
         <div className="flex flex-col items-center justify-center">
           <div className={`${colorScheme.iconColor} mb-2`}>{icon}</div>
-          <div className="text-2xl font-mono text-center font-semibold mb-1">{value}</div>
+          <div className="text-2xl font-mono text-center font-semibold mb-1">{formatBalance(value, token, undefined, true)}</div>
           <div className="text-sm text-gray-600 mb-2">{label}</div>
         </div>
         {details && <div className="w-full mt-1">{details}</div>}
@@ -62,21 +64,25 @@ const BalanceCard = ({ value, total, label, icon, colorScheme, details, hidePerc
   )
 }
 
-const renderDetailsItem = (icon: ReactNode, label: string, value?: number, token?: Token) => (
-  <div className="flex justify-between mb-1 gap-1.5">
-    <span className="flex items-center gap-1.5">
-      {icon} <div className="text-sm text-gray-600">{label}</div>
-    </span>
-    <span className="font-mono font-medium">{formatBalance(value || 0, token, undefined, true)}</span>
-  </div>
-)
+const renderDetailsItem = (icon: ReactNode, label: string, value?: BN, token?: Token) => {
+  const bnValue = value !== undefined ? value : new BN(0)
+  return (
+    <div className="flex justify-between mb-1 gap-1.5">
+      <span className="flex items-center gap-1.5">
+        {icon} <div className="text-sm text-gray-600">{label}</div>
+      </span>
+      <span className="font-mono font-medium">{formatBalance(bnValue, token, undefined, true)}</span>
+    </div>
+  )
+}
 
 const detailFlagStyle = 'flex justify-between text-xxs gap-1.5 px-1.5 py-0.5 rounded-xl [&_svg]:h-3 [&_svg]:w-3'
 
 const StakingDetails = ({ stakingData, token }: { stakingData: Staking; token: Token }) => {
-  const readyToWithdraw: number = stakingData.unlocking?.filter(u => u.canWithdraw).reduce((sum, u) => sum + u.value, 0) || 0
+  const readyToWithdraw =
+    stakingData.unlocking?.filter(u => u.canWithdraw).reduce((sum, u) => sum.add(new BN(u.value)), new BN(0)) || new BN(0)
   const notReadyToWithdraw = stakingData.unlocking?.filter(u => !u.canWithdraw)
-  const unLockingBalance = (stakingData.total ?? 0) - (stakingData.active ?? 0)
+  const unLockingBalance = stakingData.total && stakingData.active ? new BN(stakingData.total).sub(new BN(stakingData.active)) : new BN(0)
 
   return (
     <div className="w-full text-sm border-t border-gray-100 pt-2 mb-2 flex flex-col gap-2">
@@ -88,7 +94,7 @@ const StakingDetails = ({ stakingData, token }: { stakingData: Staking; token: T
 
           <div className="flex flex-col gap-1 px-1">
             {/* Staked balance ready to withdraw */}
-            {readyToWithdraw > 0 && (
+            {readyToWithdraw.gtn(0) && (
               <div className={`${detailFlagStyle} bg-green-400/60`}>
                 <span className="flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-gray-600" />
@@ -116,15 +122,13 @@ const StakingDetails = ({ stakingData, token }: { stakingData: Staking; token: T
 const ReservedDetails = ({ reservedData, token }: { reservedData: Reserved; token: Token }) => {
   return (
     <div className="w-full text-sm border-t border-gray-100 pt-2 mb-2 flex flex-col gap-2">
-      {reservedData.proxy &&
-        reservedData.proxy.deposit > 0 &&
+      {reservedData.proxy?.deposit.gtn(0) &&
         renderDetailsItem(<UserCog className="w-4 h-4 text-polkadot-lime" />, 'Proxy Deposit', reservedData.proxy.deposit, token)}
 
-      {reservedData.identity &&
-        reservedData.identity.deposit > 0 &&
+      {reservedData.identity?.deposit.gtn(0) &&
         renderDetailsItem(<User className="w-4 h-4 text-polkadot-lime" />, 'Identity Deposit', reservedData.identity.deposit, token)}
 
-      {reservedData.multisig && reservedData.multisig.total > 0 && (
+      {reservedData.multisig?.total.gtn(0) && (
         <div className="flex flex-col gap-1">
           {renderDetailsItem(
             <LockClosedIcon className="w-4 h-4 text-polkadot-lime" />,
@@ -133,7 +137,7 @@ const ReservedDetails = ({ reservedData, token }: { reservedData: Reserved; toke
             token
           )}
           <div className="flex flex-col gap-1 px-1">
-            {reservedData.multisig.deposits.map((deposit: { callHash: string; deposit: number }) => (
+            {reservedData.multisig.deposits.map((deposit: { callHash: string; deposit: BN }) => (
               <div key={deposit.callHash} className={`${detailFlagStyle} bg-polkadot-lime/20`}>
                 <span className="flex items-center gap-1.5">
                   <Group className="w-3.5 h-3.5 text-gray-600" />
@@ -172,7 +176,7 @@ export const NativeBalanceVisualization = ({
     },
     {
       id: 'staking',
-      value: data.staking?.total || 0,
+      value: data.staking?.total || new BN(0),
       label: 'Staked',
       icon: <BarChartIcon className="w-6 h-6" />,
       colorScheme: {
@@ -216,13 +220,14 @@ export const NativeBalanceVisualization = ({
       {filteredBalanceTypes.map(type => (
         <BalanceCard
           key={type.label}
-          value={Number(formatBalance(type.value || 0, token, undefined, true))}
-          total={Number(formatBalance(data.total ?? 0, token, undefined, true))}
+          value={type.value}
+          total={data.total ?? new BN(0)}
           label={type.label}
           icon={type.icon}
           colorScheme={type.colorScheme}
           details={type.details}
           hidePercentage={hidePercentage}
+          token={token}
         />
       ))}
     </div>
