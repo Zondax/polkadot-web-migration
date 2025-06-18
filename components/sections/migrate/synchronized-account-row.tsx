@@ -66,7 +66,6 @@ interface Action {
 }
 
 const SynchronizedAccountRow = ({
-const SynchronizedAccountRow = ({
   account,
   accountIndex,
   balance,
@@ -96,8 +95,6 @@ const SynchronizedAccountRow = ({
   const internalMultisigMembers: MultisigMember[] = (account as MultisigAddress).members?.filter(member => member.internal) ?? []
   const signatoryAddress: string = balance?.transaction?.signatoryAddress ?? ''
   const isProxied: boolean = (account.proxy?.proxies.length ?? 0) > 0
-    
-    
 
   if (isMultisigAddress && internalMultisigMembers.length === 0) {
     // it shouldn't happen, but if it does, we don't want to render the row
@@ -297,7 +294,12 @@ const SynchronizedAccountRow = ({
       ) : null
 
       items.push({ label: 'Proxied by', value: proxiesComponent ?? '-', icon: User, hasCopyButton: true })
-      items.push({ label: 'Deposit', value: formatBalance(account.proxy?.deposit ?? new BN(0), token), icon: Banknote, className: 'font-mono' })
+      items.push({
+        label: 'Deposit',
+        value: formatBalance(account.proxy?.deposit ?? new BN(0), token),
+        icon: Banknote,
+        className: 'font-mono',
+      })
     }
     return items.length > 0 ? (
       <div className="p-2 min-w-[240px]">
