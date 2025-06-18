@@ -48,6 +48,11 @@ function RemoveIdentityForm({ token, account, appId, estimatedFee, estimatedFeeL
           <span className="font-semibold text-base">{appName}</span>
         </div>
       </div>
+      {/* Deposit */}
+      <div className="text-sm">
+        <div className="text-xs text-muted-foreground mb-1">Deposit to be returned</div>
+        <span className="font-mono">{formatBalance(account.registration?.deposit ?? 0, token)}</span>
+      </div>
       {/* Estimated Fee */}
       <div className="flex flex-col items-start justify-start">
         <div className="text-xs text-muted-foreground mb-1">Estimated Fee</div>
