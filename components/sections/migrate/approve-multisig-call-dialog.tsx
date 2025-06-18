@@ -81,7 +81,7 @@ function MultisigCallForm({
   )
 
   const depositorAddress = selectedCall?.depositor
-  const existingApprovals = selectedCall?.signatories
+  const approvers = selectedCall?.signatories
   const deposit = selectedCall?.deposit
 
   // Handle call hash change
@@ -148,12 +148,14 @@ function MultisigCallForm({
         )}
       </div>
 
-      {/* Existing Approvals */}
-      {depositorAddress && existingApprovals && existingApprovals.length > 0 && (
+      {/* Approvers */}
+      {depositorAddress && approvers && approvers.length > 0 && (
         <div>
-          <div className="text-xs text-muted-foreground mb-1">Existing Approvals</div>
+          <div className="text-xs text-muted-foreground mb-1">
+            Approvers ({approvers.length}/{account.threshold})
+          </div>
           <div className="space-y-1">
-            {existingApprovals.map(approval => (
+            {approvers.map(approval => (
               <div key={approval} className="flex items-center gap-1">
                 <ExplorerLink value={approval} appId={appId as AppId} explorerLinkType={ExplorerItemType.Address} />
                 {approval === depositorAddress && (
