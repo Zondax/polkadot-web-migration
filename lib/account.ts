@@ -108,9 +108,9 @@ export async function getBalance(
     if (process.env.NEXT_PUBLIC_NODE_ENV === 'development') {
       if (mockBalances.some(balance => balance.address === addressString)) {
         const totalBalance = mockBalances.find(balance => balance.address === addressString)?.balance ?? 0
-        const balance = {
+        const balance: Native = {
           free: totalBalance,
-          reserved: 0,
+          reserved: { total: 0 },
           frozen: 0,
           total: totalBalance,
           transferable: totalBalance,
@@ -179,10 +179,11 @@ export async function getNativeBalance(addressString: string, api: ApiPromise, a
       // According to the official Polkadot documentation:
       // https://wiki.polkadot.network/learn/learn-guides-accounts/#query-account-data-in-polkadot-js
       // The Existential Deposit is not taking into account to calculate the transferable balance because it is not necessary to keep the account alive
-
       const nativeBalance: Native = {
         free: Number.parseFloat(free.toString()),
-        reserved: Number.parseFloat(reserved.toString()),
+        reserved: {
+          total: Number.parseFloat(reserved.toString()),
+        },
         frozen: Number.parseFloat(frozen.toString()),
         total: Number.parseFloat(free.toString()) + Number.parseFloat(reserved.toString()),
         transferable:
@@ -1284,7 +1285,6 @@ export async function getMultisigAddresses(
 
     return multisigAddresses
   } catch (error) {
-    console.error('Error in getMultisigAddresses:', error)
     return undefined
   }
 }
@@ -1585,7 +1585,13 @@ type ProxiesResult = [Vec<ProxyDefinition>, u128]
 
 export async function getProxyInfo(address: string, api: ApiPromise): Promise<AccountProxy | undefined> {
   try {
-    const proxiesResult = (await api.query.proxy.proxies(address)) as unknown as ProxiesResult
+    const proxiesResult = (await api.query.proxy?.proxies(address)) as unknown as ProxiesResult
+
+    // Note: Not all chains support setting proxies, so this value may not be available.
+    if (!proxiesResult) {
+      return undefined
+    }
+
     const [proxies, deposit] = proxiesResult
 
     const proxiesHuman = proxies.toHuman() as ProxyDefinition[] | undefined

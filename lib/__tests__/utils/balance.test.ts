@@ -11,6 +11,7 @@ import {
   isNftBalance,
   isNftBalanceType,
   isUniqueBalanceType,
+  validateReservedBreakdown,
 } from '../../utils/balance'
 import {
   mockAddress1,
@@ -244,7 +245,7 @@ describe('getNonTransferableBalance', () => {
       frozen: 50,
       total: 150,
       transferable: 100,
-      reserved: 50,
+      reserved: { total: 50 },
     }
     expect(getNonTransferableBalance(accountData)).toBe(50)
   })
@@ -255,8 +256,38 @@ describe('getNonTransferableBalance', () => {
       frozen: 50,
       total: 200,
       transferable: 200,
-      reserved: 0,
+      reserved: { total: 0 },
     }
     expect(getNonTransferableBalance(accountData)).toBe(0)
+  })
+})
+
+describe('validateReservedBreakdown', () => {
+  it('returns true when the sum of components equals total', () => {
+    expect(validateReservedBreakdown(10, 20, 30, 60)).toBe(true)
+  })
+
+  it('returns false when the sum of components does not equal total', () => {
+    expect(validateReservedBreakdown(10, 20, 30, 61)).toBe(false)
+  })
+
+  it('returns true for all zeros', () => {
+    expect(validateReservedBreakdown(0, 0, 0, 0)).toBe(true)
+  })
+
+  it('returns false if any value is negative (identityDeposit)', () => {
+    expect(validateReservedBreakdown(-10, 20, 0, 10)).toBe(false)
+  })
+
+  it('returns false if any value is negative (multisigDeposit)', () => {
+    expect(validateReservedBreakdown(10, -20, 0, 10)).toBe(false)
+  })
+
+  it('returns false if any value is negative (proxyDeposit)', () => {
+    expect(validateReservedBreakdown(10, 20, -5, 25)).toBe(false)
+  })
+
+  it('returns false if total is negative', () => {
+    expect(validateReservedBreakdown(10, 20, 5, -35)).toBe(false)
   })
 })

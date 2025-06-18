@@ -465,7 +465,7 @@ describe('getNativeBalance', () => {
     const result = await getNativeBalance('address', mockApi, 'polkadot')
     expect(result).toEqual({
       free: 1000000000000,
-      reserved: 0,
+      reserved: { total: 0 },
       frozen: 0,
       total: 1000000000000,
       transferable: 1000000000000,

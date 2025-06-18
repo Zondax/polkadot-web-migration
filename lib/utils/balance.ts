@@ -143,3 +143,26 @@ export const getNonTransferableBalance = (balance: Native): number | undefined =
   if (!balance) return 0
   return balance.total - balance.transferable
 }
+
+/**
+ * Validates that the sum of the reserved breakdown components (identity, multisig, proxy)
+ * matches the total reserved amount.
+ *
+ * @param identityDeposit - The deposit reserved for identity.
+ * @param multisigDeposit - The deposit reserved for multisig.
+ * @param proxyDeposit - The deposit reserved for proxy.
+ * @param total - The total reserved amount.
+ * @returns True if the sum of the components equals the total, false otherwise.
+ */
+export const validateReservedBreakdown = (
+  identityDeposit: number,
+  multisigDeposit: number,
+  proxyDeposit: number,
+  total: number
+): boolean => {
+  // Check that no value is negative
+  if (identityDeposit < 0 || multisigDeposit < 0 || proxyDeposit < 0 || total < 0) {
+    return false
+  }
+  return identityDeposit + multisigDeposit + proxyDeposit === total
+}

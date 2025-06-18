@@ -201,14 +201,24 @@ export interface Staking {
 }
 
 /**
+ * Information about the reserved balance, including breakdown by source.
+ */
+export interface Reserved {
+  total: number
+  proxy?: { deposit: number }
+  identity?: { deposit: number }
+  multisig?: { total: number; deposits: { callHash: string; deposit: number }[] }
+}
+
+/**
  * Information about a native balance
  */
 export interface Native {
   free: number
-  reserved: number
+  reserved: Reserved
   frozen: number
-  total: number // free + reserved
-  transferable: number // free - frozen
+  total: number // free + reserved.total
+  transferable: number // free - max(frozen - reserved.total, 0)
   staking?: Staking
 }
 

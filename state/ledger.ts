@@ -15,7 +15,7 @@ import {
 } from '@/lib/account'
 import type { DeviceConnectionProps } from '@/lib/ledger/types'
 import { convertSS58Format, isMultisigAddress } from '@/lib/utils/address'
-import { hasAddressBalance, hasBalance } from '@/lib/utils/balance'
+import { hasAddressBalance, hasBalance, validateReservedBreakdown } from '@/lib/utils/balance'
 import { mapLedgerError } from '@/lib/utils/error'
 import { setDefaultDestinationAddress } from '@/lib/utils/ledger'
 
@@ -27,9 +27,11 @@ import {
   AccountType,
   type Address,
   AddressStatus,
+  BalanceType,
   type Collection,
   type MigratingItem,
   type MultisigAddress,
+  type Native,
   type PreTxInfo,
   type Registration,
   TransactionStatus,
@@ -462,6 +464,7 @@ export const ledgerState$ = observable({
 
           // Multisig Addresses
           let memberMultisigAddresses: string[] | undefined
+          const multisigDeposits: { callHash: string; deposit: number }[] = []
           if (app.explorer?.id === 'subscan') {
             // a subscan endpoint is used to get the multisig addresses
             const multisigAddresses = await getMultisigAddresses(address.address, address.path, app.explorer.network || app.id, api)
@@ -470,6 +473,41 @@ export const ledgerState$ = observable({
             if (memberMultisigAddresses && multisigAddresses) {
               for (const multisigAddress of multisigAddresses) {
                 multisigAccounts.set(multisigAddress.address, multisigAddress)
+
+                // Collect deposits from pending multisig calls where this address is the depositor
+                if (multisigAddress.pendingMultisigCalls) {
+                  for (const call of multisigAddress.pendingMultisigCalls) {
+                    if (call.depositor === address.address) {
+                      multisigDeposits.push({
+                        callHash: call.callHash,
+                        deposit: call.deposit,
+                      })
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          const hasReservedBalance = registration?.deposit || multisigDeposits.length > 0 || proxy?.deposit
+          if (hasReservedBalance) {
+            const nativeBalanceIndex = balances.findIndex(balance => balance.type === BalanceType.NATIVE)
+            const nativeBalance = balances[nativeBalanceIndex].balance as Native
+            const identityDeposit = registration?.deposit ? Number.parseFloat(registration.deposit.toString()) : 0
+            const multisigDeposit = multisigDeposits.length > 0 ? multisigDeposits.reduce((sum, deposit) => sum + deposit.deposit, 0) : 0
+            const proxyDeposit = proxy?.deposit ? Number.parseFloat(proxy.deposit.toString()) : 0
+
+            const isBreakdownValid = validateReservedBreakdown(identityDeposit, multisigDeposit, proxyDeposit, nativeBalance.reserved.total)
+
+            if (isBreakdownValid) {
+              balances[nativeBalanceIndex].balance = {
+                ...nativeBalance,
+                reserved: {
+                  ...nativeBalance.reserved,
+                  identity: identityDeposit ? { deposit: identityDeposit } : undefined,
+                  multisig: multisigDeposit ? { total: multisigDeposit, deposits: multisigDeposits } : undefined,
+                  proxy: proxyDeposit ? { deposit: proxyDeposit } : undefined,
+                },
               }
             }
           }
