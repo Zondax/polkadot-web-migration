@@ -18,6 +18,7 @@ interface SelectWithCustomProps {
   placeholder?: string
   customPlaceholder?: string
   selectedValue?: string
+  defaultValue?: string
   onValueChange?: (value: string) => void
   renderOption?: (option: Option, index: number) => React.ReactNode
   className?: string
@@ -31,6 +32,7 @@ export function SelectWithCustom({
   onValueChange,
   renderOption,
   selectedValue,
+  defaultValue,
   className,
   disabled,
 }: SelectWithCustomProps) {
@@ -148,7 +150,7 @@ export function SelectWithCustom({
 
   return (
     <div className={cn('relative', className)}>
-      <Select value={selectedValue} onValueChange={handleSelectChange} disabled={disabled}>
+      <Select onValueChange={handleSelectChange} defaultValue={defaultValue} disabled={disabled}>
         <SelectTrigger>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>

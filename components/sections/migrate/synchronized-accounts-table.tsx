@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import type { AppId, Token } from '@/config/apps'
 
 import type { UpdateTransaction } from '@/components/hooks/useSynchronization'
+import { useCallback } from 'react'
 import SynchronizedAccountRow from './synchronized-account-row'
 
 interface AccountsTableProps {
@@ -20,6 +21,55 @@ interface AccountsTableProps {
 }
 
 function AccountsTable({ accounts, token, polkadotAddresses, collections, appId, updateTransaction, isMultisig }: AccountsTableProps) {
+  const renderAccounts = useCallback(() => {
+    if (!accounts || accounts.length === 0) {
+      return (
+        <TableRow>
+          <TableCell colSpan={7} className="text-center text-muted-foreground">
+            There are no accounts available for migration in this network. Please check your Ledger device for accounts with a balance to
+            migrate.
+          </TableCell>
+        </TableRow>
+      )
+    }
+
+    return accounts.map((account, accountIndex) => {
+      const balances = account.balances ?? []
+
+      if (balances.length === 0 && account.error) {
+        return (
+          <SynchronizedAccountRow
+            key={`${account.address ?? accountIndex}`}
+            account={account}
+            accountIndex={accountIndex}
+            rowSpan={balances.length}
+            collections={collections}
+            token={token}
+            polkadotAddresses={polkadotAddresses}
+            updateTransaction={updateTransaction}
+            appId={appId}
+          />
+        )
+      }
+
+      return balances.map((balance: AddressBalance, balanceIndex: number) => (
+        <SynchronizedAccountRow
+          key={`${account.address ?? accountIndex}-${balance.type}`}
+          account={account}
+          accountIndex={accountIndex}
+          balance={balance}
+          balanceIndex={balanceIndex}
+          rowSpan={balances.length}
+          collections={collections}
+          token={token}
+          polkadotAddresses={polkadotAddresses}
+          updateTransaction={updateTransaction}
+          appId={appId}
+        />
+      ))
+    })
+  }, [accounts, collections, token, polkadotAddresses, updateTransaction, appId])
+
   return (
     <motion.div
       initial={{ opacity: 0, height: 0 }}
@@ -39,52 +89,7 @@ function AccountsTable({ accounts, token, polkadotAddresses, collections, appId,
             <TableHead className="w-[100px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
-        <TableBody>
-          {accounts && accounts.length > 0 ? (
-            accounts.map((account, accountIndex) => {
-              const balances = account.balances ?? []
-
-              if (balances.length === 0 && account.error) {
-                return (
-                  <SynchronizedAccountRow
-                    key={`${account.address ?? accountIndex}`}
-                    account={account}
-                    accountIndex={accountIndex}
-                    rowSpan={balances.length}
-                    collections={collections}
-                    token={token}
-                    polkadotAddresses={polkadotAddresses}
-                    updateTransaction={updateTransaction}
-                    appId={appId}
-                  />
-                )
-              }
-
-              return balances.map((balance: AddressBalance, balanceIndex: number) => (
-                <SynchronizedAccountRow
-                  key={`${account.address ?? accountIndex}-${balance.type}`}
-                  account={account}
-                  accountIndex={accountIndex}
-                  balance={balance}
-                  balanceIndex={balanceIndex}
-                  rowSpan={balances.length}
-                  collections={collections}
-                  token={token}
-                  polkadotAddresses={polkadotAddresses}
-                  updateTransaction={updateTransaction}
-                  appId={appId}
-                />
-              ))
-            })
-          ) : (
-            <TableRow>
-              <TableCell colSpan={7} className="text-center text-muted-foreground">
-                There are no accounts available for migration in this network. Please check your Ledger device for accounts with a balance
-                to migrate.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
+        <TableBody>{renderAccounts()}</TableBody>
       </Table>
     </motion.div>
   )
