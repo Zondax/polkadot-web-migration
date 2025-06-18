@@ -40,16 +40,19 @@ export const formatBalance = (balance: BN, token?: Token, maxDecimals: number = 
   if (decimals > 0) {
     const divisor = new BN(10).pow(new BN(decimals))
     const adjusted = balance.divmod(divisor)
-    const intPart = adjusted.div.toString()
+    // Format integer part with commas
+    const intPart = Number(adjusted.div.toString()).toLocaleString()
     let fracPart = adjusted.mod.toString().padStart(decimals, '0')
     if (maxDecimals !== undefined) {
       fracPart = fracPart.slice(0, maxDecimals)
     }
-    const formattedBalance = fracPart?.replace(/0+$/, '') ? `${intPart}.${fracPart.replace(/0+$/, '')}` : intPart
+    const trimmedFrac = fracPart.replace(/0+$/, '')
+    const formattedBalance = trimmedFrac ? `${intPart}.${trimmedFrac}` : intPart
     return hideTokenSymbol || !token ? formattedBalance : `${formattedBalance} ${token?.symbol}`
   }
-  // No decimals, just return as string
-  return hideTokenSymbol || !token ? balance.toString() : `${balance.toString()} ${token?.symbol}`
+  // No decimals, just return as string with commas
+  const intString = Number(balance.toString()).toLocaleString()
+  return hideTokenSymbol || !token ? intString : `${intString} ${token?.symbol}`
 }
 
 /**

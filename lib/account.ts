@@ -331,10 +331,11 @@ export async function prepareTransaction(
     const tempTransfer = tempCalls.length > 1 ? api.tx.utility.batchAll(tempCalls) : tempCalls[0]
     // Calculate the fee
     const { partialFee } = await tempTransfer.paymentInfo(senderAddress)
+    const partialFeeBN = new BN(partialFee)
 
     // Send the max amount of native tokens
-    if (nativeAmount === transferableBalance) {
-      const adjustedAmount = transferableBalance.sub(partialFee)
+    if (nativeAmount.eq(transferableBalance)) {
+      const adjustedAmount = transferableBalance.sub(partialFeeBN)
 
       if (adjustedAmount.lte(new BN(0))) {
         throw new Error(errorDetails.insufficient_balance.description)
@@ -342,7 +343,7 @@ export async function prepareTransaction(
       // Rebuild the calls with the adjusted amount
       calls = [...calls, api.tx.balances.transferKeepAlive(receiverAddress, adjustedAmount)]
     } else {
-      const totalNeeded = partialFee.add(nativeAmount)
+      const totalNeeded = partialFeeBN.add(nativeAmount)
       if (transferableBalance.lt(totalNeeded)) {
         throw new Error(errorDetails.insufficient_balance_to_cover_fee.description)
       }
@@ -356,7 +357,9 @@ export async function prepareTransaction(
     // No nativeAmount sent, only NFTs or other assets
     // Calculate the fee and check if the balance is enough
     const { partialFee } = await transfer.paymentInfo(senderAddress)
-    if (transferableBalance.lt(partialFee)) {
+    const partialFeeBN = new BN(partialFee)
+
+    if (transferableBalance.lt(partialFeeBN)) {
       throw new Error(errorDetails.insufficient_balance.description)
     }
   }
@@ -411,7 +414,7 @@ export async function prepareRemoveProxiesTransaction(api: ApiPromise): Promise<
 
 export async function getTxFee(tx: SubmittableExtrinsic<'promise', ISubmittableResult>, senderAddress: string): Promise<BN> {
   const paymentInfo: RuntimeDispatchInfo = await tx.paymentInfo(senderAddress)
-  return paymentInfo.partialFee
+  return new BN(paymentInfo.partialFee)
 }
 
 // Create Signed Extrinsic

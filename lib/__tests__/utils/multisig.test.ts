@@ -12,6 +12,7 @@ vi.mock('@/state/client/ledger', () => ({
 }))
 
 import { ledgerClient } from '@/state/client/ledger'
+import { BN } from '@polkadot/util'
 
 // Cast the mocked function for type safety
 const mockedValidateCallDataMatchesHash = ledgerClient.validateCallDataMatchesHash as MockedFunction<
@@ -389,7 +390,7 @@ describe('getAvailableSigners', () => {
 
   const mockPendingCall: MultisigCall = {
     callHash: '0xabc',
-    deposit: 100,
+    deposit: new BN(100),
     depositor: '0x1',
     signatories: ['0x1', '0x3'],
   }

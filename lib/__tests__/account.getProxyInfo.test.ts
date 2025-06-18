@@ -1,6 +1,7 @@
 import type { ApiPromise } from '@polkadot/api'
 import type { Vec, u128 } from '@polkadot/types-codec'
 import type { ProxyDefinition } from '@polkadot/types/interfaces'
+import { BN } from '@polkadot/util'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getProxyInfo } from '../account'
 
@@ -43,7 +44,7 @@ describe('getProxyInfo', () => {
     const result = await getProxyInfo(mockAddress, api)
     expect(result).toEqual({
       proxies: [],
-      deposit: 0,
+      deposit: new BN(0),
     })
   })
 
@@ -68,7 +69,7 @@ describe('getProxyInfo', () => {
           delay: '0',
         },
       ],
-      deposit: 1000000000000,
+      deposit: new BN(1000000000000),
     })
   })
 
@@ -113,7 +114,7 @@ describe('getProxyInfo', () => {
           delay: '5',
         },
       ],
-      deposit: 2000000000000,
+      deposit: new BN(2000000000000),
     })
   })
 
@@ -158,7 +159,7 @@ describe('getProxyInfo', () => {
           delay: '5',
         },
       ],
-      deposit: 1000000000000,
+      deposit: new BN(1000000000000),
     })
   })
 })

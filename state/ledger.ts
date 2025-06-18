@@ -516,7 +516,7 @@ export const ledgerState$ = observable({
                 },
               }
             } else {
-              console.debug()
+              console.debug('We could not load the breakdown details.')
             }
           }
 

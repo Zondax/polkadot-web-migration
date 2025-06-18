@@ -8,7 +8,7 @@ interface SubscanBaseResponse {
   generated_at: number
 }
 
-interface SubscanMultisig {
+export interface SubscanMultisig {
   multi_account: { address: string }[]
   multi_account_member: { address: string }[]
   threshold: number
