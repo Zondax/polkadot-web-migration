@@ -111,7 +111,7 @@ function SynchronizedApp({
       {isExpanded && isAccountsNotEmpty ? (
         <div className="overflow-hidden">
           <SynchronizedAccountsTable
-            accounts={isMultisig ? app.multisigAccounts : app.accounts}
+            accounts={accounts}
             token={app.token}
             polkadotAddresses={polkadotAddresses ?? []}
             collections={collections}

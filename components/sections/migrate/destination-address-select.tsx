@@ -1,5 +1,5 @@
 import { observer } from '@legendapp/state/react'
-import { useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { AddressBalance } from 'state/types/ledger'
 
 import { ExplorerLink } from '@/components/ExplorerLink'
@@ -17,19 +17,27 @@ interface DestinationAddressSelectProps {
 }
 
 function DestinationAddressSelect({ appId, balance, index, polkadotAddresses, onDestinationChange }: DestinationAddressSelectProps) {
-  const destinationAddress = balance.transaction?.destinationAddress
+  const [destinationAddress, setDestinationAddress] = useState(balance.transaction?.destinationAddress)
+
+  useEffect(() => {
+    setDestinationAddress(balance.transaction?.destinationAddress)
+  }, [balance])
+
   const isDisabled = useMemo(() => {
     return !hasBalance([balance]) || !polkadotAddresses || polkadotAddresses.length === 0
   }, [balance, polkadotAddresses])
 
-  const renderOption = (option: { value: string; label: string }, index: number) => {
-    return (
-      <div className="flex items-center gap-2">
-        <span className="font-semibold">Polkadot {index + 1}:</span>
-        <ExplorerLink value={option.value} appId={appId as AppId} explorerLinkType={ExplorerItemType.Address} disableTooltip />
-      </div>
-    )
-  }
+  const renderOption = useCallback(
+    (option: { value: string; label: string }, index: number) => {
+      return (
+        <div className="flex items-center gap-2">
+          <span className="font-semibold">Polkadot {index + 1}:</span>
+          <ExplorerLink value={option.value} appId={appId as AppId} explorerLinkType={ExplorerItemType.Address} disableTooltip />
+        </div>
+      )
+    },
+    [appId]
+  )
 
   return (
     <SelectWithCustom
@@ -44,6 +52,7 @@ function DestinationAddressSelect({ appId, balance, index, polkadotAddresses, on
       onValueChange={value => onDestinationChange(value, index)}
       renderOption={renderOption}
       selectedValue={destinationAddress}
+      defaultValue={destinationAddress ?? polkadotAddresses?.[0]}
       disabled={isDisabled}
     />
   )
