@@ -21,8 +21,8 @@ importers:
         specifier: ^6.30.0
         version: 6.30.2
       '@ledgerhq/types-live':
-        specifier: ^6.65.0
-        version: 6.72.0
+        specifier: ^6.73.0
+        version: 6.73.0
       '@legendapp/state':
         specifier: 3.0.0-beta.30
         version: 3.0.0-beta.30(react@19.1.0)
@@ -898,8 +898,8 @@ packages:
   '@ledgerhq/logs@6.13.0':
     resolution: {integrity: sha512-4+qRW2Pc8V+btL0QEmdB2X+uyx0kOWMWE1/LWsq5sZy3Q5tpi4eItJS6mB0XL3wGW59RQ+8bchNQQ1OW/va8Og==}
 
-  '@ledgerhq/types-live@6.72.0':
-    resolution: {integrity: sha512-LPoMUgGnpJ5m+GZ78RXXogsB/OGVdrDmOMnGPUY9//Ia847EtwltA3u2tuE/FKCj0NFwEMuBrFX3RDKuccFzMg==}
+  '@ledgerhq/types-live@6.73.0':
+    resolution: {integrity: sha512-Cf71D8YDZD8qaRDJQm0yDPB9O0s8Fx43r3v89gn9wkvd/dENfLpk3hZ+R3wrOt5gYPoFvU3ktK0ToYS92zFMCw==}
 
   '@legendapp/state@3.0.0-beta.30':
     resolution: {integrity: sha512-TEPb3SEAJPfLjNsZ54Vb+y5YkZ+ROqDYqmQWpQ1+q1ySitD/zJIVtlxqdLrZAT1FECQgkQzd3G8HY5D9V/V0/g==}
@@ -3920,7 +3920,7 @@ snapshots:
 
   '@ledgerhq/logs@6.13.0': {}
 
-  '@ledgerhq/types-live@6.72.0':
+  '@ledgerhq/types-live@6.73.0':
     dependencies:
       bignumber.js: 9.3.0
       rxjs: 7.8.2
