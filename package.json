@@ -43,7 +43,7 @@
     "@legendapp/state": "3.0.0-beta.30",
     "@neondatabase/serverless": "^1.0.0",
     "@polkadot-api/merkleize-metadata": "^1.1.17",
-    "@polkadot/api": "^16.1.1",
+    "@polkadot/api": "^16.2.2",
     "@polkadot/api-derive": "^16.1.1",
     "@polkadot/keyring": "^13.4.3",
     "@polkadot/types": "^16.1.1",
