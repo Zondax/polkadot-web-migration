@@ -15,6 +15,8 @@ import {
 import {
   mockAddress1,
   mockAddress2,
+  mockAddress3,
+  mockAddressNoBalance,
   mockApp1,
   mockApp2,
   mockAppMixedErrorTypes,
@@ -39,17 +41,17 @@ const getAccountByPath = (accounts: Address[], path: string) => accounts.find(ac
 describe('filterAppsWithoutErrors', () => {
   it('should filter out apps with errors', () => {
     const result = filterAppsWithoutErrors(mockApps)
-    expect(result).toHaveLength(3)
+    expect(result).toHaveLength(3) // Only App1, App2 and App3 remain (App4 has app error)
     expect(result[0].name).toBe('App 1')
     expect(result[1].name).toBe('App 2')
-    expect(result[2].name).toBe('App 3') // This app has only migration errors which are allowed
+    expect(result[2].name).toBe('App 3')
   })
 
   it('should filter out accounts with errors within apps', () => {
     const result = filterAppsWithoutErrors(mockApps)
-    expect(result[0].accounts).toHaveLength(2)
+    expect(result[0].accounts).toHaveLength(2) // Both accounts have balance
     const app2Filtered = getAppById(result, 'kusama')
-    expect(app2Filtered?.accounts?.length).toBe(1) // App2 should have only one account left
+    expect(app2Filtered?.accounts?.length).toBe(1) // App2 should have only one account left (the one with uniques balance)
   })
 
   it('should handle empty apps array', () => {
@@ -69,9 +71,9 @@ describe('filterAppsWithoutErrors', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('should retain accounts with migration errors', () => {
+  it('should filter out accounts with migration errors if they have no balance', () => {
     const result = filterAppsWithoutErrors([mockAppWithMigrationError])
-    expect(result).toHaveLength(1)
+    expect(result).toHaveLength(1) // Migration error account with no balance is filtered out, the another one with balance remains
     expect(result[0].accounts).toHaveLength(1)
     if (result[0].accounts?.[0].error) {
       expect(result[0].accounts[0].error.source).toBe('migration')
@@ -81,31 +83,28 @@ describe('filterAppsWithoutErrors', () => {
   it('should handle apps with multisig accounts', () => {
     const result = filterAppsWithoutErrors([mockAppWithMultisigAccounts, mockApp1])
     expect(result).toHaveLength(2)
-    expect(result[0].multisigAccounts).toHaveLength(1)
+    expect(result[0].multisigAccounts).toHaveLength(1) // Only multisig with balance
   })
 
   // New multisig tests
   it('should filter out multisig accounts with errors', () => {
     const result = filterAppsWithoutErrors([mockAppWithMultisigErrors])
     expect(result).toHaveLength(1)
-    expect(result[0].multisigAccounts).toHaveLength(1) // Only migration error account should remain
-    if (result[0].multisigAccounts?.[0].error) {
-      expect(result[0].multisigAccounts[0].error.source).toBe('migration')
-    }
+    expect(result[0].multisigAccounts).toHaveLength(0) // Both multisig accounts have errors or no balance
   })
 
   it('should handle apps with only multisig accounts', () => {
     const result = filterAppsWithoutErrors([mockAppOnlyMultisigAccounts])
     expect(result).toHaveLength(1)
     expect(result[0].accounts).toHaveLength(0)
-    expect(result[0].multisigAccounts).toHaveLength(2)
+    expect(result[0].multisigAccounts).toHaveLength(1) // Only the one with balance
   })
 
   it('should handle apps with mixed account and multisig errors', () => {
     const result = filterAppsWithoutErrors([mockAppMixedMultisigErrors])
     expect(result).toHaveLength(1)
-    expect(result[0].accounts).toHaveLength(1) // Only account without error
-    expect(result[0].multisigAccounts).toHaveLength(2) // multisig without error + migration error one
+    expect(result[0].accounts).toHaveLength(1) // Only account without error and with balance
+    expect(result[0].multisigAccounts).toHaveLength(1) // Only multisig without error and with balance
   })
 
   it('should handle apps with undefined multisigAccounts property', () => {
@@ -113,6 +112,30 @@ describe('filterAppsWithoutErrors', () => {
     const result = filterAppsWithoutErrors([appWithUndefinedMultisig])
     expect(result).toHaveLength(1)
     expect(result[0].multisigAccounts).toHaveLength(0)
+  })
+
+  it('should filter out accounts with no balance even if they have no errors', () => {
+    const appWithNoBalanceAccount = {
+      ...mockApp1,
+      accounts: [mockAddress1, mockAddressNoBalance], // mockAddressNoBalance has no balance
+    }
+    const result = filterAppsWithoutErrors([appWithNoBalanceAccount])
+    expect(result).toHaveLength(1)
+    expect(result[0].accounts).toHaveLength(1) // Only the account with balance remains
+    expect(result[0].accounts?.[0]?.address).toBe(mockAddress1.address)
+  })
+
+  it('should include accounts with NFT balance even if native balance is zero', () => {
+    const result = filterAppsWithoutErrors([mockApp2])
+    expect(result).toHaveLength(1)
+    expect(result[0].accounts).toHaveLength(1) // mockAddress3 has uniques balance
+    expect(result[0].accounts?.[0]?.address).toBe(mockAddress3.address)
+  })
+
+  it('should include accounts with native balance even if NFT collections are empty', () => {
+    const result = filterAppsWithoutErrors([mockApp1])
+    expect(result).toHaveLength(1)
+    expect(result[0].accounts).toHaveLength(2) // Both accounts have balance (native and NFT)
   })
 })
 

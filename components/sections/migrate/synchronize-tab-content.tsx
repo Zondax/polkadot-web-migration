@@ -43,7 +43,6 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
     filteredAppsWithoutErrors: appsWithoutErrors,
     filteredAppsWithErrors: appsWithErrors,
     polkadotAddresses,
-    hasMultisigAccounts,
 
     // Actions
     rescanFailedAccounts,

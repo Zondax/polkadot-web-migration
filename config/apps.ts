@@ -50,7 +50,6 @@ interface AppConfigJSON {
   bip44Path: string
   ss58Prefix: number
   rpcEndpoint?: string
-  peopleRpcEndpoint?: string
   token: Token
   explorer?: AppExplorerConfig
   eraTimeInHours?: number
@@ -85,10 +84,6 @@ export interface AppConfig {
    * RPC endpoint for the chain
    */
   rpcEndpoint?: string
-  /**
-   * People's RPC endpoint for the chain
-   */
-  peopleRpcEndpoint?: string
   /**
    * Token configuration
    */

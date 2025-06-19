@@ -100,7 +100,7 @@ describe('getIdentityInfo', () => {
     })
   })
 
-  it('returns correct registration when there is no parent and no identity', async () => {
+  it('returns undefined when there is no parent and no identity', async () => {
     const mockIdentityOf = {
       isNone: true,
     } as Option<Registration>
@@ -108,6 +108,6 @@ describe('getIdentityInfo', () => {
     const api = createApiMock({ derivedIdentity, identityOf: mockIdentityOf })
 
     const result = await getIdentityInfo(mockAddress, api)
-    expect(result).toEqual({ canRemove: true })
+    expect(result).toBeUndefined()
   })
 })

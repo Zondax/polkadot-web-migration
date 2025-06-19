@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { type App, AppStatus } from 'state/ledger'
 import type { Address, AddressBalance, AddressWithVerificationStatus, MultisigAddress } from 'state/types/ledger'
+import { hasAddressBalance } from './balance'
 
 /**
  * Retrieves a light icon for a given app from the Hub backend.
@@ -46,7 +47,7 @@ export const getAppLightIcon = async (appId: string) => {
 }
 
 /**
- * Filters apps to only include those without errors.
+ * Filters apps to only include those without errors and with balances.
  *
  * @param apps - The apps to filter.
  * @returns Apps without errors.
@@ -55,9 +56,14 @@ export const filterAppsWithoutErrors = (apps: App[]): App[] => {
   return apps
     .map(app => ({
       ...app,
-      accounts: app.accounts?.filter((account: Address) => !account.error || account.error?.source === 'migration') || [],
+      accounts:
+        app.accounts?.filter(
+          (account: Address) => (!account.error || account.error?.source === 'migration') && hasAddressBalance(account)
+        ) || [],
       multisigAccounts:
-        app.multisigAccounts?.filter((account: MultisigAddress) => !account.error || account.error?.source === 'migration') || [],
+        app.multisigAccounts?.filter(
+          (account: MultisigAddress) => (!account.error || account.error?.source === 'migration') && hasAddressBalance(account)
+        ) || [],
     }))
     .filter(app => app.accounts.length > 0 || app.multisigAccounts?.length > 0)
 }
