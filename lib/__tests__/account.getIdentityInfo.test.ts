@@ -2,6 +2,7 @@ import type { ApiPromise } from '@polkadot/api'
 import type { DeriveAccountRegistration } from '@polkadot/api-derive/types'
 import type { Option, Vec } from '@polkadot/types-codec'
 import type { AccountId32, Balance, Registration } from '@polkadot/types/interfaces'
+import { BN } from '@polkadot/util'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getIdentityInfo } from '../account'
 
@@ -66,14 +67,14 @@ describe('getIdentityInfo', () => {
         image: { isRaw: true, asRaw: { toUtf8: () => 'img.png' } },
         twitter: { isRaw: true, asRaw: { toUtf8: () => '@twitter' } },
       },
-      deposit: { toNumber: () => 42 },
+      deposit: { toString: () => '42' },
     }
     const mockIdentityOf = {
       isNone: false,
       unwrap: () => mockRawResponse,
     } as unknown as Option<Registration>
     const mockSubs = [
-      { toNumber: () => 100 }, // deposit
+      { toString: () => '100' }, // deposit
       { toHuman: () => ['sub1', 'sub2'] }, // subAccounts
     ] as unknown as [Balance, Vec<AccountId32>]
     const derivedIdentity = { display: 'DisplayName', judgements: [] } as unknown as DeriveAccountRegistration
@@ -91,10 +92,10 @@ describe('getIdentityInfo', () => {
         image: 'img.png',
         twitter: '@twitter',
       },
-      deposit: 42,
+      deposit: new BN(42),
       subIdentities: {
         subAccounts: ['sub1', 'sub2'],
-        deposit: 100,
+        deposit: new BN(100),
       },
     })
   })

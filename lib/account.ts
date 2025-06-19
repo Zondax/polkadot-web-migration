@@ -14,7 +14,7 @@ import type {
   StakingLedger,
 } from '@polkadot/types/interfaces'
 import type { ExtrinsicPayloadValue, ISubmittableResult } from '@polkadot/types/types/extrinsic'
-import { hexToU8a } from '@polkadot/util'
+import { BN, hexToU8a } from '@polkadot/util'
 import type { AppConfig, AppId } from 'config/apps'
 import { DEFAULT_ERA_TIME_IN_HOURS, getEraTimeByAppId } from 'config/apps'
 import { defaultWeights, MULTISIG_WEIGHT_BUFFER } from 'config/config'
@@ -107,13 +107,13 @@ export async function getBalance(
   try {
     if (process.env.NEXT_PUBLIC_NODE_ENV === 'development') {
       if (mockBalances.some(balance => balance.address === addressString)) {
-        const totalBalance = mockBalances.find(balance => balance.address === addressString)?.balance ?? 0
-        const balance = {
-          free: totalBalance,
-          reserved: 0,
-          frozen: 0,
-          total: totalBalance,
-          transferable: totalBalance,
+        const totalBalanceBN = new BN(mockBalances.find(balance => balance.address === addressString)?.balance ?? 0)
+        const balance: Native = {
+          free: totalBalanceBN,
+          reserved: { total: new BN(0) },
+          frozen: new BN(0),
+          total: totalBalanceBN,
+          transferable: totalBalanceBN,
         }
         return {
           balances: [{ type: BalanceType.NATIVE, balance }],
@@ -179,17 +179,25 @@ export async function getNativeBalance(addressString: string, api: ApiPromise, a
       // According to the official Polkadot documentation:
       // https://wiki.polkadot.network/learn/learn-guides-accounts/#query-account-data-in-polkadot-js
       // The Existential Deposit is not taking into account to calculate the transferable balance because it is not necessary to keep the account alive
+      const freeBN = new BN(free.toString())
+      const reservedBN = new BN(reserved.toString())
+      const frozenBN = new BN(frozen.toString())
+      const totalBN = freeBN.add(reservedBN)
+      // transferable = free - max(frozen - reserved, 0)
+      const frozenMinusReserved = frozenBN.sub(reservedBN)
+      const transferableBN = frozenMinusReserved.isNeg() ? freeBN : freeBN.sub(frozenMinusReserved)
 
       const nativeBalance: Native = {
-        free: Number.parseFloat(free.toString()),
-        reserved: Number.parseFloat(reserved.toString()),
-        frozen: Number.parseFloat(frozen.toString()),
-        total: Number.parseFloat(free.toString()) + Number.parseFloat(reserved.toString()),
-        transferable:
-          Number.parseFloat(free.toString()) - Math.max(Number.parseFloat(frozen.toString()) - Number.parseFloat(reserved.toString()), 0),
+        free: freeBN,
+        reserved: {
+          total: reservedBN,
+        },
+        frozen: frozenBN,
+        total: totalBN,
+        transferable: transferableBN,
       }
 
-      if (nativeBalance.frozen > 0) {
+      if (!frozenBN.isZero()) {
         const stakingInfo = await getStakingInfo(addressString, api, appId)
         nativeBalance.staking = stakingInfo
       }
@@ -295,10 +303,10 @@ export async function prepareTransaction(
   api: ApiPromise,
   senderAddress: string,
   receiverAddress: string,
-  transferableBalance: number,
+  transferableBalance: BN,
   nfts: Array<Nft>,
   appConfig: AppConfig,
-  nativeAmount?: number,
+  nativeAmount?: BN,
   multisigInfo?: MultisigInfo
 ) {
   // Validate all NFTs
@@ -323,19 +331,20 @@ export async function prepareTransaction(
     const tempTransfer = tempCalls.length > 1 ? api.tx.utility.batchAll(tempCalls) : tempCalls[0]
     // Calculate the fee
     const { partialFee } = await tempTransfer.paymentInfo(senderAddress)
+    const partialFeeBN = new BN(partialFee)
 
     // Send the max amount of native tokens
-    if (nativeAmount === transferableBalance) {
-      const adjustedAmount = transferableBalance - Number.parseFloat(partialFee.toString())
+    if (nativeAmount.eq(transferableBalance)) {
+      const adjustedAmount = transferableBalance.sub(partialFeeBN)
 
-      if (adjustedAmount <= 0) {
+      if (adjustedAmount.lte(new BN(0))) {
         throw new Error(errorDetails.insufficient_balance.description)
       }
       // Rebuild the calls with the adjusted amount
       calls = [...calls, api.tx.balances.transferKeepAlive(receiverAddress, adjustedAmount)]
     } else {
-      const totalNeeded = Number.parseFloat(partialFee.toString()) + nativeAmount
-      if (transferableBalance < totalNeeded) {
+      const totalNeeded = partialFeeBN.add(nativeAmount)
+      if (transferableBalance.lt(totalNeeded)) {
         throw new Error(errorDetails.insufficient_balance_to_cover_fee.description)
       }
       calls.push(api.tx.balances.transferKeepAlive(receiverAddress, nativeAmount))
@@ -348,7 +357,9 @@ export async function prepareTransaction(
     // No nativeAmount sent, only NFTs or other assets
     // Calculate the fee and check if the balance is enough
     const { partialFee } = await transfer.paymentInfo(senderAddress)
-    if (transferableBalance < Number.parseFloat(partialFee.toString())) {
+    const partialFeeBN = new BN(partialFee)
+
+    if (transferableBalance.lt(partialFeeBN)) {
       throw new Error(errorDetails.insufficient_balance.description)
     }
   }
@@ -373,10 +384,7 @@ export async function prepareTransaction(
   return { ...transferInfo, callData }
 }
 
-export async function prepareUnstakeTransaction(
-  api: ApiPromise,
-  amount: number
-): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>> {
+export async function prepareUnstakeTransaction(api: ApiPromise, amount: BN): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>> {
   const unstakeTx: SubmittableExtrinsic<'promise', ISubmittableResult> = api.tx.staking.unbond(amount)
 
   return unstakeTx
@@ -404,9 +412,9 @@ export async function prepareRemoveProxiesTransaction(api: ApiPromise): Promise<
   return removeProxyTx
 }
 
-export async function getTxFee(tx: SubmittableExtrinsic<'promise', ISubmittableResult>, senderAddress: string): Promise<string> {
+export async function getTxFee(tx: SubmittableExtrinsic<'promise', ISubmittableResult>, senderAddress: string): Promise<BN> {
   const paymentInfo: RuntimeDispatchInfo = await tx.paymentInfo(senderAddress)
-  return paymentInfo.partialFee.toString()
+  return new BN(paymentInfo.partialFee)
 }
 
 // Create Signed Extrinsic
@@ -1079,8 +1087,8 @@ export async function getStakingInfo(address: string, api: ApiPromise, appId: Ap
   if (stakingLedgerRaw && !stakingLedgerRaw.isEmpty) {
     const stakingLedger = stakingLedgerRaw.unwrap()
 
-    stakingInfo.active = stakingLedger.active.toNumber()
-    stakingInfo.total = stakingLedger.total.toNumber()
+    stakingInfo.active = new BN(stakingLedger.active.toString())
+    stakingInfo.total = new BN(stakingLedger.total.toString())
 
     // Get current era
     const currentEraOption = (await api.query.staking.currentEra()) as Option<u32>
@@ -1090,7 +1098,7 @@ export async function getStakingInfo(address: string, api: ApiPromise, appId: Ap
     const eraTimeInHours = getEraTimeByAppId(appId)
 
     stakingInfo.unlocking = stakingLedger.unlocking.map(chunk => ({
-      value: chunk.value.toNumber(),
+      value: new BN(chunk.value.toString()),
       era: Number(chunk.era.toString()),
       timeRemaining: eraToHumanTime(Number(chunk.era.toString()), currentEra, eraTimeInHours),
       canWithdraw: isReadyToWithdraw(Number(chunk.era.toString()), currentEra),
@@ -1145,7 +1153,7 @@ export async function getIdentityInfo(address: string, api: ApiPromise): Promise
           image: rawResponse.info.image?.isRaw ? rawResponse.info.image.asRaw.toUtf8() : undefined,
           twitter: rawResponse.info.twitter?.isRaw ? rawResponse.info.twitter.asRaw.toUtf8() : undefined,
         }
-        registration.deposit = rawResponse.deposit.toNumber()
+        registration.deposit = new BN(rawResponse.deposit.toString())
 
         // Get the sub-identities
         const subs = await api.query.identity.subsOf(address)
@@ -1156,7 +1164,7 @@ export async function getIdentityInfo(address: string, api: ApiPromise): Promise
 
           registration.subIdentities = {
             subAccounts: subAccounts.toHuman() as string[],
-            deposit: deposit.toNumber(),
+            deposit: new BN(deposit.toString()),
           }
         }
       }
@@ -1267,7 +1275,7 @@ export async function getMultisigAddresses(
 
               const multisigCall: MultisigCall = {
                 callHash: key.args[1].toHex(),
-                deposit: multisigInfo.deposit.toNumber(),
+                deposit: new BN(multisigInfo.deposit.toString()),
                 depositor: multisigInfo.depositor.toString(),
                 signatories: multisigInfo.approvals.map(approval => approval.toString()),
               }
@@ -1284,7 +1292,6 @@ export async function getMultisigAddresses(
 
     return multisigAddresses
   } catch (error) {
-    console.error('Error in getMultisigAddresses:', error)
     return undefined
   }
 }
@@ -1585,7 +1592,13 @@ type ProxiesResult = [Vec<ProxyDefinition>, u128]
 
 export async function getProxyInfo(address: string, api: ApiPromise): Promise<AccountProxy | undefined> {
   try {
-    const proxiesResult = (await api.query.proxy.proxies(address)) as unknown as ProxiesResult
+    const proxiesResult = (await api.query.proxy?.proxies(address)) as unknown as ProxiesResult | undefined
+
+    // Note: Not all chains support setting proxies, so this value may not be available.
+    if (!proxiesResult) {
+      return undefined
+    }
+
     const [proxies, deposit] = proxiesResult
 
     const proxiesHuman = proxies.toHuman() as ProxyDefinition[] | undefined
@@ -1597,7 +1610,7 @@ export async function getProxyInfo(address: string, api: ApiPromise): Promise<Ac
             delay: proxy.delay,
           }))
         : [],
-      deposit: Number(deposit.toString()),
+      deposit: new BN(deposit.toString()),
     }
 
     return proxy

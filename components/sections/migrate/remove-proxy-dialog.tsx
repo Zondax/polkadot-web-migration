@@ -10,6 +10,7 @@ import { type AppId, type Token, getChainName } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { formatBalance } from '@/lib/utils/format'
 import { ledgerState$ } from '@/state/ledger'
+import { BN } from '@polkadot/util'
 import { useEffect, useMemo } from 'react'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
@@ -62,7 +63,7 @@ function RemoveProxyForm({ token, account, appId, estimatedFee, estimatedFeeLoad
       {/* Deposit */}
       <div className="text-sm">
         <div className="text-xs text-muted-foreground mb-1">Deposit to be returned</div>
-        <span className="font-mono">{formatBalance(account.proxy?.deposit ?? 0, token)}</span>
+        <span className="font-mono">{formatBalance(account.proxy?.deposit ?? new BN(0), token)}</span>
       </div>
       {/* Estimated Fee */}
       <div className="flex flex-col items-start justify-start">
@@ -108,7 +109,7 @@ export default function RemoveProxyDialog({ open, setOpen, token, account, appId
     }
   }, [open, getEstimatedFee, appId, account.address])
 
-  const formattedFee = useMemo(() => (estimatedFee ? formatBalance(Number(estimatedFee), token) : undefined), [estimatedFee, token])
+  const formattedFee = useMemo(() => (estimatedFee ? formatBalance(estimatedFee, token) : undefined), [estimatedFee, token])
 
   const signRemoveProxyTx = async () => {
     await runTransaction(appId, account.address, account.path)

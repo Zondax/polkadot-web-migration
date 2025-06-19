@@ -7,6 +7,7 @@ import { ExplorerItemType } from '@/config/explorers'
 import { cn, truncateMiddleOfString } from '@/lib/utils'
 import { getAddressExplorerUrl, getBlockExplorerUrl, getTransactionExplorerUrl } from '@/lib/utils/explorers'
 import { CopyButton } from './CopyButton'
+import type { ButtonSize } from './ui/button'
 
 interface ExplorerLinkProps {
   /**
@@ -49,6 +50,10 @@ interface ExplorerLinkProps {
    * Whether to disable the link functionality
    */
   disableLink?: boolean
+  /**
+   * Size of the copy button icon
+   */
+  size?: ButtonSize
 }
 
 export function ExplorerLink({
@@ -62,6 +67,7 @@ export function ExplorerLink({
   explorerLinkType,
   children,
   disableLink = false,
+  size = 'sm',
 }: ExplorerLinkProps) {
   if (!value) return null
 
@@ -107,7 +113,7 @@ export function ExplorerLink({
     <div className="flex items-center gap-2">
       {disableTooltip ? renderContent() : <CustomTooltip tooltipBody={tooltipBody || value}>{renderContent()}</CustomTooltip>}
 
-      {hasCopyButton && <CopyButton value={value} />}
+      {hasCopyButton && <CopyButton value={value} size={size} />}
     </div>
   )
 }

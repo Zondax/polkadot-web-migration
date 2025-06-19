@@ -13,6 +13,7 @@ vi.mock('../subscan', () => ({
 }))
 
 // Import the mocked function
+import { BN } from '@polkadot/util'
 import { getMultisigInfo } from '../subscan'
 
 // Common mock objects
@@ -59,7 +60,7 @@ const createMockMultisig = (): Option<Multisig> =>
         height: { toNumber: () => 100 },
         index: { toNumber: () => 0 },
       },
-      deposit: { toNumber: () => 1000 },
+      deposit: { toString: () => '1000' },
       depositor: { toString: () => 'depositorAddress' },
       approvals: [{ toString: () => 'approver1' }],
     }),
@@ -169,7 +170,7 @@ describe('getMultisigAddresses', () => {
       pendingMultisigCalls: [
         {
           callHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-          deposit: 1000,
+          deposit: new BN(1000),
           depositor: 'depositorAddress',
           signatories: ['approver1'],
         },

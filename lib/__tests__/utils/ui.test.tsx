@@ -1,7 +1,9 @@
 import { TransactionStatus } from 'state/types/ledger'
 import { describe, expect, it, vi } from 'vitest'
 
+import { BN } from '@polkadot/util'
 import { getTransactionStatus, validateNumberInput } from '../../utils/ui'
+import { mockApp1 } from './__mocks__/mockData'
 
 // Mock lucide-react icons and Spinner
 vi.mock('lucide-react', () => ({
@@ -76,36 +78,30 @@ describe('getTransactionStatus', () => {
 })
 
 describe('validateNumberInput', () => {
-  const max = 1000
-  it('returns valid: false and required message for empty string', () => {
-    const result = validateNumberInput('', max)
+  const max = new BN(1000)
+  const mockToken = mockApp1.token
+  it('returns valid: false and required message for NaN', () => {
+    const result = validateNumberInput(Number.NaN, max, mockToken)
     expect(result.valid).toBe(false)
     expect(result.helperText).toBe('Amount is required.')
   })
   it('returns valid: false and number message for non-numeric', () => {
-    const result = validateNumberInput('abc', max)
+    const result = validateNumberInput('abc' as unknown as number, max, mockToken)
     expect(result.valid).toBe(false)
     expect(result.helperText).toBe('Amount must be a number.')
   })
   it('returns valid: false and greater than zero message for zero or negative', () => {
-    expect(validateNumberInput('0', max)).toEqual({ valid: false, helperText: 'Amount must be greater than zero.' })
-    expect(validateNumberInput('-5', max)).toEqual({ valid: false, helperText: 'Amount must be greater than zero.' })
+    expect(validateNumberInput(0, max, mockToken)).toEqual({ valid: false, helperText: 'Amount must be greater than zero.' })
+    expect(validateNumberInput(-5, max, mockToken)).toEqual({ valid: false, helperText: 'Amount must be greater than zero.' })
   })
   it('returns valid: false and max message for value above max', () => {
-    const result = validateNumberInput('1001', max)
+    const result = validateNumberInput(1001, max, mockToken)
     expect(result.valid).toBe(false)
-    expect(result.helperText).toBe('Amount cannot exceed your staked balance (1000).')
+    expect(result.helperText).toBe('Amount cannot exceed your staked balance (0.0000001 DOT).')
   })
   it('returns valid: true for valid numbers within range', () => {
-    expect(validateNumberInput('123', max)).toEqual({ valid: true, helperText: '' })
-    expect(validateNumberInput('123.45', max)).toEqual({ valid: true, helperText: '' })
-    expect(validateNumberInput('0.5', max)).toEqual({ valid: true, helperText: '' })
-    expect(validateNumberInput('1000', max)).toEqual({ valid: true, helperText: '' })
-  })
-  it('returns valid: false for malformed numbers', () => {
-    expect(validateNumberInput('12.34.56', max).valid).toBe(false)
-    expect(validateNumberInput('1a2', max).valid).toBe(false)
-    expect(validateNumberInput('..', max).valid).toBe(false)
-    expect(validateNumberInput('1.2.3', max).valid).toBe(false)
+    expect(validateNumberInput(123, max, mockToken)).toEqual({ valid: true, helperText: '' })
+    expect(validateNumberInput(123.45, max, mockToken)).toEqual({ valid: true, helperText: '' })
+    expect(validateNumberInput(1000, max, mockToken)).toEqual({ valid: true, helperText: '' })
   })
 })

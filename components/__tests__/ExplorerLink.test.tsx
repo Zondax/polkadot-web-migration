@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
+import { ExplorerItemType } from '@/config/explorers'
 import { ExplorerLink } from '../ExplorerLink'
 
 describe('ExplorerLink Component', () => {
@@ -13,7 +14,7 @@ describe('ExplorerLink Component', () => {
   })
 
   it('renders with correct href attribute when explorer config is provided', () => {
-    render(<ExplorerLink value="f1234567890abcdef" appId="polkadot" explorerLinkType="address" />)
+    render(<ExplorerLink value="f1234567890abcdef" appId="polkadot" explorerLinkType={ExplorerItemType.Address} />)
 
     // Check if the link points to the correct URL
     const link = screen.getByRole('link')
@@ -22,7 +23,7 @@ describe('ExplorerLink Component', () => {
   })
 
   it('applies custom className when provided', () => {
-    render(<ExplorerLink value="f1234567890abcdef" appId="polkadot" explorerLinkType="address" className="custom-class" />)
+    render(<ExplorerLink value="f1234567890abcdef" appId="polkadot" explorerLinkType={ExplorerItemType.Address} className="custom-class" />)
 
     const link = screen.getByRole('link')
     expect(link.className).toContain('custom-class')
@@ -52,7 +53,7 @@ describe('ExplorerLink Component', () => {
   })
 
   it('disables link functionality when disableLink is true', () => {
-    render(<ExplorerLink value="f1234567890abcdef" appId="polkadot" explorerLinkType="address" disableLink={true} />)
+    render(<ExplorerLink value="f1234567890abcdef" appId="polkadot" explorerLinkType={ExplorerItemType.Address} disableLink={true} />)
 
     const links = screen.queryAllByRole('link')
     expect(links.length).toBe(0) // No links should be rendered
@@ -64,7 +65,7 @@ describe('ExplorerLink Component', () => {
 
   it('renders children instead of value when provided', () => {
     render(
-      <ExplorerLink value="f1234567890abcdef" appId="polkadot" explorerLinkType="address">
+      <ExplorerLink value="f1234567890abcdef" appId="polkadot" explorerLinkType={ExplorerItemType.Address}>
         Custom Text
       </ExplorerLink>
     )

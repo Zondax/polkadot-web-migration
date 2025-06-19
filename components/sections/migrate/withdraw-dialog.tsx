@@ -92,7 +92,7 @@ export default function WithdrawDialog({ open, setOpen, token, account, appId }:
     }
   }, [open, getEstimatedFee, appId, account.address])
 
-  const formattedFee = useMemo(() => (estimatedFee ? formatBalance(Number(estimatedFee), token) : undefined), [estimatedFee, token])
+  const formattedFee = useMemo(() => (estimatedFee ? formatBalance(estimatedFee, token) : undefined), [estimatedFee, token])
 
   const signWithdrawTx = async () => {
     await runTransaction(appId, account.address, account.path)

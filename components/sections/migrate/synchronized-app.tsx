@@ -2,7 +2,7 @@ import { observer, use$ } from '@legendapp/state/react'
 import { ChevronDown } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { type App, ledgerState$ } from 'state/ledger'
-import { BalanceType } from 'state/types/ledger'
+import { type Address, BalanceType } from 'state/types/ledger'
 
 import { isNativeBalance } from '@/lib/utils/balance'
 import { formatBalance } from '@/lib/utils/format'
@@ -10,6 +10,7 @@ import { muifyHtml } from '@/lib/utils/html'
 
 import type { UpdateTransaction } from '@/components/hooks/useSynchronization'
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
+import { BN } from '@polkadot/util'
 import { BalanceTypeFlag } from './balance-detail-card'
 import SynchronizedAccountsTable from './synchronized-accounts-table'
 
@@ -41,11 +42,11 @@ function SynchronizedApp({
 
   const totalBalance = useMemo(() => {
     if (failedSync) return null
-    const balance = accounts?.reduce((total, account) => {
+    const balance = accounts?.reduce((total: BN, account: Address) => {
       const balances = account.balances ?? []
-      const nativeBalance = balances.find(b => isNativeBalance(b))?.balance.total ?? 0
-      return total + nativeBalance
-    }, 0)
+      const nativeBalance = balances.find(b => isNativeBalance(b))?.balance.total ?? new BN(0)
+      return total.add(nativeBalance)
+    }, new BN(0))
 
     return balance !== undefined ? formatBalance(balance, app.token) : '-'
   }, [accounts, app.token, failedSync])

@@ -4,6 +4,7 @@ import type { u32 } from '@polkadot/types-codec'
 import type { AccountId32, StakingLedger } from '@polkadot/types/interfaces'
 import { type Mock, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { BN } from '@polkadot/util'
 import { getStakingInfo } from '../account'
 
 // Helper to create mock Option
@@ -63,16 +64,16 @@ describe('getStakingInfo', () => {
         { value: 50, era: 10 },
         { value: 25, era: 12 },
       ],
-      active: 100,
-      total: 200,
+      active: new BN(100),
+      total: new BN(200),
     }
     mockApi.query.staking.bonded.mockResolvedValue(mockOption<AccountId32>(mockStakingInfo.controller as unknown as GenericAccountId))
     mockApi.query.staking.ledger.mockResolvedValue(
       mockOption<StakingLedger>({
-        active: { toNumber: () => mockStakingInfo.active },
-        total: { toNumber: () => mockStakingInfo.total },
+        active: { toString: () => mockStakingInfo.active.toString() },
+        total: { toString: () => mockStakingInfo.total.toString() },
         unlocking: mockStakingInfo.unlocking.map(chunk => ({
-          value: { toNumber: () => chunk.value },
+          value: { toString: () => chunk.value.toString() },
           era: { toString: () => chunk.era.toString() },
         })),
       } as any)
@@ -85,7 +86,7 @@ describe('getStakingInfo', () => {
       active: mockStakingInfo.active,
       total: mockStakingInfo.total,
       unlocking: mockStakingInfo.unlocking.map(chunk => ({
-        value: chunk.value,
+        value: new BN(chunk.value),
         era: chunk.era,
         timeRemaining: expect.any(String),
       })),
@@ -97,8 +98,8 @@ describe('getStakingInfo', () => {
     mockApi.query.staking.bonded.mockResolvedValue(mockOption<AccountId32>(mockAddress as unknown as GenericAccountId))
     mockApi.query.staking.ledger.mockResolvedValue(
       mockOption<StakingLedger>({
-        active: { toNumber: () => 1 },
-        total: { toNumber: () => 2 },
+        active: { toString: () => '1' },
+        total: { toString: () => '2' },
         unlocking: [],
       } as any)
     )

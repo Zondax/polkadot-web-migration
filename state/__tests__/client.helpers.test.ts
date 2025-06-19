@@ -28,6 +28,7 @@ vi.mock('@/lib/utils', async importOriginal => {
 
 // Import mocked dependencies
 import { isMultisigAddress } from '@/lib/utils'
+import { BN } from '@polkadot/util'
 import { appsConfigs } from 'config/apps'
 
 const mockedAppsConfigs = vi.mocked(appsConfigs)
@@ -116,11 +117,11 @@ describe('client helpers', () => {
         const balanceWithZeroAmount = {
           ...mockBalance,
           balance: {
-            free: 0,
-            reserved: 0,
-            total: 0,
-            transferable: 0,
-            frozen: 0,
+            free: new BN(0),
+            reserved: { total: new BN(0) },
+            total: new BN(0),
+            transferable: new BN(0),
+            frozen: new BN(0),
           },
         }
         const accountWithZeroBalance = {

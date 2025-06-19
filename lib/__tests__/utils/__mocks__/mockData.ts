@@ -1,11 +1,11 @@
+import type { AppConfig } from '@/config/apps'
+import { appsConfigs } from '@/config/apps'
 import type { SubmittableExtrinsic } from '@polkadot/api/types'
 import type { ISubmittableResult } from '@polkadot/types/types'
+import { BN } from '@polkadot/util'
 import { type App, AppStatus } from 'state/ledger'
 import { type Address, BalanceType, type Collection, type MultisigAddress, type Native, type Nft, type Staking } from 'state/types/ledger'
 import { vi } from 'vitest'
-
-import type { AppConfig } from '@/config/apps'
-import { appsConfigs } from '@/config/apps'
 
 // =========== Common Test Addresses ===========
 export const TEST_ADDRESSES = {
@@ -29,23 +29,23 @@ export const KUSAMA_ASSET_HUB_RPC = appsConfigs.get('kusama-asset-hub')?.rpcEndp
 
 // =========== Mock Staking ===========
 export const mockStaking: Staking = {
-  total: 1000000000000,
-  active: 800000000000,
+  total: new BN(1000000000000),
+  active: new BN(800000000000),
   unlocking: [
     {
-      value: 100000000000,
+      value: new BN(100000000000),
       era: 2400,
       timeRemaining: '7 days and 2 hours',
       canWithdraw: false,
     },
     {
-      value: 100000000000,
+      value: new BN(100000000000),
       era: 2500,
       timeRemaining: '7 days and 0 hours',
       canWithdraw: false,
     },
   ],
-  claimedRewards: [2300, 2350],
+  claimedRewards: [new BN(2300), new BN(2350)],
   controller: TEST_ADDRESSES.ADDRESS1,
   canUnstake: false,
 }
@@ -136,47 +136,47 @@ export const mockCollection4: Collection = {
 // =========== Mock Addresses ===========
 // mock empty native balance
 export const mockEmptyNativeBalance: Native = {
-  total: 0,
-  free: 0,
-  reserved: 0,
-  frozen: 0,
-  transferable: 0,
+  total: new BN(0),
+  free: new BN(0),
+  reserved: { total: new BN(0) },
+  frozen: new BN(0),
+  transferable: new BN(0),
 }
 
 // mock free native balance
 export const mockFreeNativeBalance: Native = {
-  total: 1000,
-  free: 1000,
-  reserved: 0,
-  frozen: 0,
-  transferable: 1000,
+  total: new BN(1000),
+  free: new BN(1000),
+  reserved: { total: new BN(0) },
+  frozen: new BN(0),
+  transferable: new BN(1000),
 }
 
 // mock reserved native balance
 export const mockReservedNativeBalance: Native = {
-  total: 1000,
-  free: 0,
-  reserved: 1000,
-  frozen: 0,
-  transferable: 0,
+  total: new BN(1000),
+  free: new BN(0),
+  reserved: { total: new BN(1000) },
+  frozen: new BN(0),
+  transferable: new BN(0),
 }
 
-// mock reserved native balance
+// mock frozen native balance
 export const mockFrozenNativeBalance: Native = {
-  total: 1000,
-  free: 0,
-  reserved: 0,
-  frozen: 1000,
-  transferable: 0,
+  total: new BN(1000),
+  free: new BN(0),
+  reserved: { total: new BN(0) },
+  frozen: new BN(1000),
+  transferable: new BN(0),
 }
 
 // mock staked native balance
 export const mockStakedNativeBalance: Native = {
-  total: 1000,
-  free: 0,
-  reserved: 0,
-  frozen: 0,
-  transferable: 0,
+  total: new BN(1000),
+  free: new BN(0),
+  reserved: { total: new BN(0) },
+  frozen: new BN(0),
+  transferable: new BN(0),
   staking: mockStaking,
 }
 

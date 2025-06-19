@@ -92,7 +92,7 @@ export default function RemoveIdentityDialog({ open, setOpen, token, account, ap
     }
   }, [open, getEstimatedFee, appId, account.address])
 
-  const formattedFee = useMemo(() => (estimatedFee ? formatBalance(Number(estimatedFee), token) : undefined), [estimatedFee, token])
+  const formattedFee = useMemo(() => (estimatedFee ? formatBalance(estimatedFee, token) : undefined), [estimatedFee, token])
 
   const signWithdrawTx = async () => {
     await runTransaction(appId, account.address, account.path)

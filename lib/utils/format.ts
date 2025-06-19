@@ -1,3 +1,4 @@
+import { BN } from '@polkadot/util'
 import type { ResponseVersion } from '@zondax/ledger-js'
 
 import type { Token } from '@/config/apps'
@@ -25,24 +26,33 @@ export const truncateMiddleOfString = (str: string, maxLength: number) => {
 /**
  * Formats a balance to a human-readable string.
  *
- * @param {number} balance - The balance to format.
+ * @param {BN} balance - The balance to format.
  * @param {Token} token - Token information.
  * @param {number} maxDecimals - Optional maximum decimal places to display.
  * @returns {string} The formatted balance.
  */
-export const formatBalance = (balance: number, token?: Token, maxDecimals?: number, hideTokenSymbol?: boolean): string => {
-  if (balance === 0) {
+export const formatBalance = (balance: BN, token?: Token, maxDecimals: number = defaultDecimals, hideTokenSymbol?: boolean): string => {
+  if (balance.isZero()) {
     return hideTokenSymbol || !token ? '0' : `0 ${token?.symbol}`
   }
 
-  const decimals = token?.decimals
-  const adjustedBalance = decimals ? balance / 10 ** decimals : balance
-
-  const formattedBalance = adjustedBalance.toLocaleString(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: maxDecimals !== undefined ? maxDecimals : defaultDecimals,
-  })
-  return hideTokenSymbol || !token ? formattedBalance : `${formattedBalance} ${token?.symbol}`
+  const decimals = token?.decimals ?? 0
+  if (decimals > 0) {
+    const divisor = new BN(10).pow(new BN(decimals))
+    const adjusted = balance.divmod(divisor)
+    // Format integer part with commas
+    const intPart = Number(adjusted.div.toString()).toLocaleString()
+    let fracPart = adjusted.mod.toString().padStart(decimals, '0')
+    if (maxDecimals !== undefined) {
+      fracPart = fracPart.slice(0, maxDecimals)
+    }
+    const trimmedFrac = fracPart.replace(/0+$/, '')
+    const formattedBalance = trimmedFrac ? `${intPart}.${trimmedFrac}` : intPart
+    return hideTokenSymbol || !token ? formattedBalance : `${formattedBalance} ${token?.symbol}`
+  }
+  // No decimals, just return as string with commas
+  const intString = Number(balance.toString()).toLocaleString()
+  return hideTokenSymbol || !token ? intString : `${intString} ${token?.symbol}`
 }
 
 /**

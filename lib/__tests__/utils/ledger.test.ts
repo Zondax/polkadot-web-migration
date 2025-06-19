@@ -3,6 +3,7 @@ import type { Address } from 'state/types/ledger'
 import { TransactionStatus } from 'state/types/ledger'
 import { describe, expect, it } from 'vitest'
 
+import { BalanceType } from 'state/types/ledger'
 import {
   filterAppsWithErrors,
   filterAppsWithoutErrors,
@@ -25,6 +26,7 @@ import {
   mockAppWithMigrationError,
   mockAppWithMultisigAccounts,
   mockAppWithMultisigErrors,
+  mockFreeNativeBalance,
   mockMultisigAddress1,
   mockMultisigAddressWithMigrationError,
 } from './__mocks__/mockData'
@@ -346,7 +348,8 @@ describe('setDefaultDestinationAddress', () => {
       ...mockAddress1,
       balances: [
         {
-          ...mockAddress1.balances?.[0],
+          type: BalanceType.NATIVE as const,
+          balance: mockFreeNativeBalance,
           transaction: {
             destinationAddress: '',
           },
@@ -365,7 +368,8 @@ describe('setDefaultDestinationAddress', () => {
       ...mockAddress1,
       balances: [
         {
-          ...mockAddress1.balances?.[0],
+          type: BalanceType.NATIVE as const,
+          balance: mockFreeNativeBalance,
           transaction: {
             destinationAddress: existingAddress,
           },
@@ -391,7 +395,8 @@ describe('setDefaultDestinationAddress', () => {
       ...mockMultisigAddress1,
       balances: [
         {
-          ...mockMultisigAddress1.balances?.[0],
+          type: BalanceType.NATIVE as const,
+          balance: mockFreeNativeBalance,
           transaction: {
             destinationAddress: '',
           },
@@ -417,7 +422,8 @@ describe('setDefaultDestinationAddress', () => {
       ...mockAddress1,
       balances: [
         {
-          ...mockAddress1.balances?.[0],
+          type: BalanceType.NATIVE as const,
+          balance: mockFreeNativeBalance,
           transaction: {
             destinationAddress: '',
             status: TransactionStatus.PENDING,

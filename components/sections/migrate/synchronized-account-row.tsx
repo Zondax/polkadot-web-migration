@@ -33,6 +33,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button, type ButtonProps } from '@/components/ui/button'
 import { ExplorerItemType } from '@/config/explorers'
 import { getIdentityItems } from '@/lib/utils/ui'
+import { BN } from '@polkadot/util'
 import ApproveMultisigCallDialog from './approve-multisig-call-dialog'
 import { BalanceHoverCard, LockedBalanceHoverCard } from './balance-hover-card'
 import DestinationAddressSelect from './destination-address-select'
@@ -85,10 +86,10 @@ const SynchronizedAccountRow = ({
   const isFirst: boolean = balanceIndex === 0 || isNoBalance
   const isNative = isNativeBalance(balance)
   const hasStaked: boolean = isNative && hasStakedBalance(balance)
-  const stakingActive: number | undefined = isNative ? (balance?.balance.staking?.active ?? 0) : undefined
-  const maxUnstake: number = stakingActive ?? 0
+  const stakingActive: BN | undefined = isNative ? balance?.balance.staking?.active : undefined
+  const maxUnstake: BN = stakingActive ?? new BN(0)
   const isUnstakeAvailable: boolean = isNative ? canUnstake(balance) : false
-  const totalBalance: number = isNative ? (balance?.balance.total ?? 0) : 0
+  const totalBalance: BN = isNative ? balance.balance.total : new BN(0)
   const isMultisigMember: boolean = (account.memberMultisigAddresses && account.memberMultisigAddresses.length > 0) ?? false
   const isMultisigAddress: boolean = isMultisigAddressFunction(account)
   const internalMultisigMembers: MultisigMember[] = (account as MultisigAddress).members?.filter(member => member.internal) ?? []
@@ -190,7 +191,7 @@ const SynchronizedAccountRow = ({
   }
 
   const renderTransferableBalance = () => {
-    const transferableBalance: number = isNative ? (balance?.balance.transferable ?? 0) : 0
+    const transferableBalance: BN = isNative ? (balance?.balance.transferable ? balance.balance.transferable : new BN(0)) : new BN(0)
     const balances: AddressBalance[] = balance ? [balance] : []
 
     return (
@@ -293,7 +294,12 @@ const SynchronizedAccountRow = ({
       ) : null
 
       items.push({ label: 'Proxied by', value: proxiesComponent ?? '-', icon: User, hasCopyButton: true })
-      items.push({ label: 'Deposit', value: formatBalance(account.proxy?.deposit ?? 0, token), icon: Banknote, className: 'font-mono' })
+      items.push({
+        label: 'Deposit',
+        value: formatBalance(account.proxy?.deposit ?? new BN(0), token),
+        icon: Banknote,
+        className: 'font-mono',
+      })
     }
     return items.length > 0 ? (
       <div className="p-2 min-w-[240px]">

@@ -2,6 +2,7 @@ import type { ApiPromise } from '@polkadot/api'
 import type { u32 } from '@polkadot/types'
 import type { Option } from '@polkadot/types-codec'
 import type { AccountId32, StakingLedger } from '@polkadot/types/interfaces'
+import { BN } from '@polkadot/util'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getStakingInfo } from '../account'
 
@@ -42,15 +43,11 @@ describe('getStakingInfo', () => {
 
   it('returns staking info with no unlocking chunks', async () => {
     const bonded = { isSome: true, toHuman: () => mockController } as unknown as Option<AccountId32>
-    const unlockingChunk = {
-      value: { toNumber: () => 500 },
-      era: { toString: () => '105' },
-    }
     const stakingLedger = {
       isEmpty: false,
       unwrap: () => ({
-        active: { toNumber: () => 1000 },
-        total: { toNumber: () => 1200 },
+        active: { toString: () => '1000' },
+        total: { toString: () => '1200' },
         unlocking: [],
       }),
     } as unknown as Option<StakingLedger>
@@ -60,8 +57,8 @@ describe('getStakingInfo', () => {
     expect(result).toEqual({
       controller: mockController,
       canUnstake: false,
-      active: 1000,
-      total: 1200,
+      active: new BN(1000),
+      total: new BN(1200),
       unlocking: [],
     })
   })
@@ -69,14 +66,14 @@ describe('getStakingInfo', () => {
   it('returns staking info with unlocking chunks', async () => {
     const bonded = { isSome: true, toHuman: () => mockController } as unknown as Option<AccountId32>
     const unlockingChunk = {
-      value: { toNumber: () => 500 },
+      value: { toString: () => '500' },
       era: { toString: () => '105' },
     }
     const stakingLedger = {
       isEmpty: false,
       unwrap: () => ({
-        active: { toNumber: () => 1000 },
-        total: { toNumber: () => 1200 },
+        active: { toString: () => '1000' },
+        total: { toString: () => '1200' },
         unlocking: [unlockingChunk],
       }),
     } as unknown as Option<StakingLedger>
@@ -86,11 +83,11 @@ describe('getStakingInfo', () => {
     expect(result).toEqual({
       controller: mockController,
       canUnstake: false,
-      active: 1000,
-      total: 1200,
+      active: new BN(1000),
+      total: new BN(1200),
       unlocking: [
         {
-          value: 500,
+          value: new BN(500),
           era: 105,
           timeRemaining: '1 day and 6 hours',
           canWithdraw: false,
@@ -103,23 +100,23 @@ describe('getStakingInfo', () => {
     const bonded = { isSome: true, toHuman: () => mockController } as unknown as Option<AccountId32>
     const unlockingChunks = [
       {
-        value: { toNumber: () => 500 },
+        value: { toString: () => '500' },
         era: { toString: () => '105' },
       },
       {
-        value: { toNumber: () => 300 },
+        value: { toString: () => '300' },
         era: { toString: () => '100' }, // Same era as current era
       },
       {
-        value: { toNumber: () => 200 },
+        value: { toString: () => '200' },
         era: { toString: () => '95' }, // Era already passed
       },
     ]
     const stakingLedger = {
       isEmpty: false,
       unwrap: () => ({
-        active: { toNumber: () => 1000 },
-        total: { toNumber: () => 2000 },
+        active: { toString: () => '1000' },
+        total: { toString: () => '2000' },
         unlocking: unlockingChunks,
       }),
     } as unknown as Option<StakingLedger>
@@ -129,23 +126,23 @@ describe('getStakingInfo', () => {
     expect(result).toEqual({
       controller: mockController,
       canUnstake: false,
-      active: 1000,
-      total: 2000,
+      active: new BN(1000),
+      total: new BN(2000),
       unlocking: [
         {
-          value: 500,
+          value: new BN(500),
           era: 105,
           timeRemaining: '1 day and 6 hours',
           canWithdraw: false,
         },
         {
-          value: 300,
+          value: new BN(300),
           era: 100,
           timeRemaining: '0 hours',
           canWithdraw: true,
         },
         {
-          value: 200,
+          value: new BN(200),
           era: 95,
           timeRemaining: '0 hours',
           canWithdraw: true,

@@ -1,4 +1,5 @@
 import { ApiPromise, WsProvider } from '@polkadot/api'
+import { BN } from '@polkadot/util'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
@@ -464,14 +465,15 @@ describe('getNativeBalance', () => {
 
     const result = await getNativeBalance('address', mockApi, 'polkadot')
     expect(result).toEqual({
-      free: 1000000000000,
-      reserved: 0,
-      frozen: 0,
-      total: 1000000000000,
-      transferable: 1000000000000,
+      free: new BN(1000000000000),
+      reserved: { total: new BN(0) },
+      frozen: new BN(0),
+      total: new BN(1000000000000),
+      transferable: new BN(1000000000000),
     })
   })
 })
+
 describe('ipfsToHttpUrl', () => {
   it('should convert ipfs:// to the default gateway', () => {
     expect(ipfsToHttpUrl('ipfs://QmHash')).toBe('https://ipfs.io/ipfs/QmHash')

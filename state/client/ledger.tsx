@@ -24,6 +24,7 @@ import { getBip44Path } from '@/lib/utils/address'
 import { getTransferableAndNfts } from '@/lib/utils/balance'
 
 import type { MultisigCallFormData } from '@/components/sections/migrate/approve-multisig-call-dialog'
+import type { BN } from '@polkadot/util'
 import {
   type Address,
   type MultisigAddress,
@@ -137,7 +138,7 @@ export const ledgerClient = {
     }, InternalErrors.UNKNOWN_ERROR)
   },
 
-  async unstakeBalance(appId: AppId, address: string, path: string, amount: number, updateTxStatus: UpdateTransactionStatus) {
+  async unstakeBalance(appId: AppId, address: string, path: string, amount: BN, updateTxStatus: UpdateTransactionStatus) {
     const appConfig = appsConfigs.get(appId)
     if (!appConfig?.rpcEndpoint) {
       throw InternalErrors.APP_CONFIG_NOT_FOUND
@@ -179,7 +180,7 @@ export const ledgerClient = {
     }, InternalErrors.UNKNOWN_ERROR)
   },
 
-  async getUnstakeFee(appId: AppId, address: string, amount: number): Promise<string | undefined> {
+  async getUnstakeFee(appId: AppId, address: string, amount: BN): Promise<BN | undefined> {
     const appConfig = appsConfigs.get(appId)
     if (!appConfig?.rpcEndpoint) {
       throw InternalErrors.APP_CONFIG_NOT_FOUND
@@ -240,7 +241,7 @@ export const ledgerClient = {
     }, InternalErrors.UNKNOWN_ERROR)
   },
 
-  async getWithdrawFee(appId: AppId, address: string): Promise<string | undefined> {
+  async getWithdrawFee(appId: AppId, address: string): Promise<BN | undefined> {
     const appConfig = appsConfigs.get(appId)
     if (!appConfig?.rpcEndpoint) {
       throw InternalErrors.APP_CONFIG_NOT_FOUND
@@ -299,7 +300,7 @@ export const ledgerClient = {
     }, InternalErrors.UNKNOWN_ERROR)
   },
 
-  async getRemoveIdentityFee(appId: AppId, address: string): Promise<string | undefined> {
+  async getRemoveIdentityFee(appId: AppId, address: string): Promise<BN | undefined> {
     const appConfig = appsConfigs.get(appId)
     if (!appConfig?.peopleRpcEndpoint) {
       throw InternalErrors.APP_CONFIG_NOT_FOUND
@@ -479,7 +480,7 @@ export const ledgerClient = {
     }, InternalErrors.UNKNOWN_ERROR)
   },
 
-  async getRemoveProxiesFee(appId: AppId, address: string): Promise<string | undefined> {
+  async getRemoveProxiesFee(appId: AppId, address: string): Promise<BN | undefined> {
     const appConfig = appsConfigs.get(appId)
     if (!appConfig?.rpcEndpoint) {
       throw InternalErrors.APP_CONFIG_NOT_FOUND

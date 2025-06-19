@@ -1,6 +1,7 @@
 import { type Address, type AddressBalance, BalanceType, type Native, type NativeBalance } from 'state/types/ledger'
 import { describe, expect, it } from 'vitest'
 
+import { BN } from '@polkadot/util'
 import {
   canUnstake,
   getNonTransferableBalance,
@@ -11,6 +12,7 @@ import {
   isNftBalance,
   isNftBalanceType,
   isUniqueBalanceType,
+  validateReservedBreakdown,
 } from '../../utils/balance'
 import {
   mockAddress1,
@@ -89,7 +91,10 @@ describe('isUniqueBalanceType', () => {
 
 describe('hasNonTransferableBalance', () => {
   it('returns true if transferable < total', () => {
-    const balance = { type: BalanceType.NATIVE, balance: { ...mockFreeNativeBalance, transferable: 500, total: 1000 } } as NativeBalance
+    const balance = {
+      type: BalanceType.NATIVE,
+      balance: { ...mockFreeNativeBalance, transferable: new BN(500), total: new BN(1000) },
+    } as NativeBalance
     const frozenBalance = { type: BalanceType.NATIVE, balance: mockFrozenNativeBalance } as NativeBalance
     const reservedBalance = { type: BalanceType.NATIVE, balance: mockReservedNativeBalance } as NativeBalance
     expect(hasNonTransferableBalance(balance)).toBe(true)
@@ -104,11 +109,11 @@ describe('hasNonTransferableBalance', () => {
 
 describe('hasStakedBalance', () => {
   it('returns true if staking.total > 0', () => {
-    const balance = { type: BalanceType.NATIVE, balance: { ...mockFreeNativeBalance, staking: { total: 100 } } } as NativeBalance
+    const balance = { type: BalanceType.NATIVE, balance: { ...mockFreeNativeBalance, staking: { total: new BN(100) } } } as NativeBalance
     expect(hasStakedBalance(balance)).toBe(true)
   })
   it('returns false if staking.total is 0', () => {
-    const balance = { type: BalanceType.NATIVE, balance: { ...mockFreeNativeBalance, staking: { total: 0 } } } as NativeBalance
+    const balance = { type: BalanceType.NATIVE, balance: { ...mockFreeNativeBalance, staking: { total: new BN(0) } } } as NativeBalance
     expect(hasStakedBalance(balance)).toBe(false)
   })
   it('returns false if no staking', () => {
@@ -122,15 +127,24 @@ describe('hasStakedBalance', () => {
 
 describe('canUnstake', () => {
   it('returns true if canUnstake is true and active !== 0', () => {
-    const balance = { type: BalanceType.NATIVE, balance: { ...mockFreeNativeBalance, staking: { canUnstake: true, active: 1 } } } as any
+    const balance = {
+      type: BalanceType.NATIVE,
+      balance: { ...mockFreeNativeBalance, staking: { canUnstake: true, active: new BN(1) } },
+    } as any
     expect(canUnstake(balance)).toBe(true)
   })
   it('returns false if canUnstake is false', () => {
-    const balance = { type: BalanceType.NATIVE, balance: { ...mockFreeNativeBalance, staking: { canUnstake: false, active: 1 } } } as any
+    const balance = {
+      type: BalanceType.NATIVE,
+      balance: { ...mockFreeNativeBalance, staking: { canUnstake: false, active: new BN(1) } },
+    } as any
     expect(canUnstake(balance)).toBe(false)
   })
   it('returns false if active is 0', () => {
-    const balance = { type: BalanceType.NATIVE, balance: { ...mockFreeNativeBalance, staking: { canUnstake: true, active: 0 } } } as any
+    const balance = {
+      type: BalanceType.NATIVE,
+      balance: { ...mockFreeNativeBalance, staking: { canUnstake: true, active: new BN(0) } },
+    } as any
     expect(canUnstake(balance)).toBe(false)
   })
   it('returns false if no staking', () => {
@@ -231,32 +245,62 @@ describe('hasBalance', () => {
 
 describe('getNonTransferableBalance', () => {
   it('should return 0 if accountData is undefined', () => {
-    expect(getNonTransferableBalance(undefined as unknown as Native)).toBe(0)
+    expect(getNonTransferableBalance(undefined as unknown as Native)).toStrictEqual(new BN(0))
   })
 
   it('should return 0 if accountData has total and transferable as 0', () => {
-    expect(getNonTransferableBalance(mockEmptyNativeBalance)).toBe(0)
+    expect(getNonTransferableBalance(mockEmptyNativeBalance)).toStrictEqual(new BN(0))
   })
 
   it('should return correct non-transferable amount (total - transferable)', () => {
     const accountData = {
       ...mockFreeNativeBalance,
-      frozen: 50,
-      total: 150,
-      transferable: 100,
-      reserved: 50,
+      frozen: new BN(50),
+      total: new BN(150),
+      transferable: new BN(100),
+      reserved: { total: new BN(50) },
     }
-    expect(getNonTransferableBalance(accountData)).toBe(50)
+    expect(getNonTransferableBalance(accountData)).toStrictEqual(new BN(50))
   })
 
   it('should return 0 if total equals transferable', () => {
     const accountData = {
       ...mockFreeNativeBalance,
-      frozen: 50,
-      total: 200,
-      transferable: 200,
-      reserved: 0,
+      frozen: new BN(50),
+      total: new BN(200),
+      transferable: new BN(200),
+      reserved: { total: new BN(0) },
     }
-    expect(getNonTransferableBalance(accountData)).toBe(0)
+    expect(getNonTransferableBalance(accountData)).toStrictEqual(new BN(0))
+  })
+})
+
+describe('validateReservedBreakdown', () => {
+  it('returns true when the sum of components equals total', () => {
+    expect(validateReservedBreakdown(new BN(10), new BN(20), new BN(30), new BN(60))).toBe(true)
+  })
+
+  it('returns false when the sum of components does not equal total', () => {
+    expect(validateReservedBreakdown(new BN(10), new BN(20), new BN(30), new BN(61))).toBe(false)
+  })
+
+  it('returns true for all zeros', () => {
+    expect(validateReservedBreakdown(new BN(0), new BN(0), new BN(0), new BN(0))).toBe(true)
+  })
+
+  it('returns false if any value is negative (identityDeposit)', () => {
+    expect(validateReservedBreakdown(new BN(-10), new BN(20), new BN(0), new BN(10))).toBe(false)
+  })
+
+  it('returns false if any value is negative (multisigDeposit)', () => {
+    expect(validateReservedBreakdown(new BN(10), new BN(-20), new BN(0), new BN(10))).toBe(false)
+  })
+
+  it('returns false if any value is negative (proxyDeposit)', () => {
+    expect(validateReservedBreakdown(new BN(10), new BN(20), new BN(-5), new BN(25))).toBe(false)
+  })
+
+  it('returns false if total is negative', () => {
+    expect(validateReservedBreakdown(new BN(10), new BN(20), new BN(5), new BN(-35))).toBe(false)
   })
 })

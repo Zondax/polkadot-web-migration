@@ -191,6 +191,8 @@ describe('Account Integration', () => {
         expect(stakingLedger).toHaveProperty('unlocking')
         expect(typeof stakingLedger.active.toNumber()).toBe('number')
         expect(typeof stakingLedger.total.toNumber()).toBe('number')
+        expect(typeof stakingLedger.active.toString()).toBe('string')
+        expect(typeof stakingLedger.total.toString()).toBe('string')
         expect(Array.isArray(stakingLedger.unlocking)).toBe(true)
       }
     })
@@ -284,6 +286,7 @@ describe('Account Integration', () => {
         const registration = option.unwrap()
         expect(registration).toHaveProperty('info')
         expect(registration).toHaveProperty('deposit')
+        expect(typeof registration.deposit.toString()).toBe('string')
         expect(registration.info).toHaveProperty('display')
         expect(registration.info).toHaveProperty('legal')
         expect(registration.info).toHaveProperty('web')
