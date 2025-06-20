@@ -107,8 +107,12 @@ export const useMigration = (): UseMigrationReturn => {
 
     // Update the observable with the latest data for all apps
     for (const [appId, addresses] of Object.entries(destinationAddressesByApp)) {
-      // Always update the observable with the latest data
-      destinationAddressesStatus$[appId as AppId].set(addresses)
+      if (
+        !destinationAddressesStatus$[appId as AppId].peek() ||
+        destinationAddressesStatus$[appId as AppId].peek()?.length !== addresses.length
+      ) {
+        destinationAddressesStatus$[appId as AppId].set(addresses)
+      }
     }
   }, [destinationAddressesByApp])
 

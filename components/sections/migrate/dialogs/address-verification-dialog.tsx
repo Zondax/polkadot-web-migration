@@ -20,7 +20,7 @@ interface AddressVerificationDialogProps {
   onClose: () => void
 }
 
-export const AddressVerificationDialog = observer(({ open, onClose }: AddressVerificationDialogProps) => {
+export const AddressVerificationDialog = ({ open, onClose }: AddressVerificationDialogProps) => {
   const icons = use$(uiState$.icons.get())
 
   // Use the hook directly instead of receiving via props
@@ -115,4 +115,4 @@ export const AddressVerificationDialog = observer(({ open, onClose }: AddressVer
       </DialogContent>
     </Dialog>
   )
-})
+}
