@@ -47,12 +47,12 @@ export const getAppLightIcon = async (appId: string) => {
 }
 
 /**
- * Filters apps to only include those without errors and with balances.
+ * Filters apps to only include those that were validly synchronized and have balances.
  *
  * @param apps - The apps to filter.
- * @returns Apps without errors.
+ * @returns Apps that are validly synchronized and have balances.
  */
-export const filterAppsWithoutErrors = (apps: App[]): App[] => {
+export const filterValidSyncedAppsWithBalances = (apps: App[]): App[] => {
   return apps
     .map(app => ({
       ...app,
@@ -86,12 +86,12 @@ export const filterSelectedAccountsForMigration = (apps: App[]): App[] => {
 }
 
 /**
- * Filters apps to only include those with errors.
+ * Filters apps to include only those with accounts or multisig accounts that have errors (excluding migration errors).
  *
- * @param apps - The apps to filter.
- * @returns Apps with errors.
+ * @param apps - The list of apps to filter.
+ * @returns Apps containing accounts or multisig accounts with non-migration errors.
  */
-export const filterAppsWithErrors = (apps: App[]): App[] => {
+export const filterInvalidSyncedApps = (apps: App[]): App[] => {
   return apps
     .map(app => ({
       ...app,
