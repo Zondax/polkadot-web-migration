@@ -41,54 +41,65 @@ import {
 const HOURS_IN_A_DAY = 24
 
 // Get API and Provider
+const MAX_CONNECTION_RETRIES = 3
+const AUTO_CONNECT_MS = 5
+
 export async function getApiAndProvider(rpcEndpoint: string): Promise<{ api?: ApiPromise; provider?: WsProvider; error?: string }> {
-  try {
-    // Create a provider with default settings (will allow first connection)
-    const provider = new WsProvider(rpcEndpoint)
+  let retryCount = 0
+  let currentProvider: WsProvider | undefined
 
-    // Add an error handler to prevent the automatic reconnection loops
-    provider.on('error', error => {
-      console.error('WebSocket error:', error)
-    })
+  while (retryCount < MAX_CONNECTION_RETRIES) {
+    try {
+      // Create a provider with default settings (will allow first connection)
+      currentProvider = new WsProvider(rpcEndpoint, AUTO_CONNECT_MS)
 
-    // Set a timeout for the connection attempt
-    const connectionPromise = new Promise<ApiPromise>((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error('Connection timeout: The node is not responding.'))
-      }, 15000) // 15 second timeout
+      // Set a timeout for the connection attempt
+      const connectionPromise = new Promise<ApiPromise>((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          reject(new Error('Connection timeout: The node is not responding.'))
+        }, 15000) // 15 second timeout
 
-      ApiPromise.create({
-        provider,
-        throwOnConnect: true,
-        throwOnUnknown: true,
+        ApiPromise.create({
+          provider: currentProvider,
+          throwOnConnect: true,
+          throwOnUnknown: true,
+        })
+          .then(api => {
+            clearTimeout(timeoutId)
+            resolve(api)
+          })
+          .catch(err => {
+            clearTimeout(timeoutId)
+            reject(err)
+          })
       })
-        .then(api => {
-          clearTimeout(timeoutId)
-          resolve(api)
-        })
-        .catch(err => {
-          clearTimeout(timeoutId)
-          reject(err)
-        })
-    })
 
-    const api = await connectionPromise
+      const api = await connectionPromise
 
-    // If connection is successful, return the API and provider
-    return { api, provider }
-  } catch (e) {
-    console.error('Error creating API for RPC endpoint:', rpcEndpoint, e)
+      // If connection is successful, return the API and provider
+      return { api, provider: currentProvider }
+    } catch (e) {
+      retryCount++
+      console.debug(`Connection attempt ${retryCount} failed. Retrying... (${MAX_CONNECTION_RETRIES - retryCount} attempts remaining)`)
 
-    // More specific error messages based on the error
-    const errorMessage = e instanceof Error ? e.message : 'Unknown error'
+      // Disconnect the current provider before retrying
+      if (currentProvider) {
+        await disconnectSafely(undefined, currentProvider)
+        currentProvider = undefined
+      }
 
-    if (errorMessage.includes('timeout')) {
-      return { error: 'Connection timeout: The node is not responding.' }
+      // Wait for 2 seconds before retrying
+      await new Promise(resolve => setTimeout(resolve, 2000))
     }
-    if (errorMessage.includes('refused') || errorMessage.includes('WebSocket')) {
-      return { error: 'Connection refused: The node endpoint is unreachable.' }
-    }
-    return { error: `Failed to connect to the blockchain: ${errorMessage}` }
+  }
+  // If we've exhausted all retries, disconnect the provider
+  if (currentProvider) {
+    await disconnectSafely(undefined, currentProvider)
+    currentProvider = undefined
+  }
+
+  return {
+    error: `Failed to connect to the blockchain after ${MAX_CONNECTION_RETRIES} attempts: The node is not responding.`,
   }
 }
 
