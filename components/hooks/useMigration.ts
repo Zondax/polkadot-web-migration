@@ -5,11 +5,12 @@ import { useCallback, useEffect } from 'react'
 import { type App, ledgerState$ } from 'state/ledger'
 
 import type { AppId } from '@/config/apps'
-import { addDestinationAddressesFromAccounts, filterAppsWithoutErrors } from '@/lib/utils'
+import { addDestinationAddressesFromAccounts, filterAppsWithoutErrors, filterSelectedAccountsForMigration } from '@/lib/utils'
 
 interface UseMigrationReturn {
   // Computed values
   filteredAppsWithoutErrors: App[]
+  appsForMigration: App[]
   migrationResults: {
     success: number
     total: number
@@ -22,11 +23,16 @@ interface UseMigrationReturn {
   anyFailed: boolean
   isVerifying: boolean
   verifyDestinationAddresses: () => Promise<void>
+  verifySelectedAppsAddresses: () => Promise<void>
   verifyFailedAddresses: () => Promise<void>
 
   // Migration actions
-  migrateAll: () => Promise<void>
+  migrateSelected: () => Promise<void>
   restartSynchronization: () => void
+
+  // Selection actions
+  toggleAccountSelection: (appId: AppId, accountAddress: string, checked?: boolean) => void
+  toggleAllAccounts: (checked: boolean) => void
 }
 
 // Create the observable outside of the hook to ensure it persists across renders
@@ -50,9 +56,11 @@ export const useMigration = (): UseMigrationReturn => {
   // Compute derived values from apps
   const appsWithoutErrors = use$(() => filterAppsWithoutErrors(apps))
 
-  // Get destination addresses used for each app
+  const appsForMigration = use$(() => filterSelectedAccountsForMigration(appsWithoutErrors))
+
+  // Get destination addresses used for each app (only selected accounts)
   const destinationAddressesByApp = use$(() =>
-    appsWithoutErrors.reduce((acc: Record<AppId, AddressWithVerificationStatus[]>, app) => {
+    appsForMigration.reduce((acc: Record<AppId, AddressWithVerificationStatus[]>, app) => {
       // Create a map to track unique addresses with their paths
       const addressMap = new Map<string, AddressWithVerificationStatus>()
 
@@ -87,9 +95,18 @@ export const useMigration = (): UseMigrationReturn => {
 
   // Initialize or update the observable with the latest data from destinationAddressesByApp
   useEffect(() => {
-    // Update the observable with the latest data
+    // Get current apps in the status observable
+    const currentApps = Object.keys(destinationAddressesStatus$.peek() || {}) as AppId[]
+
+    // Clear any apps that no longer exist in destinationAddressesByApp
+    for (const appId of currentApps) {
+      if (!destinationAddressesByApp[appId]) {
+        destinationAddressesStatus$[appId].delete()
+      }
+    }
+
+    // Update the observable with the latest data for all apps
     for (const [appId, addresses] of Object.entries(destinationAddressesByApp)) {
-      // If we don't have this app in our status observable yet, or the addresses count changed
       if (
         !destinationAddressesStatus$[appId as AppId].peek() ||
         destinationAddressesStatus$[appId as AppId].peek()?.length !== addresses.length
@@ -98,6 +115,56 @@ export const useMigration = (): UseMigrationReturn => {
       }
     }
   }, [destinationAddressesByApp])
+
+  // ---- Account selection functions ----
+
+  /**
+   * Toggle selection state of a specific account
+   */
+  const toggleAccountSelection = useCallback(
+    (appId: AppId, accountAddress: string, checked?: boolean) => {
+      const apps = apps$.get()
+      const appIndex = apps.findIndex(app => app.id === appId)
+
+      const accountIndex = apps[appIndex]?.accounts?.findIndex(account => account.address === accountAddress) ?? -1
+      const multisigAccountIndex = apps[appIndex]?.multisigAccounts?.findIndex(account => account.address === accountAddress) ?? -1
+
+      // Regular account
+      if (accountIndex !== -1 && appIndex !== -1) {
+        const currentValue = apps?.[appIndex]?.accounts?.[accountIndex]?.selected || false
+        apps$[appIndex].accounts[accountIndex].selected.set(checked ?? !currentValue)
+      } else if (multisigAccountIndex !== -1 && appIndex !== -1) {
+        const currentValue = apps?.[appIndex]?.multisigAccounts?.[multisigAccountIndex]?.selected || false
+        apps$[appIndex].multisigAccounts[multisigAccountIndex].selected.set(checked ?? !currentValue)
+      }
+    },
+    [apps$]
+  )
+
+  /**
+   * Set selection state for all accounts
+   */
+  const toggleAllAccounts = useCallback(
+    (checked: boolean) => {
+      const currentApps = apps$.get()
+
+      currentApps.forEach((app, i) => {
+        if (!app.error) {
+          if (app.accounts) {
+            apps$[i].accounts.forEach((_, j) => {
+              apps$[i].accounts[j].selected.set(checked)
+            })
+          }
+          if (app.multisigAccounts) {
+            apps$[i].multisigAccounts.forEach((_, j) => {
+              apps$[i].multisigAccounts[j].selected.set(checked)
+            })
+          }
+        }
+      })
+    },
+    [apps$]
+  )
 
   // ---- Verification related functions ----
 
@@ -137,6 +204,33 @@ export const useMigration = (): UseMigrationReturn => {
   }, [verifyAddress])
 
   /**
+   * Verify only destination addresses from selected apps
+   */
+  const verifySelectedAppsAddresses = useCallback(async () => {
+    isVerifying$.set(true)
+
+    try {
+      // Get the current selected apps
+      const selectedApps = filterSelectedAccountsForMigration(appsForMigration)
+      const selectedAppIds = new Set(selectedApps.map(app => app.id as AppId))
+
+      // Iterate through each app and verify only addresses from selected apps
+      for (const appId of Object.keys(destinationAddressesStatus$.peek())) {
+        // Skip apps that are not selected
+        if (!selectedAppIds.has(appId as AppId)) continue
+
+        const addresses = destinationAddressesStatus$[appId as AppId].peek() || []
+
+        for (let i = 0; i < addresses.length; i++) {
+          await verifyAddress(appId as AppId, i)
+        }
+      }
+    } finally {
+      isVerifying$.set(false)
+    }
+  }, [verifyAddress, appsForMigration])
+
+  /**
    * Verify only the addresses that have failed verification
    */
   const verifyFailedAddresses = useCallback(async () => {
@@ -174,12 +268,11 @@ export const useMigration = (): UseMigrationReturn => {
   })
 
   // ---- Migration related functions ----
-
   /**
-   * Migrate all accounts
+   * Migrate only selected accounts
    */
-  const migrateAll = useCallback(async () => {
-    await ledgerState$.migrateAll()
+  const migrateSelected = useCallback(async () => {
+    await ledgerState$.migrateSelected()
   }, [])
 
   /**
@@ -198,6 +291,7 @@ export const useMigration = (): UseMigrationReturn => {
   return {
     // Computed values
     filteredAppsWithoutErrors: appsWithoutErrors,
+    appsForMigration,
     migrationResults: {
       success: successMigration,
       total: totalMigration,
@@ -210,10 +304,15 @@ export const useMigration = (): UseMigrationReturn => {
     anyFailed,
     isVerifying,
     verifyDestinationAddresses,
+    verifySelectedAppsAddresses,
     verifyFailedAddresses,
 
     // Migration actions
-    migrateAll,
+    migrateSelected,
     restartSynchronization,
+
+    // Selection actions
+    toggleAccountSelection,
+    toggleAllAccounts,
   }
 }

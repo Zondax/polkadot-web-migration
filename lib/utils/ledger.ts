@@ -63,6 +63,23 @@ export const filterAppsWithoutErrors = (apps: App[]): App[] => {
 }
 
 /**
+ * Filters apps to only include those that have accounts that can be migrated.
+ * This function filters for accounts that are selected and have not yet been migrated.
+ *
+ * @param apps - The apps to filter.
+ * @returns Apps with accounts that can be migrated.
+ */
+export const filterSelectedAccountsForMigration = (apps: App[]): App[] => {
+  return apps
+    .map(app => ({
+      ...app,
+      accounts: app.accounts?.filter(account => account.selected) || [],
+      multisigAccounts: app.multisigAccounts?.filter(account => account.selected) || [],
+    }))
+    .filter(app => app.accounts.length > 0 || app.multisigAccounts?.length > 0)
+}
+
+/**
  * Filters apps to only include those with errors.
  *
  * @param apps - The apps to filter.

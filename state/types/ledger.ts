@@ -127,6 +127,7 @@ export interface Address extends GenericeResponseAddress {
   registration?: Registration
   memberMultisigAddresses?: string[] // addresses of the multisig addresses that the account is a member of
   proxy?: AccountProxy
+  selected?: boolean
 }
 
 export type VerificationStatus = 'pending' | 'verifying' | 'verified' | 'failed'

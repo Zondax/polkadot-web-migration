@@ -1,16 +1,21 @@
 'use client'
 
+import { observable } from '@legendapp/state'
 import { FolderSync, Info, Loader2, RefreshCw, User, Users, X } from 'lucide-react'
 import { useState } from 'react'
+import { useCallback, useMemo } from 'react'
 import { AppStatus } from 'state/ledger'
 
 import { CustomTooltip } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
+import { useMigration } from '@/components/hooks/useMigration'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Progress } from '@/components/ui/progress'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
 import { useSynchronization } from '@/components/hooks/useSynchronization'
+import type { CheckedState } from '@radix-ui/react-checkbox'
 import AppScanningGrid from './app-scanning-grid'
 import EmptyStateRow from './empty-state-row'
 import SynchronizedApp from './synchronized-app'
@@ -48,10 +53,29 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
   } = useSynchronization()
 
   const [activeView, setActiveView] = useState<AccountViewType>(AccountViewType.ALL)
+  // Get selection functions from useMigration
+  const { toggleAllAccounts } = useMigration()
 
   const handleMigrate = () => {
     onContinue()
   }
+
+  // Check if all apps are selected
+  const areAllAppsSelected = useMemo(() => {
+    if (appsWithoutErrors.length === 0) return false
+
+    const allAccountsSelected = appsWithoutErrors.every(app => app.accounts?.every(account => account.selected))
+    const allMultisigAccountsSelected = appsWithoutErrors.every(app => app.multisigAccounts?.every(account => account.selected))
+    return allAccountsSelected && allMultisigAccountsSelected
+  }, [appsWithoutErrors])
+
+  // Handle "Select All" checkbox change
+  const handleSelectAllChange = useCallback(
+    (checked: CheckedState) => {
+      toggleAllAccounts(checked === true)
+    },
+    [toggleAllAccounts]
+  )
 
   const renderDestinationAddressesInfo = () => {
     if (polkadotAddresses.length === 0) {
@@ -151,7 +175,7 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
             </Button>
           ) : (
             <Button onClick={handleMigrate} disabled={isLoading || appsWithoutErrors.length === 0} variant="purple">
-              Migrate All
+              Migrate
             </Button>
           )}
         </div>
@@ -170,6 +194,17 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
           <Progress value={syncProgress.percentage} />
           <div className="pt-2">
             <AppScanningGrid />
+          </div>
+        </div>
+      )}
+
+      {!isLoading && isSynchronized && appsWithoutErrors.length > 0 && (
+        <div className="flex items-center mb-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <div className="flex items-center">
+            <Checkbox id="select-all-checkbox" checked={areAllAppsSelected} onCheckedChange={handleSelectAllChange} />
+            <label htmlFor="select-all-checkbox" className="ml-2 text-sm font-medium cursor-pointer">
+              Select All Accounts
+            </label>
           </div>
         </div>
       )}
