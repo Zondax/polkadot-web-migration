@@ -80,18 +80,22 @@ function MultisigCallForm({
     [pendingCalls, selectedCallHash]
   )
 
-  const depositorAddress = selectedCall?.depositor
-  const approvers = selectedCall?.signatories
-  const deposit = selectedCall?.deposit
+  const depositorAddress = useMemo(() => selectedCall?.depositor, [selectedCall])
+  const approvers = useMemo(() => selectedCall?.signatories, [selectedCall])
+  const deposit = useMemo(() => selectedCall?.deposit, [selectedCall])
 
-  // Handle call hash change
-  const handleCallHashChange = (value: string) => {
-    setValue('callHash', value)
-    setValue('callData', '') // Reset call data when hash changes
-    clearErrors('callData')
-  }
+  // Handle call hash change - moved outside render body
+  const handleCallHashChange = useCallback(
+    (value: string) => {
+      setValue('callHash', value)
+      setValue('callData', '') // Reset call data when hash changes
+      clearErrors('callData')
+    },
+    [setValue, clearErrors]
+  )
 
-  const renderCallDataHelperText = (): string | undefined => {
+  // Helper text renderer - moved outside render body
+  const renderCallDataHelperText = useCallback((): string | undefined => {
     if (isValidatingCallData) {
       return callDataValidationMessages.validating
     }
@@ -102,7 +106,7 @@ function MultisigCallForm({
       return callDataValidationMessages.correct
     }
     return undefined
-  }
+  }, [isValidatingCallData, errors.callData, callData, selectedCallHash])
 
   // Helper for signer select error state
   const noAvailableSigners = availableSigners.length === 0
@@ -237,6 +241,7 @@ function MultisigCallForm({
             <Input
               {...field}
               type="text"
+              autoFocus={false}
               placeholder="Enter call data for approval (e.g., 0x1234...)"
               error={!!errors.callData && !isValidatingCallData}
               helperText={renderCallDataHelperText()}
@@ -346,7 +351,7 @@ export default function ApproveMultisigCallDialog({ open, setOpen, token, appId,
 
   return (
     <Dialog open={open} onOpenChange={closeDialog}>
-      <DialogContent>
+      <DialogContent onOpenAutoFocus={e => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Approve Multisig Call</DialogTitle>
           <DialogDescription>

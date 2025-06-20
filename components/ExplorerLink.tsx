@@ -6,6 +6,7 @@ import type { AppId } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { cn, truncateMiddleOfString } from '@/lib/utils'
 import { getAddressExplorerUrl, getBlockExplorerUrl, getTransactionExplorerUrl } from '@/lib/utils/explorers'
+import { useMemo } from 'react'
 import { CopyButton } from './CopyButton'
 import type { ButtonSize } from './ui/button'
 
@@ -56,6 +57,9 @@ interface ExplorerLinkProps {
   size?: ButtonSize
 }
 
+/**
+ * Renders a link to a blockchain explorer, with optional tooltip and copy button.
+ */
 export function ExplorerLink({
   value,
   tooltipBody,
@@ -71,48 +75,43 @@ export function ExplorerLink({
 }: ExplorerLinkProps) {
   if (!value) return null
 
-  // If appId and explorerLinkType are provided, generate explorer URL
-  let explorerUrl = ''
-  if (appId && explorerLinkType && !disableLink) {
-    switch (explorerLinkType) {
-      case ExplorerItemType.Transaction:
-        explorerUrl = getTransactionExplorerUrl(appId, value)
-        break
-      case ExplorerItemType.Address:
-        explorerUrl = getAddressExplorerUrl(appId, value)
-        break
-      case ExplorerItemType.BlockHash:
-        explorerUrl = getBlockExplorerUrl(appId, value)
-        break
-      case ExplorerItemType.BlockNumber:
-        explorerUrl = getBlockExplorerUrl(appId, value)
-        break
+  const explorerUrl = useMemo(() => {
+    if (appId && explorerLinkType && !disableLink) {
+      switch (explorerLinkType) {
+        case ExplorerItemType.Transaction:
+          return getTransactionExplorerUrl(appId, value)
+        case ExplorerItemType.Address:
+          return getAddressExplorerUrl(appId, value)
+        case ExplorerItemType.BlockHash:
+        case ExplorerItemType.BlockNumber:
+          return getBlockExplorerUrl(appId, value)
+      }
     }
-  }
+    return ''
+  }, [appId, explorerLinkType, value, disableLink])
 
-  const shortAddress = truncate ? truncateMiddleOfString(value, truncateMaxCharacters) : value
+  const shortAddress = useMemo(() => (truncate ? truncateMiddleOfString(value, truncateMaxCharacters) : value), [value, truncate])
   const displayText = children || shortAddress
 
-  const renderContent = () => {
-    if (explorerUrl) {
-      return (
-        <Link
-          href={explorerUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn('flex items-center hover:underline text-primary-500', className)}
-        >
-          {displayText}
-        </Link>
-      )
-    }
-    return <span className={className}>{displayText}</span>
-  }
+  const content = explorerUrl ? (
+    <Link
+      href={explorerUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cn('flex items-center hover:underline text-primary-500', className)}
+      aria-label={value}
+    >
+      {displayText}
+    </Link>
+  ) : (
+    <span className={className} aria-disabled={disableLink}>
+      {displayText}
+    </span>
+  )
 
   return (
     <div className="flex items-center gap-2">
-      {disableTooltip ? renderContent() : <CustomTooltip tooltipBody={tooltipBody || value}>{renderContent()}</CustomTooltip>}
-
+      {disableTooltip ? content : <CustomTooltip tooltipBody={tooltipBody || value}>{content}</CustomTooltip>}
       {hasCopyButton && <CopyButton value={value} size={size} />}
     </div>
   )
