@@ -1265,8 +1265,9 @@ export async function getIdentityInfo(address: string, api: ApiPromise): Promise
     ])
 
     // Extract results, handling rejected promises
-    const derived = derivedRegistration.status === 'fulfilled' ? derivedRegistration.value : undefined
-    const raw = rawRegistration.status === 'fulfilled' ? rawRegistration.value : undefined
+    const isFulfilled = 'fulfilled'
+    const derived = derivedRegistration.status === isFulfilled ? derivedRegistration.value : undefined
+    const raw = rawRegistration.status === isFulfilled ? rawRegistration.value : undefined
 
     // Merge the information
     return mergeIdentityInfo(derived, raw)
