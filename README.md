@@ -175,7 +175,6 @@ This project provides a flexible configuration system for adding custom blockcha
      "bip44Path": "m/44'/123'/0'/0'/0'",
      "ss58Prefix": 42,
      "rpcEndpoint": "wss://rpc.yourchain.network",
-     "peopleRpcEndpoint": "wss://people-rpc.yourchain.network",
      "token": {
        "symbol": "SYMBOL",
        "decimals": 12,
@@ -191,7 +190,6 @@ Each chain configuration contains these key parameters:
 - `bip44Path`: The HD derivation path for the chain
 - `ss58Prefix`: The SS58 address format prefix
 - `rpcEndpoint`: WebSocket endpoint for connecting to the chain
-- `peopleRpcEndpoint`: (Optional) WebSocket endpoint for the people chain, if applicable
 - `token`: An object containing token information:
   - `symbol`: The currency symbol
   - `decimals`: Number of decimal places for the currency

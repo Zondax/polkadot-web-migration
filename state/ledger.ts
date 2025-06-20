@@ -34,7 +34,6 @@ import {
   type MultisigAddress,
   type Native,
   type PreTxInfo,
-  type Registration,
   TransactionStatus,
   type UpdateMigratedStatusFn,
 } from './types/ledger'
@@ -452,15 +451,9 @@ export const ledgerState$ = observable({
           }
 
           // Registration Info
-          let registration: Registration | undefined
-          if (app.peopleRpcEndpoint) {
-            const { api: peopleApi, error: peopleError } = await getApiAndProvider(app.peopleRpcEndpoint)
+          const registration = await getIdentityInfo(address.address, api)
 
-            if (!peopleError && peopleApi) {
-              registration = await getIdentityInfo(address.address, peopleApi)
-            }
-          }
-
+          // Proxy Info
           const proxy = await getProxyInfo(address.address, api)
 
           // Multisig Addresses

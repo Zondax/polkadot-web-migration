@@ -5,7 +5,7 @@ import { useCallback, useEffect } from 'react'
 import { type App, ledgerState$ } from 'state/ledger'
 
 import type { AppId } from '@/config/apps'
-import { addDestinationAddressesFromAccounts, filterAppsWithoutErrors, filterSelectedAccountsForMigration } from '@/lib/utils'
+import { addDestinationAddressesFromAccounts, filterValidSyncedAppsWithBalances, filterSelectedAccountsForMigration } from '@/lib/utils'
 
 interface UseMigrationReturn {
   // Computed values
@@ -54,7 +54,7 @@ export const useMigration = (): UseMigrationReturn => {
   const totalMigration = use$(ledgerState$.apps.migrationResult.total)
 
   // Compute derived values from apps
-  const appsWithoutErrors = use$(() => filterAppsWithoutErrors(apps))
+  const appsWithoutErrors = use$(() => filterValidSyncedAppsWithBalances(apps))
 
   const appsForMigration = use$(() => filterSelectedAccountsForMigration(appsWithoutErrors))
 

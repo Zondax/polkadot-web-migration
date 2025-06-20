@@ -24,7 +24,7 @@ export const TEST_ADDRESSES = {
 
 // test rpc endpoints
 export const KUSAMA_RPC = appsConfigs.get('kusama')?.rpcEndpoint || 'wss://kusama-rpc.polkadot.io'
-export const KUSAMA_PEOPLE_RPC = appsConfigs.get('kusama')?.peopleRpcEndpoint || 'wss://people-rpc.dwellir.com'
+export const KUSAMA_PEOPLE_RPC = appsConfigs.get('people-kusama')?.rpcEndpoint || 'wss://people-kusama.api.onfinality.io/public-ws'
 export const KUSAMA_ASSET_HUB_RPC = appsConfigs.get('kusama-asset-hub')?.rpcEndpoint || 'wss://asset-hub-kusama-rpc.dwellir.com'
 
 // =========== Mock Staking ===========
@@ -262,6 +262,22 @@ export const mockAddressWithMigrationError: Address = {
   balances: undefined,
 }
 
+export const mockAddressWithMigrationErrorAndBalance: Address = {
+  path: "m/44'/354'/0'/4'",
+  pubKey: '0xdef',
+  address: TEST_ADDRESSES.ADDRESS5,
+  error: {
+    source: 'migration',
+    description: 'Migration failed',
+  },
+  balances: [
+    {
+      type: BalanceType.NATIVE,
+      balance: mockFreeNativeBalance,
+    },
+  ],
+}
+
 export const mockAddressNoBalance: Address = {
   path: "m/44'/354'/0'/5'",
   pubKey: '0xeee',
@@ -424,7 +440,7 @@ export const mockAppWithMigrationError: App = {
     logoId: 'westend',
   },
   status: AppStatus.SYNCHRONIZED,
-  accounts: [mockAddressWithMigrationError],
+  accounts: [mockAddressWithMigrationError, mockAddressWithMigrationErrorAndBalance],
 }
 
 export const mockAppWithAppError: App = {
