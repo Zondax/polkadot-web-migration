@@ -53,7 +53,7 @@ function RemoveIdentityForm({ token, account, appId, estimatedFee, estimatedFeeL
       {account.registration?.deposit !== undefined ? (
         <div className="text-sm">
           <div className="text-xs text-muted-foreground mb-1">Deposit to be returned</div>
-          <span className="font-mono">{formatBalance(account.registration?.deposit, token)}</span>
+          <span className="font-mono">{formatBalance(account.registration.deposit, token)}</span>
         </div>
       ) : null}
       {/* Estimated Fee */}
