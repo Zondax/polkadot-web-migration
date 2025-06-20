@@ -130,7 +130,14 @@ function MultisigCallForm({
                 <SelectContent>
                   {pendingCalls.map(call => (
                     <SelectItem key={call.callHash} value={call.callHash}>
-                      {call.callHash}
+                      <ExplorerLink
+                        value={call.callHash}
+                        appId={appId as AppId}
+                        explorerLinkType={ExplorerItemType.Address}
+                        disableTooltip
+                        disableLink
+                        hasCopyButton={false}
+                      />
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -333,6 +340,7 @@ export default function ApproveMultisigCallDialog({ open, setOpen, token, appId,
   // Reset state when dialog is closed
   const closeDialog = () => {
     form.reset()
+    clearTx()
     setOpen(false)
   }
 
