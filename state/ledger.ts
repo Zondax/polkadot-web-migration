@@ -19,7 +19,7 @@ import { hasAddressBalance, hasBalance, validateReservedBreakdown } from '@/lib/
 import { mapLedgerError } from '@/lib/utils/error'
 import { setDefaultDestinationAddress } from '@/lib/utils/ledger'
 
-import type { MultisigCallFormData } from '@/components/sections/migrate/approve-multisig-call-dialog'
+import type { MultisigCallFormData } from '@/components/sections/migrate/dialogs/approve-multisig-call-dialog'
 import { BN } from '@polkadot/util'
 import type { LedgerClientError } from './client/base'
 import { ledgerClient } from './client/ledger'
@@ -529,6 +529,7 @@ export const ledgerState$ = observable({
             status: AddressStatus.SYNCHRONIZED,
             error: undefined,
             isLoading: false,
+            selected: true,
           }
         })
       )
@@ -562,6 +563,7 @@ export const ledgerState$ = observable({
               }
             : undefined
           multisigAddress.isLoading = false
+          multisigAddress.selected = true
           multisigAddress.members = multisigAddress.members.map(member => {
             if (foundAccounts.includes(member.address)) {
               return { ...member, internal: true, path: accounts.find(account => account.address === member.address)?.path }
@@ -1090,8 +1092,8 @@ export const ledgerState$ = observable({
     }
   },
 
-  // Migrate All Accounts
-  async migrateAll() {
+  // Migrate selected accounts
+  async migrateSelected(selectedOnly = true) {
     // Reset migration result
     ledgerState$.apps.migrationResult.set({ success: 0, fails: 0, total: 0 })
 
@@ -1108,7 +1110,7 @@ export const ledgerState$ = observable({
         // Get accounts that need migration
         const accountsToMigrate: (Address | MultisigAddress)[] = [...(app.accounts || []), ...(app.multisigAccounts || [])]
           // Skip accounts that are already migrated or have no balance
-          .filter(account => account.status !== 'migrated' && hasAddressBalance(account))
+          .filter(account => account.status !== 'migrated' && hasAddressBalance(account) && (!selectedOnly || account.selected))
 
         if (accountsToMigrate.length === 0) continue
 

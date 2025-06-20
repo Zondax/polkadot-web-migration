@@ -23,7 +23,7 @@ import type { ConnectionResponse } from '@/lib/ledger/types'
 import { getBip44Path } from '@/lib/utils/address'
 import { getTransferableAndNfts } from '@/lib/utils/balance'
 
-import type { MultisigCallFormData } from '@/components/sections/migrate/approve-multisig-call-dialog'
+import type { MultisigCallFormData } from '@/components/sections/migrate/dialogs/approve-multisig-call-dialog'
 import type { BN } from '@polkadot/util'
 import {
   type Address,

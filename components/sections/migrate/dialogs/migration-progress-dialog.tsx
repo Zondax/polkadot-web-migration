@@ -1,7 +1,7 @@
 import { ExplorerLink } from '@/components/ExplorerLink'
 import TokenIcon from '@/components/TokenIcon'
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
-import { TransactionStatusBody } from '@/components/sections/migrate/transaction-dialog'
+import { TransactionStatusBody } from '@/components/sections/migrate/dialogs/transaction-dialog'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ExplorerItemType } from '@/config/explorers'

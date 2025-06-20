@@ -10,11 +10,10 @@ import { useMigration } from '@/components/hooks/useMigration'
 import { Button } from '@/components/ui/button'
 import { hasBalance } from '@/lib/utils'
 
-import { ExplorerItemType } from '@/config/explorers'
-import { AddressVerificationDialog } from './address-verification-dialog'
+import { AddressVerificationDialog } from './dialogs/address-verification-dialog'
+import { MigrationProgressDialog } from './dialogs/migration-progress-dialog'
+import { SuccessDialog } from './dialogs/success-dialog'
 import MigratedAccountsTable from './migrated-accounts-table'
-import { MigrationProgressDialog } from './migration-progress-dialog'
-import { SuccessDialog } from './success-dialog'
 
 interface MigrateTabContentProps {
   onBack: () => void
@@ -28,12 +27,12 @@ export function MigrateTabContent({ onBack }: MigrateTabContentProps) {
   const [showMigrationProgressDialog, setShowMigrationProgressDialog] = useState(false)
   const [migrationStatus, setMigrationStatus] = useState<undefined | 'loading' | 'finished'>()
   const {
-    filteredAppsWithoutErrors,
-    migrateAll,
+    appsForMigration,
+    migrateSelected,
     migrationResults,
     restartSynchronization,
     allVerified,
-    verifyDestinationAddresses,
+    verifySelectedAppsAddresses,
     migratingItem,
   } = useMigration()
   const userDismissedDialog = useRef(false)
@@ -50,7 +49,7 @@ export function MigrateTabContent({ onBack }: MigrateTabContentProps) {
 
   const handleMigrate = async () => {
     setMigrationStatus('loading')
-    await migrateAll()
+    await migrateSelected()
     setShowSuccessDialog(true)
     setMigrationStatus('finished')
   }
@@ -68,7 +67,7 @@ export function MigrateTabContent({ onBack }: MigrateTabContentProps) {
 
   const handleOpenVerificationDialog = () => {
     setShowVerificationDialog(true)
-    verifyDestinationAddresses()
+    verifySelectedAppsAddresses()
   }
 
   const handleCloseMigrationDialog = () => {
@@ -76,9 +75,9 @@ export function MigrateTabContent({ onBack }: MigrateTabContentProps) {
     setShowMigrationProgressDialog(false)
   }
 
-  const hasAddressesToVerify = filteredAppsWithoutErrors.length > 0
+  const hasAddressesToVerify = appsForMigration.length > 0
   // Filter accounts and multisigAccounts that have a balance and destination address (and signatory address if multisig)
-  const validApps = filteredAppsWithoutErrors
+  const validApps = appsForMigration
     .map(app => {
       // Filter regular accounts
       const filteredAccounts = (app.accounts || []).filter(account =>
@@ -155,7 +154,7 @@ export function MigrateTabContent({ onBack }: MigrateTabContentProps) {
               variant="purple"
               size="wide"
               onClick={handleMigrate}
-              disabled={filteredAppsWithoutErrors.length === 0 || !allVerified || migrationStatus === 'loading'}
+              disabled={appsForMigration.length === 0 || !allVerified || migrationStatus === 'loading'}
             >
               {migrationStatus === 'loading' ? 'Migrating...' : 'Migrate Accounts'}
             </Button>

@@ -15,11 +15,12 @@ import {
   UserCog,
   Users,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import type { Collections } from 'state/ledger'
 import type { Address, AddressBalance, MultisigAddress, MultisigMember } from 'state/types/ledger'
 
 import { CustomTooltip, TooltipBody, type TooltipItem } from '@/components/CustomTooltip'
+import { useMigration } from '@/components/hooks/useMigration'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { TableCell, TableRow } from '@/components/ui/table'
 import type { AppId, Token } from '@/config/apps'
@@ -31,16 +32,18 @@ import type { UpdateTransaction } from '@/components/hooks/useSynchronization'
 import { Spinner } from '@/components/icons'
 import { Badge } from '@/components/ui/badge'
 import { Button, type ButtonProps } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { ExplorerItemType } from '@/config/explorers'
 import { getIdentityItems } from '@/lib/utils/ui'
 import { BN } from '@polkadot/util'
-import ApproveMultisigCallDialog from './approve-multisig-call-dialog'
+import type { CheckedState } from '@radix-ui/react-checkbox'
 import { BalanceHoverCard, LockedBalanceHoverCard } from './balance-hover-card'
 import DestinationAddressSelect from './destination-address-select'
-import RemoveIdentityDialog from './remove-identity-dialog'
-import RemoveProxyDialog from './remove-proxy-dialog'
-import UnstakeDialog from './unstake-dialog'
-import WithdrawDialog from './withdraw-dialog'
+import ApproveMultisigCallDialog from './dialogs/approve-multisig-call-dialog'
+import RemoveIdentityDialog from './dialogs/remove-identity-dialog'
+import RemoveProxyDialog from './dialogs/remove-proxy-dialog'
+import UnstakeDialog from './dialogs/unstake-dialog'
+import WithdrawDialog from './dialogs/withdraw-dialog'
 
 // Component for rendering a single synchronized account row
 interface AccountBalanceRowProps {
@@ -77,6 +80,7 @@ const SynchronizedAccountRow = ({
   updateTransaction,
   appId,
 }: AccountBalanceRowProps) => {
+  const { toggleAccountSelection } = useMigration()
   const [unstakeOpen, setUnstakeOpen] = useState<boolean>(false)
   const [withdrawOpen, setWithdrawOpen] = useState<boolean>(false)
   const [removeIdentityOpen, setRemoveIdentityOpen] = useState<boolean>(false)
@@ -146,6 +150,13 @@ const SynchronizedAccountRow = ({
       icon: <Users className="h-4 w-4" />,
     })
   }
+
+  const handleCheckboxChange = useCallback(
+    (checked: CheckedState) => {
+      toggleAccountSelection(appId, account.address, checked === true)
+    },
+    [toggleAccountSelection, appId, account.address]
+  )
 
   if (isProxied) {
     actions.push({
@@ -373,6 +384,8 @@ const SynchronizedAccountRow = ({
       {isFirst && (
         <TableCell className="py-2 text-sm" rowSpan={rowSpan}>
           <div className="flex items-center gap-2">
+            <Checkbox checked={account.selected} onCheckedChange={handleCheckboxChange} />
+
             <ExplorerLink
               value={account.address ?? ''}
               appId={appId}

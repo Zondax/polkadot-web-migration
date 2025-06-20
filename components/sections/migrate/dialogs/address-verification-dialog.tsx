@@ -1,7 +1,7 @@
 'use client'
 
 import { uiState$ } from '@/state/ui'
-import { use$ } from '@legendapp/state/react'
+import { observer, use$ } from '@legendapp/state/react'
 import { AlertCircle, CheckCircle, Clock } from 'lucide-react'
 import { useEffect } from 'react'
 
@@ -20,7 +20,7 @@ interface AddressVerificationDialogProps {
   onClose: () => void
 }
 
-export function AddressVerificationDialog({ open, onClose }: AddressVerificationDialogProps) {
+export const AddressVerificationDialog = observer(({ open, onClose }: AddressVerificationDialogProps) => {
   const icons = use$(uiState$.icons.get())
 
   // Use the hook directly instead of receiving via props
@@ -115,4 +115,4 @@ export function AddressVerificationDialog({ open, onClose }: AddressVerification
       </DialogContent>
     </Dialog>
   )
-}
+})
