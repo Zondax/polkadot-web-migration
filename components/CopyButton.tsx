@@ -12,14 +12,18 @@ interface CopyButtonProps {
 export function CopyButton({ value, size = 'sm' }: CopyButtonProps) {
   const [copied, setCopied] = useState(false)
 
-  const handleCopy = useCallback(() => {
-    copyContent(value)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }, [value])
+  const handleCopy = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault()
+      copyContent(value)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    },
+    [value]
+  )
 
   return (
-    <Button variant="ghost" size={size} className={'p-0'} onClick={handleCopy}>
+    <Button type="button" variant="ghost" size={size} className={'p-0'} onClick={handleCopy}>
       {copied ? <Check /> : <Copy />}
     </Button>
   )
