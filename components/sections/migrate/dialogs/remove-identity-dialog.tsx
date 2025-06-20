@@ -10,6 +10,7 @@ import { type AppId, type Token, getChainName } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { formatBalance } from '@/lib/utils/format'
 import { ledgerState$ } from '@/state/ledger'
+import { BN } from '@polkadot/util'
 import { useEffect, useMemo } from 'react'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
@@ -49,10 +50,12 @@ function RemoveIdentityForm({ token, account, appId, estimatedFee, estimatedFeeL
         </div>
       </div>
       {/* Deposit */}
-      <div className="text-sm">
-        <div className="text-xs text-muted-foreground mb-1">Deposit to be returned</div>
-        <span className="font-mono">{formatBalance(account.registration?.deposit ?? 0, token)}</span>
-      </div>
+      {account.registration?.deposit !== undefined ? (
+        <div className="text-sm">
+          <div className="text-xs text-muted-foreground mb-1">Deposit to be returned</div>
+          <span className="font-mono">{formatBalance(account.registration?.deposit, token)}</span>
+        </div>
+      ) : null}
       {/* Estimated Fee */}
       <div className="flex flex-col items-start justify-start">
         <div className="text-xs text-muted-foreground mb-1">Estimated Fee</div>
