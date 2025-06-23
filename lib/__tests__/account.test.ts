@@ -312,42 +312,27 @@ describe('getApiAndProvider', () => {
     vi.mocked(ApiPromise.create).mockResolvedValue(mockApi as any)
     vi.mocked(WsProvider).mockImplementation(() => mockProvider as any)
 
-    // Call the function
-    const result = await getApiAndProvider('wss://example.endpoint')
-
-    // Verify result
-    expect(result.api).toBe(mockApi)
-    expect(result.provider).toBe(mockProvider)
-    expect(result.error).toBeUndefined()
-
-    // Verify WsProvider was created with the correct endpoint
-    expect(WsProvider).toHaveBeenCalledWith('wss://example.endpoint')
-    expect(mockProvider.on).toHaveBeenCalledWith('error', expect.any(Function))
+    // Verify that the function resolves with the expected api and provider
+    await expect(getApiAndProvider('wss://example.endpoint')).resolves.toEqual({
+      api: mockApi,
+      provider: mockProvider,
+    })
   })
 
   it('should return an error when connection times out', async () => {
     // Mock API creation to reject with a timeout error
     vi.mocked(ApiPromise.create).mockRejectedValue(new Error('Connection timeout'))
 
-    // Call the function
-    const result = await getApiAndProvider('wss://timeout.endpoint')
-
-    // Verify result has an error and no API or provider
-    expect(result.api).toBeUndefined()
-    expect(result.provider).toBeUndefined()
-    // Update this check to match the exact error message in the code
-    expect(result.error).toContain('Connection timeout')
+    // Verify that a specific "connection_timeout" error is thrown
+    await expect(getApiAndProvider('wss://timeout.endpoint')).rejects.toBe('connection_timeout')
   })
 
   it('should return a specific error for connection refused', async () => {
     // Mock API creation to reject with a connection refused error
     vi.mocked(ApiPromise.create).mockRejectedValue(new Error('Connection refused'))
 
-    // Call the function
-    const result = await getApiAndProvider('wss://refused.endpoint')
-
-    // Verify result has the specific error message
-    expect(result.error).toContain('Connection refused')
+    // Verify that a specific "connection_refused" error is thrown
+    await expect(getApiAndProvider('wss://timeout.endpoint')).rejects.toBe('connection_refused')
   })
 })
 

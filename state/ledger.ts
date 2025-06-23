@@ -383,9 +383,9 @@ export const ledgerState$ = observable({
 
       const polkadotAccounts = ledgerState$.apps.polkadotApp.get().accounts || []
 
-      const { api, provider, error } = await getApiAndProvider(app.rpcEndpoint)
+      const { api, provider } = await getApiAndProvider(app.rpcEndpoint)
 
-      if (error || !api) {
+      if (!api) {
         return {
           name: app.name,
           id: app.id,
@@ -623,6 +623,7 @@ export const ledgerState$ = observable({
       }
     } catch (error) {
       console.debug('Error fetching and processing accounts for app:', app.id)
+      const errorDetail = mapLedgerError(error as LedgerClientError, InternalErrors.FETCH_PROCESS_ACCOUNTS_ERROR)
       return {
         name: app.name,
         id: app.id,
@@ -630,7 +631,7 @@ export const ledgerState$ = observable({
         status: AppStatus.ERROR,
         error: {
           source: 'synchronization',
-          description: error instanceof Error ? error.message : 'Error fetching and processing accounts for app.',
+          description: errorDetail.description ?? errorDetail.title,
         },
       }
     }
@@ -689,9 +690,9 @@ export const ledgerState$ = observable({
 
       const accounts = response.result
 
-      const { api, provider, error } = await getApiAndProvider(app.rpcEndpoint)
+      const { api, provider } = await getApiAndProvider(app.rpcEndpoint)
 
-      if (error || !api) {
+      if (!api) {
         return {
           name: app.name,
           id: app.id,
@@ -861,9 +862,9 @@ export const ledgerState$ = observable({
       return
     }
 
-    const { api, provider, error } = await getApiAndProvider(rpcEndpoint)
+    const { api, provider } = await getApiAndProvider(rpcEndpoint)
 
-    if (error || !api) {
+    if (!api) {
       updateAccount(appId, address.address, {
         isLoading: false,
         error: {

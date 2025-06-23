@@ -1,5 +1,5 @@
 import { observer, use$ } from '@legendapp/state/react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Info } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { type App, ledgerState$ } from 'state/ledger'
 import { type Address, BalanceType } from 'state/types/ledger'
@@ -8,6 +8,7 @@ import { isNativeBalance } from '@/lib/utils/balance'
 import { formatBalance } from '@/lib/utils/format'
 import { muifyHtml } from '@/lib/utils/html'
 
+import { CustomTooltip } from '@/components/CustomTooltip'
 import type { UpdateTransaction } from '@/components/hooks/useSynchronization'
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
 import { BN } from '@polkadot/util'
@@ -105,6 +106,15 @@ function SynchronizedApp({
                 <ChevronDown className={`h-5 w-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
               </div>
             )}
+          </div>
+        )}
+        {failedSync && (
+          <div className="flex items-center gap-2">
+            <CustomTooltip tooltipBody={app.error?.description} className="bg-white">
+              <span className="text-red-500">
+                <Info className="h-5 w-5 inline-block mr-1" />
+              </span>
+            </CustomTooltip>
           </div>
         )}
       </div>

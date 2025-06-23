@@ -24,7 +24,6 @@ import type { ConnectionResponse } from '@/lib/ledger/types'
 import { getBip44Path } from '@/lib/utils/address'
 import { getTransferableAndNfts } from '@/lib/utils/balance'
 
-import type { MultisigCallFormData } from '@/components/sections/migrate/dialogs/approve-multisig-call-dialog'
 import type { BN } from '@polkadot/util'
 import {
   type Address,
@@ -96,9 +95,9 @@ export const ledgerClient = {
     return withErrorHandling(
       async () => {
         const { balance, senderAddress, senderPath, receiverAddress, appConfig, multisigInfo, accountType } = validation
-        const { api, error } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
-        if (error || !api) {
-          throw new Error(error ?? 'Failed to connect to the blockchain.')
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        if (!api) {
+          throw InternalErrors.BLOCKCHAIN_CONNECTION_ERROR
         }
 
         // Determine which type of balance we're dealing with
@@ -116,7 +115,7 @@ export const ledgerClient = {
           multisigInfo
         )
         if (!preparedTx) {
-          throw new Error('Prepare transaction failed')
+          throw InternalErrors.PREPARE_TX_ERROR
         }
         const { transfer, payload, metadataHash, nonce, proof1, payloadBytes, callData } = preparedTx
 
@@ -126,7 +125,7 @@ export const ledgerClient = {
         // Sign transaction with Ledger
         const { signature } = await ledgerService.signTransaction(senderPath, payloadBytes, chainId, proof1)
         if (!signature) {
-          throw new Error('Failed to sign transaction')
+          throw InternalErrors.SIGN_TX_ERROR
         }
 
         // Create signed extrinsic
@@ -159,21 +158,21 @@ export const ledgerClient = {
 
     return withErrorHandling(
       async () => {
-        const { api, error } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
-        if (error || !api) {
-          throw new Error(error ?? 'Failed to connect to the blockchain.')
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        if (!api) {
+          throw InternalErrors.BLOCKCHAIN_CONNECTION_ERROR
         }
 
         const unstakeTx = await prepareUnstakeTransaction(api, amount)
 
         if (!unstakeTx) {
-          throw new Error('Failed to prepare transaction')
+          throw InternalErrors.PREPARE_TX_ERROR
         }
 
         // Prepare transaction payload
         const preparedTx = await prepareTransactionPayload(api, address, appConfig, unstakeTx)
         if (!preparedTx) {
-          throw new Error('Failed to prepare transaction')
+          throw InternalErrors.PREPARE_TX_ERROR
         }
         const { transfer, payload, metadataHash, nonce, proof1, payloadBytes } = preparedTx
 
@@ -183,7 +182,7 @@ export const ledgerClient = {
         // Sign transaction with Ledger
         const { signature } = await ledgerService.signTransaction(path, payloadBytes, chainId, proof1)
         if (!signature) {
-          throw new Error('Failed to sign transaction')
+          throw InternalErrors.SIGN_TX_ERROR
         }
 
         // Create signed extrinsic
@@ -204,14 +203,14 @@ export const ledgerClient = {
 
     return withErrorHandling(
       async () => {
-        const { api, error } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
-        if (error || !api) {
-          throw new Error(error ?? 'Failed to connect to the blockchain.')
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        if (!api) {
+          throw InternalErrors.BLOCKCHAIN_CONNECTION_ERROR
         }
 
         const unstakeTx = await prepareUnstakeTransaction(api, amount)
         if (!unstakeTx) {
-          throw new Error('Failed to prepare transaction')
+          throw InternalErrors.PREPARE_TX_ERROR
         }
 
         const estimatedFee = await getTxFee(unstakeTx, address)
@@ -230,9 +229,9 @@ export const ledgerClient = {
 
     return withErrorHandling(
       async () => {
-        const { api, error } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
-        if (error || !api) {
-          throw new Error(error ?? 'Failed to connect to the blockchain.')
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        if (!api) {
+          throw InternalErrors.BLOCKCHAIN_CONNECTION_ERROR
         }
 
         const withdrawTx = await prepareWithdrawTransaction(api)
@@ -240,7 +239,7 @@ export const ledgerClient = {
         // Prepare transaction payload
         const preparedTx = await prepareTransactionPayload(api, address, appConfig, withdrawTx)
         if (!preparedTx) {
-          throw new Error('Failed to prepare transaction')
+          throw InternalErrors.PREPARE_TX_ERROR
         }
         const { transfer, payload, metadataHash, nonce, proof1, payloadBytes } = preparedTx
 
@@ -250,7 +249,7 @@ export const ledgerClient = {
         // Sign transaction with Ledger
         const { signature } = await ledgerService.signTransaction(path, payloadBytes, chainId, proof1)
         if (!signature) {
-          throw new Error('Failed to sign transaction')
+          throw InternalErrors.SIGN_TX_ERROR
         }
 
         // Create signed extrinsic
@@ -271,9 +270,9 @@ export const ledgerClient = {
 
     return withErrorHandling(
       async () => {
-        const { api, error } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
-        if (error || !api) {
-          throw new Error(error ?? 'Failed to connect to the blockchain.')
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        if (!api) {
+          throw InternalErrors.BLOCKCHAIN_CONNECTION_ERROR
         }
 
         const withdrawTx = await prepareWithdrawTransaction(api)
@@ -291,21 +290,21 @@ export const ledgerClient = {
 
     return withErrorHandling(
       async () => {
-        const { api, error } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
-        if (error || !api) {
-          throw new Error(error ?? 'Failed to connect to the blockchain.')
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        if (!api) {
+          throw InternalErrors.BLOCKCHAIN_CONNECTION_ERROR
         }
 
         const removeIdentityTx = await prepareRemoveIdentityTransaction(api, address)
 
         if (!removeIdentityTx) {
-          throw new Error('Failed to prepare transaction')
+          throw InternalErrors.PREPARE_TX_ERROR
         }
 
         // Prepare transaction payload
         const preparedTx = await prepareTransactionPayload(api, address, appConfig, removeIdentityTx)
         if (!preparedTx) {
-          throw new Error('Failed to prepare transaction')
+          throw InternalErrors.PREPARE_TX_ERROR
         }
         const { transfer, payload, metadataHash, nonce, proof1, payloadBytes } = preparedTx
 
@@ -315,7 +314,7 @@ export const ledgerClient = {
         // Sign transaction with Ledger
         const { signature } = await ledgerService.signTransaction(path, payloadBytes, chainId, proof1)
         if (!signature) {
-          throw new Error('Failed to sign transaction')
+          throw InternalErrors.SIGN_TX_ERROR
         }
 
         // Create signed extrinsic
@@ -336,14 +335,14 @@ export const ledgerClient = {
 
     return withErrorHandling(
       async () => {
-        const { api, error } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
-        if (error || !api) {
-          throw new Error(error ?? 'Failed to connect to the blockchain.')
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        if (!api) {
+          throw InternalErrors.BLOCKCHAIN_CONNECTION_ERROR
         }
 
         const removeIdentityTx = await prepareRemoveIdentityTransaction(api, address)
         if (!removeIdentityTx) {
-          throw new Error('Failed to prepare transaction')
+          throw InternalErrors.PREPARE_TX_ERROR
         }
 
         const estimatedFee = await getTxFee(removeIdentityTx, address)
@@ -364,9 +363,9 @@ export const ledgerClient = {
 
     return withErrorHandling(
       async () => {
-        const { api, error } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
-        if (error || !api) {
-          throw new Error(error ?? 'Failed to connect to the blockchain.')
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        if (!api) {
+          throw InternalErrors.BLOCKCHAIN_CONNECTION_ERROR
         }
 
         // Determine which type of balance we're dealing with
@@ -383,7 +382,7 @@ export const ledgerClient = {
           nativeAmount
         )
         if (!preparedTx) {
-          throw new Error('Prepare transaction failed')
+          throw InternalErrors.PREPARE_TX_ERROR
         }
 
         const { transfer } = preparedTx
@@ -420,42 +419,48 @@ export const ledgerClient = {
 
     return withErrorHandling(
       async () => {
-        const { api, error } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
-        if (error || !api) {
-          throw new Error(error ?? 'Failed to connect to the blockchain.')
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        if (!api) {
+          throw InternalErrors.BLOCKCHAIN_CONNECTION_ERROR
         }
 
-      const multiTx = await prepareApproveAsMultiTx(
-        signer,
-        multisigInfo.address,
-        multisigInfo.members,
-        multisigInfo.threshold,
-        callHash,
-        api
-      )
+        const multiTx = await prepareApproveAsMultiTx(
+          signer,
+          multisigInfo.address,
+          multisigInfo.members,
+          multisigInfo.threshold,
+          callHash,
+          api
+        )
 
-      // Prepare transaction payload
-      const preparedTx = await prepareTransactionPayload(api, signer, appConfig, multiTx)
-      if (!preparedTx) {
-        throw new Error('Failed to prepare transaction')
+        // Prepare transaction payload
+        const preparedTx = await prepareTransactionPayload(api, signer, appConfig, multiTx)
+        if (!preparedTx) {
+          throw InternalErrors.PREPARE_TX_ERROR
+        }
+        const { transfer, payload, metadataHash, nonce, proof1, payloadBytes } = preparedTx
+
+        // Get chain ID from app config
+        const chainId = appConfig.token.symbol.toLowerCase()
+
+        // Sign transaction with Ledger
+        const { signature } = await ledgerService.signTransaction(signerPath, payloadBytes, chainId, proof1)
+        if (!signature) {
+          throw InternalErrors.SIGN_TX_ERROR
+        }
+
+        // Create signed extrinsic
+        createSignedExtrinsic(api, transfer, signer, signature, payload, nonce, metadataHash)
+
+        // Create and wait for transaction to be submitted
+        await submitAndHandleTransaction(transfer, updateTxStatus, api)
+      },
+      {
+        errorCode: InternalErrors.APPROVE_MULTISIG_CALL_ERROR,
+        operation: 'signApproveAsMultiTx',
+        context: { appId, account, callHash, signer },
       }
-      const { transfer, payload, metadataHash, nonce, proof1, payloadBytes } = preparedTx
-
-      // Get chain ID from app config
-      const chainId = appConfig.token.symbol.toLowerCase()
-
-      // Sign transaction with Ledger
-      const { signature } = await ledgerService.signTransaction(signerPath, payloadBytes, chainId, proof1)
-      if (!signature) {
-        throw new Error('Failed to sign transaction')
-      }
-
-      // Create signed extrinsic
-      createSignedExtrinsic(api, transfer, signer, signature, payload, nonce, metadataHash)
-
-      // Create and wait for transaction to be submitted
-      await submitAndHandleTransaction(transfer, updateTxStatus, api)
-    }, { errorCode: InternalErrors.APPROVE_MULTISIG_CALL_ERROR, operation: 'signApproveAsMultiTx', context: { appId, account, callHash, signer } }
+    )
   },
 
   async signAsMultiTx(
@@ -474,26 +479,27 @@ export const ledgerClient = {
 
     const { appConfig, multisigInfo, signerPath, callData: validCallData } = validation
 
-    return withErrorHandling(async () => {
-      const { api, error } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
-      if (error || !api) {
-        throw new Error(error ?? 'Failed to connect to the blockchain.')
-      }
+    return withErrorHandling(
+      async () => {
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        if (!api) {
+          throw InternalErrors.BLOCKCHAIN_CONNECTION_ERROR
+        }
 
-      const multiTx = await prepareAsMultiTx(
-        signer,
-        multisigInfo.address,
-        multisigInfo.members,
-        multisigInfo.threshold,
-        callHash,
-        validCallData,
-        api
-      )
+        const multiTx = await prepareAsMultiTx(
+          signer,
+          multisigInfo.address,
+          multisigInfo.members,
+          multisigInfo.threshold,
+          callHash,
+          validCallData,
+          api
+        )
 
         // Prepare transaction payload
         const preparedTx = await prepareTransactionPayload(api, signer, appConfig, multiTx)
         if (!preparedTx) {
-          throw new Error('Failed to prepare transaction')
+          throw InternalErrors.PREPARE_TX_ERROR
         }
         const { transfer, payload, metadataHash, nonce, proof1, payloadBytes } = preparedTx
 
@@ -503,7 +509,7 @@ export const ledgerClient = {
         // Sign transaction with Ledger
         const { signature } = await ledgerService.signTransaction(signerPath, payloadBytes, chainId, proof1)
         if (!signature) {
-          throw new Error('Failed to sign transaction')
+          throw InternalErrors.SIGN_TX_ERROR
         }
 
         // Create signed extrinsic
@@ -512,7 +518,11 @@ export const ledgerClient = {
         // Create and wait for transaction to be submitted
         await submitAndHandleTransaction(transfer, updateTxStatus, api)
       },
-      { errorCode: InternalErrors.APPROVE_MULTISIG_CALL_ERROR, operation: 'signAsMultiTx', context: { appId, account, callHash, callData, signer } }
+      {
+        errorCode: InternalErrors.APPROVE_MULTISIG_CALL_ERROR,
+        operation: 'signAsMultiTx',
+        context: { appId, account, callHash, callData, signer },
+      }
     )
   },
 
@@ -524,9 +534,9 @@ export const ledgerClient = {
 
     return withErrorHandling(
       async () => {
-        const { api, error } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
-        if (error || !api) {
-          throw new Error(error ?? 'Failed to connect to the blockchain.')
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        if (!api) {
+          throw InternalErrors.BLOCKCHAIN_CONNECTION_ERROR
         }
         return validateCallDataMatchesHash(api, callData, expectedCallHash)
       },
@@ -546,21 +556,21 @@ export const ledgerClient = {
 
     return withErrorHandling(
       async () => {
-        const { api, error } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
-        if (error || !api) {
-          throw new Error(error ?? 'Failed to connect to the blockchain.')
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        if (!api) {
+          throw InternalErrors.BLOCKCHAIN_CONNECTION_ERROR
         }
 
         const removeProxyTx = await prepareRemoveProxiesTransaction(api)
 
         if (!removeProxyTx) {
-          throw new Error('Failed to prepare transaction')
+          throw InternalErrors.PREPARE_TX_ERROR
         }
 
         // Prepare transaction payload
         const preparedTx = await prepareTransactionPayload(api, address, appConfig, removeProxyTx)
         if (!preparedTx) {
-          throw new Error('Failed to prepare transaction')
+          throw InternalErrors.PREPARE_TX_ERROR
         }
         const { transfer, payload, metadataHash, nonce, proof1, payloadBytes } = preparedTx
 
@@ -570,7 +580,7 @@ export const ledgerClient = {
         // Sign transaction with Ledger
         const { signature } = await ledgerService.signTransaction(path, payloadBytes, chainId, proof1)
         if (!signature) {
-          throw new Error('Failed to sign transaction')
+          throw InternalErrors.SIGN_TX_ERROR
         }
 
         // Create signed extrinsic
@@ -591,14 +601,14 @@ export const ledgerClient = {
 
     return withErrorHandling(
       async () => {
-        const { api, error } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
-        if (error || !api) {
-          throw new Error(error ?? 'Failed to connect to the blockchain.')
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        if (!api) {
+          throw InternalErrors.BLOCKCHAIN_CONNECTION_ERROR
         }
 
         const removeProxyTx = await prepareRemoveProxiesTransaction(api)
         if (!removeProxyTx) {
-          throw new Error('Failed to prepare transaction')
+          throw InternalErrors.PREPARE_TX_ERROR
         }
 
         const estimatedFee = await getTxFee(removeProxyTx, address)

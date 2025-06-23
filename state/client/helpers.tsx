@@ -7,7 +7,7 @@ import type { MultisigInfo } from '@/lib/account'
 import { AccountType, type Address, type AddressBalance, type MultisigAddress } from '../types/ledger'
 
 // Interface for the return value of validateMigrationParams
-export interface ValidateMigrationParamsResultValid {
+export interface ValidateMigrationParamsResult {
   isValid: true
   balance: AddressBalance
   senderAddress: string
@@ -17,12 +17,6 @@ export interface ValidateMigrationParamsResultValid {
   multisigInfo?: MultisigInfo
   accountType: AccountType
 }
-
-export interface InvalidValidateResult {
-  isValid: false
-}
-
-export type ValidateMigrationParamsResult = ValidateMigrationParamsResultValid | InvalidValidateResult
 
 // Helper function to validate multisig-specific parameters
 export const validateMultisigParams = (account: MultisigAddress): { multisigInfo: MultisigInfo } => {
@@ -60,7 +54,7 @@ export const validateMigrationParams = (
 
   if (!balance) {
     console.warn(`Balance at index ${balanceIndex} not found for ${isMultisig ? 'multisig' : ''}account ${account.address} in app ${appId}`)
-    return { isValid: false }
+    throw InternalErrors.NO_BALANCE
   }
 
   const senderAddress = isMultisig ? balance.transaction?.signatoryAddress : account.address
@@ -100,7 +94,7 @@ export const validateMigrationParams = (
 }
 
 // Interface for the return value of validateMigrationParams
-export interface ValidateApproveAsMultiResultValid {
+export interface ValidateApproveAsMultiResult {
   isValid: true
   appConfig: NonNullable<ReturnType<typeof appsConfigs.get>>
   multisigInfo: MultisigInfo
@@ -108,8 +102,6 @@ export interface ValidateApproveAsMultiResultValid {
   signer: string
   signerPath: string
 }
-
-export type ValidateApproveAsMultiResult = ValidateApproveAsMultiResultValid | InvalidValidateResult
 
 // Basic validation for signApproveAsMultiTx
 export const validateApproveAsMultiParams = (
@@ -119,9 +111,6 @@ export const validateApproveAsMultiParams = (
   signer: string
 ): ValidateApproveAsMultiResult => {
   const multisigValidation = validateMultisigParams(account)
-  if (!multisigValidation.multisigInfo) {
-    return { isValid: false }
-  }
 
   const appConfig = appsConfigs.get(appId)
   if (!appConfig || !appConfig.rpcEndpoint) {
@@ -155,12 +144,9 @@ export const validateApproveAsMultiParams = (
   }
 }
 
-interface ValidateAsMultiParamsResultValid extends ValidateApproveAsMultiResultValid {
+interface ValidateAsMultiParamsResult extends ValidateApproveAsMultiResult {
   callData: string
 }
-
-export type ValidateAsMultiParamsResult = ValidateAsMultiParamsResultValid | InvalidValidateResult
-
 // Validation for signAsMultiTx (requires callData)
 export const validateAsMultiParams = (
   appId: AppId,
@@ -171,9 +157,6 @@ export const validateAsMultiParams = (
 ): ValidateAsMultiParamsResult => {
   // Use the same validation as validateApproveAsMultiParams
   const multisigValidation = validateApproveAsMultiParams(appId, account, callHash, signer)
-  if (!multisigValidation.isValid) {
-    return { isValid: false }
-  }
 
   const appConfig = appsConfigs.get(appId)
   if (!appConfig || !appConfig.rpcEndpoint) {
@@ -182,7 +165,7 @@ export const validateAsMultiParams = (
 
   // Additional validation: check if callData exists
   if (!callData) {
-    throw new Error(InternalErrors.NO_CALL_DATA)
+    throw InternalErrors.NO_CALL_DATA
   }
 
   return {

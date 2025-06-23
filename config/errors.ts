@@ -41,6 +41,13 @@ export enum InternalErrors {
   REMOVE_PROXY_ERROR = 'remove_proxy_error',
   GET_REMOVE_PROXIES_FEE_ERROR = 'get_remove_proxies_fee_error',
   VALIDATE_CALL_DATA_MATCHES_HASH_ERROR = 'validate_call_data_matches_hash_error',
+  CONNECTION_TIMEOUT = 'connection_timeout',
+  CONNECTION_REFUSED = 'connection_refused',
+  FAILED_TO_CONNECT_TO_BLOCKCHAIN = 'failed_to_connect_to_blockchain',
+  FETCH_PROCESS_ACCOUNTS_ERROR = 'fetch_process_accounts_error',
+  PREPARE_TX_ERROR = 'prepare_tx_error',
+  SIGN_TX_ERROR = 'sign_tx_error',
+  NO_BALANCE = 'no_balance',
 }
 
 export enum LedgerErrors {
@@ -258,5 +265,40 @@ export const errorDetails: ErrorDetailsMap = {
     title: 'Validate Call Data Matches Hash Error',
     description: 'Failed to validate call data matches hash.',
     content: 'Please try again later or contact support if the issue persists.',
+  },
+  connection_timeout: {
+    title: 'Connection Timeout',
+    description: 'The node is not responding.',
+    content: 'Please try again later or contact support if the issue persists.',
+  },
+  connection_refused: {
+    title: 'Connection Refused',
+    description: 'The node endpoint is unreachable.',
+    content: 'Please try again later or contact support if the issue persists.',
+  },
+  failed_to_connect_to_blockchain: {
+    title: 'Failed to Connect to Blockchain',
+    description: 'Failed to connect to the blockchain network.',
+    content: 'Please check your internet connection and try again later.',
+  },
+  fetch_process_accounts_error: {
+    title: 'Error Fetching and Processing Accounts',
+    description: 'An error occurred while fetching and processing accounts for the app.',
+    content: 'Please try again later or contact support if the issue persists.',
+  },
+  prepare_tx_error: {
+    title: 'Prepare Transaction Error',
+    description: 'Failed to prepare transaction.',
+    content: 'Please try again later or contact support if the issue persists.',
+  },
+  sign_tx_error: {
+    title: 'Sign Transaction Error',
+    description: 'Failed to sign transaction.',
+    content: 'Please try again later or contact support if the issue persists.',
+  },
+  no_balance: {
+    title: 'No Balance',
+    description: 'No balance found.',
+    content: 'Please ensure the account has a balance.',
   },
 }

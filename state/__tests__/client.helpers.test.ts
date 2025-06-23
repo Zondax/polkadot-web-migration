@@ -114,16 +114,12 @@ describe('client helpers', () => {
       })
 
       it('should return invalid when balance at index does not exist', () => {
-        const result = validateMigrationParams(mockAppId, mockAccount, 1)
-
-        expect(result.isValid).toBe(false)
+        expect(() => validateMigrationParams(mockAppId, mockAccount, 1)).toThrow(InternalErrors.NO_BALANCE)
       })
 
       it('should return invalid when balances array is undefined', () => {
         const accountWithoutBalances = { ...mockAccount, balances: undefined }
-        const result = validateMigrationParams(mockAppId, accountWithoutBalances, 0)
-
-        expect(result.isValid).toBe(false)
+        expect(() => validateMigrationParams(mockAppId, accountWithoutBalances, 0)).toThrow(InternalErrors.NO_BALANCE)
       })
 
       it('should throw NO_RECEIVER_ADDRESS error when destination address is missing', () => {
@@ -245,9 +241,7 @@ describe('client helpers', () => {
         }
         mockedIsMultisigAddress.mockReturnValue(false)
 
-        const result = validateMigrationParams(mockAppId, accountWithEmptyBalances, 0)
-
-        expect(result.isValid).toBe(false)
+        expect(() => validateMigrationParams(mockAppId, accountWithEmptyBalances, 0)).toThrow(InternalErrors.NO_BALANCE)
       })
 
       it('should handle negative balance index', () => {
@@ -257,9 +251,7 @@ describe('client helpers', () => {
         }
         mockedIsMultisigAddress.mockReturnValue(false)
 
-        const result = validateMigrationParams(mockAppId, mockAccount, -1)
-
-        expect(result.isValid).toBe(false)
+        expect(() => validateMigrationParams(mockAppId, mockAccount, -1)).toThrow(InternalErrors.NO_BALANCE)
       })
     })
   })
