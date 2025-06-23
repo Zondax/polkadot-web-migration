@@ -2,8 +2,10 @@ import { type Registration, TransactionStatus } from '@/state/types/ledger'
 import { AlertCircle, AtSign, CheckCircle, Clock, Globe, Mail, Twitter, User, Users, XCircle } from 'lucide-react'
 
 import type { TooltipItem } from '@/components/CustomTooltip'
+import { ExplorerLink } from '@/components/ExplorerLink'
 import { Spinner } from '@/components/icons'
-import type { Token } from '@/config/apps'
+import type { AppId, Token } from '@/config/apps'
+import { ExplorerItemType } from '@/config/explorers'
 import { BN } from '@polkadot/util'
 import { formatBalance } from './format'
 
@@ -102,15 +104,24 @@ export const validateNumberInput = (value: number, max: BN, token: Token): { val
  * Returns an array of identity items for display from a Registration object.
  * Each item contains a label, value, icon, and optional href.
  */
-export function getIdentityItems(registration: Registration | undefined): TooltipItem[] {
+export function getIdentityItems(registration: Registration | undefined, appId: AppId): TooltipItem[] {
   if (!registration?.identity) return []
   const identity = registration.identity
   const items = [
     {
       label: 'Parent account',
-      value: identity.parent,
+      value: identity.parent ? (
+        <ExplorerLink
+          value={identity.parent}
+          appId={appId}
+          explorerLinkType={ExplorerItemType.Address}
+          truncate={false}
+          disableTooltip
+          className="break-all"
+          size="xs"
+        />
+      ) : undefined,
       icon: Users,
-      hasCopyButton: true,
     },
     {
       label: 'Parent legal name',

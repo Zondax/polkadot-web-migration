@@ -1,9 +1,7 @@
 'use client'
 
-import { observable } from '@legendapp/state'
 import { FolderSync, Info, Loader2, RefreshCw, User, Users, X } from 'lucide-react'
-import { useState } from 'react'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { AppStatus } from 'state/ledger'
 
 import { CustomTooltip } from '@/components/CustomTooltip'
@@ -15,6 +13,8 @@ import { Progress } from '@/components/ui/progress'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
 import { useSynchronization } from '@/components/hooks/useSynchronization'
+import { polkadotAppConfig } from '@/config/apps'
+import { ExplorerItemType } from '@/config/explorers'
 import type { CheckedState } from '@radix-ui/react-checkbox'
 import AppScanningGrid from './app-scanning-grid'
 import EmptyStateRow from './empty-state-row'
@@ -92,7 +92,14 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
                     <li key={address} className="flex items-center gap-2">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold">Polkadot {index + 1}:</span>
-                        <ExplorerLink value={address} disableTooltip className="break-all" hasCopyButton />
+                        <ExplorerLink
+                          value={address}
+                          appId={polkadotAppConfig.id}
+                          explorerLinkType={ExplorerItemType.Address}
+                          disableTooltip
+                          className="break-all"
+                          hasCopyButton
+                        />
                       </div>
                     </li>
                   ))}

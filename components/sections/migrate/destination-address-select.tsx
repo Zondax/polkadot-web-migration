@@ -32,7 +32,13 @@ function DestinationAddressSelect({ appId, balance, index, polkadotAddresses, on
       return (
         <div className="flex items-center gap-2">
           <span className="font-semibold">Polkadot {index + 1}:</span>
-          <ExplorerLink value={option.value} appId={appId as AppId} explorerLinkType={ExplorerItemType.Address} disableTooltip />
+          <ExplorerLink
+            value={option.value}
+            appId={appId as AppId}
+            explorerLinkType={ExplorerItemType.Address}
+            disableTooltip
+            hasCopyButton={false}
+          />
         </div>
       )
     },

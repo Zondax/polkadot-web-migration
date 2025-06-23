@@ -42,11 +42,13 @@ const MigratedAccountRows = ({ app, multisigAddresses }: AccountRowsProps) => {
   return accounts.map((account, accountIndex) => {
     return account.balances?.map((balance, balanceIndex) => (
       <TableRow key={`${app.id}-${account.address}-${accountIndex}-${balanceIndex}`}>
+        {/* App Icon */}
         <TableCell className="px-2 hidden sm:table-cell">
           <div className="max-h-8 overflow-hidden [&_svg]:max-h-8 [&_svg]:w-8 flex justify-center items-center">
             {icon && muifyHtml(icon)}
           </div>
         </TableCell>
+        {/* Source Address */}
         <TableCell>
           <ExplorerLink
             value={account.address}
@@ -56,18 +58,18 @@ const MigratedAccountRows = ({ app, multisigAddresses }: AccountRowsProps) => {
             className="font-mono"
           />
         </TableCell>
+        {/* Public Key */}
         {!multisigAddresses && (
           <TableCell>
             <ExplorerLink
               value={account.pubKey !== '' ? account.pubKey : '-'}
-              appId={app.id as AppId}
-              explorerLinkType={ExplorerItemType.Address}
               className="font-mono"
               hasCopyButton={account.pubKey !== ''}
               disableTooltip={account.pubKey === ''}
             />
           </TableCell>
         )}
+        {/* Signatory Address */}
         {multisigAddresses && (
           <TableCell>
             <ExplorerLink
@@ -80,6 +82,7 @@ const MigratedAccountRows = ({ app, multisigAddresses }: AccountRowsProps) => {
             />
           </TableCell>
         )}
+        {/* Threshold */}
         {multisigAddresses && (
           <TableCell>
             <span className="font-mono">
@@ -87,6 +90,7 @@ const MigratedAccountRows = ({ app, multisigAddresses }: AccountRowsProps) => {
             </span>
           </TableCell>
         )}
+        {/* Destination Address */}
         <TableCell>
           <ExplorerLink
             value={balance.transaction?.destinationAddress || ''}
@@ -95,9 +99,11 @@ const MigratedAccountRows = ({ app, multisigAddresses }: AccountRowsProps) => {
             className="font-mono"
           />
         </TableCell>
+        {/* Balance */}
         <TableCell>
           <BalanceHoverCard balances={[balance]} collections={collections} token={app.token} isMigration />
         </TableCell>
+        {/* Status */}
         <TableCell>
           <div className="flex items-center space-x-2">
             {renderStatusIcon(account, balanceIndex)}
