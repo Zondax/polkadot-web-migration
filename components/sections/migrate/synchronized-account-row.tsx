@@ -250,7 +250,7 @@ const SynchronizedAccountRow = ({
               />
               {member.internal && (
                 <Badge variant="light-gray" className="text-[10px] leading-tight shrink-0">
-                  Internal
+                  Own
                 </Badge>
               )}
             </div>

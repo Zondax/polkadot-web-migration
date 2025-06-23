@@ -223,7 +223,7 @@ function MultisigCallForm({
               </Select>
               {noAvailableSigners && (
                 <div className="mt-1 text-xs text-red-500">
-                  No internal member is enabled to sign. All internal members have already approved this call.
+                  None of your addresses are enabled to sign. All your addresses have already approved this call.
                 </div>
               )}
             </div>
