@@ -1449,10 +1449,10 @@ export const prepareApproveAsMultiTx = async (
 export async function prepareAsMultiTx(
   signer: string,
   multisigAddress: string,
-  callHash: string,
-  callData: string,
   members: string[],
   threshold: number,
+  callHash: string,
+  callData: string,
   api: ApiPromise
 ): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>> {
   // Get the existing multisig timepoint (this should exist from the previous approveAsMulti)
