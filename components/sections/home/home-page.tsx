@@ -38,7 +38,7 @@ export function HomePage({
               <span key={`word-${word}`} className="inline-block mr-4 last:mr-0">
                 {word.split('').map((letter, letterIndex) => (
                   <motion.span
-                    key={`letter-${word}-${letter}`}
+                    key={`letter-${word}-${letter}-${Math.random()}`}
                     initial={{ y: 100, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{
