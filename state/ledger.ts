@@ -383,9 +383,9 @@ export const ledgerState$ = observable({
 
       const polkadotAccounts = ledgerState$.apps.polkadotApp.get().accounts || []
 
-      const { api, provider, error } = await getApiAndProvider(app.rpcEndpoint)
+      const { api, provider } = await getApiAndProvider(app.rpcEndpoint)
 
-      if (error || !api) {
+      if (!api) {
         return {
           name: app.name,
           id: app.id,
@@ -623,6 +623,7 @@ export const ledgerState$ = observable({
       }
     } catch (error) {
       console.debug('Error fetching and processing accounts for app:', app.id)
+      const errorDetail = mapLedgerError(error as LedgerClientError, InternalErrors.FETCH_PROCESS_ACCOUNTS_ERROR)
       return {
         name: app.name,
         id: app.id,
@@ -630,7 +631,7 @@ export const ledgerState$ = observable({
         status: AppStatus.ERROR,
         error: {
           source: 'synchronization',
-          description: error instanceof Error ? error.message : 'Error fetching and processing accounts for app.',
+          description: errorDetail.description ?? errorDetail.title,
         },
       }
     }
@@ -689,9 +690,9 @@ export const ledgerState$ = observable({
 
       const accounts = response.result
 
-      const { api, provider, error } = await getApiAndProvider(app.rpcEndpoint)
+      const { api, provider } = await getApiAndProvider(app.rpcEndpoint)
 
-      if (error || !api) {
+      if (!api) {
         return {
           name: app.name,
           id: app.id,
@@ -861,9 +862,9 @@ export const ledgerState$ = observable({
       return
     }
 
-    const { api, provider, error } = await getApiAndProvider(rpcEndpoint)
+    const { api, provider } = await getApiAndProvider(rpcEndpoint)
 
-    if (error || !api) {
+    if (!api) {
       updateAccount(appId, address.address, {
         isLoading: false,
         error: {
@@ -1076,7 +1077,7 @@ export const ledgerState$ = observable({
       // Return the transaction promise
       return { txPromise: response.txPromise }
     } catch (error) {
-      const statusMessage = (error as LedgerClientError).message || errorDetails.migration_error.description
+      const statusMessage = mapLedgerError(error as LedgerClientError, InternalErrors.MIGRATION_ERROR).description
       updateMigratedStatus(appId, accountType, account.path, balance.type, TransactionStatus.ERROR, statusMessage)
 
       // Increment fails counter
@@ -1160,7 +1161,7 @@ export const ledgerState$ = observable({
     try {
       await ledgerClient.unstakeBalance(appId, address, path, amount, updateTxStatus)
     } catch (error) {
-      const errorDetail = (error as LedgerClientError).message || errorDetails.unstake_error.description
+      const errorDetail = mapLedgerError(error as LedgerClientError, InternalErrors.UNSTAKE_ERROR).description
       updateTxStatus(TransactionStatus.ERROR, errorDetail)
     }
   },
@@ -1190,7 +1191,7 @@ export const ledgerState$ = observable({
     try {
       await ledgerClient.withdrawBalance(appId, address, path, updateTxStatus)
     } catch (error) {
-      const errorDetail = (error as LedgerClientError).message || errorDetails.withdraw_error.description
+      const errorDetail = mapLedgerError(error as LedgerClientError, InternalErrors.WITHDRAW_ERROR).description
       updateTxStatus(TransactionStatus.ERROR, errorDetail)
     }
   },
@@ -1213,7 +1214,7 @@ export const ledgerState$ = observable({
     try {
       await ledgerClient.removeIdentity(appId, address, path, updateTxStatus)
     } catch (error) {
-      const errorDetail = (error as LedgerClientError).message || errorDetails.remove_identity_error.description
+      const errorDetail = mapLedgerError(error as LedgerClientError, InternalErrors.REMOVE_IDENTITY_ERROR).description
       updateTxStatus(TransactionStatus.ERROR, errorDetail)
     }
   },
@@ -1239,7 +1240,7 @@ export const ledgerState$ = observable({
         await ledgerClient.signApproveAsMultiTx(appId, account, formBody.callHash, formBody.signer, updateTxStatus)
       }
     } catch (error) {
-      const errorDetail = (error as LedgerClientError).message || errorDetails.approve_multisig_call_error.description
+      const errorDetail = mapLedgerError(error as LedgerClientError, InternalErrors.APPROVE_MULTISIG_CALL_ERROR).description
       updateTxStatus(TransactionStatus.ERROR, errorDetail)
     }
   },
@@ -1248,7 +1249,7 @@ export const ledgerState$ = observable({
     try {
       await ledgerClient.removeProxies(appId, address, path, updateTxStatus)
     } catch (error) {
-      const errorDetail = (error as LedgerClientError).message || errorDetails.remove_proxy_error.description
+      const errorDetail = mapLedgerError(error as LedgerClientError, InternalErrors.REMOVE_PROXY_ERROR).description
       updateTxStatus(TransactionStatus.ERROR, errorDetail)
     }
   },

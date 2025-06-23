@@ -20,12 +20,16 @@ export enum InternalErrors {
   NO_TRANSFER_AMOUNT = 'no_transfer_amount',
   APP_CONFIG_NOT_FOUND = 'app_config_not_found',
   MIGRATION_ERROR = 'migration_error',
+  MIGRATION_TX_INFO_ERROR = 'migration_tx_info_error',
   BLOCKCHAIN_CONNECTION_ERROR = 'blockchain_connection_error',
   INSUFFICIENT_BALANCE = 'insufficient_balance',
   INSUFFICIENT_BALANCE_TO_COVER_FEE = 'insufficient_balance_to_cover_fee',
   UNSTAKE_ERROR = 'unstake_error',
+  GET_UNSTAKE_FEE_ERROR = 'get_unstake_fee_error',
   WITHDRAW_ERROR = 'withdraw_error',
+  GET_WITHDRAW_FEE_ERROR = 'get_withdraw_fee_error',
   REMOVE_IDENTITY_ERROR = 'remove_identity_error',
+  GET_REMOVE_IDENTITY_FEE_ERROR = 'get_remove_identity_fee_error',
   NO_MULTISIG_MEMBERS = 'no_multisig_members',
   NO_MULTISIG_THRESHOLD = 'no_multisig_threshold',
   NO_SIGNATORY_ADDRESS = 'no_signatory_address',
@@ -35,6 +39,15 @@ export enum InternalErrors {
   SIGNATORY_ALREADY_SIGNED = 'signatory_already_signed',
   APPROVE_MULTISIG_CALL_ERROR = 'approve_multisig_call_error',
   REMOVE_PROXY_ERROR = 'remove_proxy_error',
+  GET_REMOVE_PROXIES_FEE_ERROR = 'get_remove_proxies_fee_error',
+  VALIDATE_CALL_DATA_MATCHES_HASH_ERROR = 'validate_call_data_matches_hash_error',
+  CONNECTION_TIMEOUT = 'connection_timeout',
+  CONNECTION_REFUSED = 'connection_refused',
+  FAILED_TO_CONNECT_TO_BLOCKCHAIN = 'failed_to_connect_to_blockchain',
+  FETCH_PROCESS_ACCOUNTS_ERROR = 'fetch_process_accounts_error',
+  PREPARE_TX_ERROR = 'prepare_tx_error',
+  SIGN_TX_ERROR = 'sign_tx_error',
+  NO_BALANCE = 'no_balance',
 }
 
 export enum LedgerErrors {
@@ -115,6 +128,11 @@ export const errorDetails: ErrorDetailsMap = {
     description: 'Failed to migrate found of an account.',
     content: 'Please try again later or contact support if the issue persists.',
   },
+  migration_tx_info_error: {
+    title: 'Migration Transaction Info Error',
+    description: 'Failed to get migration transaction info.',
+    content: 'Please try again later or contact support if the issue persists.',
+  },
   blockchain_connection_error: {
     title: 'Blockchain Connection Error',
     description: 'Failed to connect to the blockchain network.',
@@ -168,14 +186,29 @@ export const errorDetails: ErrorDetailsMap = {
     description: 'Failed to unstake balance.',
     content: 'Please try again later or contact support if the issue persists.',
   },
+  get_unstake_fee_error: {
+    title: 'Get Unstake Fee Error',
+    description: 'Failed to get unstake fee.',
+    content: 'Please try again later or contact support if the issue persists.',
+  },
   withdraw_error: {
     title: 'Withdraw Error',
     description: 'Failed to withdraw balance.',
     content: 'Please try again later or contact support if the issue persists.',
   },
+  get_withdraw_fee_error: {
+    title: 'Get Withdraw Fee Error',
+    description: 'Failed to get withdraw fee.',
+    content: 'Please try again later or contact support if the issue persists.',
+  },
   remove_identity_error: {
     title: 'Remove Identity Error',
     description: 'Failed to remove identity.',
+    content: 'Please try again later or contact support if the issue persists.',
+  },
+  get_remove_identity_fee_error: {
+    title: 'Get Remove Identity Fee Error',
+    description: 'Failed to get remove identity fee.',
     content: 'Please try again later or contact support if the issue persists.',
   },
   no_multisig_members: {
@@ -222,5 +255,50 @@ export const errorDetails: ErrorDetailsMap = {
     title: 'Remove Proxy Error',
     description: 'Failed to remove proxy.',
     content: 'Please try again later or contact support if the issue persists.',
+  },
+  get_remove_proxies_fee_error: {
+    title: 'Get Remove Proxies Fee Error',
+    description: 'Failed to get remove proxies fee.',
+    content: 'Please try again later or contact support if the issue persists.',
+  },
+  validate_call_data_matches_hash_error: {
+    title: 'Validate Call Data Matches Hash Error',
+    description: 'Failed to validate call data matches hash.',
+    content: 'Please try again later or contact support if the issue persists.',
+  },
+  connection_timeout: {
+    title: 'Connection Timeout',
+    description: 'The node is not responding.',
+    content: 'Please try again later or contact support if the issue persists.',
+  },
+  connection_refused: {
+    title: 'Connection Refused',
+    description: 'The node endpoint is unreachable.',
+    content: 'Please try again later or contact support if the issue persists.',
+  },
+  failed_to_connect_to_blockchain: {
+    title: 'Failed to Connect to Blockchain',
+    description: 'Failed to connect to the blockchain network.',
+    content: 'Please check your internet connection and try again later.',
+  },
+  fetch_process_accounts_error: {
+    title: 'Error Fetching and Processing Accounts',
+    description: 'An error occurred while fetching and processing accounts for the app.',
+    content: 'Please try again later or contact support if the issue persists.',
+  },
+  prepare_tx_error: {
+    title: 'Prepare Transaction Error',
+    description: 'Failed to prepare transaction.',
+    content: 'Please try again later or contact support if the issue persists.',
+  },
+  sign_tx_error: {
+    title: 'Sign Transaction Error',
+    description: 'Failed to sign transaction.',
+    content: 'Please try again later or contact support if the issue persists.',
+  },
+  no_balance: {
+    title: 'No Balance',
+    description: 'No balance found.',
+    content: 'Please ensure the account has a balance.',
   },
 }

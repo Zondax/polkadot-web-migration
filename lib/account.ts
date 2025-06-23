@@ -18,7 +18,7 @@ import { BN, hexToU8a } from '@polkadot/util'
 import type { AppConfig, AppId } from 'config/apps'
 import { DEFAULT_ERA_TIME_IN_HOURS, getEraTimeByAppId } from 'config/apps'
 import { defaultWeights, MULTISIG_WEIGHT_BUFFER } from 'config/config'
-import { errorDetails } from 'config/errors'
+import { errorDetails, InternalErrors } from 'config/errors'
 import { errorAddresses, mockBalances } from 'config/mockData'
 import { getMultisigInfo } from 'lib/subscan'
 import {
@@ -43,7 +43,7 @@ import {
 const HOURS_IN_A_DAY = 24
 
 // Get API and Provider
-export async function getApiAndProvider(rpcEndpoint: string): Promise<{ api?: ApiPromise; provider?: WsProvider; error?: string }> {
+export async function getApiAndProvider(rpcEndpoint: string): Promise<{ api?: ApiPromise; provider?: WsProvider }> {
   try {
     // Create a provider with default settings (will allow first connection)
     const provider = new WsProvider(rpcEndpoint)
@@ -56,7 +56,7 @@ export async function getApiAndProvider(rpcEndpoint: string): Promise<{ api?: Ap
     // Set a timeout for the connection attempt
     const connectionPromise = new Promise<ApiPromise>((resolve, reject) => {
       const timeoutId = setTimeout(() => {
-        reject(new Error('Connection timeout: The node is not responding.'))
+        reject(new Error(InternalErrors.CONNECTION_TIMEOUT))
       }, 15000) // 15 second timeout
 
       ApiPromise.create({
@@ -85,12 +85,12 @@ export async function getApiAndProvider(rpcEndpoint: string): Promise<{ api?: Ap
     const errorMessage = e instanceof Error ? e.message : 'Unknown error'
 
     if (errorMessage.includes('timeout')) {
-      return { error: 'Connection timeout: The node is not responding.' }
+      throw InternalErrors.CONNECTION_TIMEOUT
     }
     if (errorMessage.includes('refused') || errorMessage.includes('WebSocket')) {
-      return { error: 'Connection refused: The node endpoint is unreachable.' }
+      throw InternalErrors.CONNECTION_REFUSED
     }
-    return { error: `Failed to connect to the blockchain: ${errorMessage}` }
+    throw InternalErrors.FAILED_TO_CONNECT_TO_BLOCKCHAIN
   }
 }
 
@@ -318,7 +318,7 @@ export async function prepareTransaction(
     }
   }
 
-  if (!transferableBalance) throw new Error(errorDetails.insufficient_balance.description)
+  if (!transferableBalance) throw InternalErrors.INSUFFICIENT_BALANCE
 
   let calls: SubmittableExtrinsic<'promise', ISubmittableResult>[] = nfts.map(item => {
     return !item.isUnique
@@ -340,14 +340,14 @@ export async function prepareTransaction(
       const adjustedAmount = transferableBalance.sub(partialFeeBN)
 
       if (adjustedAmount.lte(new BN(0))) {
-        throw new Error(errorDetails.insufficient_balance.description)
+        throw InternalErrors.INSUFFICIENT_BALANCE
       }
       // Rebuild the calls with the adjusted amount
       calls = [...calls, api.tx.balances.transferKeepAlive(receiverAddress, adjustedAmount)]
     } else {
       const totalNeeded = partialFeeBN.add(nativeAmount)
       if (transferableBalance.lt(totalNeeded)) {
-        throw new Error(errorDetails.insufficient_balance_to_cover_fee.description)
+        throw InternalErrors.INSUFFICIENT_BALANCE_TO_COVER_FEE
       }
       calls.push(api.tx.balances.transferKeepAlive(receiverAddress, nativeAmount))
     }
@@ -362,7 +362,7 @@ export async function prepareTransaction(
     const partialFeeBN = new BN(partialFee)
 
     if (transferableBalance.lt(partialFeeBN)) {
-      throw new Error(errorDetails.insufficient_balance.description)
+      throw InternalErrors.INSUFFICIENT_BALANCE
     }
   }
 
@@ -772,22 +772,24 @@ async function getNFTsCommon(
 
   // Check if we received an API instance or an endpoint string
   if (typeof apiOrEndpoint === 'string') {
-    // Create a new connection using the provided endpoint
-    const { api, provider, error } = await getApiAndProvider(apiOrEndpoint)
-
-    if (error || !api) {
+    try {
+      // Create a new connection using the provided endpoint
+      const { api, provider } = await getApiAndProvider(apiOrEndpoint)
+      if (!api) {
+        throw InternalErrors.BLOCKCHAIN_CONNECTION_ERROR
+      }
+      apiToUse = api
+      providerToDisconnect = provider
+    } catch (error) {
       return {
         nfts: [],
         collections: [],
         error: {
           source: `${palletType}_info_fetch` as 'nft_info_fetch' | 'uniques_info_fetch',
-          description: error ?? 'Failed to connect to the blockchain.',
+          description: error instanceof Error ? error.message : 'Failed to connect to the blockchain.',
         },
       }
     }
-
-    apiToUse = api
-    providerToDisconnect = provider
   } else {
     // Use the provided API instance
     apiToUse = apiOrEndpoint
