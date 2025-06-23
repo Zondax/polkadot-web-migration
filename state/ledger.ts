@@ -15,7 +15,7 @@ import {
 } from '@/lib/account'
 import type { DeviceConnectionProps } from '@/lib/ledger/types'
 import { convertSS58Format, isMultisigAddress } from '@/lib/utils/address'
-import { hasAddressBalance, hasBalance, validateReservedBreakdown } from '@/lib/utils/balance'
+import { hasAddressBalance, hasBalance, hasNegativeBalance, validateReservedBreakdown } from '@/lib/utils/balance'
 import { mapLedgerError } from '@/lib/utils/error'
 import { filterAccountsForApps, setDefaultDestinationAddress } from '@/lib/utils/ledger'
 
@@ -444,7 +444,7 @@ export const ledgerState$ = observable({
           const { balances: balancesResponse, collections, error } = await getBalance(address, api, app.id)
           const balances = balancesResponse.filter(balance => hasBalance([balance]))
 
-          if (error) {
+          if (error || hasNegativeBalance(balances)) {
             return {
               ...address,
               balances,

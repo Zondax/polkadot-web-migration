@@ -92,6 +92,21 @@ export const hasBalance = (balances: AddressBalance[], checkTransferable = false
 }
 
 /**
+ * Checks if a native balance has a negative value
+ * @param balance - The native balance to check
+ * @returns true if the balance is negative (less than zero)
+ */
+export const hasNegativeBalance = (balances?: AddressBalance[]): boolean => {
+  if (!balances) return false
+  return balances.some(balance => {
+    if (isNativeBalance(balance)) {
+      return balance.balance.total.lt(new BN(0))
+    }
+    return false
+  })
+}
+
+/**
  * Checks if an account has any balance (native, NFTs, or uniques)
  * @param account The account to check
  * @returns True if the account has any balance, false otherwise
