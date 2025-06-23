@@ -37,7 +37,7 @@
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
     "@ledgerhq/hw-transport": "^6.31.4",
-    "@ledgerhq/hw-transport-mocker": "^6.29.4",
+    "@ledgerhq/hw-transport-mocker": "^6.29.7",
     "@ledgerhq/hw-transport-webhid": "^6.30.0",
     "@ledgerhq/types-live": "^6.65.0",
     "@legendapp/state": "3.0.0-beta.30",
