@@ -61,10 +61,12 @@ function RemoveProxyForm({ token, account, appId, estimatedFee, estimatedFeeLoad
         </div>
       </div>
       {/* Deposit */}
-      <div className="text-sm">
-        <div className="text-xs text-muted-foreground mb-1">Deposit to be returned</div>
-        <span className="font-mono">{formatBalance(account.proxy?.deposit ?? new BN(0), token)}</span>
-      </div>
+      {account.proxy?.deposit !== undefined ? (
+        <div className="text-sm">
+          <div className="text-xs text-muted-foreground mb-1">Deposit to be returned</div>
+          <span className="font-mono">{formatBalance(account.proxy.deposit, token)}</span>
+        </div>
+      ) : null}
       {/* Estimated Fee */}
       <div className="flex flex-col items-start justify-start">
         <div className="text-xs text-muted-foreground mb-1">Estimated Fee</div>
