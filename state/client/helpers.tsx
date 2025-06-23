@@ -3,7 +3,6 @@ import { InternalErrors } from 'config/errors'
 
 import { hasBalance, isMultisigAddress } from '@/lib/utils'
 
-import type { MultisigCallFormData } from '@/components/sections/migrate/dialogs/approve-multisig-call-dialog'
 import type { MultisigInfo } from '@/lib/account'
 import { AccountType, type Address, type AddressBalance, type MultisigAddress } from '../types/ledger'
 
@@ -19,11 +18,36 @@ export interface ValidateMigrationParamsResultValid {
   accountType: AccountType
 }
 
-export interface ValidateMigrationParamsResultInvalid {
+export interface InvalidValidateResult {
   isValid: false
 }
 
-export type ValidateMigrationParamsResult = ValidateMigrationParamsResultValid | ValidateMigrationParamsResultInvalid
+export type ValidateMigrationParamsResult = ValidateMigrationParamsResultValid | InvalidValidateResult
+
+// Helper function to validate multisig-specific parameters
+export const validateMultisigParams = (account: MultisigAddress): { multisigInfo: MultisigInfo } => {
+  const multisigMembers = account.members?.map(member => member.address)
+  const multisigThreshold = account.threshold
+  const multisigAddress = account.address
+
+  if (!multisigMembers) {
+    throw InternalErrors.NO_MULTISIG_MEMBERS
+  }
+  if (!multisigThreshold) {
+    throw InternalErrors.NO_MULTISIG_THRESHOLD
+  }
+  if (!multisigAddress) {
+    throw InternalErrors.NO_MULTISIG_ADDRESS
+  }
+
+  return {
+    multisigInfo: {
+      members: multisigMembers,
+      threshold: multisigThreshold,
+      address: multisigAddress,
+    },
+  }
+}
 
 // Helper function to validate migration parameters
 export const validateMigrationParams = (
@@ -44,9 +68,6 @@ export const validateMigrationParams = (
   const receiverAddress = balance.transaction?.destinationAddress
   const hasAvailableBalance = hasBalance([balance])
   const appConfig = appsConfigs.get(appId)
-  const multisigMembers = isMultisig ? account.members?.map(member => member.address) : undefined
-  const multisigThreshold = isMultisig ? account.threshold : undefined
-  const multisigAddress = isMultisig ? account.address : undefined
   let multisigInfo: MultisigInfo | undefined = undefined
 
   if (!appConfig || !appConfig.rpcEndpoint) {
@@ -63,20 +84,7 @@ export const validateMigrationParams = (
   }
 
   if (isMultisig) {
-    if (!multisigMembers) {
-      throw InternalErrors.NO_MULTISIG_MEMBERS
-    }
-    if (!multisigThreshold) {
-      throw InternalErrors.NO_MULTISIG_THRESHOLD
-    }
-    if (!multisigAddress) {
-      throw InternalErrors.NO_MULTISIG_ADDRESS
-    }
-    multisigInfo = {
-      members: multisigMembers,
-      threshold: multisigThreshold,
-      address: multisigAddress,
-    }
+    multisigInfo = validateMultisigParams(account as MultisigAddress).multisigInfo
   }
 
   return {
@@ -92,72 +100,98 @@ export const validateMigrationParams = (
 }
 
 // Interface for the return value of validateMigrationParams
-export interface ValidateApproveMultisigCallResultValid {
+export interface ValidateApproveAsMultiResultValid {
   isValid: true
   appConfig: NonNullable<ReturnType<typeof appsConfigs.get>>
-  multisigInfo?: MultisigInfo
+  multisigInfo: MultisigInfo
   callHash: string
-  callData: string
   signer: string
   signerPath: string
 }
 
-export interface ValidateApproveMultisigCallResultInvalid {
-  isValid: false
-}
+export type ValidateApproveAsMultiResult = ValidateApproveAsMultiResultValid | InvalidValidateResult
 
-export type ValidateApproveMultisigCallResult = ValidateApproveMultisigCallResultValid | ValidateApproveMultisigCallResultInvalid
-
-// Helper function to validate migration parameters
-export const validateApproveMultisigCallParams = (
+// Basic validation for signApproveAsMultiTx
+export const validateApproveAsMultiParams = (
   appId: AppId,
-  account: Address | MultisigAddress,
-  formBody: MultisigCallFormData
-): ValidateApproveMultisigCallResult => {
-  const isMultisig = isMultisigAddress(account)
-  if (!isMultisig) {
+  account: MultisigAddress,
+  callHash: string,
+  signer: string
+): ValidateApproveAsMultiResult => {
+  const multisigValidation = validateMultisigParams(account)
+  if (!multisigValidation.multisigInfo) {
     return { isValid: false }
   }
 
-  const callHash = formBody.callHash
-  const callData = formBody.callData
-  const signer = formBody.signer
-  const signerPath = account.members?.find(member => member.address === signer)?.path
   const appConfig = appsConfigs.get(appId)
-  const multisigMembers = isMultisig ? account.members?.map(member => member.address) : undefined
-  const multisigThreshold = isMultisig ? account.threshold : undefined
-  const multisigAddress = isMultisig ? account.address : undefined
-  let multisigInfo: MultisigInfo | undefined = undefined
-
   if (!appConfig || !appConfig.rpcEndpoint) {
     throw InternalErrors.APP_CONFIG_NOT_FOUND
   }
-  if (!multisigMembers) {
-    throw InternalErrors.NO_MULTISIG_MEMBERS
+
+  const pendingCall = account.pendingMultisigCalls.find(call => call.callHash === callHash)
+  // Validate that the callHash belongs to a pendingMultisigCall
+  if (!pendingCall) {
+    throw InternalErrors.NO_PENDING_MULTISIG_CALL
   }
-  if (!multisigThreshold) {
-    throw InternalErrors.NO_MULTISIG_THRESHOLD
-  }
-  if (!multisigAddress) {
-    throw InternalErrors.NO_MULTISIG_ADDRESS
-  }
-  if (!signerPath || !signer) {
+
+  // Validate that the signer is internal (i.e., is a member of the multisig)
+  const member = account.members?.find(member => member.address === signer)
+  if (!member || !signer) {
     throw InternalErrors.NO_SIGNATORY_ADDRESS
   }
 
-  multisigInfo = {
-    members: multisigMembers,
-    threshold: multisigThreshold,
-    address: multisigAddress,
+  const signerPath = member.path
+  if (!signerPath) {
+    throw InternalErrors.NO_SIGNATORY_ADDRESS
   }
 
   return {
     isValid: true,
     appConfig,
-    multisigInfo,
+    multisigInfo: multisigValidation.multisigInfo,
+    callHash,
+    signer,
+    signerPath,
+  }
+}
+
+interface ValidateAsMultiParamsResultValid extends ValidateApproveAsMultiResultValid {
+  callData: string
+}
+
+export type ValidateAsMultiParamsResult = ValidateAsMultiParamsResultValid | InvalidValidateResult
+
+// Validation for signAsMultiTx (requires callData)
+export const validateAsMultiParams = (
+  appId: AppId,
+  account: MultisigAddress,
+  callHash: string,
+  callData: string | undefined,
+  signer: string
+): ValidateAsMultiParamsResult => {
+  // Use the same validation as validateApproveAsMultiParams
+  const multisigValidation = validateApproveAsMultiParams(appId, account, callHash, signer)
+  if (!multisigValidation.isValid) {
+    return { isValid: false }
+  }
+
+  const appConfig = appsConfigs.get(appId)
+  if (!appConfig || !appConfig.rpcEndpoint) {
+    throw InternalErrors.APP_CONFIG_NOT_FOUND
+  }
+
+  // Additional validation: check if callData exists
+  if (!callData) {
+    throw new Error(InternalErrors.NO_CALL_DATA)
+  }
+
+  return {
+    isValid: true,
+    appConfig,
+    multisigInfo: multisigValidation.multisigInfo,
     callHash,
     callData,
     signer,
-    signerPath,
+    signerPath: multisigValidation.signerPath,
   }
 }

@@ -30,6 +30,9 @@ export enum InternalErrors {
   NO_MULTISIG_THRESHOLD = 'no_multisig_threshold',
   NO_SIGNATORY_ADDRESS = 'no_signatory_address',
   NO_MULTISIG_ADDRESS = 'no_multisig_address',
+  NO_PENDING_MULTISIG_CALL = 'no_pending_multisig_call',
+  NO_CALL_DATA = 'no_call_data',
+  SIGNATORY_ALREADY_SIGNED = 'signatory_already_signed',
   APPROVE_MULTISIG_CALL_ERROR = 'approve_multisig_call_error',
   REMOVE_PROXY_ERROR = 'remove_proxy_error',
 }
@@ -194,6 +197,21 @@ export const errorDetails: ErrorDetailsMap = {
     title: 'No Multisig Address',
     description: 'No multisig address found.',
     content: 'Please ensure the multisig account has an address.',
+  },
+  no_pending_multisig_call: {
+    title: 'No Pending Multisig Call',
+    description: 'No pending multisig call found.',
+    content: 'Please ensure the multisig account has a pending call.',
+  },
+  no_call_data: {
+    title: 'No Call Data',
+    description: 'No call data found.',
+    content: 'Please ensure the multisig account has a call data.',
+  },
+  signatory_already_signed: {
+    title: 'Signatory Already Signed',
+    description: 'The signatory has already signed the call.',
+    content: 'Please ensure the signatory has not signed the call.',
   },
   approve_multisig_call_error: {
     title: 'Approve Multisig Call Error',

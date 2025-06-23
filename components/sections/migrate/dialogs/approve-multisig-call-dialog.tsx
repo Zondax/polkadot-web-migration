@@ -1,3 +1,4 @@
+import { CustomTooltip } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import TokenIcon from '@/components/TokenIcon'
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
@@ -6,12 +7,14 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import Switch from '@/components/ui/switch'
 import { type AppId, type Token, getChainName } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { formatBalance } from '@/lib/utils/format'
 import { callDataValidationMessages, getAvailableSigners, validateCallData } from '@/lib/utils/multisig'
 import { ledgerState$ } from '@/state/ledger'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Info } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import type { MultisigAddress, MultisigCall, MultisigMember, TransactionDetails, TransactionStatus } from 'state/types/ledger'
@@ -22,10 +25,8 @@ import { TransactionDialogFooter, TransactionStatusBody } from './transaction-di
 const multisigCallFormSchema = z.object({
   callHash: z.string().min(1, 'Call hash is required'),
   signer: z.string().min(1, 'Signer is required'),
-  callData: z
-    .string()
-    .min(1, callDataValidationMessages.isRequired)
-    .regex(/^0x[a-fA-F0-9]+$/, callDataValidationMessages.isInvalidFormat),
+  isFinalApprovalWithCall: z.boolean().optional(),
+  callData: z.string().optional().or(z.literal('')),
 })
 
 export type MultisigCallFormData = z.infer<typeof multisigCallFormSchema>
@@ -38,28 +39,33 @@ interface ApproveMultisigCallDialogProps {
   account: MultisigAddress
 }
 
-interface MultisigCallFormProps {
-  pendingCalls: MultisigCall[]
-  availableSigners: MultisigMember[]
-  token: Token
-  appId: AppId
-  account: MultisigAddress
-  onClose: () => void
-  form: ReturnType<typeof useForm<MultisigCallFormData>>
-  onSubmit: (data: MultisigCallFormData) => void
-  isValidatingCallData: boolean
-}
-
 function MultisigCallForm({
-  pendingCalls,
-  availableSigners,
+  form,
+  onSubmit,
   token,
   appId,
   account,
-  form,
-  onSubmit,
+  pendingCalls,
+  availableSigners,
+  selectedCall,
+  approvers,
+  isLastApproval,
+  isCallDataRequired,
   isValidatingCallData,
-}: MultisigCallFormProps) {
+}: {
+  form: ReturnType<typeof useForm<MultisigCallFormData>>
+  onSubmit: (data: MultisigCallFormData) => void
+  token: Token
+  appId: AppId
+  account: MultisigAddress
+  pendingCalls: MultisigCall[]
+  availableSigners: MultisigMember[]
+  selectedCall: MultisigCall | undefined
+  approvers: string[]
+  isLastApproval: boolean
+  isCallDataRequired: boolean
+  isValidatingCallData: boolean
+}) {
   const icon = useTokenLogo(token.logoId)
   const appName = getChainName(appId)
 
@@ -67,7 +73,6 @@ function MultisigCallForm({
     control,
     watch,
     setValue,
-    setError,
     clearErrors,
     formState: { errors },
   } = form
@@ -75,16 +80,10 @@ function MultisigCallForm({
   const selectedCallHash = watch('callHash')
   const callData = watch('callData')
 
-  const selectedCall: MultisigCall | undefined = useMemo(
-    () => pendingCalls.find(call => call.callHash === selectedCallHash),
-    [pendingCalls, selectedCallHash]
-  )
+  const depositorAddress = selectedCall?.depositor
+  const deposit = selectedCall?.deposit
 
-  const depositorAddress = useMemo(() => selectedCall?.depositor, [selectedCall])
-  const approvers = useMemo(() => selectedCall?.signatories, [selectedCall])
-  const deposit = useMemo(() => selectedCall?.deposit, [selectedCall])
-
-  // Handle call hash change - moved outside render body
+  // Handle call hash change
   const handleCallHashChange = useCallback(
     (value: string) => {
       setValue('callHash', value)
@@ -94,7 +93,6 @@ function MultisigCallForm({
     [setValue, clearErrors]
   )
 
-  // Helper text renderer - moved outside render body
   const renderCallDataHelperText = useCallback((): string | undefined => {
     if (isValidatingCallData) {
       return callDataValidationMessages.validating
@@ -106,9 +104,8 @@ function MultisigCallForm({
       return callDataValidationMessages.correct
     }
     return undefined
-  }, [isValidatingCallData, errors.callData, callData, selectedCallHash])
+  }, [isValidatingCallData, errors.callData?.message, callData, selectedCallHash])
 
-  // Helper for signer select error state
   const noAvailableSigners = availableSigners.length === 0
 
   return (
@@ -122,41 +119,31 @@ function MultisigCallForm({
       {/* Call Hash Selector */}
       <div>
         <div className="text-xs text-muted-foreground mb-1">Pending Call Hash</div>
-        {pendingCalls.length > 1 ? (
-          <Controller
-            name="callHash"
-            control={control}
-            render={({ field }) => (
-              <Select value={field.value} onValueChange={handleCallHashChange}>
-                <SelectTrigger className={errors.callHash ? 'border-red-500' : ''}>
-                  <SelectValue placeholder="Select Call Hash" />
-                </SelectTrigger>
-                <SelectContent>
-                  {pendingCalls.map(call => (
-                    <SelectItem key={call.callHash} value={call.callHash}>
-                      <ExplorerLink
-                        value={call.callHash}
-                        appId={appId as AppId}
-                        explorerLinkType={ExplorerItemType.Address}
-                        disableTooltip
-                        disableLink
-                        hasCopyButton={false}
-                      />
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-        ) : (
-          <ExplorerLink
-            value={selectedCall?.callHash ?? '-'}
-            appId={appId as AppId}
-            explorerLinkType={ExplorerItemType.Address}
-            disableTooltip
-            disableLink
-          />
-        )}
+        <Controller
+          name="callHash"
+          control={control}
+          render={({ field }) => (
+            <Select value={field.value} onValueChange={handleCallHashChange}>
+              <SelectTrigger className={errors.callHash ? 'border-red-500' : ''}>
+                <SelectValue placeholder="Select Call Hash" />
+              </SelectTrigger>
+              <SelectContent>
+                {pendingCalls.map(call => (
+                  <SelectItem key={call.callHash} value={call.callHash}>
+                    <ExplorerLink
+                      value={call.callHash}
+                      appId={appId as AppId}
+                      explorerLinkType={ExplorerItemType.Address}
+                      disableTooltip
+                      disableLink
+                      hasCopyButton={false}
+                    />
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
       </div>
 
       {/* Approvers */}
@@ -221,7 +208,7 @@ function MultisigCallForm({
                   )}
                 </SelectContent>
               </Select>
-              {noAvailableSigners && (
+              {availableSigners.length === 0 && (
                 <div className="mt-1 text-xs text-red-500">
                   None of your addresses are enabled to sign. All your addresses have already approved this call.
                 </div>
@@ -231,37 +218,64 @@ function MultisigCallForm({
         />
       </div>
 
+      {/* Switch for multisig message with call (for final approval) */}
+      {isLastApproval && (
+        <div className="flex items-center gap-3 mt-2">
+          <Controller
+            name="isFinalApprovalWithCall"
+            control={control}
+            render={({ field }) => (
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={Boolean(field.value)}
+                  onCheckedChange={field.onChange}
+                  id="final-approval-switch"
+                  aria-labelledby="final-approval-switch-label"
+                />
+                <label htmlFor="final-approval-switch" id="final-approval-switch-label" className="text-sm cursor-pointer">
+                  Multisig message with call (for final approval)
+                </label>
+                <CustomTooltip
+                  tooltipBody="Swap to a non-executing approval type, with subsequent calls providing the actual call data."
+                  className="ml-1"
+                >
+                  <Info className="h-4 w-4 text-muted-foreground" aria-label="Info" />
+                </CustomTooltip>
+              </div>
+            )}
+          />
+        </div>
+      )}
+
       {/* Call Data Input with Validation */}
-      <div>
-        <div className="text-xs text-muted-foreground mb-1">Call Data</div>
-        <Controller
-          name="callData"
-          control={control}
-          render={({ field }) => (
-            <Input
-              {...field}
-              type="text"
-              autoFocus={false}
-              placeholder="Enter call data for approval (e.g., 0x1234...)"
-              error={!!errors.callData && !isValidatingCallData}
-              helperText={renderCallDataHelperText()}
-              className={`${
-                callData && selectedCallHash && !isValidatingCallData && !errors.callData ? 'border-green-500 focus:border-green-500' : ''
-              }`}
-            />
-          )}
-        />
-      </div>
+      {isCallDataRequired && (
+        <div>
+          <div className="text-xs text-muted-foreground mb-1">Call Data</div>
+          <Controller
+            name="callData"
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                type="text"
+                placeholder="Enter call data for approval (e.g., 0x1234...)"
+                error={!!errors.callData && !isValidatingCallData}
+                helperText={renderCallDataHelperText()}
+                className={`${
+                  callData && selectedCallHash && !isValidatingCallData && !errors.callData ? 'border-green-500 focus:border-green-500' : ''
+                }`}
+              />
+            )}
+          />
+        </div>
+      )}
     </form>
   )
 }
 
 export default function ApproveMultisigCallDialog({ open, setOpen, token, appId, account }: ApproveMultisigCallDialogProps) {
   const pendingCalls = account.pendingMultisigCalls ?? []
-
-  if (pendingCalls.length === 0) {
-    return null
-  }
+  if (pendingCalls.length === 0) return null
 
   // Initialize form with React Hook Form + Zod
   const form = useForm<MultisigCallFormData>({
@@ -269,23 +283,34 @@ export default function ApproveMultisigCallDialog({ open, setOpen, token, appId,
     defaultValues: {
       callHash: pendingCalls[0]?.callHash ?? '',
       signer: getAvailableSigners(pendingCalls[0], account.members)[0]?.address ?? undefined,
+      isFinalApprovalWithCall: pendingCalls[0].signatories.length === account.threshold,
       callData: '',
     },
   })
 
+  // Watch only what you need
+  const selectedCallHash = form.watch('callHash')
+  const isFinalApprovalWithCall = form.watch('isFinalApprovalWithCall')
+  const callData = form.watch('callData')
+
+  // Compute derived values only once per render
+  const selectedCall = useMemo(() => pendingCalls.find(call => call.callHash === selectedCallHash), [pendingCalls, selectedCallHash])
+  const approvers = useMemo(() => selectedCall?.signatories || [], [selectedCall])
+  const isAllApproved = approvers.length === account.threshold
+  const isLastApproval = approvers.length === account.threshold - 1
+  const isCallDataRequired = (isLastApproval && isFinalApprovalWithCall) || isAllApproved
+
   const availableSigners = useMemo(() => {
-    const selectedCall = pendingCalls.find(call => call.callHash === form.getValues('callHash'))
+    if (isAllApproved) return account.members
     return selectedCall ? getAvailableSigners(selectedCall, account.members) : []
-  }, [pendingCalls, account.members, form])
+  }, [isAllApproved, account.members, selectedCall])
 
   // State for call data validation (moved to parent)
   const [isValidatingCallData, setIsValidatingCallData] = useState(false)
 
   // Check if form is ready for submission
-  const callData = form.watch('callData')
-  const selectedCallHash = form.watch('callHash')
   const isFormReadyForSubmission = Boolean(
-    callData && selectedCallHash && !Object.keys(form.formState.errors).length && availableSigners.length > 0
+    !(!callData && isCallDataRequired) && selectedCallHash && !Object.keys(form.formState.errors).length && availableSigners.length > 0
   )
 
   // Validate call data using utility function
@@ -318,7 +343,9 @@ export default function ApproveMultisigCallDialog({ open, setOpen, token, appId,
 
   // Effect to validate call data when it changes
   useEffect(() => {
-    validateCallDataHandler(callData, selectedCallHash)
+    if (selectedCallHash && callData) {
+      validateCallDataHandler(callData, selectedCallHash)
+    }
   }, [callData, selectedCallHash, validateCallDataHandler])
 
   // Wrap ledgerState$.approveMultisigCall to match the generic hook's expected signature
@@ -351,11 +378,11 @@ export default function ApproveMultisigCallDialog({ open, setOpen, token, appId,
 
   return (
     <Dialog open={open} onOpenChange={closeDialog}>
-      <DialogContent onOpenAutoFocus={e => e.preventDefault()}>
+      <DialogContent onOpenAutoFocus={e => e.preventDefault()} className="overflow-y-auto max-h-[100vh]">
         <DialogHeader>
           <DialogTitle>Approve Multisig Call</DialogTitle>
           <DialogDescription>
-            Approve a pending multisig call for this address. Select the call, signer, and provide the call data for final approval.
+            Approve a pending multisig call for this address. Select the call hash, signer, and provide the call data for final approval.
           </DialogDescription>
         </DialogHeader>
         <DialogBody>
@@ -363,14 +390,17 @@ export default function ApproveMultisigCallDialog({ open, setOpen, token, appId,
             <TransactionStatusBody {...txStatus} />
           ) : (
             <MultisigCallForm
-              pendingCalls={pendingCalls}
-              availableSigners={availableSigners}
+              form={form}
+              onSubmit={onSubmit}
               token={token}
               appId={appId}
               account={account}
-              onClose={closeDialog}
-              form={form}
-              onSubmit={onSubmit}
+              pendingCalls={pendingCalls}
+              availableSigners={availableSigners}
+              selectedCall={selectedCall}
+              approvers={approvers}
+              isLastApproval={isLastApproval}
+              isCallDataRequired={isCallDataRequired}
               isValidatingCallData={isValidatingCallData}
             />
           )}
