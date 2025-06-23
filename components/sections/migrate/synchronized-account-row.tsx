@@ -127,7 +127,7 @@ const SynchronizedAccountRow = ({
   }
 
   if (account.registration?.identity) {
-    const identityItems = getIdentityItems(account.registration)
+    const identityItems = getIdentityItems(account.registration, appId)
     if (identityItems.length > 0) {
       actions.push({
         label: 'Identity',
@@ -214,7 +214,23 @@ const SynchronizedAccountRow = ({
   }
 
   const tooltipAddress = (): React.ReactNode => {
-    const items: TooltipItem[] = [{ label: 'Source Address', value: account.address, icon: User, hasCopyButton: true }]
+    const items: TooltipItem[] = [
+      {
+        label: 'Source Address',
+        value: (
+          <ExplorerLink
+            value={account.address ?? ''}
+            appId={appId}
+            explorerLinkType={ExplorerItemType.Address}
+            disableTooltip
+            truncate={false}
+            className="break-all"
+            size="xs"
+          />
+        ),
+        icon: User,
+      },
+    ]
 
     if (!isMultisigAddress) {
       items.push(
@@ -247,6 +263,7 @@ const SynchronizedAccountRow = ({
                 truncate={false}
                 disableTooltip
                 className="break-all"
+                size="xs"
               />
               {member.internal && (
                 <Badge variant="light-gray" className="text-[10px] leading-tight shrink-0">
@@ -259,13 +276,43 @@ const SynchronizedAccountRow = ({
       )
 
       items.push(
-        { label: 'Multisig address', value: account.address, icon: User, hasCopyButton: true },
+        {
+          label: 'Multisig address',
+          value: (
+            <ExplorerLink
+              value={account.address}
+              appId={appId}
+              explorerLinkType={ExplorerItemType.Address}
+              truncate={false}
+              disableTooltip
+              hasCopyButton
+              className="break-all"
+              size="xs"
+            />
+          ),
+          icon: User,
+        },
         { label: 'Threshold', value: multisigAccount.threshold?.toString() ?? '-', icon: Shield },
         { label: `Members (${memberCount})`, value: membersComponent, icon: Users }
       )
     }
     if (isMultisigMember) {
-      items.push({ label: 'Multisig member of', value: account.memberMultisigAddresses?.[0] ?? '-', icon: User, hasCopyButton: true })
+      items.push({
+        label: 'Multisig member of',
+        value: (
+          <ExplorerLink
+            value={account.memberMultisigAddresses?.[0] ?? ''}
+            appId={appId}
+            explorerLinkType={ExplorerItemType.Address}
+            truncate={false}
+            disableTooltip
+            hasCopyButton
+            className="break-all"
+            size="xs"
+          />
+        ),
+        icon: User,
+      })
     }
     return (
       <div className="p-2 min-w-[320px]">
@@ -278,7 +325,7 @@ const SynchronizedAccountRow = ({
     if (!account.registration?.identity) return null
     return (
       <div className="p-2 min-w-[240px]">
-        <TooltipBody items={getIdentityItems(account.registration)} />
+        <TooltipBody items={getIdentityItems(account.registration, appId)} />
       </div>
     )
   }
@@ -298,6 +345,7 @@ const SynchronizedAccountRow = ({
                 truncate={false}
                 disableTooltip
                 className="break-all"
+                size="xs"
               />
             </div>
           ))}
