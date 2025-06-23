@@ -93,7 +93,7 @@ function MultisigCallForm({
     [setValue, clearErrors]
   )
 
-  const renderCallDataHelperText = (): string | undefined => {
+  const renderCallDataHelperText = useCallback((): string | undefined => {
     if (isValidatingCallData) {
       return callDataValidationMessages.validating
     }
@@ -104,7 +104,7 @@ function MultisigCallForm({
       return callDataValidationMessages.correct
     }
     return undefined
-  }
+  }, [isValidatingCallData, errors.callData?.message, callData, selectedCallHash])
 
   const noAvailableSigners = availableSigners.length === 0
 

@@ -1,9 +1,8 @@
-import type { MultisigCallFormData } from '@/components/sections/migrate/dialogs/approve-multisig-call-dialog'
 import type { AppId } from 'config/apps'
 import { InternalErrors } from 'config/errors'
 import { TEST_ADDRESSES, mockAddress1, mockFreeNativeBalance } from 'lib/__tests__/utils/__mocks__/mockData'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { validateApproveMultisigCallParams, validateMigrationParams } from '../client/helpers'
+import { validateApproveAsMultiParams, validateAsMultiParams, validateMigrationParams } from '../client/helpers'
 import type { Address, AddressBalance, MultisigAddress, MultisigMember } from '../types/ledger'
 import { AccountType, BalanceType } from '../types/ledger'
 
@@ -34,33 +33,60 @@ import { appsConfigs } from 'config/apps'
 const mockedAppsConfigs = vi.mocked(appsConfigs)
 const mockedIsMultisigAddress = vi.mocked(isMultisigAddress)
 
+// Define all mock variables at the top level for reuse
+const mockAppId: AppId = 'polkadot'
+const mockAppConfig = {
+  id: 'polkadot' as AppId,
+  name: 'Polkadot',
+  bip44Path: "m/44'/354'/0'/0'/0'",
+  ss58Prefix: 0,
+  rpcEndpoint: 'wss://rpc.polkadot.io',
+  token: {
+    symbol: 'DOT',
+    decimals: 10,
+  },
+}
+const mockCallHash = '0x1234567890abcdef'
+const mockCallData = '0xabcdef1234567890'
+const mockSigner = TEST_ADDRESSES.ADDRESS1
+
+const mockMultisigMembers: MultisigMember[] = [
+  { address: TEST_ADDRESSES.ADDRESS1, path: "m/44'/354'/0'/0'/0'", internal: true },
+  { address: TEST_ADDRESSES.ADDRESS2, path: "m/44'/354'/0'/0'/1'", internal: false },
+]
+const mockMultisigAccount: MultisigAddress = {
+  address: TEST_ADDRESSES.ADDRESS3,
+  path: "m/44'/354'/0'/0'",
+  pubKey: '0x789',
+  threshold: 2,
+  members: mockMultisigMembers,
+  memberMultisigAddresses: undefined,
+  pendingMultisigCalls: [
+    { callHash: '0x1234567890abcdef', deposit: new BN(1), depositor: TEST_ADDRESSES.ADDRESS1, signatories: [TEST_ADDRESSES.ADDRESS1] },
+  ],
+  balances: [],
+}
+
+const mockBalance: AddressBalance = {
+  type: BalanceType.NATIVE,
+  balance: mockFreeNativeBalance,
+  transaction: {
+    destinationAddress: TEST_ADDRESSES.ADDRESS2,
+    signatoryAddress: TEST_ADDRESSES.ADDRESS1,
+  },
+}
+
+const mockMultisigAccountWithBalance: MultisigAddress = {
+  ...mockMultisigAccount,
+  balances: [mockBalance],
+}
+
 describe('client helpers', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
   describe('validateMigrationParams', () => {
-    const mockAppId: AppId = 'polkadot'
-    const mockAppConfig = {
-      id: 'polkadot' as AppId,
-      name: 'Polkadot',
-      bip44Path: "m/44'/354'/0'/0'/0'",
-      ss58Prefix: 0,
-      rpcEndpoint: 'wss://rpc.polkadot.io',
-      token: {
-        symbol: 'DOT',
-        decimals: 10,
-      },
-    }
-    const mockBalance: AddressBalance = {
-      type: BalanceType.NATIVE,
-      balance: mockFreeNativeBalance,
-      transaction: {
-        destinationAddress: TEST_ADDRESSES.ADDRESS2,
-        signatoryAddress: TEST_ADDRESSES.ADDRESS1,
-      },
-    }
-
     describe('regular account validation', () => {
       const mockAccount: Address = {
         ...mockAddress1,
@@ -146,30 +172,13 @@ describe('client helpers', () => {
     })
 
     describe('multisig account validation', () => {
-      const mockMultisigMembers: MultisigMember[] = [
-        { address: TEST_ADDRESSES.ADDRESS1, path: "m/44'/354'/0'/0'/0'", internal: true },
-        { address: TEST_ADDRESSES.ADDRESS2, path: "m/44'/354'/0'/0'/1'", internal: false },
-      ]
-
-      const mockMultisigAccount: MultisigAddress = {
-        address: TEST_ADDRESSES.ADDRESS3,
-        path: "m/44'/354'/0'/0'",
-        pubKey: '0x789',
-        threshold: 2,
-        members: mockMultisigMembers,
-        memberMultisigAddresses: undefined,
-        pendingMultisigCalls: [],
-        balances: [mockBalance],
-      }
-
       beforeEach(() => {
         mockedIsMultisigAddress.mockReturnValue(true)
         mockedAppsConfigs.get.mockReturnValue(mockAppConfig)
       })
 
       it('should return valid result for successful multisig account validation', () => {
-        const result = validateMigrationParams(mockAppId, mockMultisigAccount, 0)
-
+        const result = validateMigrationParams(mockAppId, mockMultisigAccountWithBalance, 0)
         expect(result.isValid).toBe(true)
         if (result.isValid) {
           expect(result.balance).toBe(mockBalance)
@@ -192,7 +201,7 @@ describe('client helpers', () => {
           transaction: { ...mockBalance.transaction, signatoryAddress: undefined },
         }
         const accountWithBadBalance = {
-          ...mockMultisigAccount,
+          ...mockMultisigAccountWithBalance,
           balances: [balanceWithoutSignatory],
         }
 
@@ -205,7 +214,7 @@ describe('client helpers', () => {
           transaction: { ...mockBalance.transaction, signatoryAddress: 'unknown_signer' },
         }
         const accountWithBadBalance = {
-          ...mockMultisigAccount,
+          ...mockMultisigAccountWithBalance,
           balances: [balanceWithUnknownSignatory],
         }
 
@@ -213,20 +222,17 @@ describe('client helpers', () => {
       })
 
       it('should throw NO_SIGNATORY_ADDRESS error when members are missing', () => {
-        const accountWithoutMembers = { ...mockMultisigAccount, members: undefined as any }
-
+        const accountWithoutMembers = { ...mockMultisigAccountWithBalance, members: undefined }
         expect(() => validateMigrationParams(mockAppId, accountWithoutMembers, 0)).toThrow(InternalErrors.NO_SIGNATORY_ADDRESS)
       })
 
       it('should throw NO_MULTISIG_THRESHOLD error when threshold is missing', () => {
-        const accountWithoutThreshold = { ...mockMultisigAccount, threshold: undefined as any }
-
+        const accountWithoutThreshold = { ...mockMultisigAccountWithBalance, threshold: undefined }
         expect(() => validateMigrationParams(mockAppId, accountWithoutThreshold, 0)).toThrow(InternalErrors.NO_MULTISIG_THRESHOLD)
       })
 
       it('should throw NO_MULTISIG_ADDRESS error when address is missing', () => {
-        const accountWithoutAddress = { ...mockMultisigAccount, address: undefined as any }
-
+        const accountWithoutAddress = { ...mockMultisigAccountWithBalance, address: undefined as any }
         expect(() => validateMigrationParams(mockAppId, accountWithoutAddress, 0)).toThrow(InternalErrors.NO_MULTISIG_ADDRESS)
       })
     })
@@ -258,49 +264,15 @@ describe('client helpers', () => {
     })
   })
 
-  describe('validateApproveMultisigCallParams', () => {
-    const mockAppId: AppId = 'polkadot'
-    const mockAppConfig = {
-      id: 'polkadot' as AppId,
-      name: 'Polkadot',
-      bip44Path: "m/44'/354'/0'/0'/0'",
-      ss58Prefix: 0,
-      rpcEndpoint: 'wss://rpc.polkadot.io',
-      token: {
-        symbol: 'DOT',
-        decimals: 10,
-      },
-    }
-    const mockFormData: MultisigCallFormData = {
-      callHash: '0x1234567890abcdef',
-      callData: '0xabcdef1234567890',
-      signer: TEST_ADDRESSES.ADDRESS1,
-    }
-
+  describe('validateApproveAsMultiParams', () => {
     describe('multisig account validation', () => {
-      const mockMultisigMembers: MultisigMember[] = [
-        { address: TEST_ADDRESSES.ADDRESS1, path: "m/44'/354'/0'/0'/0'", internal: true },
-        { address: TEST_ADDRESSES.ADDRESS2, path: "m/44'/354'/0'/0'/1'", internal: false },
-      ]
-
-      const mockMultisigAccount: MultisigAddress = {
-        address: TEST_ADDRESSES.ADDRESS3,
-        path: "m/44'/354'/0'/0'",
-        pubKey: '0x789',
-        threshold: 2,
-        members: mockMultisigMembers,
-        memberMultisigAddresses: undefined,
-        pendingMultisigCalls: [],
-        balances: [],
-      }
-
       beforeEach(() => {
         mockedIsMultisigAddress.mockReturnValue(true)
         mockedAppsConfigs.get.mockReturnValue(mockAppConfig)
       })
 
       it('should return valid result for successful multisig call validation', () => {
-        const result = validateApproveMultisigCallParams(mockAppId, mockMultisigAccount, mockFormData)
+        const result = validateApproveAsMultiParams(mockAppId, mockMultisigAccount, mockCallHash, mockSigner)
 
         expect(result.isValid).toBe(true)
         if (result.isValid) {
@@ -311,7 +283,6 @@ describe('client helpers', () => {
             address: TEST_ADDRESSES.ADDRESS3,
           })
           expect(result.callHash).toBe('0x1234567890abcdef')
-          expect(result.callData).toBe('0xabcdef1234567890')
           expect(result.signer).toBe(TEST_ADDRESSES.ADDRESS1)
           expect(result.signerPath).toBe("m/44'/354'/0'/0'/0'")
         }
@@ -320,7 +291,7 @@ describe('client helpers', () => {
       it('should throw APP_CONFIG_NOT_FOUND error when app config is missing', () => {
         mockedAppsConfigs.get.mockReturnValue(undefined)
 
-        expect(() => validateApproveMultisigCallParams(mockAppId, mockMultisigAccount, mockFormData)).toThrow(
+        expect(() => validateApproveAsMultiParams(mockAppId, mockMultisigAccount, mockCallHash, mockSigner)).toThrow(
           InternalErrors.APP_CONFIG_NOT_FOUND
         )
       })
@@ -328,7 +299,7 @@ describe('client helpers', () => {
       it('should throw APP_CONFIG_NOT_FOUND error when app config has no rpc endpoint', () => {
         mockedAppsConfigs.get.mockReturnValue({ ...mockAppConfig, rpcEndpoint: undefined })
 
-        expect(() => validateApproveMultisigCallParams(mockAppId, mockMultisigAccount, mockFormData)).toThrow(
+        expect(() => validateApproveAsMultiParams(mockAppId, mockMultisigAccount, mockCallHash, mockSigner)).toThrow(
           InternalErrors.APP_CONFIG_NOT_FOUND
         )
       })
@@ -336,7 +307,7 @@ describe('client helpers', () => {
       it('should throw NO_MULTISIG_MEMBERS error when members are missing', () => {
         const accountWithoutMembers = { ...mockMultisigAccount, members: undefined as any }
 
-        expect(() => validateApproveMultisigCallParams(mockAppId, accountWithoutMembers, mockFormData)).toThrow(
+        expect(() => validateApproveAsMultiParams(mockAppId, accountWithoutMembers, mockCallHash, mockSigner)).toThrow(
           InternalErrors.NO_MULTISIG_MEMBERS
         )
       })
@@ -344,7 +315,7 @@ describe('client helpers', () => {
       it('should throw NO_MULTISIG_THRESHOLD error when threshold is missing', () => {
         const accountWithoutThreshold = { ...mockMultisigAccount, threshold: undefined as any }
 
-        expect(() => validateApproveMultisigCallParams(mockAppId, accountWithoutThreshold, mockFormData)).toThrow(
+        expect(() => validateApproveAsMultiParams(mockAppId, accountWithoutThreshold, mockCallHash, mockSigner)).toThrow(
           InternalErrors.NO_MULTISIG_THRESHOLD
         )
       })
@@ -352,63 +323,29 @@ describe('client helpers', () => {
       it('should throw NO_MULTISIG_ADDRESS error when address is missing', () => {
         const accountWithoutAddress = { ...mockMultisigAccount, address: undefined as any }
 
-        expect(() => validateApproveMultisigCallParams(mockAppId, accountWithoutAddress, mockFormData)).toThrow(
+        expect(() => validateApproveAsMultiParams(mockAppId, accountWithoutAddress, mockCallHash, mockSigner)).toThrow(
           InternalErrors.NO_MULTISIG_ADDRESS
         )
       })
 
       it('should throw NO_SIGNATORY_ADDRESS error when signer is not found in members', () => {
-        const formDataWithUnknownSigner = { ...mockFormData, signer: 'unknown_member' }
+        const unknownSigner = 'unknown_member'
 
-        expect(() => validateApproveMultisigCallParams(mockAppId, mockMultisigAccount, formDataWithUnknownSigner)).toThrow(
+        expect(() => validateApproveAsMultiParams(mockAppId, mockMultisigAccount, mockCallHash, unknownSigner)).toThrow(
           InternalErrors.NO_SIGNATORY_ADDRESS
         )
       })
 
       it('should throw NO_SIGNATORY_ADDRESS error when signer is empty', () => {
-        const formDataWithEmptySigner = { ...mockFormData, signer: '' }
+        const emptySigner = ''
 
-        expect(() => validateApproveMultisigCallParams(mockAppId, mockMultisigAccount, formDataWithEmptySigner)).toThrow(
+        expect(() => validateApproveAsMultiParams(mockAppId, mockMultisigAccount, mockCallHash, emptySigner)).toThrow(
           InternalErrors.NO_SIGNATORY_ADDRESS
         )
       })
     })
 
-    describe('regular account validation', () => {
-      const mockRegularAccount: Address = {
-        ...mockAddress1,
-        balances: [],
-      }
-
-      beforeEach(() => {
-        mockedIsMultisigAddress.mockReturnValue(false)
-        mockedAppsConfigs.get.mockReturnValue(mockAppConfig)
-      })
-
-      it('should return invalid result for regular account', () => {
-        const result = validateApproveMultisigCallParams(mockAppId, mockRegularAccount, mockFormData)
-
-        expect(result.isValid).toBe(false)
-      })
-    })
-
     describe('edge cases', () => {
-      const mockMultisigMembers: MultisigMember[] = [
-        { address: TEST_ADDRESSES.ADDRESS1, path: "m/44'/354'/0'/0'/0'", internal: true },
-        { address: TEST_ADDRESSES.ADDRESS2, path: "m/44'/354'/0'/0'/1'", internal: false },
-      ]
-
-      const mockMultisigAccount: MultisigAddress = {
-        address: TEST_ADDRESSES.ADDRESS3,
-        path: "m/44'/354'/0'/0'",
-        pubKey: '0x789',
-        threshold: 2,
-        members: mockMultisigMembers,
-        memberMultisigAddresses: undefined,
-        pendingMultisigCalls: [],
-        balances: [],
-      }
-
       beforeEach(() => {
         mockedIsMultisigAddress.mockReturnValue(true)
         mockedAppsConfigs.get.mockReturnValue(mockAppConfig)
@@ -417,7 +354,7 @@ describe('client helpers', () => {
       it('should handle empty members array', () => {
         const accountWithEmptyMembers = { ...mockMultisigAccount, members: [] }
 
-        expect(() => validateApproveMultisigCallParams(mockAppId, accountWithEmptyMembers, mockFormData)).toThrow(
+        expect(() => validateApproveAsMultiParams(mockAppId, accountWithEmptyMembers, mockCallHash, mockSigner)).toThrow(
           InternalErrors.NO_SIGNATORY_ADDRESS
         )
       })
@@ -425,32 +362,70 @@ describe('client helpers', () => {
       it('should handle zero threshold', () => {
         const accountWithZeroThreshold = { ...mockMultisigAccount, threshold: 0 }
 
-        expect(() => validateApproveMultisigCallParams(mockAppId, accountWithZeroThreshold, mockFormData)).toThrow(
+        expect(() => validateApproveAsMultiParams(mockAppId, accountWithZeroThreshold, mockCallHash, mockSigner)).toThrow(
           InternalErrors.NO_MULTISIG_THRESHOLD
         )
       })
 
       it('should handle empty call hash', () => {
-        const formDataWithEmptyHash = { ...mockFormData, callHash: '' }
-
-        const result = validateApproveMultisigCallParams(mockAppId, mockMultisigAccount, formDataWithEmptyHash)
-
-        expect(result.isValid).toBe(true)
-        if (result.isValid) {
-          expect(result.callHash).toBe('')
-        }
+        const emptyCallHash = ''
+        expect(() => validateApproveAsMultiParams(mockAppId, mockMultisigAccount, emptyCallHash, mockSigner)).toThrow(
+          InternalErrors.NO_PENDING_MULTISIG_CALL
+        )
       })
+    })
+  })
 
-      it('should handle empty call data', () => {
-        const formDataWithEmptyData = { ...mockFormData, callData: '' }
-
-        const result = validateApproveMultisigCallParams(mockAppId, mockMultisigAccount, formDataWithEmptyData)
-
-        expect(result.isValid).toBe(true)
-        if (result.isValid) {
-          expect(result.callData).toBe('')
-        }
-      })
+  describe('validateAsMultiParams', () => {
+    beforeEach(() => {
+      mockedIsMultisigAddress.mockReturnValue(true)
+      mockedAppsConfigs.get.mockReturnValue(mockAppConfig)
+    })
+    it('should return valid result for successful multisig asMulti call validation', () => {
+      const result = validateAsMultiParams(mockAppId, mockMultisigAccount, mockCallHash, mockCallData, mockSigner)
+      expect(result.isValid).toBe(true)
+      if (result.isValid) {
+        expect(result.appConfig).toBe(mockAppConfig)
+        expect(result.multisigInfo).toEqual({
+          members: [TEST_ADDRESSES.ADDRESS1, TEST_ADDRESSES.ADDRESS2],
+          threshold: 2,
+          address: TEST_ADDRESSES.ADDRESS3,
+        })
+        expect(result.callHash).toBe('0x1234567890abcdef')
+        expect(result.callData).toBe('0xabcdef1234567890')
+        expect(result.signer).toBe(TEST_ADDRESSES.ADDRESS1)
+        expect(result.signerPath).toBe("m/44'/354'/0'/0'/0'")
+      }
+    })
+    it('should throw if callData is missing', () => {
+      expect(() => validateAsMultiParams(mockAppId, mockMultisigAccount, mockCallHash, undefined, mockSigner)).toThrow(
+        InternalErrors.NO_CALL_DATA
+      )
+    })
+    it('should throw if callData is empty string', () => {
+      expect(() => validateAsMultiParams(mockAppId, mockMultisigAccount, mockCallHash, '', mockSigner)).toThrow(InternalErrors.NO_CALL_DATA)
+    })
+    it('should throw if signer is not found in members', () => {
+      expect(() => validateAsMultiParams(mockAppId, mockMultisigAccount, mockCallHash, mockCallData, 'unknown_member')).toThrow(
+        InternalErrors.NO_SIGNATORY_ADDRESS
+      )
+    })
+    it('should throw if callHash is not in pendingMultisigCalls', () => {
+      expect(() => validateAsMultiParams(mockAppId, mockMultisigAccount, '0xnotfound', mockCallData, mockSigner)).toThrow(
+        InternalErrors.NO_PENDING_MULTISIG_CALL
+      )
+    })
+    it('should throw if app config is missing', () => {
+      mockedAppsConfigs.get.mockReturnValue(undefined)
+      expect(() => validateAsMultiParams(mockAppId, mockMultisigAccount, mockCallHash, mockCallData, mockSigner)).toThrow(
+        InternalErrors.APP_CONFIG_NOT_FOUND
+      )
+    })
+    it('should throw if app config has no rpc endpoint', () => {
+      mockedAppsConfigs.get.mockReturnValue({ ...mockAppConfig, rpcEndpoint: undefined })
+      expect(() => validateAsMultiParams(mockAppId, mockMultisigAccount, mockCallHash, mockCallData, mockSigner)).toThrow(
+        InternalErrors.APP_CONFIG_NOT_FOUND
+      )
     })
   })
 })

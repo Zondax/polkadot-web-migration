@@ -3,7 +3,6 @@ import { InternalErrors } from 'config/errors'
 
 import { hasBalance, isMultisigAddress } from '@/lib/utils'
 
-import type { MultisigCallFormData } from '@/components/sections/migrate/dialogs/approve-multisig-call-dialog'
 import type { MultisigInfo } from '@/lib/account'
 import { AccountType, type Address, type AddressBalance, type MultisigAddress } from '../types/ledger'
 
