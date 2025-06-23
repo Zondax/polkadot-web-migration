@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { type App, AppStatus } from 'state/ledger'
 import type { Address, AddressBalance, AddressWithVerificationStatus, MultisigAddress } from 'state/types/ledger'
+import { hasAddressBalance } from './balance'
 
 /**
  * Retrieves a light icon for a given app from the Hub backend.
@@ -46,18 +47,23 @@ export const getAppLightIcon = async (appId: string) => {
 }
 
 /**
- * Filters apps to only include those without errors.
+ * Filters apps to only include those that were validly synchronized and have balances.
  *
  * @param apps - The apps to filter.
- * @returns Apps without errors.
+ * @returns Apps that are validly synchronized and have balances.
  */
-export const filterAppsWithoutErrors = (apps: App[]): App[] => {
+export const filterValidSyncedAppsWithBalances = (apps: App[]): App[] => {
   return apps
     .map(app => ({
       ...app,
-      accounts: app.accounts?.filter((account: Address) => !account.error || account.error?.source === 'migration') || [],
+      accounts:
+        app.accounts?.filter(
+          (account: Address) => (!account.error || account.error?.source === 'migration') && hasAddressBalance(account)
+        ) || [],
       multisigAccounts:
-        app.multisigAccounts?.filter((account: MultisigAddress) => !account.error || account.error?.source === 'migration') || [],
+        app.multisigAccounts?.filter(
+          (account: MultisigAddress) => (!account.error || account.error?.source === 'migration') && hasAddressBalance(account)
+        ) || [],
     }))
     .filter(app => app.accounts.length > 0 || app.multisigAccounts?.length > 0)
 }
@@ -80,12 +86,12 @@ export const filterSelectedAccountsForMigration = (apps: App[]): App[] => {
 }
 
 /**
- * Filters apps to only include those with errors.
+ * Filters apps to include only those with accounts or multisig accounts that have errors (excluding migration errors).
  *
- * @param apps - The apps to filter.
- * @returns Apps with errors.
+ * @param apps - The list of apps to filter.
+ * @returns Apps containing accounts or multisig accounts with non-migration errors.
  */
-export const filterAppsWithErrors = (apps: App[]): App[] => {
+export const filterInvalidSyncedApps = (apps: App[]): App[] => {
   return apps
     .map(app => ({
       ...app,

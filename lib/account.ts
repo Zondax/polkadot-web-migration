@@ -27,6 +27,7 @@ import {
   type AddressBalance,
   BalanceType,
   type Collection,
+  type IdentityInfo,
   type MultisigAddress,
   type MultisigCall,
   type Native,
@@ -34,6 +35,7 @@ import {
   type NftsInfo,
   type Registration,
   type Staking,
+  type SubIdentities,
   type TransactionDetails,
   TransactionStatus,
 } from 'state/types/ledger'
@@ -1111,20 +1113,41 @@ export async function getStakingInfo(address: string, api: ApiPromise, appId: Ap
 }
 
 /**
- * Logs the identity information for a specific address
+ * Extracts identity information from a raw Polkadot registration response
+ * @param rawResponse The raw registration response from the blockchain
+ * @returns Extracted identity information
+ */
+function extractIdentityFromRawResponse(rawResponse: PolkadotRegistration): IdentityInfo {
+  const info = rawResponse.info
+
+  return {
+    display: info.display?.isRaw ? info.display.asRaw.toUtf8() : undefined,
+    legal: info.legal?.isRaw ? info.legal.asRaw.toUtf8() : undefined,
+    web: info.web?.isRaw ? info.web.asRaw.toUtf8() : undefined,
+    email: info.email?.isRaw ? info.email.asRaw.toUtf8() : undefined,
+    pgpFingerprint: info.pgpFingerprint?.isSome ? info.pgpFingerprint.unwrap().toString() : undefined,
+    image: info.image?.isRaw ? info.image.asRaw.toUtf8() : undefined,
+    twitter: info.twitter?.isRaw ? info.twitter.asRaw.toUtf8() : undefined,
+  }
+}
+
+/**
+ * Fetches derived identity information using the API's derive functionality
  * @param address The address to check
  * @param api The API instance
+ * @returns Derived identity information or undefined if not available
  */
-export async function getIdentityInfo(address: string, api: ApiPromise): Promise<Registration | undefined> {
-  let registration: Registration | undefined
+async function fetchDerivedIdentity(address: string, api: ApiPromise): Promise<Registration | undefined> {
+  if (!api.derive?.accounts?.identity) {
+    return undefined
+  }
 
   try {
-    // Get the derived identity for display info
     const derivedIdentity = await api.derive.accounts.identity(address)
 
     // If identity has a parent it means it is a sub-account and we cannot remove it
     if (derivedIdentity.displayParent) {
-      registration = {
+      return {
         canRemove: false,
         identity: {
           displayParent: derivedIdentity.displayParent,
@@ -1132,45 +1155,122 @@ export async function getIdentityInfo(address: string, api: ApiPromise): Promise
           parent: derivedIdentity.parent?.toHuman(),
         },
       }
-    } else {
-      registration = { canRemove: true }
     }
+  } catch (error) {
+    console.debug('Derived identity not available:', error)
+  }
 
-    // Get the raw identity info
+  return undefined
+}
+
+/**
+ * Fetches raw identity information from the blockchain
+ * @param address The address to check
+ * @param api The API instance
+ * @returns Raw identity information or undefined if not available
+ */
+async function fetchRawIdentity(address: string, api: ApiPromise): Promise<Registration | undefined> {
+  if (!api.query.identity?.identityOf) {
+    return undefined
+  }
+
+  try {
     const identity = (await api.query.identity.identityOf(address)) as Option<PolkadotRegistration>
 
-    if (!identity.isNone) {
-      // Parse the raw response
-      const rawResponse = identity.unwrap() as PolkadotRegistration
-
-      if (rawResponse) {
-        registration.identity = {
-          display: rawResponse.info.display?.isRaw ? rawResponse.info.display.asRaw.toUtf8() : undefined,
-          legal: rawResponse.info.legal?.isRaw ? rawResponse.info.legal.asRaw.toUtf8() : undefined,
-          web: rawResponse.info.web?.isRaw ? rawResponse.info.web.asRaw.toUtf8() : undefined,
-          email: rawResponse.info.email?.isRaw ? rawResponse.info.email.asRaw.toUtf8() : undefined,
-          pgpFingerprint: rawResponse.info.pgpFingerprint?.isSome ? rawResponse.info.pgpFingerprint.unwrap().toString() : undefined,
-          image: rawResponse.info.image?.isRaw ? rawResponse.info.image.asRaw.toUtf8() : undefined,
-          twitter: rawResponse.info.twitter?.isRaw ? rawResponse.info.twitter.asRaw.toUtf8() : undefined,
-        }
-        registration.deposit = new BN(rawResponse.deposit.toString())
-
-        // Get the sub-identities
-        const subs = await api.query.identity.subsOf(address)
-
-        if (subs) {
-          const subsTuple = subs as unknown as [Balance, Vec<AccountId32>]
-          const [deposit, subAccounts] = subsTuple
-
-          registration.subIdentities = {
-            subAccounts: subAccounts.toHuman() as string[],
-            deposit: new BN(deposit.toString()),
-          }
-        }
-      }
+    if (identity.isNone) {
+      return undefined
     }
 
-    return registration
+    const rawResponse = identity.unwrap() as PolkadotRegistration
+    if (!rawResponse) {
+      return undefined
+    }
+
+    const identityInfo = extractIdentityFromRawResponse(rawResponse)
+    const deposit = new BN(rawResponse.deposit.toString())
+
+    // Get sub-identities if available
+    let subIdentities: SubIdentities | undefined
+    try {
+      const subs = await api.query.identity.subsOf(address)
+      if (subs) {
+        const subsTuple = subs as unknown as [Balance, Vec<AccountId32>]
+        const [subDeposit, subAccounts] = subsTuple
+
+        subIdentities = {
+          subAccounts: subAccounts.toHuman() as string[],
+          deposit: new BN(subDeposit.toString()),
+        }
+      }
+    } catch (error) {
+      console.debug('Sub-identities not available:', error)
+    }
+
+    return {
+      identity: identityInfo,
+      deposit,
+      subIdentities,
+      canRemove: true, // Will be overridden if derived identity shows it's a sub-account
+    }
+  } catch (error) {
+    console.debug('Raw identity query not available:', error)
+    return undefined
+  }
+}
+
+/**
+ * Merges derived and raw identity information, with derived info taking precedence
+ * @param derivedRegistration Derived identity information
+ * @param rawRegistration Raw identity information
+ * @returns Merged registration information
+ */
+function mergeIdentityInfo(derivedRegistration?: Registration, rawRegistration?: Registration): Registration | undefined {
+  if (!derivedRegistration && !rawRegistration) {
+    return undefined
+  }
+
+  if (!rawRegistration) {
+    return derivedRegistration
+  }
+
+  if (!derivedRegistration) {
+    return rawRegistration
+  }
+
+  // Merge identity information, with derived info taking precedence
+  const mergedIdentity: IdentityInfo = {
+    ...rawRegistration.identity,
+    ...derivedRegistration.identity,
+  }
+
+  return {
+    ...rawRegistration,
+    identity: mergedIdentity,
+    canRemove: derivedRegistration.canRemove, // Derived info determines if it can be removed
+  }
+}
+
+/**
+ * Gets the identity information for a specific address
+ * @param address The address to check
+ * @param api The API instance
+ * @returns The identity information or undefined if not found
+ */
+export async function getIdentityInfo(address: string, api: ApiPromise): Promise<Registration | undefined> {
+  try {
+    // Fetch both derived and raw identity information in parallel
+    const [derivedRegistration, rawRegistration] = await Promise.allSettled([
+      fetchDerivedIdentity(address, api),
+      fetchRawIdentity(address, api),
+    ])
+
+    // Extract results, handling rejected promises
+    const isFulfilled = 'fulfilled'
+    const derived = derivedRegistration.status === isFulfilled ? derivedRegistration.value : undefined
+    const raw = rawRegistration.status === isFulfilled ? rawRegistration.value : undefined
+
+    // Merge the information
+    return mergeIdentityInfo(derived, raw)
   } catch (error) {
     console.error('Error fetching identity information:', error)
     return undefined

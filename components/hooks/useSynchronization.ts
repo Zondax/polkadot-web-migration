@@ -2,7 +2,7 @@ import { use$, useObservable } from '@legendapp/state/react'
 import { useCallback, useState } from 'react'
 import { type App, AppStatus, ledgerState$ } from 'state/ledger'
 
-import { filterAppsWithErrors, filterAppsWithoutErrors, hasAccountsWithErrors } from '@/lib/utils'
+import { filterInvalidSyncedApps, filterValidSyncedAppsWithBalances, hasAccountsWithErrors } from '@/lib/utils'
 import type { Transaction } from '@/state/types/ledger'
 
 export type UpdateTransaction = (
@@ -60,8 +60,8 @@ export const useSynchronization = (): UseSynchronizationReturn => {
 
   // Compute derived values from apps
   const accountsWithErrors = use$(() => hasAccountsWithErrors(apps))
-  const appsWithoutErrors = use$(() => filterAppsWithoutErrors(apps))
-  const appsWithErrors = use$(() => filterAppsWithErrors(apps))
+  const appsWithoutErrors = use$(() => filterValidSyncedAppsWithBalances(apps))
+  const appsWithErrors = use$(() => filterInvalidSyncedApps(apps))
 
   const hasMultisigAccounts = apps.some(
     app => app.status === AppStatus.SYNCHRONIZED && app.multisigAccounts && app.multisigAccounts.length > 0
@@ -82,7 +82,7 @@ export const useSynchronization = (): UseSynchronizationReturn => {
 
     try {
       // Get the latest filtered apps with errors
-      const appsToRescan = filterAppsWithErrors(apps$.get())
+      const appsToRescan = filterInvalidSyncedApps(apps$.get())
 
       for (const app of appsToRescan) {
         // Check if cancellation is requested

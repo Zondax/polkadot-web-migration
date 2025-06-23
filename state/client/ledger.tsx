@@ -260,12 +260,12 @@ export const ledgerClient = {
 
   async removeIdentity(appId: AppId, address: string, path: string, updateTxStatus: UpdateTransactionStatus) {
     const appConfig = appsConfigs.get(appId)
-    if (!appConfig?.peopleRpcEndpoint) {
+    if (!appConfig?.rpcEndpoint) {
       throw InternalErrors.APP_CONFIG_NOT_FOUND
     }
 
     return withErrorHandling(async () => {
-      const { api, error } = await getApiAndProvider(appConfig.peopleRpcEndpoint ?? '')
+      const { api, error } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
       if (error || !api) {
         throw new Error(error ?? 'Failed to connect to the blockchain.')
       }
@@ -302,12 +302,12 @@ export const ledgerClient = {
 
   async getRemoveIdentityFee(appId: AppId, address: string): Promise<BN | undefined> {
     const appConfig = appsConfigs.get(appId)
-    if (!appConfig?.peopleRpcEndpoint) {
+    if (!appConfig?.rpcEndpoint) {
       throw InternalErrors.APP_CONFIG_NOT_FOUND
     }
 
     return withErrorHandling(async () => {
-      const { api, error } = await getApiAndProvider(appConfig.peopleRpcEndpoint ?? '')
+      const { api, error } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
       if (error || !api) {
         throw new Error(error ?? 'Failed to connect to the blockchain.')
       }
