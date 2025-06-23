@@ -33,7 +33,7 @@ export const MigrationProgressDialog = observer(function MigrationProgressDialog
             <DialogDescription className="flex items-center gap-2">
               <TokenIcon icon={icon} symbol={migratingItem.appName} size="sm" />
               <span>{migratingItem.appName}</span>
-              <span className="text-xs font-mono text-gray-500">
+              <span className="text-xs text-gray-500">
                 <ExplorerLink
                   value={migratingItem.account.address}
                   appId={migratingItem.appId}

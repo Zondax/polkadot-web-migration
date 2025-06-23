@@ -1,7 +1,7 @@
 'use client'
 
 import { uiState$ } from '@/state/ui'
-import { observer, use$ } from '@legendapp/state/react'
+import { use$ } from '@legendapp/state/react'
 import { AlertCircle, CheckCircle, Clock } from 'lucide-react'
 import { useEffect } from 'react'
 
@@ -87,7 +87,7 @@ export const AddressVerificationDialog = ({ open, onClose }: AddressVerification
                   <div className="flex flex-col">
                     {addresses.map((item, index) => (
                       <div key={item.address} className="flex flex-row items-center justify-between">
-                        <div className="text-xs font-mono text-gray-500">
+                        <div className="text-xs text-gray-500">
                           <ExplorerLink
                             value={item.address}
                             appId={appId as AppId}

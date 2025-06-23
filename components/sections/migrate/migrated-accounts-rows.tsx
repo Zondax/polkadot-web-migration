@@ -55,7 +55,6 @@ const MigratedAccountRows = ({ app, multisigAddresses }: AccountRowsProps) => {
             appId={app.id as AppId}
             explorerLinkType={ExplorerItemType.Address}
             tooltipBody={`${account.address} - ${account.path}`}
-            className="font-mono"
           />
         </TableCell>
         {/* Public Key */}
@@ -63,7 +62,6 @@ const MigratedAccountRows = ({ app, multisigAddresses }: AccountRowsProps) => {
           <TableCell>
             <ExplorerLink
               value={account.pubKey !== '' ? account.pubKey : '-'}
-              className="font-mono"
               hasCopyButton={account.pubKey !== ''}
               disableTooltip={account.pubKey === ''}
             />
@@ -76,7 +74,6 @@ const MigratedAccountRows = ({ app, multisigAddresses }: AccountRowsProps) => {
               value={balance.transaction?.signatoryAddress || '-'}
               appId={app.id as AppId}
               explorerLinkType={ExplorerItemType.Address}
-              className="font-mono"
               hasCopyButton={Boolean(balance.transaction?.signatoryAddress)}
               disableTooltip={!balance.transaction?.signatoryAddress}
             />
@@ -96,7 +93,6 @@ const MigratedAccountRows = ({ app, multisigAddresses }: AccountRowsProps) => {
             value={balance.transaction?.destinationAddress || ''}
             appId={app.id as AppId}
             explorerLinkType={ExplorerItemType.Address}
-            className="font-mono"
           />
         </TableCell>
         {/* Balance */}
