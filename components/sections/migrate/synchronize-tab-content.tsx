@@ -256,8 +256,16 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
             </Button>
           </div>
           {/* Filter and show only apps with error accounts */}
+
           {appsWithErrors.map(app => (
-            <SynchronizedApp key={app.id.toString()} app={app} failedSync updateTransaction={updateTransaction} />
+            <div key={app.id.toString()}>
+              {app.accounts && app.accounts.length > 0 && (
+                <SynchronizedApp key={app.id.toString()} app={app} failedSync updateTransaction={updateTransaction} />
+              )}
+              {app.multisigAccounts && app.multisigAccounts.length > 0 && (
+                <SynchronizedApp key={`${app.id}-multisig`} app={app} failedSync isMultisig updateTransaction={updateTransaction} />
+              )}
+            </div>
           ))}
         </>
       )}

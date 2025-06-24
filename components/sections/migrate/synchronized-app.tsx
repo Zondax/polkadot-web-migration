@@ -13,6 +13,7 @@ import type { UpdateTransaction } from '@/components/hooks/useSynchronization'
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
 import { BN } from '@polkadot/util'
 import { BalanceTypeFlag } from './balance-detail-card'
+import InvalidSynchronizedAccountsTable from './invalid-synchronized-accounts-table'
 import SynchronizedAccountsTable from './synchronized-accounts-table'
 
 function SynchronizedApp({
@@ -108,7 +109,7 @@ function SynchronizedApp({
             )}
           </div>
         )}
-        {failedSync && (
+        {failedSync && app.error?.description && (
           <div className="flex items-center gap-2">
             <CustomTooltip tooltipBody={app.error?.description} className="bg-white">
               <span className="text-red-500">
@@ -121,15 +122,27 @@ function SynchronizedApp({
       {/* Accounts Table (expandable) */}
       {isExpanded && isAccountsNotEmpty ? (
         <div className="overflow-hidden">
-          <SynchronizedAccountsTable
-            accounts={accounts}
-            token={app.token}
-            polkadotAddresses={polkadotAddresses ?? []}
-            collections={collections}
-            appId={id}
-            updateTransaction={updateTransaction}
-            isMultisig={isMultisig}
-          />
+          {failedSync ? (
+            <InvalidSynchronizedAccountsTable
+              accounts={accounts}
+              token={app.token}
+              polkadotAddresses={polkadotAddresses ?? []}
+              collections={collections}
+              appId={id}
+              updateTransaction={updateTransaction}
+              isMultisig={isMultisig}
+            />
+          ) : (
+            <SynchronizedAccountsTable
+              accounts={accounts}
+              token={app.token}
+              polkadotAddresses={polkadotAddresses ?? []}
+              collections={collections}
+              appId={id}
+              updateTransaction={updateTransaction}
+              isMultisig={isMultisig}
+            />
+          )}
         </div>
       ) : null}
     </div>

@@ -17,7 +17,7 @@ import type { DeviceConnectionProps } from '@/lib/ledger/types'
 import { convertSS58Format, isMultisigAddress } from '@/lib/utils/address'
 import { hasAddressBalance, hasBalance, validateReservedBreakdown } from '@/lib/utils/balance'
 import { mapLedgerError } from '@/lib/utils/error'
-import { setDefaultDestinationAddress } from '@/lib/utils/ledger'
+import { filterAccountsForApps, setDefaultDestinationAddress } from '@/lib/utils/ledger'
 
 import type { MultisigCallFormData } from '@/components/sections/migrate/dialogs/approve-multisig-call-dialog'
 import { BN } from '@polkadot/util'
@@ -138,18 +138,27 @@ function updateApp(appId: AppId, update: Partial<App>) {
 }
 
 // Update Account
-function updateAccount(appId: AppId, address: string, update: Partial<Address>) {
+function updateAccount(appId: AppId, accountType: AccountType, address: string, update: Partial<Address>) {
   const apps = ledgerState$.apps.apps.get()
   const appIndex = apps.findIndex(app => app.id === appId)
 
   if (appIndex !== -1) {
-    const accounts = apps[appIndex]?.accounts ? [...apps[appIndex].accounts] : []
+    const app = apps[appIndex]
+    const singleAccounts = app?.accounts ? [...app.accounts] : []
+    const multisigAccounts = app?.multisigAccounts ? [...app.multisigAccounts] : []
+
+    const accounts = accountType === AccountType.MULTISIG ? multisigAccounts : singleAccounts
+
     const accountIndex = accounts.findIndex(account => account.address === address)
 
-    if (accountIndex !== -1) {
+    if (accountIndex !== -1 && accounts[accountIndex]) {
       const updatedAccount = { ...accounts[accountIndex], ...update }
       accounts[accountIndex] = updatedAccount
-      ledgerState$.apps.apps[appIndex].accounts.set(accounts)
+      if (accountType === AccountType.MULTISIG) {
+        ledgerState$.apps.apps[appIndex].multisigAccounts.set(accounts as MultisigAddress[])
+      } else {
+        ledgerState$.apps.apps[appIndex].accounts.set(accounts as Address[])
+      }
     } else {
       console.warn(`Account with address ${address} not found in app ${appId} for UI update.`)
     }
@@ -567,17 +576,9 @@ export const ledgerState$ = observable({
         })
       )
 
-      const filteredAccounts = accounts.filter(
-        account =>
-          !filterByBalance ||
-          (account.balances && hasBalance(account.balances)) ||
-          account.error ||
-          (account.memberMultisigAddresses && account.memberMultisigAddresses.length > 0)
-      )
+      const filteredAccounts = filterAccountsForApps(accounts, filterByBalance)
 
-      const filteredMultisigAccounts = Array.from(multisigAccounts.values()).filter(
-        multisigAccount => multisigAccount.balances && hasBalance(multisigAccount.balances)
-      )
+      const filteredMultisigAccounts = filterAccountsForApps(Array.from(multisigAccounts.values()), filterByBalance)
 
       // Only set the app if there are accounts after filtering
       if (filteredAccounts.length > 0) {
@@ -846,13 +847,13 @@ export const ledgerState$ = observable({
   },
 
   // Synchronize Balance
-  async getAccountBalance(appId: AppId, address: Address) {
-    updateAccount(appId, address.address, { isLoading: true })
+  async getAccountBalance(appId: AppId, accountType: AccountType, address: Address) {
+    updateAccount(appId, accountType, address.address, { isLoading: true })
     const rpcEndpoint = appsConfigs.get(appId)?.rpcEndpoint
 
     if (!rpcEndpoint) {
       console.error('RPC endpoint not found for app:', appId)
-      updateAccount(appId, address.address, {
+      updateAccount(appId, accountType, address.address, {
         isLoading: false,
         error: {
           source: 'balance_fetch',
@@ -865,7 +866,7 @@ export const ledgerState$ = observable({
     const { api, provider } = await getApiAndProvider(rpcEndpoint)
 
     if (!api) {
-      updateAccount(appId, address.address, {
+      updateAccount(appId, accountType, address.address, {
         isLoading: false,
         error: {
           source: 'balance_fetch',
@@ -878,7 +879,7 @@ export const ledgerState$ = observable({
     try {
       const { balances, collections, error } = await getBalance(address, api, appId)
       if (!error) {
-        updateAccount(appId, address.address, {
+        updateAccount(appId, accountType, address.address, {
           ...address,
           balances,
           status: AddressStatus.SYNCHRONIZED,
@@ -915,7 +916,7 @@ export const ledgerState$ = observable({
           })
         }
       } else {
-        updateAccount(appId, address.address, {
+        updateAccount(appId, accountType, address.address, {
           isLoading: false,
           error: {
             source: 'balance_fetch',

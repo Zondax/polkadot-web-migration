@@ -10,7 +10,7 @@ import type { UpdateTransaction } from '@/components/hooks/useSynchronization'
 import { useCallback } from 'react'
 import SynchronizedAccountRow from './synchronized-account-row'
 
-interface AccountsTableProps {
+interface SynchronizedAccountsTableProps {
   accounts: Address[] | MultisigAddress[] | undefined
   token: Token
   polkadotAddresses: string[]
@@ -20,7 +20,15 @@ interface AccountsTableProps {
   isMultisig?: boolean
 }
 
-function AccountsTable({ accounts, token, polkadotAddresses, collections, appId, updateTransaction, isMultisig }: AccountsTableProps) {
+function SynchronizedAccountsTable({
+  accounts,
+  token,
+  polkadotAddresses,
+  collections,
+  appId,
+  updateTransaction,
+  isMultisig,
+}: SynchronizedAccountsTableProps) {
   const renderAccounts = useCallback(() => {
     if (!accounts || accounts.length === 0) {
       return (
@@ -95,4 +103,4 @@ function AccountsTable({ accounts, token, polkadotAddresses, collections, appId,
   )
 }
 
-export default observer(AccountsTable)
+export default observer(SynchronizedAccountsTable)
