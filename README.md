@@ -179,6 +179,10 @@ This project provides a flexible configuration system for adding custom blockcha
        "symbol": "SYMBOL",
        "decimals": 12,
        "logoId": "token-icon-id"
+     },
+     "explorer": {
+       "id": "your-explorer-id",
+       "network": "your-network-name"
      }
    }
    ```
@@ -194,6 +198,9 @@ Each chain configuration contains these key parameters:
   - `symbol`: The currency symbol
   - `decimals`: Number of decimal places for the currency
   - `logoId`: (Optional) Used when the token's icon is different from the chain's icon (e.g., Asset Hubs)
+- `explorer`: An object containing the explorer information:
+  - `id`: The explorer ID you defined in `explorersConfig.json`
+  - `network`: The network name to substitute in the explorer's `baseUrl` (e.g., `polkadot`, `kusama`)
 
 For detailed examples of how to structure your chain configuration, refer to the existing entries in the appsConfig.json file.
 
