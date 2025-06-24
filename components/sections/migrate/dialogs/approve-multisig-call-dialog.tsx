@@ -268,7 +268,7 @@ function MultisigCallForm({
               <Input
                 {...field}
                 type="text"
-                placeholder="Enter multisigcall data for approval (e.g., 0x1234...)"
+                placeholder="Enter multisig call data for approval (e.g., 0x1234...)"
                 error={!!errors.callData && !isValidatingCallData}
                 helperText={renderCallDataHelperText()}
                 className={`${
