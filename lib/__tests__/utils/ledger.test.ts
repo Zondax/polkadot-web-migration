@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 import { BalanceType } from 'state/types/ledger'
 import {
+  filterAccountsForApps,
   filterInvalidSyncedApps,
   filterValidSyncedAppsWithBalances,
   getAppTotalAccounts,
@@ -17,6 +18,9 @@ import {
   mockAddress2,
   mockAddress3,
   mockAddressNoBalance,
+  mockAddressWithError,
+  mockAddressWithMigrationError,
+  mockAddressWithMigrationErrorAndBalance,
   mockApp1,
   mockApp2,
   mockAppMixedErrorTypes,
@@ -30,6 +34,7 @@ import {
   mockAppWithMultisigErrors,
   mockFreeNativeBalance,
   mockMultisigAddress1,
+  mockMultisigAddressNoBalance,
   mockMultisigAddressWithMigrationError,
 } from './__mocks__/mockData'
 
@@ -461,5 +466,67 @@ describe('setDefaultDestinationAddress', () => {
     expect(result.balances?.[0].transaction?.destinationAddress).toBe(defaultAddress)
     expect(result.balances?.[0].transaction?.status).toBe(TransactionStatus.PENDING)
     expect(result.balances?.[0].transaction?.statusMessage).toBe('Test message')
+  })
+})
+
+// =========== Tests: filterAccountsForApps ===========
+describe('filterAccountsForApps', () => {
+  it('should return all accounts without errors if filterByBalance is false', () => {
+    const accounts = [mockAddress1, mockAddress2, mockAddressNoBalance]
+    const result = filterAccountsForApps(accounts, false)
+    expect(result).toHaveLength(3)
+  })
+
+  it('should return only accounts with balances if filterByBalance is true', () => {
+    const accounts = [mockAddress1, mockAddressNoBalance]
+    const result = filterAccountsForApps(accounts, true)
+    expect(result).toHaveLength(1)
+    expect(result[0].address).toBe(mockAddress1.address)
+  })
+
+  it('should include accounts with errors even if they have no balances', () => {
+    const accounts = [mockAddressWithError, mockAddressNoBalance]
+    const result = filterAccountsForApps(accounts, true)
+    expect(result).toContainEqual(mockAddressWithError)
+  })
+
+  it('should include accounts with migration errors even if they have no balances', () => {
+    const accounts = [mockAddressWithMigrationError, mockAddressNoBalance]
+    const result = filterAccountsForApps(accounts, true)
+    expect(result).toContainEqual(mockAddressWithMigrationError)
+  })
+
+  it('should include accounts with memberMultisigAddresses even if they have no balances', () => {
+    const multisigWithMembers = { ...mockMultisigAddress1, balances: undefined, memberMultisigAddresses: ['foo'] }
+    const result = filterAccountsForApps([multisigWithMembers], true)
+    expect(result).toHaveLength(1)
+    expect(result[0].memberMultisigAddresses).toBeDefined()
+    expect(result[0].memberMultisigAddresses.length).toBeGreaterThan(0)
+  })
+
+  it('should return empty array if input is empty', () => {
+    const result = filterAccountsForApps([], true)
+    expect(result).toHaveLength(0)
+  })
+
+  it('should handle accounts with undefined balances', () => {
+    const accountWithUndefinedBalances = { ...mockAddress1, balances: undefined }
+    const result = filterAccountsForApps([accountWithUndefinedBalances], true)
+    // Should be excluded unless it has error or memberMultisigAddresses
+    expect(result).toHaveLength(0)
+  })
+
+  it('should include account with migration error and balance if filterByBalance is true', () => {
+    const accounts = [mockAddressWithMigrationErrorAndBalance]
+    const result = filterAccountsForApps(accounts, true)
+    expect(result).toHaveLength(1)
+    expect(result[0].address).toBe(mockAddressWithMigrationErrorAndBalance.address)
+  })
+
+  it('should work for multisig accounts with and without balances', () => {
+    const accounts = [mockMultisigAddress1, mockMultisigAddressNoBalance]
+    const result = filterAccountsForApps(accounts, true)
+    expect(result).toHaveLength(1)
+    expect(result[0].address).toBe(mockMultisigAddress1.address)
   })
 })

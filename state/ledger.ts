@@ -591,7 +591,6 @@ export const ledgerState$ = observable({
           await provider.disconnect()
         }
 
-        console.log('filteredMultisigAccounts', filteredMultisigAccounts)
         return {
           name: app.name,
           id: app.id,
