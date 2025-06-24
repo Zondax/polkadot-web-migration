@@ -27,6 +27,7 @@ import { notifications$ } from './notifications'
 import {
   AccountType,
   type Address,
+  type AddressBalance,
   AddressStatus,
   BalanceType,
   type Collection,
@@ -440,11 +441,22 @@ export const ledgerState$ = observable({
 
       const accounts: Address[] = await Promise.all(
         response.result.map(async address => {
+          let addressHasNegativeBalance = false
+          const balances: AddressBalance[] = []
+
           // Balance Info
           const { balances: balancesResponse, collections, error } = await getBalance(address, api, app.id)
-          const balances = balancesResponse.filter(balance => hasBalance([balance]))
+          balancesResponse.map(balance => {
+            if (hasNegativeBalance([balance])) {
+              console.log('balance', balance)
+              addressHasNegativeBalance = true
+            }
+            if (hasBalance([balance])) {
+              balances.push(balance)
+            }
+          })
 
-          if (error || hasNegativeBalance(balances)) {
+          if (error || addressHasNegativeBalance) {
             return {
               ...address,
               balances,

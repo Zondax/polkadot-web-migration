@@ -100,7 +100,12 @@ export const hasNegativeBalance = (balances?: AddressBalance[]): boolean => {
   if (!balances) return false
   return balances.some(balance => {
     if (isNativeBalance(balance)) {
-      return balance.balance.total.lt(new BN(0))
+      return (
+        balance.balance.free.lt(new BN(0)) ||
+        balance.balance.reserved.total.lt(new BN(0)) ||
+        balance.balance.frozen.lt(new BN(0)) ||
+        balance.balance.total.lt(new BN(0))
+      )
     }
     return false
   })
