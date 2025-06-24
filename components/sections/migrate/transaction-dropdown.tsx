@@ -26,10 +26,10 @@ function TransactionDropdown({ transaction, appId }: TransactionDropdownProps) {
         {/* Transaction Details */}
         {transaction.callData && (
           <DropdownMenuItem className="gap-2">
-            Call Data:
+            Multisig Call Data:
             <ExplorerLink value={transaction.callData ?? ''} tooltipBody={transaction.callData} className="break-all" disableLink />
             <CustomTooltip
-              tooltipBody="The full call data that can be supplied to a final call to multi approvals."
+              tooltipBody="The full call data that can be supplied to a final call to multi approvals. Please save it for future use."
               className="normal-case! font-normal"
             >
               <Info className="h-4 w-4 inline-block ml-1 text-gray-400" />

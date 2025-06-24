@@ -157,9 +157,11 @@ function MultisigCallForm({
               <div key={approval} className="flex items-center gap-1">
                 <ExplorerLink value={approval} appId={appId as AppId} explorerLinkType={ExplorerItemType.Address} />
                 {approval === depositorAddress && (
-                  <Badge variant="light-gray" className="text-[10px] leading-tight shrink-0">
-                    Depositor
-                  </Badge>
+                  <CustomTooltip tooltipBody="The depositor is the account that submitted the multisig call and paid the initial deposit.">
+                    <Badge variant="light-gray" className="text-[10px] leading-tight shrink-0">
+                      Depositor
+                    </Badge>
+                  </CustomTooltip>
                 )}
               </div>
             ))}
@@ -247,10 +249,18 @@ function MultisigCallForm({
         </div>
       )}
 
-      {/* Call Data Input with Validation */}
+      {/* Multisig Call Data Input with Validation */}
       {isCallDataRequired && (
         <div>
-          <div className="text-xs text-muted-foreground mb-1">Call Data</div>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="text-xs text-muted-foreground">Multisig Call Data</div>
+            <CustomTooltip
+              tooltipBody="The multisig call data is required to be supplied to a final call to multi approvals. This should have been returned when the multisig call was originally created."
+              className="mb-1"
+            >
+              <Info className="h-3.5 w-3.5 text-muted-foreground" aria-label="Info" />
+            </CustomTooltip>
+          </div>
           <Controller
             name="callData"
             control={control}
@@ -258,7 +268,7 @@ function MultisigCallForm({
               <Input
                 {...field}
                 type="text"
-                placeholder="Enter call data for approval (e.g., 0x1234...)"
+                placeholder="Enter multisigcall data for approval (e.g., 0x1234...)"
                 error={!!errors.callData && !isValidatingCallData}
                 helperText={renderCallDataHelperText()}
                 className={`${
