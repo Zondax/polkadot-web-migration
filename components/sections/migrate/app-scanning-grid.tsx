@@ -36,7 +36,7 @@ const AppScanItem = ({ app }: AppScanItemProps) => {
       if (hasAccounts) {
         statusIcon = totalAccounts
         statusClass = 'border-green-200 bg-green-50 opacity-100'
-        statusText = `Ready to migrate (${totalAccounts} accounts)`
+        statusText = `Ready to migrate (${totalAccounts} ${totalAccounts === 1 ? 'account' : 'accounts'})`
       } else {
         statusIcon = totalAccounts
         statusClass = 'border-gray-200 bg-white opacity-80'
