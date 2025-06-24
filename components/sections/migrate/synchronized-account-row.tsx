@@ -119,7 +119,7 @@ const SynchronizedAccountRow = ({
   if (canWithdraw) {
     actions.push({
       label: 'Withdraw',
-      tooltip: 'Move your unlocked assets to your available balance',
+      tooltip: 'Move your unstaked assets to your available balance',
       onClick: () => setWithdrawOpen(true),
       disabled: false,
       icon: <BanknoteArrowDown className="h-4 w-4" />,
