@@ -20,13 +20,12 @@ export function SuccessDialog({ open, onClose, onReturn, successCount, totalCoun
         <DialogHeader className="items-center">
           <DialogTitle>
             <CheckCircle className="h-6 w-6 text-green-500" />
-            Migration Completed
+            Migration Processed
           </DialogTitle>
-          <DialogDescription>Your accounts have been migrated to the Universal Ledger App.</DialogDescription>
-          <DialogDescription className="pt-3">
-            {successCount} of {totalCount} transactions successful.
+          <DialogDescription>
+            All selected transactions have been processed. {successCount} out of {totalCount} were successful.
           </DialogDescription>
-          <DialogDescription className="pt-3">View details to see the results of the transactions.</DialogDescription>
+          <DialogDescription className="pt-3">Review the details below to see the outcome of each transaction.</DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
