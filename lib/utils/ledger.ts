@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { type App, AppStatus } from 'state/ledger'
 import type { Address, AddressBalance, AddressWithVerificationStatus, MultisigAddress } from 'state/types/ledger'
-import { hasAddressBalance } from './balance'
+import { hasAddressBalance, hasBalance } from './balance'
 
 /**
  * Retrieves a light icon for a given app from the Hub backend.
@@ -136,6 +136,23 @@ export const hasAppAccounts = (app: App): boolean => {
  */
 export const getAppTotalAccounts = (app: App): number => {
   return (app.accounts?.length || 0) + (app.multisigAccounts?.length || 0)
+}
+
+/**
+ * Filters the accounts that will be saved in the app.
+ *
+ * @param app - The app whose accounts will be filtered.
+ * @param filterByBalance - A function to test each account. Return true to keep the account, false otherwise.
+ * @returns An array of accounts that satisfy the predicate.
+ */
+export function filterAccountsForApps<T extends Address | MultisigAddress>(accounts: T[], filterByBalance: boolean): T[] {
+  return accounts.filter(
+    account =>
+      !filterByBalance ||
+      (account.balances && hasBalance(account.balances)) ||
+      account.error ||
+      (account.memberMultisigAddresses && account.memberMultisigAddresses.length > 0)
+  )
 }
 
 /**

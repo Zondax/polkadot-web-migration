@@ -2,8 +2,9 @@ import { use$, useObservable } from '@legendapp/state/react'
 import { useCallback, useState } from 'react'
 import { type App, AppStatus, ledgerState$ } from 'state/ledger'
 
+import type { AppId } from '@/config/apps'
 import { filterInvalidSyncedApps, filterValidSyncedAppsWithBalances, hasAccountsWithErrors } from '@/lib/utils'
-import type { Transaction } from '@/state/types/ledger'
+import { AccountType, type Address, type MultisigAddress, type Transaction } from '@/state/types/ledger'
 
 export type UpdateTransaction = (
   transaction: Partial<Transaction>,
@@ -12,6 +13,19 @@ export type UpdateTransaction = (
   balanceIndex: number,
   isMultisig: boolean
 ) => void
+
+// Helper function to rescan accounts with errors for a given app and account type
+const rescanAccountsWithErrors = async (accounts: Address[] | MultisigAddress[], accountType: AccountType, appId: AppId) => {
+  for (const account of accounts) {
+    // Check for cancellation before each account
+    if (ledgerState$.apps.isSyncCancelRequested.get()) {
+      return
+    }
+    if (account.error && appId) {
+      await ledgerState$.getAccountBalance(appId, accountType, account)
+    }
+  }
+}
 
 interface UseSynchronizationReturn {
   // General
@@ -96,19 +110,11 @@ export const useSynchronization = (): UseSynchronizationReturn => {
         if (app.status === AppStatus.ERROR) {
           // Rescan the entire app if it has an error status
           await ledgerState$.synchronizeAccount(app.id)
-        } else if (app.accounts) {
-          // Otherwise just rescan individual accounts with errors
-          for (const account of app.accounts) {
-            // Check again for cancellation for each account
-            if (ledgerState$.apps.isSyncCancelRequested.get()) {
-              return
-            }
-
-            if (account.error && app.id) {
-              await ledgerState$.getAccountBalance(app.id, account)
-            }
-          }
+          continue
         }
+
+        await rescanAccountsWithErrors(app.accounts ?? [], AccountType.ACCOUNT, app.id)
+        await rescanAccountsWithErrors(app.multisigAccounts ?? [], AccountType.MULTISIG, app.id)
       }
     } finally {
       setIsRescaning(false)
