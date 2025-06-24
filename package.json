@@ -21,7 +21,7 @@
     "format:check": "biome format . && sort-package-json -c",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write --unsafe .",
-    "prepare-pr": "pnpm install && pnpm exec playwright install && pnpm format && pnpm lint:fix && pnpm test && pnpm test:e2e && pnpm build",
+    "prepare-pr": "pnpm install && pnpm exec playwright install && pnpm format && pnpm lint:fix && pnpm build && pnpm test && pnpm test:e2e",
     "start": "next start",
     "start:docker": "PORT=${PORT:-3000} && docker run --rm -p $PORT:3000 polkadot-migration",
     "test": "vitest run --coverage",
@@ -77,8 +77,8 @@
     "html-react-parser": "^5.2.3",
     "isomorphic-dompurify": "^2.25.0",
     "jsdom": "^26.1.0",
-    "lucide-react": "^0.516.0",
-    "next": "15.3.3",
+    "lucide-react": "^0.522.0",
+    "next": "15.3.4",
     "next-auth": "5.0.0-beta.28",
     "next-themes": "^0.4.6",
     "postcss": "^8.5.6",
@@ -96,17 +96,17 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
-    "@playwright/test": "1.53.0",
+    "@playwright/test": "1.53.1",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "16.3.0",
     "@types/node": "24.0.3",
     "@types/react": "19.1.8",
     "@types/react-dom": "npm:types-react-dom@19.0.0-alpha.3",
-    "@vitejs/plugin-react": "4.5.2",
-    "@vitest/coverage-v8": "3.2.3",
+    "@vitejs/plugin-react": "4.6.0",
+    "@vitest/coverage-v8": "3.2.4",
     "globals": "^16.0.0",
     "sort-package-json": "^3.0.0",
     "typescript": "^5.8.3",
-    "vitest": "3.2.3"
+    "vitest": "3.2.4"
   }
 }
