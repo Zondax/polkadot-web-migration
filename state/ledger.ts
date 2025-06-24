@@ -446,17 +446,28 @@ export const ledgerState$ = observable({
 
           // Balance Info
           const { balances: balancesResponse, collections, error } = await getBalance(address, api, app.id)
-          balancesResponse.map(balance => {
+          for (const balance of balancesResponse) {
             if (hasNegativeBalance([balance])) {
-              console.log('balance', balance)
               addressHasNegativeBalance = true
+              break
             }
             if (hasBalance([balance])) {
               balances.push(balance)
             }
-          })
+          }
+          if (addressHasNegativeBalance) {
+            return {
+              ...address,
+              balances,
+              error: {
+                source: 'balance_fetch',
+                description: 'Address has a negative balance',
+              },
+              isLoading: false,
+            }
+          }
 
-          if (error || addressHasNegativeBalance) {
+          if (error) {
             return {
               ...address,
               balances,

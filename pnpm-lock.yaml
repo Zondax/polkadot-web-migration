@@ -6370,11 +6370,6 @@ snapshots:
 
   why-is-node-running@2.3.0:
     dependencies:
-      isexe: 3.1.1
-    optional: true
-
-  why-is-node-running@2.3.0:
-    dependencies:
       siginfo: 2.0.0
       stackback: 0.0.2
 

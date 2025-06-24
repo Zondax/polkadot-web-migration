@@ -105,8 +105,7 @@ export async function getBalance(
   error?: string
 }> {
   const { address: addressString } = address
-  console.log('[getBalance] addressString', addressString)
-
+  
   try {
     if (process.env.NEXT_PUBLIC_NODE_ENV === 'development') {
       if (mockBalances.some(balance => balance.address === addressString)) {
