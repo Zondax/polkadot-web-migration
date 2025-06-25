@@ -40,3 +40,7 @@ test-results/
 playwright-report/
 .qodo
 biome-report.json
+
+
+# vitest
+/html/

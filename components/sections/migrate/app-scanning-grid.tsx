@@ -44,17 +44,17 @@ const AppScanItem = ({ app }: AppScanItemProps) => {
       }
       break
     case AppStatus.ERROR:
-      statusIcon = <AlertCircle className="h-3.5 w-3.5 text-red-500" />
+      statusIcon = <AlertCircle data-testid="error-icon" className="h-3.5 w-3.5 text-red-500" />
       statusClass = 'border-red-200 bg-red-50 opacity-100'
       statusText = 'Failed synchronization'
       break
     case AppStatus.LOADING:
-      statusIcon = <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-500" />
+      statusIcon = <Loader2 data-testid="loading-icon" className="h-3.5 w-3.5 animate-spin text-indigo-500" />
       statusClass = 'border-indigo-200 bg-indigo-50 opacity-100 animate-pulse'
       statusText = 'Synchronizing'
       break
     case AppStatus.RESCANNING:
-      statusIcon = <Loader2 className="h-3.5 w-3.5 animate-spin text-yellow-500" />
+      statusIcon = <Loader2 data-testid="loading-icon" className="h-3.5 w-3.5 animate-spin text-yellow-500" />
       statusClass = 'border-yellow-200 bg-yellow-50 opacity-50'
       statusText = 'Rescanning'
       displayBadge = false
@@ -69,12 +69,16 @@ const AppScanItem = ({ app }: AppScanItemProps) => {
 
   return (
     <CustomTooltip tooltipBody={statusText}>
-      <div className={cn('flex flex-col items-center p-3 rounded-lg border transition-all', statusClass)}>
+      <div className={cn('flex flex-col items-center p-3 rounded-lg border transition-all', statusClass)} data-testid="app-sync-grid-item">
         <div className="relative mb-2">
-          <TokenIcon icon={icon} symbol={appName.substring(0, 3)} size="md" />
+          <TokenIcon icon={icon} symbol={appName.substring(0, 3)} size="md" data-testid="app-sync-icon" />
           {displayBadge && (
             <div className="absolute -right-2 -bottom-2">
-              <Badge variant="outline" className="bg-white h-5 min-w-5 px-0 justify-center rounded-full text-xs">
+              <Badge
+                variant="outline"
+                className="bg-white h-5 min-w-5 px-0 justify-center rounded-full text-xs"
+                data-testid="app-sync-badge"
+              >
                 {statusIcon}
               </Badge>
             </div>
@@ -111,7 +115,10 @@ const AppScanningGrid = observer(() => {
   })
 
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-10 xl:grid-cols-12 gap-2 mt-2 mb-4">
+    <div
+      className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-10 xl:grid-cols-12 gap-2 mt-2 mb-4"
+      data-testid="app-sync-grid"
+    >
       {displayApps.map(app => (
         <AppScanItem key={app.id} app={app} />
       ))}
