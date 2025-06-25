@@ -15,7 +15,7 @@ import {
 } from '@/lib/account'
 import type { DeviceConnectionProps } from '@/lib/ledger/types'
 import { convertSS58Format, isMultisigAddress } from '@/lib/utils/address'
-import { hasAddressBalance, hasBalance, validateReservedBreakdown } from '@/lib/utils/balance'
+import { hasAddressBalance, hasBalance, hasNegativeBalance, validateReservedBreakdown } from '@/lib/utils/balance'
 import { mapLedgerError } from '@/lib/utils/error'
 import { filterAccountsForApps, setDefaultDestinationAddress } from '@/lib/utils/ledger'
 
@@ -27,6 +27,7 @@ import { notifications$ } from './notifications'
 import {
   AccountType,
   type Address,
+  type AddressBalance,
   AddressStatus,
   BalanceType,
   type Collection,
@@ -440,9 +441,31 @@ export const ledgerState$ = observable({
 
       const accounts: Address[] = await Promise.all(
         response.result.map(async address => {
+          let addressHasNegativeBalance = false
+          const balances: AddressBalance[] = []
+
           // Balance Info
           const { balances: balancesResponse, collections, error } = await getBalance(address, api, app.id)
-          const balances = balancesResponse.filter(balance => hasBalance([balance]))
+          for (const balance of balancesResponse) {
+            if (hasNegativeBalance([balance])) {
+              addressHasNegativeBalance = true
+              break
+            }
+            if (hasBalance([balance])) {
+              balances.push(balance)
+            }
+          }
+          if (addressHasNegativeBalance) {
+            return {
+              ...address,
+              balances,
+              error: {
+                source: 'balance_fetch',
+                description: 'The synchronized balance is not valid',
+              },
+              isLoading: false,
+            }
+          }
 
           if (error) {
             return {

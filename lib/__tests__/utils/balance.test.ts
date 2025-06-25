@@ -6,6 +6,7 @@ import {
   canUnstake,
   getNonTransferableBalance,
   hasAddressBalance,
+  hasNegativeBalance,
   hasNonTransferableBalance,
   hasStakedBalance,
   isNativeBalance,
@@ -23,6 +24,7 @@ import {
   mockAddressWithError,
   mockEmptyNativeBalance,
   mockFreeNativeBalance,
+  mockFreeNativeBalanceWithNegativeValue,
   mockFrozenNativeBalance,
   mockNft1,
   mockReservedNativeBalance,
@@ -240,6 +242,43 @@ describe('hasBalance', () => {
       ],
     }
     expect(hasAddressBalance(addressWithZeroBalances)).toBe(false)
+  })
+})
+
+describe('hasNegativeBalance', () => {
+  it('should return false if balances is undefined', () => {
+    expect(hasNegativeBalance(undefined)).toBe(false)
+  })
+
+  it('should return false for balances with no negative values', () => {
+    const balances: AddressBalance[] = [
+      {
+        type: BalanceType.NATIVE,
+        balance: mockFreeNativeBalance,
+      },
+    ]
+    expect(hasNegativeBalance(balances)).toBe(false)
+  })
+
+  it('should return false for non-native balances', () => {
+    const balances: AddressBalance[] = [
+      {
+        type: BalanceType.NFT,
+        balance: [mockNft1],
+      },
+    ]
+    expect(hasNegativeBalance(balances)).toBe(false)
+  })
+
+  // TODO: Create a mock with negative balance values to test the positive case
+  it('should return true when a native balance has negative values', () => {
+    const negativeBalances: AddressBalance[] = [
+      {
+        type: BalanceType.NATIVE,
+        balance: mockFreeNativeBalanceWithNegativeValue,
+      },
+    ]
+    expect(hasNegativeBalance(negativeBalances)).toBe(true)
   })
 })
 

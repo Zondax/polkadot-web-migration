@@ -144,6 +144,15 @@ export const mockEmptyNativeBalance: Native = {
 }
 
 // mock free native balance
+export const mockFreeNativeBalanceWithNegativeValue: Native = {
+  total: new BN(1000),
+  free: new BN(-10),
+  reserved: { total: new BN(0) },
+  frozen: new BN(0),
+  transferable: new BN(-10),
+}
+
+// mock free native balance
 export const mockFreeNativeBalance: Native = {
   total: new BN(1000),
   free: new BN(1000),

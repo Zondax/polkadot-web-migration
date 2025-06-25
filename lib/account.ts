@@ -2,7 +2,7 @@ import { merkleizeMetadata } from '@polkadot-api/merkleize-metadata'
 import { ApiPromise, WsProvider } from '@polkadot/api'
 import type { SubmittableExtrinsic } from '@polkadot/api/types'
 import type { GenericExtrinsicPayload } from '@polkadot/types'
-import type { Option, u128, u32, Vec } from '@polkadot/types-codec'
+import type { Option, Vec, u32, u128 } from '@polkadot/types-codec'
 import type {
   AccountId32,
   Balance,
@@ -17,8 +17,8 @@ import type { ExtrinsicPayloadValue, ISubmittableResult } from '@polkadot/types/
 import { BN, hexToU8a } from '@polkadot/util'
 import type { AppConfig, AppId } from 'config/apps'
 import { DEFAULT_ERA_TIME_IN_HOURS, getEraTimeByAppId } from 'config/apps'
-import { defaultWeights, MULTISIG_WEIGHT_BUFFER } from 'config/config'
-import { errorDetails, InternalErrors } from 'config/errors'
+import { MULTISIG_WEIGHT_BUFFER, defaultWeights } from 'config/config'
+import { InternalErrors, errorDetails } from 'config/errors'
 import { errorAddresses, mockBalances } from 'config/mockData'
 import { getMultisigInfo } from 'lib/subscan'
 import {
@@ -110,6 +110,7 @@ export async function getBalance(
     if (process.env.NEXT_PUBLIC_NODE_ENV === 'development') {
       if (mockBalances.some(balance => balance.address === addressString)) {
         const totalBalanceBN = new BN(mockBalances.find(balance => balance.address === addressString)?.balance ?? 0)
+
         const balance: Native = {
           free: totalBalanceBN,
           reserved: { total: new BN(0) },
