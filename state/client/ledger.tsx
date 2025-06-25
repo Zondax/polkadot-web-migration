@@ -659,7 +659,11 @@ export const ledgerClient = {
         // Create and wait for transaction to be submitted
         await submitAndHandleTransaction(transfer, updateTxStatus, api)
       },
-      { errorCode: InternalErrors.REMOVE_ACCOUNT_INDEX_ERROR, operation: 'removeAccountIndex', context: { appId, address, path, accountIndex } }
+      {
+        errorCode: InternalErrors.REMOVE_ACCOUNT_INDEX_ERROR,
+        operation: 'removeAccountIndex',
+        context: { appId, address, path, accountIndex },
+      }
     )
   },
 
@@ -685,7 +689,11 @@ export const ledgerClient = {
 
         return estimatedFee
       },
-      { errorCode: InternalErrors.GET_REMOVE_ACCOUNT_INDEX_FEE_ERROR, operation: 'getRemoveAccountIndexFee', context: { appId, address, accountIndex } }
+      {
+        errorCode: InternalErrors.GET_REMOVE_ACCOUNT_INDEX_FEE_ERROR,
+        operation: 'getRemoveAccountIndexFee',
+        context: { appId, address, accountIndex },
+      }
     )
   },
   clearConnection() {
