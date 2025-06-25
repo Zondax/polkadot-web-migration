@@ -43,6 +43,8 @@ export const withErrorHandling = async <T>(
     }
 
     console.debug('[LedgerClientError]', {
+      error,
+      code: errorCode,
       name: ledgerError.name,
       message: ledgerError.message,
       operation: ledgerError.operation,

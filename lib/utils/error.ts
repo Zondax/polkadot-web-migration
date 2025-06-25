@@ -15,12 +15,17 @@ const isLedgerClientError = (error: LedgerClientError | string): error is Ledger
 export function mapLedgerError(error: LedgerClientError | string, defaultError: InternalErrors | LedgerErrors): ErrorDetails {
   let resolvedError: ErrorDetails | undefined
 
+  console.log('error', error, defaultError)
+  console.log('isLedgerClientError', isLedgerClientError(error))
+
   const errorDetail = errorDetails[isLedgerClientError(error) ? error.name : (error as keyof typeof errorDetails)]
   if (errorDetail) {
     resolvedError = errorDetail
   } else {
     resolvedError = errorDetails[defaultError] || errorDetails.default
   }
+
+  console.log('resolvedError', resolvedError)
 
   return resolvedError
 }

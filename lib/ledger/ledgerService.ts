@@ -40,11 +40,11 @@ export class LedgerService implements ILedgerService {
 
   // Handles transport disconnection
   private handleDisconnect = () => {
-    this.deviceConnection = {
-      transport: undefined,
-      genericApp: undefined,
-      isAppOpen: false,
-    }
+    // this.deviceConnection = {
+    //   transport: undefined,
+    //   genericApp: undefined,
+    //   isAppOpen: false,
+    // }
     console.debug('[ledgerService] disconnecting')
   }
 
@@ -133,15 +133,23 @@ export class LedgerService implements ILedgerService {
    * Gets an account address from the Ledger device
    */
   async getAccountAddress(bip44Path: string, ss58prefix: number, showAddrInDevice: boolean): Promise<GenericeResponseAddress | undefined> {
-    if (!this.deviceConnection?.genericApp) {
-      throw new Error('App not open')
-    }
+    // if (!this.deviceConnection?.genericApp) {
+    //   throw new Error('App not open')
+    // }
 
     console.debug(`[ledgerService] Getting address for path: ${bip44Path}`)
     const genericApp = this.deviceConnection.genericApp as unknown as PolkadotGenericApp
-    const address = await genericApp.getAddress(bip44Path, ss58prefix, showAddrInDevice)
-    console.debug(`[ledgerService] Found address: ${address.address} for path: ${bip44Path}`)
-    return address
+    console.log('getting version', genericApp)
+    const version = await genericApp.getVersion()
+    console.debug(`[ledgerService] Version: ${version}`)
+    try {
+      const address = await genericApp.getAddress(bip44Path, ss58prefix, showAddrInDevice)
+      console.debug(`[ledgerService] Found address: ${address.address} for path: ${bip44Path}`)
+      return address
+    } catch (error) {
+      console.debug('[ledgerService] Error getting address:', error)
+      throw error
+    }
   }
 
   /**

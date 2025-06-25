@@ -38,6 +38,7 @@ export const useConnection = (): UseConnectionReturn => {
     const result = await ledgerState$.connectLedger()
 
     if (result.connected && result.isAppOpen) {
+      console.log('starting synchronization')
       ledgerState$.synchronizeAccounts()
       return true
     }

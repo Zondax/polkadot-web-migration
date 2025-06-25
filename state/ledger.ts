@@ -378,6 +378,8 @@ export const ledgerState$ = observable({
 
       const response = await ledgerClient.synchronizeAccounts(app)
 
+      console.log('response', response)
+
       if (!response.result || !app.rpcEndpoint) {
         return {
           name: app.name,
@@ -648,6 +650,7 @@ export const ledgerState$ = observable({
     } catch (error) {
       console.debug('Error fetching and processing accounts for app:', app.id)
       const errorDetail = mapLedgerError(error as LedgerClientError, InternalErrors.FETCH_PROCESS_ACCOUNTS_ERROR)
+      // TODO: check if the error should stop synchronization
       return {
         name: app.name,
         id: app.id,
@@ -833,6 +836,7 @@ export const ledgerState$ = observable({
         }
 
         if (appConfig) {
+          console.log('starting synchronization for', appConfig.name)
           ledgerState$.apps.apps.push({
             id: appConfig.id,
             name: appConfig.name,
@@ -843,6 +847,9 @@ export const ledgerState$ = observable({
 
           // Comment it later
           const app = await ledgerState$.fetchAndProcessAccountsForApp(appConfig)
+          // if (app?.error) {
+          //   throw new Error(app.error.description)
+          // }
           if (app) {
             updateApp(appConfig.id, app)
           }
