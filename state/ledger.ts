@@ -461,7 +461,7 @@ export const ledgerState$ = observable({
               balances,
               error: {
                 source: 'balance_fetch',
-                description: 'Address has a negative balance',
+                description: 'The synchronized balance is not valid',
               },
               isLoading: false,
             }
