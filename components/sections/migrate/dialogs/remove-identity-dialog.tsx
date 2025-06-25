@@ -1,17 +1,16 @@
 import type { Address, TransactionDetails, TransactionStatus } from 'state/types/ledger'
 
+import { CustomTooltip } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
-import TokenIcon from '@/components/TokenIcon'
-import { useTokenLogo } from '@/components/hooks/useTokenLogo'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
-import { Spinner } from '@/components/icons'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { type AppId, type Token, getChainName } from '@/config/apps'
+import type { AppId, Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { formatBalance } from '@/lib/utils/format'
 import { ledgerState$ } from '@/state/ledger'
-import { BN } from '@polkadot/util'
-import { useEffect, useMemo } from 'react'
+import type { BN } from '@polkadot/util'
+import { useEffect } from 'react'
+import { DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
 interface RemoveIdentityDialogProps {
@@ -26,51 +25,43 @@ interface RemoveIdentityFormProps {
   token: Token
   account: Address
   appId: AppId
-  estimatedFee?: string
+  estimatedFee?: BN
   estimatedFeeLoading: boolean
 }
 
 function RemoveIdentityForm({ token, account, appId, estimatedFee, estimatedFeeLoading }: RemoveIdentityFormProps) {
-  const icon = useTokenLogo(token.logoId)
-  const appName = getChainName(appId)
-
   return (
-    <div className="space-y-4">
+    <>
       {/* Sending account */}
-      <div className="text-sm">
-        <div className="text-xs text-muted-foreground mb-1">Source Address</div>
-        <ExplorerLink value={account.address} appId={appId} explorerLinkType={ExplorerItemType.Address} />
-      </div>
+      <DialogField>
+        <DialogLabel>Source Address</DialogLabel>
+        <ExplorerLink value={account.address} appId={appId} explorerLinkType={ExplorerItemType.Address} size="xs" />
+      </DialogField>
       {/* Network */}
-      <div>
-        <div className="text-xs text-muted-foreground mb-1">Network</div>
-        <div className="flex items-center gap-2">
-          <TokenIcon icon={icon} symbol={token.symbol} size="md" />
-          <span className="font-semibold text-base">{appName}</span>
-        </div>
-      </div>
+      <DialogField>
+        <DialogLabel>Network</DialogLabel>
+        <DialogNetworkContent token={token} appId={appId} />
+      </DialogField>
       {/* Deposit */}
       {account.registration?.deposit !== undefined ? (
-        <div className="text-sm">
-          <div className="text-xs text-muted-foreground mb-1">Deposit to be returned</div>
-          <span className="font-mono">{formatBalance(account.registration.deposit, token)}</span>
-        </div>
+        <DialogField>
+          <DialogLabel>Deposit to Be Returned</DialogLabel>
+          <CustomTooltip tooltipBody={formatBalance(account.registration.deposit, token, token?.decimals, true)}>
+            <span className="font-mono">{formatBalance(account.registration.deposit, token)}</span>
+          </CustomTooltip>
+        </DialogField>
       ) : null}
       {/* Estimated Fee */}
-      <div className="flex flex-col items-start justify-start">
-        <div className="text-xs text-muted-foreground mb-1">Estimated Fee</div>
-        {estimatedFeeLoading ? (
-          <Spinner className="w-4 h-4" />
-        ) : (
-          <span className={`text-sm ${estimatedFee ? ' font-mono' : ''}`}>{estimatedFee ?? 'Could not be calculated at this time'}</span>
-        )}
-      </div>
-    </div>
+      <DialogField>
+        <DialogLabel>Estimated Fee</DialogLabel>
+        <DialogEstimatedFeeContent token={token} estimatedFee={estimatedFee} loading={estimatedFeeLoading} />
+      </DialogField>
+    </>
   )
 }
 
 export default function RemoveIdentityDialog({ open, setOpen, token, account, appId }: RemoveIdentityDialogProps) {
-  // Wrap ledgerState$.withdrawBalance to match the generic hook's expected signature
+  // Wrap ledgerState$.removeIdentity to match the generic hook's expected signature
   const removeIdentityTxFn = async (
     updateTxStatus: (status: TransactionStatus, message?: string, txDetails?: TransactionDetails) => void,
     appId: AppId,
@@ -99,8 +90,6 @@ export default function RemoveIdentityDialog({ open, setOpen, token, account, ap
       getEstimatedFee(appId, account.address)
     }
   }, [open, getEstimatedFee, appId, account.address])
-
-  const formattedFee = useMemo(() => (estimatedFee ? formatBalance(estimatedFee, token) : undefined), [estimatedFee, token])
 
   const signWithdrawTx = async () => {
     await runTransaction(appId, account.address, account.path)
@@ -133,7 +122,7 @@ export default function RemoveIdentityDialog({ open, setOpen, token, account, ap
               token={token}
               account={account}
               appId={appId}
-              estimatedFee={formattedFee}
+              estimatedFee={estimatedFee}
               estimatedFeeLoading={estimatedFeeLoading}
             />
           )}

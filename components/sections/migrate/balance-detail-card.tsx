@@ -2,7 +2,7 @@ import { BalanceType, type Collection, type Native } from 'state/types/ledger'
 
 import TokenIcon from '@/components/TokenIcon'
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
-import { Badge, type BadgeProps, type BadgeVariant } from '@/components/ui/badge'
+import { Badge, type BadgeProps } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { Token } from '@/config/apps'
 import { formatBalance } from '@/lib/utils/format'
@@ -61,15 +61,16 @@ const NftDetailCard = ({ balance, collection, isUnique }: NftDetailCardProps) =>
 interface NativeTokensDetailCardProps {
   balance: Native
   token: Token
+  isMigration?: boolean
 }
 
 /**
  * A card component that displays native token details including icon, symbol and total balance
  * Shows the token's native status and formatted balance amount
  */
-const NativeTokensDetailCard = ({ balance, token }: NativeTokensDetailCardProps) => {
+const NativeTokensDetailCard = ({ balance, token, isMigration }: NativeTokensDetailCardProps) => {
   const icon = useTokenLogo(token.logoId)
-  const total = Number(formatBalance(balance.total || 0, token, undefined, true))
+  const total = Number(formatBalance(isMigration ? balance.transferable : balance.total, token, token?.decimals, true))
 
   return (
     <Card className="flex flex-row items-center p-3 gap-3">

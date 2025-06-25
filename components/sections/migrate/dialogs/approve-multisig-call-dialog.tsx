@@ -1,6 +1,5 @@
 import { CustomTooltip } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
-import TokenIcon from '@/components/TokenIcon'
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
 import { Badge } from '@/components/ui/badge'
@@ -19,6 +18,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import type { MultisigAddress, MultisigCall, MultisigMember, TransactionDetails, TransactionStatus } from 'state/types/ledger'
 import { z } from 'zod'
+import { DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
 // Enhanced Zod schema for form validation
@@ -111,14 +111,14 @@ function MultisigCallForm({
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
       {/* Multisig Address */}
-      <div>
-        <div className="text-xs text-muted-foreground mb-1">Multisig Address</div>
-        <ExplorerLink value={account.address} appId={appId as AppId} explorerLinkType={ExplorerItemType.Address} />
-      </div>
+      <DialogField>
+        <DialogLabel>Multisig Address</DialogLabel>
+        <ExplorerLink value={account.address} appId={appId as AppId} explorerLinkType={ExplorerItemType.Address} size="xs" />
+      </DialogField>
 
       {/* Call Hash Selector */}
-      <div>
-        <div className="text-xs text-muted-foreground mb-1">Pending Call Hash</div>
+      <DialogField>
+        <DialogLabel>Pending Call Hash</DialogLabel>
         <Controller
           name="callHash"
           control={control}
@@ -137,6 +137,7 @@ function MultisigCallForm({
                       disableTooltip
                       disableLink
                       hasCopyButton={false}
+                      size="xs"
                     />
                   </SelectItem>
                 ))}
@@ -144,18 +145,18 @@ function MultisigCallForm({
             </Select>
           )}
         />
-      </div>
+      </DialogField>
 
       {/* Approvers */}
       {depositorAddress && approvers && approvers.length > 0 && (
-        <div>
-          <div className="text-xs text-muted-foreground mb-1">
+        <DialogField>
+          <DialogLabel>
             Approvers ({approvers.length}/{account.threshold})
-          </div>
+          </DialogLabel>
           <div className="space-y-1">
             {approvers.map(approval => (
               <div key={approval} className="flex items-center gap-1">
-                <ExplorerLink value={approval} appId={appId as AppId} explorerLinkType={ExplorerItemType.Address} />
+                <ExplorerLink value={approval} appId={appId as AppId} explorerLinkType={ExplorerItemType.Address} size="xs" />
                 {approval === depositorAddress && (
                   <CustomTooltip tooltipBody="The depositor is the account that submitted the multisig call and paid the initial deposit.">
                     <Badge variant="light-gray" className="text-[10px] leading-tight shrink-0">
@@ -166,29 +167,28 @@ function MultisigCallForm({
               </div>
             ))}
           </div>
-        </div>
+        </DialogField>
       )}
 
       {/* Deposit */}
       {deposit !== undefined && (
-        <div>
-          <div className="text-xs text-muted-foreground mb-1">Deposit</div>
-          <span className="text-sm font-mono">{formatBalance(deposit, token)}</span>
-        </div>
+        <DialogField>
+          <DialogLabel>Deposit</DialogLabel>
+          <CustomTooltip tooltipBody={formatBalance(deposit, token, token?.decimals, true)}>
+            <span className="font-mono">{formatBalance(deposit, token)}</span>
+          </CustomTooltip>
+        </DialogField>
       )}
 
       {/* Network */}
-      <div>
-        <div className="text-xs text-muted-foreground mb-1">Network</div>
-        <div className="flex items-center gap-2">
-          <TokenIcon icon={icon} symbol={token.symbol} size="md" />
-          <span className="font-semibold text-base">{appName}</span>
-        </div>
-      </div>
+      <DialogField>
+        <DialogLabel>Network</DialogLabel>
+        <DialogNetworkContent token={token} appId={appId} />
+      </DialogField>
 
       {/* Signer Selector */}
-      <div>
-        <div className="text-xs text-muted-foreground mb-1">Signer</div>
+      <DialogField>
+        <DialogLabel>Signer</DialogLabel>
         <Controller
           name="signer"
           control={control}
@@ -202,7 +202,14 @@ function MultisigCallForm({
                   {availableSigners.length > 0 ? (
                     availableSigners.map(member => (
                       <SelectItem key={member.address} value={member.address}>
-                        <ExplorerLink value={member.address} appId={appId as AppId} hasCopyButton={false} disableTooltip disableLink />
+                        <ExplorerLink
+                          value={member.address}
+                          appId={appId as AppId}
+                          hasCopyButton={false}
+                          disableTooltip
+                          disableLink
+                          size="xs"
+                        />
                       </SelectItem>
                     ))
                   ) : (
@@ -218,7 +225,7 @@ function MultisigCallForm({
             </div>
           )}
         />
-      </div>
+      </DialogField>
 
       {/* Switch for multisig message with call (for final approval) */}
       {isLastApproval && (
@@ -240,6 +247,7 @@ function MultisigCallForm({
                 <CustomTooltip
                   tooltipBody="Swap to a non-executing approval type, with subsequent calls providing the actual call data."
                   className="ml-1"
+                  align="end"
                 >
                   <Info className="h-4 w-4 text-muted-foreground" aria-label="Info" />
                 </CustomTooltip>
@@ -251,16 +259,16 @@ function MultisigCallForm({
 
       {/* Multisig Call Data Input with Validation */}
       {isCallDataRequired && (
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="text-xs text-muted-foreground">Multisig Call Data</div>
+        <DialogField>
+          <DialogLabel className="flex items-center gap-2 mb-1">
+            Multisig Call Data
             <CustomTooltip
               tooltipBody="The multisig call data is required to be supplied to a final call to multi approvals. This should have been returned when the multisig call was originally created."
               className="mb-1"
             >
               <Info className="h-3.5 w-3.5 text-muted-foreground" aria-label="Info" />
             </CustomTooltip>
-          </div>
+          </DialogLabel>
           <Controller
             name="callData"
             control={control}
@@ -277,7 +285,7 @@ function MultisigCallForm({
               />
             )}
           />
-        </div>
+        </DialogField>
       )}
     </form>
   )

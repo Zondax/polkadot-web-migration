@@ -17,7 +17,7 @@ export const maxAddressesToFetch =
  * @constant defaultDecimals
  * @description Default number of decimals to display for balances.
  */
-export const defaultDecimals = 8
+export const defaultDecimals = 4
 
 /**
  * @constant MULTISIG_WEIGHT_BUFFER

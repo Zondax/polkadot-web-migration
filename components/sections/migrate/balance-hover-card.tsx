@@ -5,13 +5,13 @@ import type { Collections } from 'state/ledger'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import type { Token } from '@/config/apps'
 import { formatBalance } from '@/lib/utils'
-import { getNonTransferableBalance, isNativeBalance, isNftBalanceType, isUniqueBalanceType } from '@/lib/utils/balance'
+import { isNativeBalance, isNftBalanceType, isUniqueBalanceType } from '@/lib/utils/balance'
 import { createNftBalances } from '@/lib/utils/nft'
 
 import { BN } from '@polkadot/util'
 import { Info } from 'lucide-react'
 import BalanceGallery from './balance-gallery'
-import { NativeBalanceVisualization } from './balance-visualizations'
+import { BalanceType, NativeBalanceVisualization } from './balance-visualizations'
 import NftCircles from './nft-circles'
 
 interface BalanceHoverCardProps {
@@ -85,13 +85,32 @@ const BalanceHoverCard = ({ balances, collections, token, isMigration }: Balance
 /**
  * A component that displays locked (frozen) balance information in a hover card
  * Features:
- * - Shows the total frozen balance amount
- * - Displays a detailed visualization of staking and reserved balances on hover
+ * - Shows the total frozen balance amount (staking or reserved)
+ * - Displays a detailed visualization of staking or reserved balances on hover
  * - Provides a clear breakdown of locked funds by type
  * - Only renders the visualization when balance data is available
  */
-const LockedBalanceHoverCard = ({ balance, token }: { balance?: Native; token: Token }) => {
-  const lockedBalance = balance ? getNonTransferableBalance(balance) : undefined
+interface NativeBalanceHoverCardProps {
+  balance?: Native
+  token: Token
+  type: BalanceType
+}
+
+const NativeBalanceHoverCard = ({ balance, token, type }: NativeBalanceHoverCardProps) => {
+  const lockedBalance = useMemo(() => {
+    if (!balance) return undefined
+    switch (type) {
+      case BalanceType.Staking:
+        return balance.staking?.total
+      case BalanceType.Reserved:
+        return balance.reserved?.total
+      case BalanceType.Transferable:
+        return balance.transferable
+      default:
+        return undefined
+    }
+  }, [balance, type])
+
   const hasLockedBalance = lockedBalance?.gt(new BN(0))
   const formattedLockedBalance = useMemo(() => {
     return lockedBalance !== undefined ? formatBalance(lockedBalance, token) : null
@@ -107,11 +126,11 @@ const LockedBalanceHoverCard = ({ balance, token }: { balance?: Native; token: T
       </HoverCardTrigger>
       {hasLockedBalance && balance ? (
         <HoverCardContent className="w-[calc(100vw-32px)] sm:w-auto max-w-full p-0 ml-4 mr-0 sm:mx-0" align="end">
-          <NativeBalanceVisualization data={balance} token={token} types={['staking', 'reserved']} hidePercentage />
+          <NativeBalanceVisualization data={balance} token={token} types={[type]} hidePercentage />
         </HoverCardContent>
       ) : null}
     </HoverCard>
   )
 }
 
-export { BalanceHoverCard, LockedBalanceHoverCard }
+export { BalanceHoverCard, NativeBalanceHoverCard }
