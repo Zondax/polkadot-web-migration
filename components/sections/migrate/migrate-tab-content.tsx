@@ -129,16 +129,16 @@ export function MigrateTabContent({ onBack }: MigrateTabContentProps) {
       <div className="flex justify-center gap-4 mt-8">
         {migrationStatus === 'finished' ? (
           <>
-            <Button variant="outline" onClick={handleRestartSynchronization}>
+            <Button variant="outline" onClick={handleRestartSynchronization} data-testid="migrate-restart-synchronization-button">
               Synchronize Again
             </Button>
-            <Button variant="purple" size="wide" onClick={handleReturnHome}>
+            <Button variant="purple" size="wide" onClick={handleReturnHome} data-testid="migrate-go-home-button">
               Go Home
             </Button>
           </>
         ) : (
           <>
-            <Button variant="outline" onClick={onBack}>
+            <Button variant="outline" onClick={onBack} data-testid="migrate-back-button">
               Back
             </Button>
             <Button
@@ -146,6 +146,7 @@ export function MigrateTabContent({ onBack }: MigrateTabContentProps) {
               onClick={handleOpenVerificationDialog}
               disabled={!hasAddressesToVerify || allVerified}
               className="flex items-center gap-2"
+              data-testid="migrate-verify-addresses-button"
             >
               <ShieldCheck className="h-4 w-4" />
               {allVerified ? 'Addresses Verified' : 'Verify Addresses'}
@@ -155,6 +156,7 @@ export function MigrateTabContent({ onBack }: MigrateTabContentProps) {
               size="wide"
               onClick={handleMigrate}
               disabled={appsForMigration.length === 0 || !allVerified || migrationStatus === 'loading'}
+              data-testid="migrate-migrate-button"
             >
               {migrationStatus === 'loading' ? 'Migrating...' : 'Migrate Accounts'}
             </Button>

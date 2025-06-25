@@ -17,7 +17,7 @@ const MigratedAccountsTable = ({ apps, multisigAddresses }: MigratedAccountsTabl
   return (
     <div className="mb-8">
       <h3 className="text-lg font-semibold mb-4">{multisigAddresses ? 'Multisig Addresses' : 'Regular Addresses'}</h3>
-      <Table className="shadow-xs border border-gray-200">
+      <Table className="shadow-xs border border-gray-200" data-testid="migrate-accounts-table">
         <TableHeader>
           <TableRow>
             <TableHead className="hidden sm:table-cell">Chain</TableHead>

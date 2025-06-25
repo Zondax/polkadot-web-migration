@@ -41,7 +41,7 @@ const MigratedAccountRows = ({ app, multisigAddresses }: AccountRowsProps) => {
 
   return accounts.map((account, accountIndex) => {
     return account.balances?.map((balance, balanceIndex) => (
-      <TableRow key={`${app.id}-${account.address}-${accountIndex}-${balanceIndex}`}>
+      <TableRow key={`${app.id}-${account.address}-${accountIndex}-${balanceIndex}`} data-testid="migrate-accounts-table-row">
         {/* App Icon */}
         <TableCell className="px-2 hidden sm:table-cell">
           <div className="max-h-8 overflow-hidden [&_svg]:max-h-8 [&_svg]:w-8 flex justify-center items-center">

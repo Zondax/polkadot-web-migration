@@ -26,6 +26,7 @@ export function Tabs<T = string>({ activeTab, tabs, onTabChange }: TabsProps<T>)
 
           return (
             <button
+              data-testid={`tab-${tab.label.toLowerCase().replace(' ', '-')}`}
               key={typeof tab.value === 'string' || typeof tab.value === 'number' ? tab.value : tab.label}
               type="button"
               onClick={() => !isDisabled && onTabChange(index)}
