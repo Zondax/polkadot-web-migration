@@ -72,6 +72,9 @@ export enum InternalErrorType {
   UNSTAKE_ERROR = 'unstake_error',
   VALIDATE_CALL_DATA_MATCHES_HASH_ERROR = 'validate_call_data_matches_hash_error',
   WITHDRAW_ERROR = 'withdraw_error',
+  NO_BALANCE = 'no_balance',
+  REMOVE_ACCOUNT_INDEX_ERROR = 'remove_account_index_error',
+  GET_REMOVE_ACCOUNT_INDEX_FEE_ERROR = 'get_remove_account_index_fee_error',
 }
 
 /**
@@ -425,6 +428,21 @@ export const errorDetails: ErrorDetailsMap = {
   withdraw_error: {
     title: 'Withdraw Error',
     description: 'Failed to withdraw balance.',
+    content: 'Please try again later or contact support if the issue persists.',
+  },
+  no_balance: {
+    title: 'No Balance',
+    description: 'No balance found.',
+    content: 'Please ensure the account has a balance.',
+  },
+  remove_account_index_error: {
+    title: 'Remove Account Index Error',
+    description: 'Failed to remove account index.',
+    content: 'Please try again later or contact support if the issue persists.',
+  },
+  get_remove_account_index_fee_error: {
+    title: 'Get Remove Account Index Fee Error',
+    description: 'Failed to get remove account index fee.',
     content: 'Please try again later or contact support if the issue persists.',
   },
 }

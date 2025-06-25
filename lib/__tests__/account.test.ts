@@ -3,11 +3,13 @@ import { BN } from '@polkadot/util'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  accountIndexStringToU32,
   disconnectSafely,
   eraToHumanTime,
   fetchFromIpfs,
   getApiAndProvider,
   getEnrichedNftMetadata,
+  getIndexInfo,
   getNativeBalance,
   ipfsToHttpUrl,
   isReadyToWithdraw,
@@ -443,6 +445,41 @@ describe('getNativeBalance', () => {
   })
 })
 
+describe('getIndexInfo', () => {
+  it('should return hasIndex false when indices pallet is not available', async () => {
+    const mockApi = {
+      query: {},
+    } as unknown as ApiPromise
+
+    const result = await getIndexInfo('address', mockApi)
+    expect(result).toEqual(undefined)
+  })
+
+  it('should return hasIndex false when indices pallet is available but not implemented', async () => {
+    const mockApi = {
+      query: {
+        indices: {},
+      },
+    } as unknown as ApiPromise
+
+    const result = await getIndexInfo('address', mockApi)
+    expect(result).toEqual(undefined)
+  })
+
+  it('should handle errors gracefully', async () => {
+    const mockApi = {
+      query: {
+        indices: {
+          accounts: vi.fn().mockRejectedValue(new Error('API Error')),
+        },
+      },
+    } as unknown as ApiPromise
+
+    const result = await getIndexInfo('address', mockApi)
+    expect(result).toEqual(undefined)
+  })
+})
+
 describe('ipfsToHttpUrl', () => {
   it('should convert ipfs:// to the default gateway', () => {
     expect(ipfsToHttpUrl('ipfs://QmHash')).toBe('https://ipfs.io/ipfs/QmHash')
@@ -509,5 +546,17 @@ describe('isReadyToWithdraw', () => {
   it('should handle negative eras', () => {
     expect(isReadyToWithdraw(-1, 0)).toBe(true)
     expect(isReadyToWithdraw(0, -1)).toBe(false)
+  })
+})
+
+describe('accountIndexStringToU32', () => {
+  it('should convert a valid base-58 AccountIndex string to a u32 number', () => {
+    // Example: 1 in base-58 is "2"
+    expect(accountIndexStringToU32('4s3JC')).toBe(411)
+  })
+
+  it('should throw for an invalid base-58 string', () => {
+    expect(() => accountIndexStringToU32('!@#$%')).toThrow()
+    expect(() => accountIndexStringToU32('')).toThrow()
   })
 })

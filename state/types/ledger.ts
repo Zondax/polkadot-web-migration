@@ -127,6 +127,7 @@ export interface Address extends GenericeResponseAddress {
   registration?: Registration
   memberMultisigAddresses?: string[] // addresses of the multisig addresses that the account is a member of
   proxy?: AccountProxy
+  index?: AccountIndex // base-58 AccountIndex string
   selected?: boolean
 }
 
@@ -215,6 +216,7 @@ export interface Reserved {
   proxy?: { deposit: BN }
   identity?: { deposit: BN }
   multisig?: { total: BN; deposits: { callHash: string; deposit: BN }[] }
+  index?: { deposit: BN }
 }
 
 /**
@@ -261,6 +263,11 @@ export interface ProxyDefinition {
 
 export interface AccountProxy {
   proxies: ProxyDefinition[]
+  deposit?: BN
+}
+
+export interface AccountIndex {
+  index: string
   deposit?: BN
 }
 

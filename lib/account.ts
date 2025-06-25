@@ -14,7 +14,8 @@ import type {
   StakingLedger,
 } from '@polkadot/types/interfaces'
 import type { ExtrinsicPayloadValue, ISubmittableResult } from '@polkadot/types/types/extrinsic'
-import { BN, hexToU8a } from '@polkadot/util'
+import { BN, hexToU8a, u8aToBn } from '@polkadot/util'
+import { decodeAddress } from '@polkadot/util-crypto'
 import type { AppConfig, AppId } from 'config/apps'
 import { DEFAULT_ERA_TIME_IN_HOURS, getEraTimeByAppId } from 'config/apps'
 import { MULTISIG_WEIGHT_BUFFER, defaultWeights } from 'config/config'
@@ -22,6 +23,7 @@ import { InternalErrorType, errorDetails } from 'config/errors'
 import { errorAddresses, mockBalances } from 'config/mockData'
 import { getMultisigInfo } from 'lib/subscan'
 import {
+  type AccountIndex,
   type AccountProxy,
   type Address,
   type AddressBalance,
@@ -430,6 +432,30 @@ export async function prepareRemoveProxiesTransaction(api: ApiPromise): Promise<
   const removeProxyTx = api.tx.proxy.removeProxies() as SubmittableExtrinsic<'promise', ISubmittableResult>
 
   return removeProxyTx
+}
+
+/**
+ * Converts a base-58 AccountIndex string (e.g., '42g5U') to a u32 number.
+ * @param indexStr The AccountIndex string in base-58 format.
+ * @returns The u32 number representation of the index.
+ */
+export function accountIndexStringToU32(indexStr: string): number {
+  // We ignore the checksum here because we're not decoding an SS58 address,
+  // but rather a base-58 encoded AccountIndex (which does not include a checksum).
+  const decoded = decodeAddress(indexStr, true) // Uint8Array, checksum ignored
+  const indexBn = u8aToBn(decoded, { isLe: true }) // BN
+  return indexBn.toNumber() // number (u32)
+}
+
+export async function prepareRemoveAccountIndexTransaction(
+  api: ApiPromise,
+  index: string
+): Promise<SubmittableExtrinsic<'promise', ISubmittableResult> | undefined> {
+  // Convert the string index (e.g., "42g5U") to u32
+  const indexU32 = accountIndexStringToU32(index)
+  const removeAccountIndexTx = api.tx.indices?.free(indexU32) as SubmittableExtrinsic<'promise', ISubmittableResult>
+
+  return removeAccountIndexTx
 }
 
 export async function getTxFee(tx: SubmittableExtrinsic<'promise', ISubmittableResult>, senderAddress: string): Promise<BN> {
@@ -1091,6 +1117,10 @@ export function isReadyToWithdraw(chunkEra: number, currentEra: number): boolean
  * @returns The staking information
  */
 export async function getStakingInfo(address: string, api: ApiPromise, appId: AppId): Promise<Staking | undefined> {
+  if (!api.query.staking?.bonded) {
+    return undefined
+  }
+
   let stakingInfo: Staking | undefined
   // Get Controller and check if we can unstake or not
   const controller = (await api.query.staking.bonded(address)) as Option<AccountId32>
@@ -1736,6 +1766,34 @@ export async function getProxyInfo(address: string, api: ApiPromise): Promise<Ac
     return proxy
   } catch (error) {
     console.error('Error fetching proxy information:', error)
+    return undefined
+  }
+}
+
+/**
+ * Checks if an address has an index reserved in the indices pallet
+ * @param address The address to check
+ * @param api The API instance
+ * @returns Object containing whether the address has an index reserved and the index number if available
+ */
+export async function getIndexInfo(address: string, api: ApiPromise): Promise<AccountIndex | undefined> {
+  try {
+    // Check if the indices pallet is available on this chain
+    if (!api.derive.accounts || !api.derive.accounts.idToIndex || !api.query.indices?.accounts) {
+      return undefined
+    }
+
+    const index = await api.derive.accounts?.idToIndex(address)
+
+    if (index !== undefined) {
+      const deposit = api.consts.indices?.deposit
+
+      // Convert deposit to BN if available
+      const depositBN = deposit ? new BN(deposit.toString()) : undefined
+      return { index: index.toHuman(), deposit: depositBN }
+    }
+  } catch (error) {
+    console.error('Error fetching index information:', error)
     return undefined
   }
 }
