@@ -2,16 +2,16 @@
 
 import { uiState$ } from '@/state/ui'
 import { use$ } from '@legendapp/state/react'
-import { AlertCircle, CheckCircle, Clock } from 'lucide-react'
 import { useEffect } from 'react'
 
+import { CustomTooltip } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { useMigration } from '@/components/hooks/useMigration'
-import { Spinner } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { type AppId, appsConfigs } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
+import { verificationStatusMap } from '@/config/ui'
 import { muifyHtml } from '@/lib/utils'
 import type { VerificationStatus } from '@/state/types/ledger'
 
@@ -47,18 +47,9 @@ export const AddressVerificationDialog = ({ open, onClose }: AddressVerification
   }, [allVerified, isVerifying, onClose])
 
   const renderStatusIcon = (status: VerificationStatus) => {
-    switch (status) {
-      case 'pending':
-        return <Clock className="h-4 w-4 text-muted-foreground" />
-      case 'verifying':
-        return <Spinner />
-      case 'verified':
-        return <CheckCircle className="h-4 w-4 text-green-500" />
-      case 'failed':
-        return <AlertCircle className="h-4 w-4 text-red-500" />
-      default:
-        return null
-    }
+    const { icon, tooltip } = verificationStatusMap[status] || { icon: undefined, tooltip: undefined }
+
+    return <CustomTooltip tooltipBody={tooltip}>{icon}</CustomTooltip>
   }
 
   return (
@@ -73,7 +64,7 @@ export const AddressVerificationDialog = ({ open, onClose }: AddressVerification
         <DialogBody>
           <h4 className="font-medium mb-2">Destination Addresses</h4>
           <ul className="space-y-2 max-h-[250px] overflow-auto">
-            {Object.entries(destinationAddressesByApp).map(([appId, addresses], index) => {
+            {Object.entries(destinationAddressesByApp).map(([appId, addresses]) => {
               const appConfig = appsConfigs.get(appId as AppId)
               const appName = appConfig?.name || appId
               const icon = icons[appId as AppId]
@@ -85,7 +76,7 @@ export const AddressVerificationDialog = ({ open, onClose }: AddressVerification
                     <span>{appName}</span>
                   </div>
                   <div className="flex flex-col">
-                    {addresses.map((item, index) => (
+                    {addresses.map(item => (
                       <div key={item.address} className="flex flex-row items-center justify-between">
                         <div className="text-xs text-gray-500">
                           <ExplorerLink

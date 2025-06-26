@@ -130,7 +130,12 @@ export interface Address extends GenericeResponseAddress {
   selected?: boolean
 }
 
-export type VerificationStatus = 'pending' | 'verifying' | 'verified' | 'failed'
+export enum VerificationStatus {
+  PENDING = 'pending',
+  VERIFYING = 'verifying',
+  VERIFIED = 'verified',
+  FAILED = 'failed',
+}
 
 export interface AddressWithVerificationStatus {
   address: string
