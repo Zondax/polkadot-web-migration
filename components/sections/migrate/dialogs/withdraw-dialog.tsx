@@ -4,13 +4,14 @@ import { ExplorerLink } from '@/components/ExplorerLink'
 import TokenIcon from '@/components/TokenIcon'
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
-import { Spinner } from '@/components/icons'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { type AppId, type Token, getChainName } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { formatBalance } from '@/lib/utils/format'
 import { ledgerState$ } from '@/state/ledger'
+import type { BN } from '@polkadot/util'
 import { useEffect, useMemo } from 'react'
+import { DialogEstimatedFeeContent, DialogField, DialogLabel } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
 interface WithdrawDialogProps {
@@ -25,7 +26,7 @@ interface WithdrawFormProps {
   token: Token
   account: Address
   appId: AppId
-  estimatedFee?: string
+  estimatedFee?: BN
   estimatedFeeLoading: boolean
 }
 
@@ -34,30 +35,26 @@ function WithdrawForm({ token, account, appId, estimatedFee, estimatedFeeLoading
   const appName = getChainName(appId)
 
   return (
-    <div className="space-y-4">
+    <>
       {/* Sending account */}
-      <div className="text-sm">
-        <div className="text-xs text-muted-foreground mb-1">Source Address</div>
-        <ExplorerLink value={account.address} appId={appId} explorerLinkType={ExplorerItemType.Address} />
-      </div>
+      <DialogField>
+        <DialogLabel>Source Address</DialogLabel>
+        <ExplorerLink value={account.address} appId={appId} explorerLinkType={ExplorerItemType.Address} size="xs" />
+      </DialogField>
       {/* Network */}
-      <div>
-        <div className="text-xs text-muted-foreground mb-1">Network</div>
+      <DialogField>
+        <DialogLabel>Network</DialogLabel>
         <div className="flex items-center gap-2">
           <TokenIcon icon={icon} symbol={token.symbol} size="md" />
           <span className="font-semibold text-base">{appName}</span>
         </div>
-      </div>
+      </DialogField>
       {/* Estimated Fee */}
-      <div className="flex flex-col items-start justify-start">
-        <div className="text-xs text-muted-foreground mb-1">Estimated Fee</div>
-        {estimatedFeeLoading ? (
-          <Spinner className="w-4 h-4" />
-        ) : (
-          <span className={`text-sm ${estimatedFee ? ' font-mono' : ''}`}>{estimatedFee ?? 'Could not be calculated at this time'}</span>
-        )}
-      </div>
-    </div>
+      <DialogField>
+        <DialogLabel>Estimated Fee</DialogLabel>
+        <DialogEstimatedFeeContent token={token} estimatedFee={estimatedFee} loading={estimatedFeeLoading} />
+      </DialogField>
+    </>
   )
 }
 
@@ -125,7 +122,7 @@ export default function WithdrawDialog({ open, setOpen, token, account, appId }:
               token={token}
               account={account}
               appId={appId}
-              estimatedFee={formattedFee}
+              estimatedFee={estimatedFee}
               estimatedFeeLoading={estimatedFeeLoading}
             />
           )}

@@ -1,17 +1,16 @@
 import type { Address, TransactionDetails, TransactionStatus } from 'state/types/ledger'
 
 import { ExplorerLink } from '@/components/ExplorerLink'
-import TokenIcon from '@/components/TokenIcon'
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
-import { Spinner } from '@/components/icons'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { type AppId, type Token, getChainName } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { formatBalance } from '@/lib/utils/format'
 import { ledgerState$ } from '@/state/ledger'
-import { BN } from '@polkadot/util'
-import { useEffect, useMemo } from 'react'
+import type { BN } from '@polkadot/util'
+import { useEffect } from 'react'
+import { DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
 interface RemoveProxyDialogProps {
@@ -26,7 +25,7 @@ interface RemoveProxyFormProps {
   token: Token
   account: Address
   appId: AppId
-  estimatedFee?: string
+  estimatedFee?: BN
   estimatedFeeLoading: boolean
 }
 
@@ -37,45 +36,36 @@ function RemoveProxyForm({ token, account, appId, estimatedFee, estimatedFeeLoad
   return (
     <div className="space-y-4">
       {/* Sending account */}
-      <div className="text-sm">
-        <div className="text-xs text-muted-foreground mb-1">Source Address</div>
-        <ExplorerLink value={account.address} appId={appId} explorerLinkType={ExplorerItemType.Address} />
-      </div>
+      <DialogField>
+        <DialogLabel>Source Address</DialogLabel>
+        <ExplorerLink value={account.address} appId={appId} explorerLinkType={ExplorerItemType.Address} size="xs" />
+      </DialogField>
       {/* Proxy addresses */}
-      <div className="text-sm">
-        <div className="text-xs text-muted-foreground mb-1">Proxy Addresses to be removed</div>
-        {account.proxy?.proxies.map(proxy => {
-          return (
-            <div key={proxy.address}>
-              <ExplorerLink value={proxy.address} appId={appId} explorerLinkType={ExplorerItemType.Address} />
-            </div>
-          )
-        })}
-      </div>
+      <DialogField>
+        <DialogLabel>Proxy Addresses to Be Removed</DialogLabel>
+        {account.proxy?.proxies.map(proxy => (
+          <div key={proxy.address}>
+            <ExplorerLink value={proxy.address} appId={appId} explorerLinkType={ExplorerItemType.Address} size="xs" />
+          </div>
+        ))}
+      </DialogField>
       {/* Network */}
-      <div>
-        <div className="text-xs text-muted-foreground mb-1">Network</div>
-        <div className="flex items-center gap-2">
-          <TokenIcon icon={icon} symbol={token.symbol} size="md" />
-          <span className="font-semibold text-base">{appName}</span>
-        </div>
-      </div>
+      <DialogField>
+        <DialogLabel>Network</DialogLabel>
+        <DialogNetworkContent token={token} appId={appId} />
+      </DialogField>
       {/* Deposit */}
       {account.proxy?.deposit !== undefined ? (
-        <div className="text-sm">
-          <div className="text-xs text-muted-foreground mb-1">Deposit to be returned</div>
+        <DialogField>
+          <DialogLabel>Deposit to Be Returned</DialogLabel>
           <span className="font-mono">{formatBalance(account.proxy.deposit, token)}</span>
-        </div>
+        </DialogField>
       ) : null}
       {/* Estimated Fee */}
-      <div className="flex flex-col items-start justify-start">
-        <div className="text-xs text-muted-foreground mb-1">Estimated Fee</div>
-        {estimatedFeeLoading ? (
-          <Spinner className="w-4 h-4" />
-        ) : (
-          <span className={`text-sm ${estimatedFee ? ' font-mono' : ''}`}>{estimatedFee ?? 'Could not be calculated at this time'}</span>
-        )}
-      </div>
+      <DialogField>
+        <DialogLabel>Estimated Fee</DialogLabel>
+        <DialogEstimatedFeeContent token={token} estimatedFee={estimatedFee} loading={estimatedFeeLoading} />
+      </DialogField>
     </div>
   )
 }
@@ -111,8 +101,6 @@ export default function RemoveProxyDialog({ open, setOpen, token, account, appId
     }
   }, [open, getEstimatedFee, appId, account.address])
 
-  const formattedFee = useMemo(() => (estimatedFee ? formatBalance(estimatedFee, token) : undefined), [estimatedFee, token])
-
   const signRemoveProxyTx = async () => {
     await runTransaction(appId, account.address, account.path)
   }
@@ -146,7 +134,7 @@ export default function RemoveProxyDialog({ open, setOpen, token, account, appId
               token={token}
               account={account}
               appId={appId}
-              estimatedFee={formattedFee}
+              estimatedFee={estimatedFee}
               estimatedFeeLoading={estimatedFeeLoading}
             />
           )}

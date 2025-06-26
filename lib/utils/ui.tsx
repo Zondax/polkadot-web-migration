@@ -95,7 +95,7 @@ export const validateNumberInput = (value: number, max: BN, token: Token): { val
     return { valid: false, helperText: 'Amount must be greater than zero.' }
   }
   if (inputBN.gt(max)) {
-    return { valid: false, helperText: `Amount cannot exceed your staked balance (${formatBalance(max, token)}).` }
+    return { valid: false, helperText: `Amount cannot exceed your staked balance (${formatBalance(max, token, token?.decimals)}).` }
   }
   return { valid: true, helperText: '' }
 }

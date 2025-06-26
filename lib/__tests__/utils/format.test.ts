@@ -50,7 +50,7 @@ describe('formatBalance', () => {
   })
 
   it('should format balance with tokenDecimals', () => {
-    expect(formatBalance(new BN(123456789), token)).toBe('1.23456789 DOT')
+    expect(formatBalance(new BN(123456789), token)).toBe('1.2345 DOT')
   })
 
   it('should handle large numbers', () => {

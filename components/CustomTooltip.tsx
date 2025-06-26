@@ -18,11 +18,13 @@ const CustomTooltip = ({
   children,
   tooltipBody,
   className,
+  align = 'center',
   disabled,
 }: {
   children: React.ReactNode
   tooltipBody?: React.ReactNode
   className?: string
+  align?: 'center' | 'start' | 'end'
   disabled?: boolean
 }) => {
   const isString = typeof tooltipBody === 'string'
@@ -34,7 +36,7 @@ const CustomTooltip = ({
         </TooltipTrigger>
         <TooltipContent
           side="top"
-          align="center"
+          align={align}
           // Ensure tooltip never exceeds 100vw and is responsive
           className={cn(
             'z-100 break-words whitespace-normal max-w-[100vw] w-auto',

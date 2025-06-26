@@ -10,7 +10,6 @@ import {
   Route,
   Shield,
   Trash2,
-  TriangleAlert,
   User,
   UserCog,
   Users,
@@ -25,7 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { TableCell, TableRow } from '@/components/ui/table'
 import type { AppId, Token } from '@/config/apps'
 import { formatBalance, isMultisigAddress as isMultisigAddressFunction } from '@/lib/utils'
-import { canUnstake, hasNonTransferableBalance, hasStakedBalance, isNativeBalance } from '@/lib/utils/balance'
+import { canUnstake, hasStakedBalance, isNativeBalance } from '@/lib/utils/balance'
 
 import { ExplorerLink } from '@/components/ExplorerLink'
 import type { UpdateTransaction } from '@/components/hooks/useSynchronization'
@@ -37,7 +36,8 @@ import { ExplorerItemType } from '@/config/explorers'
 import { getIdentityItems } from '@/lib/utils/ui'
 import { BN } from '@polkadot/util'
 import type { CheckedState } from '@radix-ui/react-checkbox'
-import { BalanceHoverCard, LockedBalanceHoverCard } from './balance-hover-card'
+import { BalanceHoverCard, NativeBalanceHoverCard } from './balance-hover-card'
+import { BalanceType } from './balance-visualizations'
 import DestinationAddressSelect from './destination-address-select'
 import ApproveMultisigCallDialog from './dialogs/approve-multisig-call-dialog'
 import RemoveIdentityDialog from './dialogs/remove-identity-dialog'
@@ -180,34 +180,15 @@ const SynchronizedAccountRow = ({
     return statusIcon ? <CustomTooltip tooltipBody={tooltipContent}>{statusIcon}</CustomTooltip> : null
   }
 
-  const renderLockedBalance = (balance: AddressBalance): React.ReactNode | null => {
-    if (!balance) return null
-
-    // Check if native balance has frozen funds or if transferable is less than total
-    const isNative = isNativeBalance(balance)
-    const hasNonTransferableBalanceWith: boolean = isNative && hasNonTransferableBalance(balance)
-
-    return (
-      <div className="flex flex-row items-center justify-end gap-2">
-        <LockedBalanceHoverCard balance={isNative ? balance?.balance : undefined} token={token} />
-        {hasNonTransferableBalanceWith && (
-          <CustomTooltip
-            tooltipBody={`Not all balance is transferable${actions.length > 0 ? ' - see available actions at the end of the row' : ''}`}
-          >
-            <TriangleAlert className="h-4 w-4 text-red-500" />
-          </CustomTooltip>
-        )}
-      </div>
-    )
-  }
-
   const renderTransferableBalance = () => {
     const transferableBalance: BN = isNative ? (balance?.balance.transferable ? balance.balance.transferable : new BN(0)) : new BN(0)
     const balances: AddressBalance[] = balance ? [balance] : []
 
     return (
       <div className="flex flex-row items-center justify-end gap-2">
-        <span className="font-mono">{formatBalance(transferableBalance, token)}</span>
+        <CustomTooltip tooltipBody={formatBalance(transferableBalance, token, token?.decimals, true)}>
+          <span className="font-mono">{formatBalance(transferableBalance, token)}</span>
+        </CustomTooltip>
         {!isNative ? <BalanceHoverCard balances={balances} collections={collections} token={token} isMigration /> : null}
       </div>
     )
@@ -486,12 +467,32 @@ const SynchronizedAccountRow = ({
       )}
       {/* Total Balance */}
       <TableCell className="py-2 text-sm text-right w-1/4 font-mono">
-        {balance !== undefined ? formatBalance(totalBalance, token) : '-'}
+        {balance !== undefined ? (
+          <CustomTooltip tooltipBody={formatBalance(totalBalance, token, token?.decimals, true)}>
+            <span>{formatBalance(totalBalance, token)}</span>
+          </CustomTooltip>
+        ) : (
+          '-'
+        )}
       </TableCell>
       {/* Transferable */}
       <TableCell className="py-2 text-sm text-right w-1/4">{balance !== undefined ? renderTransferableBalance() : '-'}</TableCell>
-      {/* Locked */}
-      <TableCell className="py-2 text-sm text-right w-1/4">{balance !== undefined ? renderLockedBalance(balance) : '-'}</TableCell>
+      {/* Staked */}
+      <TableCell className="py-2 text-sm text-right w-1/4">
+        {isNative && balance?.balance.staking?.total?.gt(new BN(0)) ? (
+          <NativeBalanceHoverCard balance={balance.balance} token={token} type={BalanceType.Staking} />
+        ) : (
+          '-'
+        )}
+      </TableCell>
+      {/* Reserved */}
+      <TableCell className="py-2 text-sm text-right w-1/4">
+        {isNative && balance?.balance.reserved?.total?.gt(new BN(0)) ? (
+          <NativeBalanceHoverCard balance={balance.balance} token={token} type={BalanceType.Reserved} />
+        ) : (
+          '-'
+        )}
+      </TableCell>
       {/* Actions */}
       <TableCell>
         <div className="flex gap-2 justify-end items-center">

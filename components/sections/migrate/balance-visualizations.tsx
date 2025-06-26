@@ -12,10 +12,16 @@ import { Card, CardContent } from '@/components/ui/card'
 import type { Token } from '@/config/apps'
 import { formatBalance } from '@/lib/utils'
 
+export enum BalanceType {
+  Transferable = 'transferable',
+  Staking = 'staking',
+  Reserved = 'reserved',
+}
+
 interface NativeBalanceVisualizationProps {
   data: Native
   token: Token
-  types?: string[]
+  types?: BalanceType[]
   hidePercentage?: boolean
 }
 
@@ -47,7 +53,7 @@ const BalanceCard = ({ value, total, label, icon, colorScheme, details, hidePerc
       <CardContent className="p-0 flex flex-col items-center justify-between min-h-[150px]">
         <div className="flex flex-col items-center justify-center">
           <div className={`${colorScheme.iconColor} mb-2`}>{icon}</div>
-          <div className="text-2xl font-mono text-center font-semibold mb-1">{formatBalance(value, token, undefined, true)}</div>
+          <div className="text-2xl font-mono text-center font-semibold mb-1">{formatBalance(value, token, token?.decimals, true)}</div>
           <div className="text-sm text-gray-600 mb-2">{label}</div>
         </div>
         {details && <div className="w-full mt-1">{details}</div>}
@@ -71,7 +77,7 @@ const renderDetailsItem = (icon: ReactNode, label: string, value?: BN, token?: T
       <span className="flex items-center gap-1.5">
         {icon} <div className="text-sm text-gray-600">{label}</div>
       </span>
-      <span className="font-mono font-medium">{formatBalance(bnValue, token, undefined, true)}</span>
+      <span className="font-mono font-medium">{formatBalance(bnValue, token, token?.decimals, true)}</span>
     </div>
   )
 }
@@ -100,7 +106,7 @@ const StakingDetails = ({ stakingData, token }: { stakingData: Staking; token: T
                   <Check className="w-3.5 h-3.5 text-gray-600" />
                   Ready to withdraw
                 </span>
-                <span className="font-mono font-medium">{formatBalance(readyToWithdraw, token, undefined, true)}</span>
+                <span className="font-mono font-medium">{formatBalance(readyToWithdraw, token, token?.decimals, true)}</span>
               </div>
             )}
             {/* Staked balance not ready to withdraw */}
@@ -109,7 +115,7 @@ const StakingDetails = ({ stakingData, token }: { stakingData: Staking; token: T
                 <span className="flex items-center gap-1.5">
                   <ClockIcon className="w-3.5 h-3.5 text-gray-600" /> {unlock.timeRemaining}
                 </span>
-                <span className="font-mono font-medium">{formatBalance(unlock.value, token, undefined, true)}</span>
+                <span className="font-mono font-medium">{formatBalance(unlock.value, token, token?.decimals, true)}</span>
               </div>
             ))}
           </div>
@@ -156,12 +162,12 @@ const ReservedDetails = ({ reservedData, token }: { reservedData: Reserved; toke
 export const NativeBalanceVisualization = ({
   data,
   token,
-  types = ['transferable', 'staking', 'reserved'],
+  types = [BalanceType.Transferable, BalanceType.Staking, BalanceType.Reserved],
   hidePercentage = false,
 }: NativeBalanceVisualizationProps) => {
   const balanceTypes = [
     {
-      id: 'transferable',
+      id: BalanceType.Transferable,
       value: data.transferable,
       label: 'Transferable',
       icon: <ArrowRightLeftIcon className="w-6 h-6" />,
@@ -175,7 +181,7 @@ export const NativeBalanceVisualization = ({
       },
     },
     {
-      id: 'staking',
+      id: BalanceType.Staking,
       value: data.staking?.total || new BN(0),
       label: 'Staked',
       icon: <BarChartIcon className="w-6 h-6" />,
@@ -190,7 +196,7 @@ export const NativeBalanceVisualization = ({
       details: data.staking && <StakingDetails stakingData={data.staking} token={token} />,
     },
     {
-      id: 'reserved',
+      id: BalanceType.Reserved,
       value: data.reserved.total,
       label: 'Reserved',
       icon: <LockClosedIcon className="w-6 h-6" />,

@@ -3,17 +3,15 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Address, TransactionDetails, TransactionStatus } from 'state/types/ledger'
 
 import { ExplorerLink } from '@/components/ExplorerLink'
-import TokenIcon from '@/components/TokenIcon'
-import { useTokenLogo } from '@/components/hooks/useTokenLogo'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
-import { Spinner } from '@/components/icons'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { type AppId, type Token, getChainName } from '@/config/apps'
+import type { AppId, Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { convertToRawUnits, formatBalance } from '@/lib/utils/format'
 import { validateNumberInput } from '@/lib/utils/ui'
-import { BN } from '@polkadot/util'
+import type { BN } from '@polkadot/util'
+import { DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
 interface UnstakeDialogProps {
@@ -32,7 +30,7 @@ interface UnstakeFormProps {
   token: Token
   account: Address
   appId: AppId
-  estimatedFee: string | undefined
+  estimatedFee: BN | undefined
   estimatedFeeLoading: boolean
   setIsUnstakeAmountValid: (valid: boolean) => void
 }
@@ -48,11 +46,8 @@ function UnstakeForm({
   estimatedFeeLoading,
   setIsUnstakeAmountValid,
 }: UnstakeFormProps) {
-  const icon = useTokenLogo(token.logoId)
-  const appName = getChainName(appId)
-
   const [helperText, setHelperText] = useState<string>('')
-  const maxUnstakeFormatted = useMemo(() => formatBalance(maxUnstake, token, undefined, true), [maxUnstake, token])
+  const maxUnstakeFormatted = useMemo(() => formatBalance(maxUnstake, token), [maxUnstake, token])
 
   const handleUnstakeAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
@@ -65,24 +60,21 @@ function UnstakeForm({
   return (
     <>
       {/* Source Address */}
-      <div className="text-sm">
-        <div className="text-xs text-muted-foreground mb-1">Source Address</div>
-        <ExplorerLink value={account.address} explorerLinkType={ExplorerItemType.Address} appId={appId} />
-      </div>
+      <DialogField>
+        <DialogLabel>Source Address</DialogLabel>
+        <ExplorerLink value={account.address} explorerLinkType={ExplorerItemType.Address} appId={appId} size="xs" />
+      </DialogField>
       {/* Network */}
-      <div>
-        <div className="text-xs text-muted-foreground mb-1">Network</div>
-        <div className="flex items-center gap-2">
-          <TokenIcon icon={icon} symbol={token.symbol} size="md" />
-          <span className="font-semibold text-base">{appName}</span>
-        </div>
-      </div>
+      <DialogField>
+        <DialogLabel>Network</DialogLabel>
+        <DialogNetworkContent token={token} appId={appId} />
+      </DialogField>
       {/* Amount to Unstake */}
-      <div>
-        <div className="flex justify-between items-center mb-1">
-          <span className="text-xs text-muted-foreground">Amount to Unstake</span>
-          <span className="text-xs text-muted-foreground">Available Balance: {maxUnstakeFormatted}</span>
-        </div>
+      <DialogField>
+        <DialogLabel className="flex justify-between items-center">
+          <span>Amount to Unstake</span>
+          <span>Available Balance: {maxUnstakeFormatted}</span>
+        </DialogLabel>
         <Input
           type="number"
           min={0}
@@ -94,17 +86,13 @@ function UnstakeForm({
           error={Boolean(helperText)}
           helperText={helperText}
         />
-      </div>
+      </DialogField>
       {/* Estimated Fee */}
       {!helperText && unstakeAmount ? (
-        <div className="flex flex-col items-start justify-start">
-          <div className="text-xs text-muted-foreground mb-1">Estimated Fee</div>
-          {estimatedFeeLoading ? (
-            <Spinner className="w-4 h-4" />
-          ) : (
-            <span className={`text-sm ${estimatedFee ? ' font-mono' : ''}`}>{estimatedFee ?? 'Could not be calculated at this time'}</span>
-          )}
-        </div>
+        <DialogField>
+          <DialogLabel>Estimated Fee</DialogLabel>
+          <DialogEstimatedFeeContent token={token} estimatedFee={estimatedFee} loading={estimatedFeeLoading} />
+        </DialogField>
       ) : null}
     </>
   )
@@ -145,8 +133,6 @@ export default function UnstakeDialog({ open, setOpen, maxUnstake, token, accoun
     const rawUnstakeAmount = convertToRawUnits(unstakeAmount, token)
     getEstimatedFee(appId, account.address, rawUnstakeAmount)
   }, [open, getEstimatedFee, appId, account.address, unstakeAmount, token])
-
-  const formattedFee = useMemo(() => (estimatedFee ? formatBalance(new BN(estimatedFee), token) : undefined), [estimatedFee, token])
 
   const signUnstakeTx = async () => {
     if (!unstakeAmount) return
@@ -190,7 +176,7 @@ export default function UnstakeDialog({ open, setOpen, maxUnstake, token, accoun
               token={token}
               account={account}
               appId={appId}
-              estimatedFee={formattedFee}
+              estimatedFee={estimatedFee}
               estimatedFeeLoading={estimatedFeeLoading}
               setIsUnstakeAmountValid={setIsUnstakeAmountValid}
             />

@@ -22,7 +22,7 @@ const BalanceGallery = ({ nfts, uniques, native, token, isMigration }: BalanceGa
     <div className="flex flex-col gap-3 p-2 max-h-[400px] overflow-y-auto w-full sm:w-auto sm:min-w-[300px]">
       {native && (
         <div>
-          <NativeTokensDetailCard balance={native} token={token} />
+          <NativeTokensDetailCard balance={native} token={token} isMigration={isMigration} />
         </div>
       )}
       {uniques?.map(unique => (
