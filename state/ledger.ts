@@ -15,7 +15,7 @@ import {
 } from '@/lib/account'
 import type { DeviceConnectionProps } from '@/lib/ledger/types'
 import { convertSS58Format, isMultisigAddress } from '@/lib/utils/address'
-import { hasAddressBalance, hasBalance, validateReservedBreakdown } from '@/lib/utils/balance'
+import { hasAddressBalance, hasBalance, hasNegativeBalance, validateReservedBreakdown } from '@/lib/utils/balance'
 import { filterAccountsForApps, setDefaultDestinationAddress } from '@/lib/utils/ledger'
 
 import type { MultisigCallFormData } from '@/components/sections/migrate/dialogs/approve-multisig-call-dialog'
