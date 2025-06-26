@@ -1779,18 +1779,15 @@ export async function getProxyInfo(address: string, api: ApiPromise): Promise<Ac
 export async function getIndexInfo(address: string, api: ApiPromise): Promise<AccountIndex | undefined> {
   try {
     // Check if the indices pallet is available on this chain
-    if (!api.derive.accounts || !api.derive.accounts.idToIndex || !api.query.indices?.accounts) {
+    if (!api.derive.accounts || !api.derive.accounts.idToIndex) {
       return undefined
     }
 
-    const index = await api.derive.accounts?.idToIndex(address)
+    const index = await api.derive.accounts.idToIndex(address)
 
     if (index !== undefined) {
-      const deposit = api.consts.indices?.deposit
-
-      // Convert deposit to BN if available
-      const depositBN = deposit ? new BN(deposit.toString()) : undefined
-      return { index: index.toHuman(), deposit: depositBN }
+      // the deposit done is not available, we only can get the current deposit from the consts: api.consts.indices?.deposit
+      return { index: index.toHuman() }
     }
   } catch (error) {
     console.error('Error fetching index information:', error)
