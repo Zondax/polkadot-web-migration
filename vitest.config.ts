@@ -15,6 +15,7 @@ export default defineConfig({
       all: true,
       exclude: ['e2e/**', 'node_modules/**', '.next/**', 'vitest.config.ts', 'components/ui/**'],
     },
+    reporters: ['default', 'html'],
   },
   resolve: {
     alias: {

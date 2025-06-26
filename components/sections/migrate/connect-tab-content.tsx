@@ -67,7 +67,7 @@ export function ConnectTabContent({ onContinue }: ConnectTabContentProps) {
               step.highlight ? 'border-polkadot-green bg-polkadot-green/10' : step.warning ? 'border-rose-400 bg-rose-50' : ''
             }`}
           >
-            <div className={'flex items-center mb-3'}>
+            <div className={'flex items-center mb-3'} data-testid={`connect-step-${idx + 1}`}>
               <span
                 className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-lg mr-3 ${
                   step.highlight
@@ -76,6 +76,7 @@ export function ConnectTabContent({ onContinue }: ConnectTabContentProps) {
                       ? 'bg-rose-100 text-rose-400'
                       : 'bg-purple-100 text-purple-600'
                 }`}
+                data-testid={`connect-step-${idx + 1}-icon`}
               >
                 {idx + 1}
               </span>
@@ -115,6 +116,7 @@ export function ConnectTabContent({ onContinue }: ConnectTabContentProps) {
         className="mt-2 px-8 py-3 rounded-md text-lg font-semibold bg-[#7916F3] hover:bg-[#6B46C1] text-white shadow-lg"
         onClick={handleConnect}
         size="lg"
+        data-testid="connect-ledger-button"
       >
         <span className="flex items-center gap-2">Connect</span>
       </Button>

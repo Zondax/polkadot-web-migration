@@ -69,7 +69,7 @@ function SynchronizedApp({
   }
 
   return (
-    <div className="bg-gray-50 rounded-lg shadow-xs border border-gray-200 mb-4">
+    <div className="bg-gray-50 rounded-lg shadow-xs border border-gray-200 mb-4" data-testid="synchronized-app">
       {/* Overview */}
       <div
         className={`flex flex-row items-center justify-between gap-4 px-4 py-3 cursor-pointer select-none transition-colors rounded-lg ${accounts?.length !== 0 ? 'hover:bg-gray-50' : ''}`}
@@ -84,7 +84,7 @@ function SynchronizedApp({
           </div>
           <div className="flex flex-col">
             {/* Name */}
-            <div className="font-bold text-lg leading-tight">
+            <div className="font-bold text-lg leading-tight" data-testid="table-dropdown-app-name">
               {name}
               {isMultisig ? ' Multisig' : ''}
             </div>
