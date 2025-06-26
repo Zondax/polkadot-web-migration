@@ -1,7 +1,7 @@
 import type { ApiPromise } from '@polkadot/api'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { InternalErrors } from '@/config/errors'
+import { InternalErrorType } from '@/config/errors'
 
 import { BN } from '@polkadot/util'
 import { prepareTransaction } from '../account'
@@ -58,7 +58,7 @@ describe('prepareTransaction', () => {
     api.tx.uniques.transfer.mockReturnValue({ method: mockMethod, toString: () => 'uniqueTransfer', paymentInfo: vi.fn() })
     await expect(
       prepareTransaction(api as unknown as ApiPromise, mockSender, mockReceiver, new BN(105), mockNFTs, mockAppConfig, new BN(100))
-    ).rejects.toThrow(InternalErrors.INSUFFICIENT_BALANCE_TO_COVER_FEE)
+    ).rejects.toThrow(InternalErrorType.INSUFFICIENT_BALANCE_TO_COVER_FEE)
   })
 
   it('throws if not enough balance for fee (NFTs only)', async () => {
@@ -73,7 +73,7 @@ describe('prepareTransaction', () => {
     })
     await expect(
       prepareTransaction(api as unknown as ApiPromise, mockSender, mockReceiver, new BN(5), mockNFTs, mockAppConfig)
-    ).rejects.toThrow(InternalErrors.INSUFFICIENT_BALANCE)
+    ).rejects.toThrow(InternalErrorType.INSUFFICIENT_BALANCE)
   })
 
   it('throws if not enough balance for fee (max native)', async () => {
@@ -91,7 +91,7 @@ describe('prepareTransaction', () => {
     })
     await expect(
       prepareTransaction(api as unknown as ApiPromise, mockSender, mockReceiver, new BN(10), mockNFTs, mockAppConfig, new BN(10))
-    ).rejects.toThrow(InternalErrors.INSUFFICIENT_BALANCE)
+    ).rejects.toThrow(InternalErrorType.INSUFFICIENT_BALANCE)
   })
 
   it('returns payload if enough balance for amount + fee (specific native amount to transfer)', async () => {

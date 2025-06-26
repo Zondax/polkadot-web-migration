@@ -1,14 +1,28 @@
-export interface ErrorDetails {
-  error: InternalErrors | LedgerErrors
-  title: string
-  description?: string
-  content?: string
-}
+import { ERROR_DESCRIPTION_OVERRIDE, LedgerError, ResponseError } from '@zondax/ledger-js'
 
-export enum InternalErrors {
+/**
+ * Internal errors
+ *
+ * This enum represents our own collection of application-specific errors.
+ * These error codes are used throughout the application to identify and handle
+ * specific error scenarios in a consistent way.
+ *
+ * They are used with the withErrorHandling utility to provide structured error
+ * handling and consistent error reporting across the application.
+ *
+ * @example
+ * ```
+ * withErrorHandling(() => ledgerService.connectDevice(onDisconnect), {
+ *   errorCode: InternalErrorType.CONNECTION_ERROR,
+ *   operation: 'connectDevice',
+ * })
+ * ```
+ */
+export enum InternalErrorType {
   ADDRESS_NOT_SELECTED = 'address_not_selected',
   APP_NOT_OPEN = 'app_not_open',
   UNKNOWN_ERROR = 'unknown_error',
+  LEDGER_UNKNOWN_ERROR = 'ledger_unknown_error',
   LOCKED_DEVICE = 'locked_device',
   DEVICE_NOT_SELECTED = 'device_not_selected',
   CONNECTION_ERROR = 'connection_error',
@@ -51,304 +65,310 @@ export enum InternalErrors {
   NO_BALANCE = 'no_balance',
 }
 
-export enum LedgerErrors {
-  TransportStatusError = 'TransportStatusError',
-  LockedDeviceError = 'LockedDeviceError',
-  TransportOpenUserCancelled = 'TransportOpenUserCancelled',
-  TransportRaceCondition = 'TransportRaceCondition',
-  InvalidStateError = 'InvalidStateError',
-  TransportInterfaceNotAvailable = 'TransportInterfaceNotAvailable',
-  ClaNotSupported = 'ClaNotSupported',
-  AppDoesNotSeemToBeOpen = 'AppDoesNotSeemToBeOpen',
+/**
+ * Map Ledger errors to internal errors
+ *
+ * This mapping converts Ledger errors from the zondax/ledger-js library
+ * to our application-specific internal error types.
+ *
+ * @remarks
+ * When a Ledger device returns an error code, we use this mapping to translate
+ * it to a more meaningful internal error that our application can handle consistently.
+ * These error codes come from the Ledger Substrate library which imports the types from
+ * the Ledger JS library. For reference, see:
+ * @see {@link https://github.com/Zondax/ledger-js/blob/main/src/responseError.ts}
+ * @see {@link https://github.com/Zondax/ledger-js/blob/main/src/consts.ts}
+ */
+export const ledgerErrorToInternalErrorMap: Record<LedgerError, InternalErrorType> = {
+  [LedgerError.U2FUnknown]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.U2FBadRequest]: InternalErrorType.CONNECTION_ERROR,
+  [LedgerError.U2FConfigurationUnsupported]: InternalErrorType.CONNECTION_ERROR,
+  [LedgerError.U2FDeviceIneligible]: InternalErrorType.CONNECTION_ERROR,
+  [LedgerError.U2FTimeout]: InternalErrorType.CONNECTION_TIMEOUT,
+  [LedgerError.Timeout]: InternalErrorType.CONNECTION_TIMEOUT,
+  [LedgerError.NoErrors]: InternalErrorType.DEFAULT,
+  [LedgerError.DeviceIsBusy]: InternalErrorType.CONNECTION_ERROR,
+  [LedgerError.ErrorDerivingKeys]: InternalErrorType.GET_ADDRESS_ERROR,
+  [LedgerError.ExecutionError]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.WrongLength]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.EmptyBuffer]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.OutputBufferTooSmall]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.DataIsInvalid]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.TransactionRejected]: InternalErrorType.SIGN_TX_ERROR,
+  [LedgerError.BadKeyHandle]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.InvalidP1P2]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.InstructionNotSupported]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.AppDoesNotSeemToBeOpen]: InternalErrorType.APP_NOT_OPEN,
+  [LedgerError.UnknownError]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.SignVerifyError]: InternalErrorType.SIGN_TX_ERROR,
+  [LedgerError.UnknownTransportError]: InternalErrorType.CONNECTION_ERROR,
+  [LedgerError.GpAuthFailed]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.PinRemainingAttempts]: InternalErrorType.LOCKED_DEVICE,
+  [LedgerError.MissingCriticalParameter]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.ConditionsOfUseNotSatisfied]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.CommandIncompatibleFileStructure]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.ReferencedDataNotFound]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.NotEnoughMemorySpace]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.FileAlreadyExists]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.UnknownApdu]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.DeviceNotOnboarded]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.DeviceNotOnboarded2]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.CustomImageBootloader]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.CustomImageEmpty]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.ClaNotSupported]: InternalErrorType.APP_NOT_OPEN,
+  [LedgerError.Licensing]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.Halted]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.AccessConditionNotFulfilled]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.AlgorithmNotSupported]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.CodeBlocked]: InternalErrorType.LOCKED_DEVICE,
+  [LedgerError.CodeNotInitialized]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.ContradictionInvalidation]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.ContradictionSecretCodeStatus]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.InvalidKcv]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.InvalidOffset]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.LockedDevice]: InternalErrorType.LOCKED_DEVICE,
+  [LedgerError.MaxValueReached]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.MemoryProblem]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.NoEfSelected]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.InconsistentFile]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.FileNotFound]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.UserRefusedOnDevice]: InternalErrorType.SIGN_TX_ERROR,
+  [LedgerError.NotEnoughSpace]: InternalErrorType.UNKNOWN_ERROR,
+  [LedgerError.GenericError]: InternalErrorType.UNKNOWN_ERROR,
 }
 
+/**
+ * Error details
+ *
+ * This type defines the structure of error details that can be used to display
+ * error messages to the user.
+ */
+export interface ErrorDetails {
+  title: string
+  description?: string
+  content?: string
+}
+
+/**
+ * Maps internal errors to error details
+ *
+ * This type defines a mapping between internal error codes and their corresponding
+ * detailed error information. Used to provide consistent error messages throughout
+ * the application.
+ *
+ * @typedef {Object} ErrorDetailsMap
+ */
 export type ErrorDetailsMap = {
-  [key in InternalErrors | LedgerErrors]: ErrorDetails
+  [key in InternalErrorType]: ErrorDetails
 }
 
+/**
+ * Error details mapping
+ *
+ * Contains the mapping of internal error codes to their human-readable details.
+ * Used for displaying appropriate error messages to users when errors occur.
+ *
+ * @type {ErrorDetailsMap}
+ */
 export const errorDetails: ErrorDetailsMap = {
   app_not_open: {
-    error: InternalErrors.APP_NOT_OPEN,
     title: 'App does not seem to be open.',
     description: 'Please open Polkadot Migration App in your device.',
   },
-  AppDoesNotSeemToBeOpen: {
-    error: LedgerErrors.AppDoesNotSeemToBeOpen,
-    title: 'App does not seem to be open.',
-    description: 'Please open Polkadot Migration App in your device.',
+  ledger_unknown_error: {
+    title: 'Ledger unknown error',
+    description: 'An unknown error happens, please try again.',
   },
   unknown_error: {
-    error: InternalErrors.UNKNOWN_ERROR,
     title: 'An unknown error happens, please try again.',
   },
   locked_device: {
-    error: InternalErrors.LOCKED_DEVICE,
     title: 'The device is locked.',
   },
   device_not_selected: {
-    error: InternalErrors.DEVICE_NOT_SELECTED,
     title: 'There is no a selected device.',
   },
   connection_error: {
-    error: InternalErrors.CONNECTION_ERROR,
     title: 'Connection Error',
     description: 'Could not reach Ledger device. Please ensure Ledger device is on and unlocked.',
   },
   disconnection_error: {
-    error: InternalErrors.DISCONNECTION_ERROR,
     title: 'Disconnection Error',
     description: 'The Ledger device could not be disconnected. Please ensure the device is properly connected and try again.',
   },
   address_not_selected: {
-    error: InternalErrors.ADDRESS_NOT_SELECTED,
     title: 'Address not selected',
     description: 'Please select an address to continue.',
   },
-  ClaNotSupported: {
-    error: LedgerErrors.ClaNotSupported,
-    title: 'Wrong app.',
-  },
   balance_not_gotten: {
-    error: InternalErrors.BALANCE_NOT_GOTTEN,
     title: 'Balance Not Retrieved',
     description: 'The balance could not be retrieved. Please try again later.',
   },
   sync_error: {
-    error: InternalErrors.SYNC_ERROR,
     title: 'Synchronization Error',
     description: 'The accounts could not be synchronized. Please try again later.',
   },
   get_address_error: {
-    error: InternalErrors.GET_ADDRESS_ERROR,
     title: 'Get Address Error',
     description: 'Failed to get account address from Ledger device.',
     content: 'Please ensure the device is connected and try again.',
   },
   no_receiver_address: {
-    error: InternalErrors.NO_RECEIVER_ADDRESS,
     title: 'No Receiver Address',
     description: 'No Polkadot address to migrate to.',
   },
   no_transfer_amount: {
-    error: InternalErrors.NO_TRANSFER_AMOUNT,
     title: 'No Transfer Amount',
     description: 'There is no amount to transfer.',
   },
   app_config_not_found: {
-    error: InternalErrors.APP_CONFIG_NOT_FOUND,
     title: 'App Configuration Not Found',
     description: 'The app configuration could not be found.',
   },
   migration_error: {
-    error: InternalErrors.MIGRATION_ERROR,
     title: 'Migration Error',
     description: 'Failed to migrate found of an account.',
     content: 'Please try again later or contact support if the issue persists.',
   },
   migration_tx_info_error: {
-    error: InternalErrors.MIGRATION_TX_INFO_ERROR,
     title: 'Migration Transaction Info Error',
     description: 'Failed to get migration transaction info.',
     content: 'Please try again later or contact support if the issue persists.',
   },
   blockchain_connection_error: {
-    error: InternalErrors.BLOCKCHAIN_CONNECTION_ERROR,
     title: 'Blockchain Connection Error',
     description: 'Failed to connect to the blockchain network.',
     content: 'Please check your internet connection and try again later.',
   },
   insufficient_balance: {
-    error: InternalErrors.INSUFFICIENT_BALANCE,
     title: 'Insufficient Balance',
     description: 'Insufficient balance to cover the transaction fee.',
     content: 'Please ensure you have enough funds to cover both the transfer amount and transaction fee.',
   },
   insufficient_balance_to_cover_fee: {
-    error: InternalErrors.INSUFFICIENT_BALANCE_TO_COVER_FEE,
     title: 'Insufficient Balance to Cover Fee',
     description: 'Insufficient balance to cover the amount and the transaction fee.',
     content: 'Please ensure you have enough funds to cover the amount and the transaction fee.',
   },
   default: {
-    error: InternalErrors.DEFAULT,
     title: 'An unknown error happens, please try again.',
   },
-  TransportStatusError: {
-    error: LedgerErrors.TransportStatusError,
-    title: 'Transport Status Error',
-    description: 'An error occurred with the transport status.',
-    content: 'Please check the device connection and try again.',
-  },
-  LockedDeviceError: {
-    error: LedgerErrors.LockedDeviceError,
-    title: 'Locked Device Error',
-    description: 'The device is locked and cannot be accessed.',
-    content: 'Please unlock the device to proceed.',
-  },
-  TransportOpenUserCancelled: {
-    error: LedgerErrors.TransportOpenUserCancelled,
-    title: 'Transport Open User Cancelled',
-    description: 'The user cancelled the transport opening.',
-    content: 'Select the device to connect.',
-  },
-  TransportRaceCondition: {
-    error: LedgerErrors.TransportRaceCondition,
-    title: 'Transport Race Condition',
-    description: 'A race condition occurred in the transport.',
-    content: 'Please deny from device or reconnect.',
-  },
-  InvalidStateError: {
-    error: LedgerErrors.InvalidStateError,
-    title: 'Invalid State Error',
-    description: 'The device is in an invalid state.',
-    content: 'Please deny from device or reconnect.',
-  },
-  TransportInterfaceNotAvailable: {
-    error: LedgerErrors.TransportInterfaceNotAvailable,
-    title: 'Transport Interface Not Available',
-    description: 'The transport interface is not available.',
-    content: 'Please disconnect the device and try again.',
-  },
   unstake_error: {
-    error: InternalErrors.UNSTAKE_ERROR,
     title: 'Unstake Error',
     description: 'Failed to unstake balance.',
     content: 'Please try again later or contact support if the issue persists.',
   },
   get_unstake_fee_error: {
-    error: InternalErrors.GET_UNSTAKE_FEE_ERROR,
     title: 'Get Unstake Fee Error',
     description: 'Failed to get unstake fee.',
     content: 'Please try again later or contact support if the issue persists.',
   },
   withdraw_error: {
-    error: InternalErrors.WITHDRAW_ERROR,
     title: 'Withdraw Error',
     description: 'Failed to withdraw balance.',
     content: 'Please try again later or contact support if the issue persists.',
   },
   get_withdraw_fee_error: {
-    error: InternalErrors.GET_WITHDRAW_FEE_ERROR,
     title: 'Get Withdraw Fee Error',
     description: 'Failed to get withdraw fee.',
     content: 'Please try again later or contact support if the issue persists.',
   },
   remove_identity_error: {
-    error: InternalErrors.REMOVE_IDENTITY_ERROR,
     title: 'Remove Identity Error',
     description: 'Failed to remove identity.',
     content: 'Please try again later or contact support if the issue persists.',
   },
   get_remove_identity_fee_error: {
-    error: InternalErrors.GET_REMOVE_IDENTITY_FEE_ERROR,
     title: 'Get Remove Identity Fee Error',
     description: 'Failed to get remove identity fee.',
     content: 'Please try again later or contact support if the issue persists.',
   },
   no_multisig_members: {
-    error: InternalErrors.NO_MULTISIG_MEMBERS,
     title: 'No Multisig Members',
     description: 'No multisig members found.',
     content: 'Please ensure the multisig account has members.',
   },
   no_multisig_threshold: {
-    error: InternalErrors.NO_MULTISIG_THRESHOLD,
     title: 'No Multisig Threshold',
     description: 'No multisig threshold found.',
     content: 'Please ensure the multisig account has a threshold.',
   },
   no_signatory_address: {
-    error: InternalErrors.NO_SIGNATORY_ADDRESS,
     title: 'No Signatory Address',
     description: 'No signatory address found.',
     content: 'Please ensure the multisig account has a signatory address.',
   },
   no_multisig_address: {
-    error: InternalErrors.NO_MULTISIG_ADDRESS,
     title: 'No Multisig Address',
     description: 'No multisig address found.',
     content: 'Please ensure the multisig account has an address.',
   },
   no_pending_multisig_call: {
-    error: InternalErrors.NO_PENDING_MULTISIG_CALL,
     title: 'No Pending Multisig Call',
     description: 'No pending multisig call found.',
     content: 'Please ensure the multisig account has a pending call.',
   },
   no_call_data: {
-    error: InternalErrors.NO_CALL_DATA,
     title: 'No Call Data',
     description: 'No call data found.',
     content: 'Please ensure the multisig account has a call data.',
   },
   signatory_already_signed: {
-    error: InternalErrors.SIGNATORY_ALREADY_SIGNED,
     title: 'Signatory Already Signed',
     description: 'The signatory has already signed the call.',
     content: 'Please ensure the signatory has not signed the call.',
   },
   approve_multisig_call_error: {
-    error: InternalErrors.APPROVE_MULTISIG_CALL_ERROR,
     title: 'Approve Multisig Call Error',
     description: 'Failed to approve multisig call.',
     content: 'Please try again later or contact support if the issue persists.',
   },
   remove_proxy_error: {
-    error: InternalErrors.REMOVE_PROXY_ERROR,
     title: 'Remove Proxy Error',
     description: 'Failed to remove proxy.',
     content: 'Please try again later or contact support if the issue persists.',
   },
   get_remove_proxies_fee_error: {
-    error: InternalErrors.GET_REMOVE_PROXIES_FEE_ERROR,
     title: 'Get Remove Proxies Fee Error',
     description: 'Failed to get remove proxies fee.',
     content: 'Please try again later or contact support if the issue persists.',
   },
   validate_call_data_matches_hash_error: {
-    error: InternalErrors.VALIDATE_CALL_DATA_MATCHES_HASH_ERROR,
     title: 'Validate Call Data Matches Hash Error',
     description: 'Failed to validate call data matches hash.',
     content: 'Please try again later or contact support if the issue persists.',
   },
   connection_timeout: {
-    error: InternalErrors.CONNECTION_TIMEOUT,
     title: 'Connection Timeout',
     description: 'The node is not responding.',
     content: 'Please try again later or contact support if the issue persists.',
   },
   connection_refused: {
-    error: InternalErrors.CONNECTION_REFUSED,
     title: 'Connection Refused',
     description: 'The node endpoint is unreachable.',
     content: 'Please try again later or contact support if the issue persists.',
   },
   failed_to_connect_to_blockchain: {
-    error: InternalErrors.FAILED_TO_CONNECT_TO_BLOCKCHAIN,
     title: 'Failed to Connect to Blockchain',
     description: 'Failed to connect to the blockchain network.',
     content: 'Please check your internet connection and try again later.',
   },
   fetch_process_accounts_error: {
-    error: InternalErrors.FETCH_PROCESS_ACCOUNTS_ERROR,
     title: 'Error Fetching and Processing Accounts',
     description: 'An error occurred while fetching and processing accounts for the app.',
     content: 'Please try again later or contact support if the issue persists.',
   },
   prepare_tx_error: {
-    error: InternalErrors.PREPARE_TX_ERROR,
     title: 'Prepare Transaction Error',
     description: 'Failed to prepare transaction.',
     content: 'Please try again later or contact support if the issue persists.',
   },
   sign_tx_error: {
-    error: InternalErrors.SIGN_TX_ERROR,
     title: 'Sign Transaction Error',
     description: 'Failed to sign transaction.',
     content: 'Please try again later or contact support if the issue persists.',
   },
   no_balance: {
-    error: InternalErrors.NO_BALANCE,
     title: 'No Balance',
     description: 'No balance found.',
     content: 'Please ensure the account has a balance.',
