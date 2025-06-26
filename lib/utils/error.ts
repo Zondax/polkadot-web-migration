@@ -1,3 +1,9 @@
+import {
+  type DisconnectedDevice,
+  type DisconnectedDeviceDuringOperation,
+  TransportError,
+  type TransportOpenUserCancelled,
+} from '@ledgerhq/errors'
 import { ERROR_DESCRIPTION_OVERRIDE, type LedgerError, ResponseError } from '@zondax/ledger-js'
 import { InternalErrorType, errorDetails, ledgerErrorToInternalErrorMap } from 'config/errors'
 
@@ -119,7 +125,7 @@ export function interpretLedgerClientError(error: unknown): InternalError {
     return error
   }
 
-  // Handle \@zondax/ledger-js errors
+  // Handle @zondax/ledger-js errors
   if (error instanceof ResponseError) {
     return interpretLedgerJsError(error)
   }

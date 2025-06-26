@@ -64,7 +64,14 @@ export enum InternalErrorType {
   SIGN_TX_ERROR = 'sign_tx_error',
   NO_BALANCE = 'no_balance',
   TRANSACTION_REJECTED = 'transaction_rejected',
+  INVALID_STATE_ERROR = 'InvalidStateError',
   TRANSPORT_ERROR = 'transport_error',
+  TRANSPORT_STATUS_ERROR = 'TransportStatusError',
+  TRANSPORT_OPEN_USER_CANCELLED = 'TransportOpenUserCancelled',
+  TRANSPORT_RACE_CONDITION = 'TransportRaceCondition',
+  TRANSPORT_INTERFACE_NOT_AVAILABLE = 'TransportInterfaceNotAvailable',
+  CLA_NOT_SUPPORTED = 'ClaNotSupported',
+  APP_DOES_NOT_SEE_TO_BE_OPEN = 'AppDoesNotSeemToBeOpen',
 }
 
 /**
@@ -384,5 +391,40 @@ export const errorDetails: ErrorDetailsMap = {
     title: 'Transport Error',
     description: 'Failed to initialize transport.',
     content: 'Please try again later or contact support if the issue persists.',
+  },
+  TransportOpenUserCancelled: {
+    title: 'Connection Cancelled',
+    description: 'You cancelled the connection request or closed the browser prompt.',
+    content: 'Please try connecting your device again by clicking "Connect" and selecting your device in the popup window.',
+  },
+  TransportRaceCondition: {
+    title: 'Transport Race Condition',
+    description: 'A race condition occurred during device communication.',
+    content: 'Please disconnect your device, wait a moment, and try again.',
+  },
+  TransportInterfaceNotAvailable: {
+    title: 'Transport Interface Not Available',
+    description: 'The required transport interface is not available.',
+    content: 'Please ensure your browser supports WebHID or WebUSB and try again.',
+  },
+  ClaNotSupported: {
+    title: 'Command Not Supported',
+    description: 'The command is not supported by the device.',
+    content: 'Please ensure you have the latest firmware and app installed on your device.',
+  },
+  AppDoesNotSeemToBeOpen: {
+    title: 'App Not Open',
+    description: 'The required app does not appear to be open on your device.',
+    content: 'Please open the correct app on your Ledger device and try again.',
+  },
+  InvalidStateError: {
+    title: 'Invalid State Error',
+    description: 'The device is in an invalid state.',
+    content: 'Please ensure your device is in a valid state and try again.',
+  },
+  TransportStatusError: {
+    title: 'Transport Status Error',
+    description: 'The device is in an invalid state.',
+    content: 'Please ensure your device is in a valid state and try again.',
   },
 }
