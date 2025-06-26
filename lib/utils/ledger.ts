@@ -1,6 +1,12 @@
 import axios from 'axios'
-import { type App, AppStatus } from 'state/ledger'
-import type { Address, AddressBalance, AddressWithVerificationStatus, MultisigAddress } from 'state/types/ledger'
+import { AppStatus, type App } from 'state/ledger'
+import {
+  VerificationStatus,
+  type Address,
+  type AddressBalance,
+  type AddressWithVerificationStatus,
+  type MultisigAddress,
+} from 'state/types/ledger'
 import { hasAddressBalance, hasBalance } from './balance'
 
 /**
@@ -195,7 +201,7 @@ export function addDestinationAddressesFromAccounts(
           addressMap.set(balance.transaction.destinationAddress, {
             address: balance.transaction.destinationAddress,
             path: account.path,
-            status: 'pending',
+            status: VerificationStatus.PENDING,
           })
         }
       }

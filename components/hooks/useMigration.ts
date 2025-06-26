@@ -1,11 +1,11 @@
-import type { AddressWithVerificationStatus, MigratingItem } from '@/state/types/ledger'
+import { VerificationStatus, type AddressWithVerificationStatus, type MigratingItem } from '@/state/types/ledger'
 import { observable } from '@legendapp/state'
 import { use$ } from '@legendapp/state/react'
 import { useCallback, useEffect } from 'react'
-import { type App, ledgerState$ } from 'state/ledger'
+import { ledgerState$, type App } from 'state/ledger'
 
 import type { AppId } from '@/config/apps'
-import { addDestinationAddressesFromAccounts, filterValidSyncedAppsWithBalances, filterSelectedAccountsForMigration } from '@/lib/utils'
+import { addDestinationAddressesFromAccounts, filterSelectedAccountsForMigration, filterValidSyncedAppsWithBalances } from '@/lib/utils'
 
 interface UseMigrationReturn {
   // Computed values
@@ -175,12 +175,14 @@ export const useMigration = (): UseMigrationReturn => {
     const address = destinationAddressesStatus$[appId][addressIndex].peek()
 
     // Update the verification status to 'verifying'
-    destinationAddressesStatus$[appId][addressIndex].status.set('verifying')
+    destinationAddressesStatus$[appId][addressIndex].status.set(VerificationStatus.VERIFYING)
 
     const response = await ledgerState$.verifyDestinationAddresses(appId, address.address, address.path)
 
     // The property is spelled 'isVerified' in the API response
-    destinationAddressesStatus$[appId][addressIndex].status.set(response.isVerified ? 'verified' : 'failed')
+    destinationAddressesStatus$[appId][addressIndex].status.set(
+      response.isVerified ? VerificationStatus.VERIFIED : VerificationStatus.FAILED
+    )
   }, [])
 
   /**

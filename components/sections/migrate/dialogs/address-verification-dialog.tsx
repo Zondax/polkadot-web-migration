@@ -2,19 +2,18 @@
 
 import { uiState$ } from '@/state/ui'
 import { use$ } from '@legendapp/state/react'
-import { AlertCircle, CheckCircle, Clock } from 'lucide-react'
 import { useEffect } from 'react'
 
 import { CustomTooltip } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { useMigration } from '@/components/hooks/useMigration'
-import { Spinner } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { type AppId, appsConfigs } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
+import { verificationStatusMap } from '@/config/ui'
 import { muifyHtml } from '@/lib/utils'
-import type { VerificationStatus } from '@/state/types/ledger'
+import { VerificationStatus } from '@/state/types/ledger'
 
 interface AddressVerificationDialogProps {
   open: boolean
@@ -48,30 +47,7 @@ export const AddressVerificationDialog = ({ open, onClose }: AddressVerification
   }, [allVerified, isVerifying, onClose])
 
   const renderStatusIcon = (status: VerificationStatus) => {
-    let icon = undefined
-    let tooltip: string | undefined
-
-    switch (status) {
-      case 'pending':
-        icon = <Clock className="h-4 w-4 text-muted-foreground" />
-        tooltip = 'Pending verification'
-        break
-      case 'verifying':
-        icon = <Spinner />
-        tooltip = 'Verifying...'
-        break
-      case 'verified':
-        icon = <CheckCircle className="h-4 w-4 text-green-500" />
-        tooltip = 'Verified'
-        break
-      case 'failed':
-        icon = <AlertCircle className="h-4 w-4 text-red-500" />
-        tooltip = 'Failed verification'
-        break
-      default:
-        icon = undefined
-        tooltip = undefined
-    }
+    const { icon, tooltip } = verificationStatusMap[status] || { icon: undefined, tooltip: undefined }
 
     return <CustomTooltip tooltipBody={tooltip}>{icon}</CustomTooltip>
   }
