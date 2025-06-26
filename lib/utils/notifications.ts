@@ -10,13 +10,7 @@ import { type InternalError, interpretError } from './error'
  * @returns The error details from the error
  */
 export function handleErrorNotification(internalError: InternalError): void {
-  console.debug('[handleErrorNotification] error:', JSON.stringify(internalError, null, 2))
-
-  // TODO: there should be a default title
-  if (!internalError?.title) {
-    console.debug('[handleErrorNotification] no title')
-    return
-  }
+  console.debug('[handleErrorNotification] sending notification/toast for error:', JSON.stringify(internalError, null, 2))
 
   // Only show notification if explicitly requested
   notifications$.push({

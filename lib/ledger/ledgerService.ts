@@ -56,7 +56,7 @@ export class LedgerService implements ILedgerService {
   async openApp(transport: Transport, appName: string): Promise<{ connection?: DeviceConnectionProps }> {
     if (!transport) {
       console.debug('[ledgerService] Transport not available')
-      throw new Error('TransportStatusError')
+      throw new InternalError(InternalErrorType.TRANSPORT_ERROR)
     }
     console.debug(`[ledgerService] Opening ${appName} app`)
     await openApp(transport, appName)
@@ -124,7 +124,7 @@ export class LedgerService implements ILedgerService {
     const connection = await this.establishDeviceConnection(onDisconnect)
     if (!connection) {
       console.debug('[ledgerService] Failed to establish device connection')
-      throw new Error('Failed to establish device connection')
+      throw new InternalError(InternalErrorType.CONNECTION_ERROR)
     }
 
     console.debug(`[ledgerService] Device connected successfully, the app is ${connection.isAppOpen ? 'open' : 'closed'}`)
@@ -154,7 +154,7 @@ export class LedgerService implements ILedgerService {
     proof1: Uint8Array
   ): Promise<{ signature?: Buffer<ArrayBufferLike> }> {
     if (!this.deviceConnection?.genericApp) {
-      throw new Error('App not open')
+      throw new InternalError(InternalErrorType.APP_NOT_OPEN)
     }
 
     console.debug(`[ledgerService] Signing transaction for path: ${bip44Path}, chainId: ${chainId}`)

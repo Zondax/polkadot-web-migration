@@ -63,6 +63,8 @@ export enum InternalErrorType {
   PREPARE_TX_ERROR = 'prepare_tx_error',
   SIGN_TX_ERROR = 'sign_tx_error',
   NO_BALANCE = 'no_balance',
+  TRANSACTION_REJECTED = 'transaction_rejected',
+  TRANSPORT_ERROR = 'transport_error',
 }
 
 /**
@@ -94,7 +96,7 @@ export const ledgerErrorToInternalErrorMap: Record<LedgerError, InternalErrorTyp
   [LedgerError.EmptyBuffer]: InternalErrorType.UNKNOWN_ERROR,
   [LedgerError.OutputBufferTooSmall]: InternalErrorType.UNKNOWN_ERROR,
   [LedgerError.DataIsInvalid]: InternalErrorType.UNKNOWN_ERROR,
-  [LedgerError.TransactionRejected]: InternalErrorType.SIGN_TX_ERROR,
+  [LedgerError.TransactionRejected]: InternalErrorType.TRANSACTION_REJECTED,
   [LedgerError.BadKeyHandle]: InternalErrorType.UNKNOWN_ERROR,
   [LedgerError.InvalidP1P2]: InternalErrorType.UNKNOWN_ERROR,
   [LedgerError.InstructionNotSupported]: InternalErrorType.UNKNOWN_ERROR,
@@ -180,7 +182,8 @@ export const errorDetails: ErrorDetailsMap = {
     description: 'An unknown error happens, please try again.',
   },
   unknown_error: {
-    title: 'An unknown error happens, please try again.',
+    title: 'Unknown Error',
+    description: 'An unexpected error occurred',
   },
   locked_device: {
     title: 'The device is locked.',
@@ -212,6 +215,10 @@ export const errorDetails: ErrorDetailsMap = {
     title: 'Get Address Error',
     description: 'Failed to get account address from Ledger device.',
     content: 'Please ensure the device is connected and try again.',
+  },
+  transaction_rejected: {
+    title: 'Transaction Rejected',
+    description: 'The transaction was rejected by the user.',
   },
   no_receiver_address: {
     title: 'No Receiver Address',
@@ -372,5 +379,10 @@ export const errorDetails: ErrorDetailsMap = {
     title: 'No Balance',
     description: 'No balance found.',
     content: 'Please ensure the account has a balance.',
+  },
+  transport_error: {
+    title: 'Transport Error',
+    description: 'Failed to initialize transport.',
+    content: 'Please try again later or contact support if the issue persists.',
   },
 }

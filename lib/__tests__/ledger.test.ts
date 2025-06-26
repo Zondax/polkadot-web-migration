@@ -38,7 +38,7 @@ describe('LedgerService', () => {
 
     it('should throw TransportStatusError when transport is undefined', async () => {
       const ledgerService = new LedgerService()
-      await expect(ledgerService.openApp(undefined as any, 'Polkadot Migration')).rejects.toThrow('TransportStatusError')
+      await expect(ledgerService.openApp(undefined as any, 'Polkadot Migration')).rejects.toThrow('transport_error')
     })
   })
 
@@ -198,7 +198,7 @@ describe('LedgerService', () => {
       // Mock establishDeviceConnection to return undefined (failed connection)
       vi.spyOn(ledgerService, 'establishDeviceConnection').mockResolvedValue(undefined)
 
-      await expect(ledgerService.connectDevice()).rejects.toThrow('Failed to establish device connection')
+      await expect(ledgerService.connectDevice()).rejects.toThrow('connection_error')
     })
   })
 
@@ -239,7 +239,7 @@ describe('LedgerService', () => {
       }
 
       const bip44Path = "m/44'/354'/0'/0/0'" // Valid Polkadot BIP44 path
-      await expect(ledgerService.getAccountAddress(bip44Path, 0, true)).rejects.toThrow('App not open')
+      await expect(ledgerService.getAccountAddress(bip44Path, 0, true)).rejects.toThrow('app_not_open')
     })
 
     it('should handle errors from getAddress call', async () => {
