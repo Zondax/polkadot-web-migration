@@ -280,11 +280,15 @@ export const useMigration = (): UseMigrationReturn => {
   /**
    * Clear synchronization data and restart the synchronization process
    */
-  const restartSynchronization = useCallback(() => {
+  const restartSynchronization = useCallback(async () => {
     // Clear synchronization data
     ledgerState$.clearSynchronization()
-    // Restart synchronization process
-    ledgerState$.synchronizeAccounts()
+
+    const result = await ledgerState$.connectLedger()
+    if (result.connected && result.isAppOpen) {
+      ledgerState$.synchronizeAccounts()
+    }
+
     // Reset verification status
     destinationAddressesStatus$.set({})
     isVerifying$.set(false)
