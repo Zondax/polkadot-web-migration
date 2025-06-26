@@ -13,7 +13,7 @@ import { type AppId, appsConfigs } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { verificationStatusMap } from '@/config/ui'
 import { muifyHtml } from '@/lib/utils'
-import { VerificationStatus } from '@/state/types/ledger'
+import type { VerificationStatus } from '@/state/types/ledger'
 
 interface AddressVerificationDialogProps {
   open: boolean
