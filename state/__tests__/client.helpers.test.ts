@@ -1,5 +1,5 @@
 import type { AppId } from 'config/apps'
-import { InternalErrors } from 'config/errors'
+import { InternalErrorType } from 'config/errors'
 import { TEST_ADDRESSES, mockAddress1, mockFreeNativeBalance } from 'lib/__tests__/utils/__mocks__/mockData'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { validateApproveAsMultiParams, validateAsMultiParams, validateMigrationParams } from '../client/helpers'
@@ -114,12 +114,12 @@ describe('client helpers', () => {
       })
 
       it('should return invalid when balance at index does not exist', () => {
-        expect(() => validateMigrationParams(mockAppId, mockAccount, 1)).toThrow(InternalErrors.NO_BALANCE)
+        expect(() => validateMigrationParams(mockAppId, mockAccount, 1)).toThrow(InternalErrorType.NO_BALANCE)
       })
 
       it('should return invalid when balances array is undefined', () => {
         const accountWithoutBalances = { ...mockAccount, balances: undefined }
-        expect(() => validateMigrationParams(mockAppId, accountWithoutBalances, 0)).toThrow(InternalErrors.NO_BALANCE)
+        expect(() => validateMigrationParams(mockAppId, accountWithoutBalances, 0)).toThrow(InternalErrorType.NO_BALANCE)
       })
 
       it('should throw NO_RECEIVER_ADDRESS error when destination address is missing', () => {
@@ -132,7 +132,7 @@ describe('client helpers', () => {
           balances: [balanceWithoutDestination],
         }
 
-        expect(() => validateMigrationParams(mockAppId, accountWithBadBalance, 0)).toThrow(InternalErrors.NO_RECEIVER_ADDRESS)
+        expect(() => validateMigrationParams(mockAppId, accountWithBadBalance, 0)).toThrow(InternalErrorType.NO_RECEIVER_ADDRESS)
       })
 
       it('should throw NO_TRANSFER_AMOUNT error when balance is not available', () => {
@@ -151,19 +151,19 @@ describe('client helpers', () => {
           balances: [balanceWithZeroAmount],
         }
 
-        expect(() => validateMigrationParams(mockAppId, accountWithZeroBalance, 0)).toThrow(InternalErrors.NO_TRANSFER_AMOUNT)
+        expect(() => validateMigrationParams(mockAppId, accountWithZeroBalance, 0)).toThrow(InternalErrorType.NO_TRANSFER_AMOUNT)
       })
 
       it('should throw APP_CONFIG_NOT_FOUND error when app config is missing', () => {
         mockedAppsConfigs.get.mockReturnValue(undefined)
 
-        expect(() => validateMigrationParams(mockAppId, mockAccount, 0)).toThrow(InternalErrors.APP_CONFIG_NOT_FOUND)
+        expect(() => validateMigrationParams(mockAppId, mockAccount, 0)).toThrow(InternalErrorType.APP_CONFIG_NOT_FOUND)
       })
 
       it('should throw APP_CONFIG_NOT_FOUND error when app config has no rpc endpoint', () => {
         mockedAppsConfigs.get.mockReturnValue({ ...mockAppConfig, rpcEndpoint: undefined })
 
-        expect(() => validateMigrationParams(mockAppId, mockAccount, 0)).toThrow(InternalErrors.APP_CONFIG_NOT_FOUND)
+        expect(() => validateMigrationParams(mockAppId, mockAccount, 0)).toThrow(InternalErrorType.APP_CONFIG_NOT_FOUND)
       })
     })
 
@@ -201,7 +201,7 @@ describe('client helpers', () => {
           balances: [balanceWithoutSignatory],
         }
 
-        expect(() => validateMigrationParams(mockAppId, accountWithBadBalance, 0)).toThrow(InternalErrors.NO_SIGNATORY_ADDRESS)
+        expect(() => validateMigrationParams(mockAppId, accountWithBadBalance, 0)).toThrow(InternalErrorType.NO_SIGNATORY_ADDRESS)
       })
 
       it('should throw NO_SIGNATORY_ADDRESS error when signatory path is not found in members', () => {
@@ -214,22 +214,22 @@ describe('client helpers', () => {
           balances: [balanceWithUnknownSignatory],
         }
 
-        expect(() => validateMigrationParams(mockAppId, accountWithBadBalance, 0)).toThrow(InternalErrors.NO_SIGNATORY_ADDRESS)
+        expect(() => validateMigrationParams(mockAppId, accountWithBadBalance, 0)).toThrow(InternalErrorType.NO_SIGNATORY_ADDRESS)
       })
 
       it('should throw NO_SIGNATORY_ADDRESS error when members are missing', () => {
         const accountWithoutMembers = { ...mockMultisigAccountWithBalance, members: undefined }
-        expect(() => validateMigrationParams(mockAppId, accountWithoutMembers, 0)).toThrow(InternalErrors.NO_SIGNATORY_ADDRESS)
+        expect(() => validateMigrationParams(mockAppId, accountWithoutMembers, 0)).toThrow(InternalErrorType.NO_SIGNATORY_ADDRESS)
       })
 
       it('should throw NO_MULTISIG_THRESHOLD error when threshold is missing', () => {
         const accountWithoutThreshold = { ...mockMultisigAccountWithBalance, threshold: undefined }
-        expect(() => validateMigrationParams(mockAppId, accountWithoutThreshold, 0)).toThrow(InternalErrors.NO_MULTISIG_THRESHOLD)
+        expect(() => validateMigrationParams(mockAppId, accountWithoutThreshold, 0)).toThrow(InternalErrorType.NO_MULTISIG_THRESHOLD)
       })
 
       it('should throw NO_MULTISIG_ADDRESS error when address is missing', () => {
         const accountWithoutAddress = { ...mockMultisigAccountWithBalance, address: undefined as any }
-        expect(() => validateMigrationParams(mockAppId, accountWithoutAddress, 0)).toThrow(InternalErrors.NO_MULTISIG_ADDRESS)
+        expect(() => validateMigrationParams(mockAppId, accountWithoutAddress, 0)).toThrow(InternalErrorType.NO_MULTISIG_ADDRESS)
       })
     })
 
@@ -241,7 +241,7 @@ describe('client helpers', () => {
         }
         mockedIsMultisigAddress.mockReturnValue(false)
 
-        expect(() => validateMigrationParams(mockAppId, accountWithEmptyBalances, 0)).toThrow(InternalErrors.NO_BALANCE)
+        expect(() => validateMigrationParams(mockAppId, accountWithEmptyBalances, 0)).toThrow(InternalErrorType.NO_BALANCE)
       })
 
       it('should handle negative balance index', () => {
@@ -251,7 +251,7 @@ describe('client helpers', () => {
         }
         mockedIsMultisigAddress.mockReturnValue(false)
 
-        expect(() => validateMigrationParams(mockAppId, mockAccount, -1)).toThrow(InternalErrors.NO_BALANCE)
+        expect(() => validateMigrationParams(mockAppId, mockAccount, -1)).toThrow(InternalErrorType.NO_BALANCE)
       })
     })
   })
@@ -284,7 +284,7 @@ describe('client helpers', () => {
         mockedAppsConfigs.get.mockReturnValue(undefined)
 
         expect(() => validateApproveAsMultiParams(mockAppId, mockMultisigAccount, mockCallHash, mockSigner)).toThrow(
-          InternalErrors.APP_CONFIG_NOT_FOUND
+          InternalErrorType.APP_CONFIG_NOT_FOUND
         )
       })
 
@@ -292,7 +292,7 @@ describe('client helpers', () => {
         mockedAppsConfigs.get.mockReturnValue({ ...mockAppConfig, rpcEndpoint: undefined })
 
         expect(() => validateApproveAsMultiParams(mockAppId, mockMultisigAccount, mockCallHash, mockSigner)).toThrow(
-          InternalErrors.APP_CONFIG_NOT_FOUND
+          InternalErrorType.APP_CONFIG_NOT_FOUND
         )
       })
 
@@ -300,7 +300,7 @@ describe('client helpers', () => {
         const accountWithoutMembers = { ...mockMultisigAccount, members: undefined as any }
 
         expect(() => validateApproveAsMultiParams(mockAppId, accountWithoutMembers, mockCallHash, mockSigner)).toThrow(
-          InternalErrors.NO_MULTISIG_MEMBERS
+          InternalErrorType.NO_MULTISIG_MEMBERS
         )
       })
 
@@ -308,7 +308,7 @@ describe('client helpers', () => {
         const accountWithoutThreshold = { ...mockMultisigAccount, threshold: undefined as any }
 
         expect(() => validateApproveAsMultiParams(mockAppId, accountWithoutThreshold, mockCallHash, mockSigner)).toThrow(
-          InternalErrors.NO_MULTISIG_THRESHOLD
+          InternalErrorType.NO_MULTISIG_THRESHOLD
         )
       })
 
@@ -316,7 +316,7 @@ describe('client helpers', () => {
         const accountWithoutAddress = { ...mockMultisigAccount, address: undefined as any }
 
         expect(() => validateApproveAsMultiParams(mockAppId, accountWithoutAddress, mockCallHash, mockSigner)).toThrow(
-          InternalErrors.NO_MULTISIG_ADDRESS
+          InternalErrorType.NO_MULTISIG_ADDRESS
         )
       })
 
@@ -324,7 +324,7 @@ describe('client helpers', () => {
         const unknownSigner = 'unknown_member'
 
         expect(() => validateApproveAsMultiParams(mockAppId, mockMultisigAccount, mockCallHash, unknownSigner)).toThrow(
-          InternalErrors.NO_SIGNATORY_ADDRESS
+          InternalErrorType.NO_SIGNATORY_ADDRESS
         )
       })
 
@@ -332,7 +332,7 @@ describe('client helpers', () => {
         const emptySigner = ''
 
         expect(() => validateApproveAsMultiParams(mockAppId, mockMultisigAccount, mockCallHash, emptySigner)).toThrow(
-          InternalErrors.NO_SIGNATORY_ADDRESS
+          InternalErrorType.NO_SIGNATORY_ADDRESS
         )
       })
     })
@@ -347,7 +347,7 @@ describe('client helpers', () => {
         const accountWithEmptyMembers = { ...mockMultisigAccount, members: [] }
 
         expect(() => validateApproveAsMultiParams(mockAppId, accountWithEmptyMembers, mockCallHash, mockSigner)).toThrow(
-          InternalErrors.NO_SIGNATORY_ADDRESS
+          InternalErrorType.NO_SIGNATORY_ADDRESS
         )
       })
 
@@ -355,14 +355,14 @@ describe('client helpers', () => {
         const accountWithZeroThreshold = { ...mockMultisigAccount, threshold: 0 }
 
         expect(() => validateApproveAsMultiParams(mockAppId, accountWithZeroThreshold, mockCallHash, mockSigner)).toThrow(
-          InternalErrors.NO_MULTISIG_THRESHOLD
+          InternalErrorType.NO_MULTISIG_THRESHOLD
         )
       })
 
       it('should handle empty call hash', () => {
         const emptyCallHash = ''
         expect(() => validateApproveAsMultiParams(mockAppId, mockMultisigAccount, emptyCallHash, mockSigner)).toThrow(
-          InternalErrors.NO_PENDING_MULTISIG_CALL
+          InternalErrorType.NO_PENDING_MULTISIG_CALL
         )
       })
     })
@@ -391,32 +391,34 @@ describe('client helpers', () => {
     })
     it('should throw if callData is missing', () => {
       expect(() => validateAsMultiParams(mockAppId, mockMultisigAccount, mockCallHash, undefined, mockSigner)).toThrow(
-        InternalErrors.NO_CALL_DATA
+        InternalErrorType.NO_CALL_DATA
       )
     })
     it('should throw if callData is empty string', () => {
-      expect(() => validateAsMultiParams(mockAppId, mockMultisigAccount, mockCallHash, '', mockSigner)).toThrow(InternalErrors.NO_CALL_DATA)
+      expect(() => validateAsMultiParams(mockAppId, mockMultisigAccount, mockCallHash, '', mockSigner)).toThrow(
+        InternalErrorType.NO_CALL_DATA
+      )
     })
     it('should throw if signer is not found in members', () => {
       expect(() => validateAsMultiParams(mockAppId, mockMultisigAccount, mockCallHash, mockCallData, 'unknown_member')).toThrow(
-        InternalErrors.NO_SIGNATORY_ADDRESS
+        InternalErrorType.NO_SIGNATORY_ADDRESS
       )
     })
     it('should throw if callHash is not in pendingMultisigCalls', () => {
       expect(() => validateAsMultiParams(mockAppId, mockMultisigAccount, '0xnotfound', mockCallData, mockSigner)).toThrow(
-        InternalErrors.NO_PENDING_MULTISIG_CALL
+        InternalErrorType.NO_PENDING_MULTISIG_CALL
       )
     })
     it('should throw if app config is missing', () => {
       mockedAppsConfigs.get.mockReturnValue(undefined)
       expect(() => validateAsMultiParams(mockAppId, mockMultisigAccount, mockCallHash, mockCallData, mockSigner)).toThrow(
-        InternalErrors.APP_CONFIG_NOT_FOUND
+        InternalErrorType.APP_CONFIG_NOT_FOUND
       )
     })
     it('should throw if app config has no rpc endpoint', () => {
       mockedAppsConfigs.get.mockReturnValue({ ...mockAppConfig, rpcEndpoint: undefined })
       expect(() => validateAsMultiParams(mockAppId, mockMultisigAccount, mockCallHash, mockCallData, mockSigner)).toThrow(
-        InternalErrors.APP_CONFIG_NOT_FOUND
+        InternalErrorType.APP_CONFIG_NOT_FOUND
       )
     })
   })

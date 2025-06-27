@@ -11,6 +11,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.1.1
         version: 5.1.1(react-hook-form@7.58.1(react@19.1.0))
+      '@ledgerhq/errors':
+        specifier: ^6.22.0
+        version: 6.22.0
       '@ledgerhq/hw-transport':
         specifier: ^6.31.7
         version: 6.31.7

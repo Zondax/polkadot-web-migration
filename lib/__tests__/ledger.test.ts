@@ -38,7 +38,7 @@ describe('LedgerService', () => {
 
     it('should throw TransportStatusError when transport is undefined', async () => {
       const ledgerService = new LedgerService()
-      await expect(ledgerService.openApp(undefined as any, 'Polkadot Migration')).rejects.toThrow('TransportStatusError')
+      await expect(ledgerService.openApp(undefined as any, 'Polkadot Migration')).rejects.toThrow('Transport not available')
     })
   })
 
@@ -198,7 +198,7 @@ describe('LedgerService', () => {
       // Mock establishDeviceConnection to return undefined (failed connection)
       vi.spyOn(ledgerService, 'establishDeviceConnection').mockResolvedValue(undefined)
 
-      await expect(ledgerService.connectDevice()).rejects.toThrow('Failed to establish device connection')
+      await expect(ledgerService.connectDevice()).rejects.toThrow('Transport not available')
     })
   })
 

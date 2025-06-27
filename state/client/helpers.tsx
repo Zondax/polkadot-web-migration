@@ -1,5 +1,5 @@
 import { type AppId, appsConfigs } from 'config/apps'
-import { InternalErrors } from 'config/errors'
+import { InternalErrorType } from 'config/errors'
 
 import { hasBalance, isMultisigAddress } from '@/lib/utils'
 
@@ -25,13 +25,13 @@ export const validateMultisigParams = (account: MultisigAddress): { multisigInfo
   const multisigAddress = account.address
 
   if (!multisigMembers) {
-    throw InternalErrors.NO_MULTISIG_MEMBERS
+    throw InternalErrorType.NO_MULTISIG_MEMBERS
   }
   if (!multisigThreshold) {
-    throw InternalErrors.NO_MULTISIG_THRESHOLD
+    throw InternalErrorType.NO_MULTISIG_THRESHOLD
   }
   if (!multisigAddress) {
-    throw InternalErrors.NO_MULTISIG_ADDRESS
+    throw InternalErrorType.NO_MULTISIG_ADDRESS
   }
 
   return {
@@ -54,7 +54,7 @@ export const validateMigrationParams = (
 
   if (!balance) {
     console.warn(`Balance at index ${balanceIndex} not found for ${isMultisig ? 'multisig' : ''}account ${account.address} in app ${appId}`)
-    throw InternalErrors.NO_BALANCE
+    throw InternalErrorType.NO_BALANCE
   }
 
   const senderAddress = isMultisig ? balance.transaction?.signatoryAddress : account.address
@@ -65,16 +65,16 @@ export const validateMigrationParams = (
   let multisigInfo: MultisigInfo | undefined = undefined
 
   if (!appConfig || !appConfig.rpcEndpoint) {
-    throw InternalErrors.APP_CONFIG_NOT_FOUND
+    throw InternalErrorType.APP_CONFIG_NOT_FOUND
   }
   if (!senderAddress || !senderPath) {
-    throw InternalErrors.NO_SIGNATORY_ADDRESS
+    throw InternalErrorType.NO_SIGNATORY_ADDRESS
   }
   if (!receiverAddress) {
-    throw InternalErrors.NO_RECEIVER_ADDRESS
+    throw InternalErrorType.NO_RECEIVER_ADDRESS
   }
   if (!hasAvailableBalance) {
-    throw InternalErrors.NO_TRANSFER_AMOUNT
+    throw InternalErrorType.NO_TRANSFER_AMOUNT
   }
 
   if (isMultisig) {
@@ -114,24 +114,24 @@ export const validateApproveAsMultiParams = (
 
   const appConfig = appsConfigs.get(appId)
   if (!appConfig || !appConfig.rpcEndpoint) {
-    throw InternalErrors.APP_CONFIG_NOT_FOUND
+    throw InternalErrorType.APP_CONFIG_NOT_FOUND
   }
 
   const pendingCall = account.pendingMultisigCalls.find(call => call.callHash === callHash)
   // Validate that the callHash belongs to a pendingMultisigCall
   if (!pendingCall) {
-    throw InternalErrors.NO_PENDING_MULTISIG_CALL
+    throw InternalErrorType.NO_PENDING_MULTISIG_CALL
   }
 
   // Validate that the signer is internal (i.e., is a member of the multisig)
   const member = account.members?.find(member => member.address === signer)
   if (!member || !signer) {
-    throw InternalErrors.NO_SIGNATORY_ADDRESS
+    throw InternalErrorType.NO_SIGNATORY_ADDRESS
   }
 
   const signerPath = member.path
   if (!signerPath) {
-    throw InternalErrors.NO_SIGNATORY_ADDRESS
+    throw InternalErrorType.NO_SIGNATORY_ADDRESS
   }
 
   return {
@@ -160,12 +160,12 @@ export const validateAsMultiParams = (
 
   const appConfig = appsConfigs.get(appId)
   if (!appConfig || !appConfig.rpcEndpoint) {
-    throw InternalErrors.APP_CONFIG_NOT_FOUND
+    throw InternalErrorType.APP_CONFIG_NOT_FOUND
   }
 
   // Additional validation: check if callData exists
   if (!callData) {
-    throw InternalErrors.NO_CALL_DATA
+    throw InternalErrorType.NO_CALL_DATA
   }
 
   return {

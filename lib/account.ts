@@ -18,7 +18,7 @@ import { BN, hexToU8a } from '@polkadot/util'
 import type { AppConfig, AppId } from 'config/apps'
 import { DEFAULT_ERA_TIME_IN_HOURS, getEraTimeByAppId } from 'config/apps'
 import { MULTISIG_WEIGHT_BUFFER, defaultWeights } from 'config/config'
-import { InternalErrors, errorDetails } from 'config/errors'
+import { InternalErrorType, errorDetails } from 'config/errors'
 import { errorAddresses, mockBalances } from 'config/mockData'
 import { getMultisigInfo } from 'lib/subscan'
 import {
@@ -56,7 +56,7 @@ export async function getApiAndProvider(rpcEndpoint: string): Promise<{ api?: Ap
     // Set a timeout for the connection attempt
     const connectionPromise = new Promise<ApiPromise>((resolve, reject) => {
       const timeoutId = setTimeout(() => {
-        reject(new Error(InternalErrors.CONNECTION_TIMEOUT))
+        reject(new Error(InternalErrorType.CONNECTION_TIMEOUT))
       }, 15000) // 15 second timeout
 
       ApiPromise.create({
@@ -85,12 +85,12 @@ export async function getApiAndProvider(rpcEndpoint: string): Promise<{ api?: Ap
     const errorMessage = e instanceof Error ? e.message : 'Unknown error'
 
     if (errorMessage.includes('timeout')) {
-      throw InternalErrors.CONNECTION_TIMEOUT
+      throw InternalErrorType.CONNECTION_TIMEOUT
     }
     if (errorMessage.includes('refused') || errorMessage.includes('WebSocket')) {
-      throw InternalErrors.CONNECTION_REFUSED
+      throw InternalErrorType.CONNECTION_REFUSED
     }
-    throw InternalErrors.FAILED_TO_CONNECT_TO_BLOCKCHAIN
+    throw InternalErrorType.FAILED_TO_CONNECT_TO_BLOCKCHAIN
   }
 }
 
@@ -319,7 +319,7 @@ export async function prepareTransaction(
     }
   }
 
-  if (!transferableBalance) throw InternalErrors.INSUFFICIENT_BALANCE
+  if (!transferableBalance) throw InternalErrorType.INSUFFICIENT_BALANCE
 
   let calls: SubmittableExtrinsic<'promise', ISubmittableResult>[] = nfts.map(item => {
     return !item.isUnique
@@ -341,14 +341,14 @@ export async function prepareTransaction(
       const adjustedAmount = transferableBalance.sub(partialFeeBN)
 
       if (adjustedAmount.lte(new BN(0))) {
-        throw InternalErrors.INSUFFICIENT_BALANCE
+        throw InternalErrorType.INSUFFICIENT_BALANCE
       }
       // Rebuild the calls with the adjusted amount
       calls = [...calls, api.tx.balances.transferKeepAlive(receiverAddress, adjustedAmount)]
     } else {
       const totalNeeded = partialFeeBN.add(nativeAmount)
       if (transferableBalance.lt(totalNeeded)) {
-        throw InternalErrors.INSUFFICIENT_BALANCE_TO_COVER_FEE
+        throw InternalErrorType.INSUFFICIENT_BALANCE_TO_COVER_FEE
       }
       calls.push(api.tx.balances.transferKeepAlive(receiverAddress, nativeAmount))
     }
@@ -363,7 +363,7 @@ export async function prepareTransaction(
     const partialFeeBN = new BN(partialFee)
 
     if (transferableBalance.lt(partialFeeBN)) {
-      throw InternalErrors.INSUFFICIENT_BALANCE
+      throw InternalErrorType.INSUFFICIENT_BALANCE
     }
   }
 
@@ -777,7 +777,7 @@ async function getNFTsCommon(
       // Create a new connection using the provided endpoint
       const { api, provider } = await getApiAndProvider(apiOrEndpoint)
       if (!api) {
-        throw InternalErrors.BLOCKCHAIN_CONNECTION_ERROR
+        throw InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR
       }
       apiToUse = api
       providerToDisconnect = provider
