@@ -46,6 +46,10 @@ const HOURS_IN_A_DAY = 24
 const MAX_CONNECTION_RETRIES = 3
 const AUTO_CONNECT_MS = 5
 
+const getRetryDelay = (attempt: number): number => {
+  return Math.min(1000 * 2 ** attempt, 10000) // Max 10 seconds
+}
+
 export async function getApiAndProvider(rpcEndpoint: string): Promise<{ api?: ApiPromise; provider?: WsProvider; error?: string }> {
   let retryCount = 0
   let currentProvider: WsProvider | undefined
@@ -89,8 +93,10 @@ export async function getApiAndProvider(rpcEndpoint: string): Promise<{ api?: Ap
         currentProvider = undefined
       }
 
-      // Wait for 2 seconds before retrying
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // Use exponential backoff for retry delay
+      const delay = getRetryDelay(retryCount - 1) // retryCount - 1 because we want 0-based indexing for the delay calculation
+      console.debug(`Waiting ${delay}ms before retry attempt ${retryCount + 1}`)
+      await new Promise(resolve => setTimeout(resolve, delay))
     }
   }
   // If we've exhausted all retries, disconnect the provider
