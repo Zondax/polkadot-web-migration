@@ -1312,8 +1312,8 @@ export const ledgerState$ = observable({
     try {
       await ledgerClient.removeAccountIndex(appId, address, accountIndex, path, updateTxStatus)
     } catch (error) {
-      const errorDetail = mapLedgerError(error as LedgerClientError, InternalErrors.REMOVE_ACCOUNT_INDEX_ERROR).description
-      updateTxStatus(TransactionStatus.ERROR, errorDetail)
+      const internalError = interpretError(error, InternalErrorType.REMOVE_ACCOUNT_INDEX_ERROR)
+      updateTxStatus(TransactionStatus.ERROR, internalError.description)
     }
   },
 

@@ -623,24 +623,24 @@ export const ledgerClient = {
   async removeAccountIndex(appId: AppId, address: string, accountIndex: string, path: string, updateTxStatus: UpdateTransactionStatus) {
     const appConfig = appsConfigs.get(appId)
     if (!appConfig?.rpcEndpoint) {
-      throw InternalErrors.APP_CONFIG_NOT_FOUND
+      throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
     }
 
     return withErrorHandling(
       async () => {
         const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
         if (!api) {
-          throw InternalErrors.BLOCKCHAIN_CONNECTION_ERROR
+          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
         const removeAccountIndexTx = await prepareRemoveAccountIndexTransaction(api, accountIndex)
         if (!removeAccountIndexTx) {
-          throw InternalErrors.PREPARE_TX_ERROR
+          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
         }
 
         // Prepare transaction payload
         const preparedTx = await prepareTransactionPayload(api, address, appConfig, removeAccountIndexTx)
         if (!preparedTx) {
-          throw InternalErrors.PREPARE_TX_ERROR
+          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
         }
         const { transfer, payload, metadataHash, nonce, proof1, payloadBytes } = preparedTx
 
@@ -650,7 +650,7 @@ export const ledgerClient = {
         // Sign transaction with Ledger
         const { signature } = await ledgerService.signTransaction(path, payloadBytes, chainId, proof1)
         if (!signature) {
-          throw InternalErrors.SIGN_TX_ERROR
+          throw new InternalError(InternalErrorType.SIGN_TX_ERROR)
         }
 
         // Create signed extrinsic
@@ -660,7 +660,7 @@ export const ledgerClient = {
         await submitAndHandleTransaction(transfer, updateTxStatus, api)
       },
       {
-        errorCode: InternalErrors.REMOVE_ACCOUNT_INDEX_ERROR,
+        errorCode: InternalErrorType.REMOVE_ACCOUNT_INDEX_ERROR,
         operation: 'removeAccountIndex',
         context: { appId, address, path, accountIndex },
       }
@@ -670,19 +670,19 @@ export const ledgerClient = {
   async getRemoveAccountIndexFee(appId: AppId, address: string, accountIndex: string): Promise<BN | undefined> {
     const appConfig = appsConfigs.get(appId)
     if (!appConfig?.rpcEndpoint) {
-      throw InternalErrors.APP_CONFIG_NOT_FOUND
+      throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
     }
 
     return withErrorHandling(
       async () => {
         const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
         if (!api) {
-          throw InternalErrors.BLOCKCHAIN_CONNECTION_ERROR
+          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
 
         const removeAccountIndexTx = await prepareRemoveAccountIndexTransaction(api, accountIndex)
         if (!removeAccountIndexTx) {
-          throw InternalErrors.PREPARE_TX_ERROR
+          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
         }
 
         const estimatedFee = await getTxFee(removeAccountIndexTx, address)
@@ -690,7 +690,7 @@ export const ledgerClient = {
         return estimatedFee
       },
       {
-        errorCode: InternalErrors.GET_REMOVE_ACCOUNT_INDEX_FEE_ERROR,
+        errorCode: InternalErrorType.GET_REMOVE_ACCOUNT_INDEX_FEE_ERROR,
         operation: 'getRemoveAccountIndexFee',
         context: { appId, address, accountIndex },
       }

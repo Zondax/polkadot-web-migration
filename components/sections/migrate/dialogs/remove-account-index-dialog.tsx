@@ -1,16 +1,14 @@
 import { ExplorerLink } from '@/components/ExplorerLink'
-import TokenIcon from '@/components/TokenIcon'
-import { useTokenLogo } from '@/components/hooks/useTokenLogo'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
-import { Spinner } from '@/components/icons'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { getChainName, type AppId, type Token } from '@/config/apps'
+import type { AppId, Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { formatBalance } from '@/lib/utils/format'
 import { ledgerState$ } from '@/state/ledger'
 import { BN } from '@polkadot/util'
 import { useMemo } from 'react'
 import type { Address, TransactionDetails, TransactionStatus } from 'state/types/ledger'
+import { DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
 interface RemoveAccountIndexDialogProps {
@@ -25,52 +23,47 @@ interface RemoveAccountIndexFormProps {
   account: Address
   appId: AppId
   token: Token
-  estimatedFee: string | undefined
+  estimatedFee: BN | undefined
   estimatedFeeLoading: boolean
 }
 
 function RemoveAccountIndexForm({ account, appId, token, estimatedFee, estimatedFeeLoading }: RemoveAccountIndexFormProps) {
-  const icon = useTokenLogo(token.logoId)
-  const appName = getChainName(appId)
   const index = account.index?.index
   const deposit = account.index?.deposit
 
   return (
     <>
       {/* Source Address */}
-      <div className="text-sm">
-        <div className="text-xs text-muted-foreground mb-1">Source Address</div>
+      <DialogField>
+        <DialogLabel>Source Address</DialogLabel>
         <ExplorerLink value={account.address} explorerLinkType={ExplorerItemType.Address} appId={appId} />
-      </div>
+      </DialogField>
       {/* Network */}
-      <div>
-        <div className="text-xs text-muted-foreground mb-1">Network</div>
-        <div className="flex items-center gap-2">
-          <TokenIcon icon={icon} symbol={token.symbol} size="md" />
-          <span className="font-semibold text-base">{appName}</span>
-        </div>
-      </div>
+      <DialogField>
+        <DialogLabel>Network</DialogLabel>
+        <DialogNetworkContent token={token} appId={appId} />
+      </DialogField>
       {/* Account Index to Remove */}
-      <div>
-        <div className="text-xs text-muted-foreground mb-1">Account Index to Remove</div>
+      <DialogField>
+        <DialogLabel>Account Index to Remove</DialogLabel>
         <span className="text-sm">{index}</span>
-      </div>
+      </DialogField>
       {/* Deposit to be returned */}
       {deposit !== undefined && (
-        <div>
-          <div className="text-xs text-muted-foreground mb-1">Deposit to be returned</div>
+        <DialogField>
+          <DialogLabel>Deposit to be returned</DialogLabel>
           <span className="font-mono text-sm">{formatBalance(deposit, token)}</span>
-        </div>
+        </DialogField>
       )}
       {/* Estimated Fee */}
-      <div className="flex flex-col items-start justify-start">
-        <div className="text-xs text-muted-foreground mb-1">Estimated Fee</div>
-        {estimatedFeeLoading ? (
-          <Spinner className="w-4 h-4" />
-        ) : (
-          <span className={`text-sm ${estimatedFee ? ' font-mono' : ''}`}>{estimatedFee ?? 'Could not be calculated at this time'}</span>
-        )}
-      </div>
+      <DialogField>
+        <DialogLabel>Estimated Fee</DialogLabel>
+        <DialogEstimatedFeeContent
+          token={token}
+          estimatedFee={estimatedFee ? new BN(estimatedFee) : undefined}
+          loading={estimatedFeeLoading}
+        />
+      </DialogField>
     </>
   )
 }
@@ -109,8 +102,6 @@ export default function RemoveAccountIndexDialog({ open, setOpen, account, appId
     getEstimatedFee(appId, account.address, index)
   }, [open, getEstimatedFee, appId, account.address, index])
 
-  const formattedFee = useMemo(() => (estimatedFee ? formatBalance(new BN(estimatedFee), token) : undefined), [estimatedFee, token])
-
   const signRemoveAccountIndexTx = async () => {
     await runTransaction(appId, account.address, account.path, index)
   }
@@ -143,7 +134,7 @@ export default function RemoveAccountIndexDialog({ open, setOpen, account, appId
               account={account}
               appId={appId}
               token={token}
-              estimatedFee={formattedFee}
+              estimatedFee={estimatedFee}
               estimatedFeeLoading={estimatedFeeLoading}
             />
           )}
