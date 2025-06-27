@@ -63,7 +63,7 @@
     "@radix-ui/react-toast": "^1.2.6",
     "@radix-ui/react-toggle-group": "^1.1.10",
     "@radix-ui/react-tooltip": "^1.1.8",
-    "@tailwindcss/postcss": "^4.1.10",
+    "@tailwindcss/postcss": "^4.1.11",
     "@vercel/analytics": "^1.5.0",
     "@zondax/ledger-js": "^1.2.0",
     "@zondax/ledger-substrate": "^1.1.1",
