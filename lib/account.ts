@@ -2,7 +2,7 @@ import { merkleizeMetadata } from '@polkadot-api/merkleize-metadata'
 import { ApiPromise, WsProvider } from '@polkadot/api'
 import type { SubmittableExtrinsic } from '@polkadot/api/types'
 import type { GenericExtrinsicPayload } from '@polkadot/types'
-import type { Option, Vec, u32, u128 } from '@polkadot/types-codec'
+import type { Option, Vec, u128, u32 } from '@polkadot/types-codec'
 import type {
   AccountId32,
   Balance,
@@ -43,55 +43,71 @@ import {
 const HOURS_IN_A_DAY = 24
 
 // Get API and Provider
-export async function getApiAndProvider(rpcEndpoint: string): Promise<{ api?: ApiPromise; provider?: WsProvider }> {
-  try {
-    // Create a provider with default settings (will allow first connection)
-    const provider = new WsProvider(rpcEndpoint)
+const MAX_CONNECTION_RETRIES = 3
+const AUTO_CONNECT_MS = 5
 
-    // Add an error handler to prevent the automatic reconnection loops
-    provider.on('error', error => {
-      console.error('WebSocket error:', error)
-    })
+const getRetryDelay = (attempt: number): number => {
+  return Math.min(1000 * 2 ** attempt, 10000) // Max 10 seconds
+}
 
-    // Set a timeout for the connection attempt
-    const connectionPromise = new Promise<ApiPromise>((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error(InternalErrorType.CONNECTION_TIMEOUT))
-      }, 15000) // 15 second timeout
+export async function getApiAndProvider(rpcEndpoint: string): Promise<{ api?: ApiPromise; provider?: WsProvider; error?: string }> {
+  let retryCount = 0
+  let currentProvider: WsProvider | undefined
 
-      ApiPromise.create({
-        provider,
-        throwOnConnect: true,
-        throwOnUnknown: true,
+  while (retryCount < MAX_CONNECTION_RETRIES) {
+    try {
+      // Create a provider with default settings (will allow first connection)
+      currentProvider = new WsProvider(rpcEndpoint, AUTO_CONNECT_MS)
+
+      // Set a timeout for the connection attempt
+      const connectionPromise = new Promise<ApiPromise>((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          reject(new Error('Connection timeout: The node is not responding.'))
+        }, 15000) // 15 second timeout
+
+        ApiPromise.create({
+          provider: currentProvider,
+          throwOnConnect: true,
+          throwOnUnknown: true,
+        })
+          .then(api => {
+            clearTimeout(timeoutId)
+            resolve(api)
+          })
+          .catch(err => {
+            reject(err)
+          })
       })
-        .then(api => {
-          clearTimeout(timeoutId)
-          resolve(api)
-        })
-        .catch(err => {
-          clearTimeout(timeoutId)
-          reject(err)
-        })
-    })
 
-    const api = await connectionPromise
+      const api = await connectionPromise
 
-    // If connection is successful, return the API and provider
-    return { api, provider }
-  } catch (e) {
-    console.error('Error creating API for RPC endpoint:', rpcEndpoint, e)
+      // If connection is successful, return the API and provider
+      return { api, provider: currentProvider }
+    } catch (e) {
+      retryCount++
+      console.debug(`Connection attempt ${retryCount} failed. Retrying... (${MAX_CONNECTION_RETRIES - retryCount} attempts remaining)`)
 
-    // More specific error messages based on the error
-    const errorMessage = e instanceof Error ? e.message : 'Unknown error'
+      // Disconnect the current provider before retrying
+      if (currentProvider) {
+        await disconnectSafely(undefined, currentProvider)
+        currentProvider = undefined
+      }
 
-    if (errorMessage.includes('timeout')) {
-      throw InternalErrorType.CONNECTION_TIMEOUT
+      // Use exponential backoff for retry delay
+      const delay = getRetryDelay(retryCount - 1) // retryCount - 1 because we want 0-based indexing for the delay calculation
+      console.debug(`Waiting ${delay}ms before retry attempt ${retryCount + 1}`)
+      await new Promise(resolve => setTimeout(resolve, delay))
     }
-    if (errorMessage.includes('refused') || errorMessage.includes('WebSocket')) {
-      throw InternalErrorType.CONNECTION_REFUSED
-    }
-    throw InternalErrorType.FAILED_TO_CONNECT_TO_BLOCKCHAIN
   }
+  // If we've exhausted all retries, disconnect the provider
+  if (currentProvider) {
+    await disconnectSafely(undefined, currentProvider)
+    currentProvider = undefined
+  }
+
+  console.debug(`Failed to connect to the blockchain after ${MAX_CONNECTION_RETRIES} attempts: The node is not responding.`)
+
+  throw InternalErrorType.FAILED_TO_CONNECT_TO_BLOCKCHAIN
 }
 
 // Get Balance
