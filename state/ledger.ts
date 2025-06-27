@@ -10,6 +10,7 @@ import {
   getApiAndProvider,
   getBalance,
   getIdentityInfo,
+  getIndexInfo,
   getMultisigAddresses,
   getProxyInfo,
 } from '@/lib/account'
@@ -490,6 +491,9 @@ export const ledgerState$ = observable({
           // Proxy Info
           const proxy = await getProxyInfo(address.address, api)
 
+          // Index information
+          const indexInfo = await getIndexInfo(address.address, api)
+
           // Multisig Addresses
           let memberMultisigAddresses: string[] | undefined
           const multisigDeposits: { callHash: string; deposit: BN }[] = []
@@ -517,18 +521,23 @@ export const ledgerState$ = observable({
             }
           }
 
-          const hasReservedBalance = registration?.deposit || multisigDeposits.length > 0 || proxy?.deposit
+          const hasReservedBalance = registration?.deposit || multisigDeposits.length > 0 || proxy?.deposit || indexInfo?.deposit
           const nativeBalanceIndex = balances.findIndex(balance => balance.type === BalanceType.NATIVE)
           if (hasReservedBalance && nativeBalanceIndex !== -1) {
             const nativeBalance = balances[nativeBalanceIndex].balance as Native
-            const identityDeposit = registration?.deposit ? new BN(registration.deposit.toString()) : new BN(0)
+            const identityDeposit = registration?.deposit ?? new BN(0)
             const multisigDeposit =
-              multisigDeposits.length > 0
-                ? new BN(multisigDeposits.reduce((sum, deposit) => sum.add(new BN(deposit.deposit.toString())), new BN(0)).toString())
-                : new BN(0)
-            const proxyDeposit = proxy?.deposit ? new BN(proxy.deposit.toString()) : new BN(0)
+              multisigDeposits.length > 0 ? multisigDeposits.reduce((sum, deposit) => sum.add(deposit.deposit), new BN(0)) : new BN(0)
+            const proxyDeposit = proxy?.deposit ?? new BN(0)
+            const indexDeposit = indexInfo?.deposit ?? new BN(0)
 
-            const isBreakdownValid = validateReservedBreakdown(identityDeposit, multisigDeposit, proxyDeposit, nativeBalance.reserved.total)
+            const isBreakdownValid = validateReservedBreakdown(
+              identityDeposit,
+              multisigDeposit,
+              proxyDeposit,
+              indexDeposit,
+              nativeBalance.reserved.total
+            )
 
             if (isBreakdownValid) {
               balances[nativeBalanceIndex].balance = {
@@ -540,6 +549,7 @@ export const ledgerState$ = observable({
                     ? { total: multisigDeposit, deposits: multisigDeposits.map(d => ({ ...d, deposit: d.deposit })) }
                     : undefined,
                   proxy: proxyDeposit.gtn(0) ? { deposit: proxyDeposit } : undefined,
+                  index: indexDeposit.gtn(0) ? { deposit: indexDeposit } : undefined,
                 },
               }
             } else {
@@ -553,6 +563,7 @@ export const ledgerState$ = observable({
             registration,
             memberMultisigAddresses,
             proxy,
+            index: indexInfo,
             status: AddressStatus.SYNCHRONIZED,
             error: undefined,
             isLoading: false,
@@ -1292,6 +1303,23 @@ export const ledgerState$ = observable({
   async getRemoveProxiesFee(appId: AppId, address: string): Promise<BN | undefined> {
     try {
       return await ledgerClient.getRemoveProxiesFee(appId, address)
+    } catch (error) {
+      return undefined
+    }
+  },
+
+  async removeAccountIndex(appId: AppId, address: string, accountIndex: string, path: string, updateTxStatus: UpdateTransactionStatus) {
+    try {
+      await ledgerClient.removeAccountIndex(appId, address, accountIndex, path, updateTxStatus)
+    } catch (error) {
+      const internalError = interpretError(error, InternalErrorType.REMOVE_ACCOUNT_INDEX_ERROR)
+      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+    }
+  },
+
+  async getRemoveAccountIndexFee(appId: AppId, address: string, accountIndex: string): Promise<BN | undefined> {
+    try {
+      return await ledgerClient.getRemoveAccountIndexFee(appId, address, accountIndex)
     } catch (error) {
       return undefined
     }

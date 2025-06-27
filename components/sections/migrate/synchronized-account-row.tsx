@@ -5,6 +5,7 @@ import {
   BanknoteArrowDown,
   Check,
   Group,
+  Hash,
   Info,
   KeyRound,
   LockOpen,
@@ -41,6 +42,7 @@ import { BalanceHoverCard, NativeBalanceHoverCard } from './balance-hover-card'
 import { BalanceType } from './balance-visualizations'
 import DestinationAddressSelect from './destination-address-select'
 import ApproveMultisigCallDialog from './dialogs/approve-multisig-call-dialog'
+import RemoveAccountIndexDialog from './dialogs/remove-account-index-dialog'
 import RemoveIdentityDialog from './dialogs/remove-identity-dialog'
 import RemoveProxyDialog from './dialogs/remove-proxy-dialog'
 import UnstakeDialog from './dialogs/unstake-dialog'
@@ -87,6 +89,7 @@ const SynchronizedAccountRow = ({
   const [removeIdentityOpen, setRemoveIdentityOpen] = useState<boolean>(false)
   const [approveMultisigCallOpen, setApproveMultisigCallOpen] = useState<boolean>(false)
   const [removeProxyOpen, setRemoveProxyOpen] = useState<boolean>(false)
+  const [removeAccountIndexOpen, setRemoveAccountIndexOpen] = useState<boolean>(false)
   const isNoBalance: boolean = balance === undefined
   const isFirst: boolean = balanceIndex === 0 || isNoBalance
   const isNative = isNativeBalance(balance)
@@ -149,6 +152,16 @@ const SynchronizedAccountRow = ({
       onClick: () => setApproveMultisigCallOpen(true),
       disabled: false,
       icon: <Users className="h-4 w-4" />,
+    })
+  }
+
+  if (account.index?.index) {
+    actions.push({
+      label: 'Account Index',
+      tooltip: 'Remove account index',
+      onClick: () => setRemoveAccountIndexOpen(true),
+      disabled: false,
+      icon: <Trash2 className="h-4 w-4" />,
     })
   }
 
@@ -220,6 +233,11 @@ const SynchronizedAccountRow = ({
         { label: 'Public Key', value: account.pubKey, icon: KeyRound, hasCopyButton: true }
       )
     }
+
+    if (account.index?.index) {
+      items.push({ label: 'Account Index', value: account.index.index, icon: Hash })
+    }
+
     return (
       <div className="p-2 min-w-[320px]">
         <TooltipBody items={items} />
@@ -525,6 +543,13 @@ const SynchronizedAccountRow = ({
         appId={appId}
       />
       <RemoveProxyDialog open={removeProxyOpen} setOpen={setRemoveProxyOpen} token={token} account={account} appId={appId} />
+      <RemoveAccountIndexDialog
+        open={removeAccountIndexOpen}
+        setOpen={setRemoveAccountIndexOpen}
+        token={token}
+        account={account}
+        appId={appId}
+      />
     </TableRow>
   )
 }

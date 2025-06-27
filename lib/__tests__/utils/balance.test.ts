@@ -315,31 +315,35 @@ describe('getNonTransferableBalance', () => {
 })
 
 describe('validateReservedBreakdown', () => {
-  it('returns true when the sum of components equals total', () => {
-    expect(validateReservedBreakdown(new BN(10), new BN(20), new BN(30), new BN(60))).toBe(true)
+  it('returns true when the sum of components is less than or equal to total', () => {
+    expect(validateReservedBreakdown(new BN(10), new BN(20), new BN(30), new BN(0), new BN(60))).toBe(true)
   })
 
-  it('returns false when the sum of components does not equal total', () => {
-    expect(validateReservedBreakdown(new BN(10), new BN(20), new BN(30), new BN(61))).toBe(false)
+  it('returns false when the sum of components is greater than total', () => {
+    expect(validateReservedBreakdown(new BN(10), new BN(20), new BN(30), new BN(2), new BN(61))).toBe(false)
   })
 
   it('returns true for all zeros', () => {
-    expect(validateReservedBreakdown(new BN(0), new BN(0), new BN(0), new BN(0))).toBe(true)
+    expect(validateReservedBreakdown(new BN(0), new BN(0), new BN(0), new BN(0), new BN(0))).toBe(true)
   })
 
   it('returns false if any value is negative (identityDeposit)', () => {
-    expect(validateReservedBreakdown(new BN(-10), new BN(20), new BN(0), new BN(10))).toBe(false)
+    expect(validateReservedBreakdown(new BN(-10), new BN(20), new BN(0), new BN(10), new BN(20))).toBe(false)
   })
 
   it('returns false if any value is negative (multisigDeposit)', () => {
-    expect(validateReservedBreakdown(new BN(10), new BN(-20), new BN(0), new BN(10))).toBe(false)
+    expect(validateReservedBreakdown(new BN(10), new BN(-20), new BN(0), new BN(10), new BN(0))).toBe(false)
   })
 
   it('returns false if any value is negative (proxyDeposit)', () => {
-    expect(validateReservedBreakdown(new BN(10), new BN(20), new BN(-5), new BN(25))).toBe(false)
+    expect(validateReservedBreakdown(new BN(10), new BN(20), new BN(-5), new BN(25), new BN(50))).toBe(false)
+  })
+
+  it('returns false if any value is negative (indexDeposit)', () => {
+    expect(validateReservedBreakdown(new BN(10), new BN(20), new BN(5), new BN(-35), new BN(0))).toBe(false)
   })
 
   it('returns false if total is negative', () => {
-    expect(validateReservedBreakdown(new BN(10), new BN(20), new BN(5), new BN(-35))).toBe(false)
+    expect(validateReservedBreakdown(new BN(10), new BN(20), new BN(5), new BN(35), new BN(-70))).toBe(false)
   })
 })

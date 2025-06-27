@@ -1,4 +1,4 @@
-import { ERROR_DESCRIPTION_OVERRIDE, LedgerError, ResponseError } from '@zondax/ledger-js'
+import { LedgerError } from '@zondax/ledger-js'
 
 /**
  * Internal errors
@@ -36,6 +36,7 @@ export enum InternalErrorType {
   FAILED_TO_CONNECT_TO_BLOCKCHAIN = 'failed_to_connect_to_blockchain',
   FETCH_PROCESS_ACCOUNTS_ERROR = 'fetch_process_accounts_error',
   GET_ADDRESS_ERROR = 'get_address_error',
+  GET_REMOVE_ACCOUNT_INDEX_FEE_ERROR = 'get_remove_account_index_fee_error',
   GET_REMOVE_IDENTITY_FEE_ERROR = 'get_remove_identity_fee_error',
   GET_REMOVE_PROXIES_FEE_ERROR = 'get_remove_proxies_fee_error',
   GET_UNSTAKE_FEE_ERROR = 'get_unstake_fee_error',
@@ -57,6 +58,7 @@ export enum InternalErrorType {
   NO_SIGNATORY_ADDRESS = 'no_signatory_address',
   NO_TRANSFER_AMOUNT = 'no_transfer_amount',
   PREPARE_TX_ERROR = 'prepare_tx_error',
+  REMOVE_ACCOUNT_INDEX_ERROR = 'remove_account_index_error',
   REMOVE_IDENTITY_ERROR = 'remove_identity_error',
   REMOVE_PROXY_ERROR = 'remove_proxy_error',
   SIGN_TX_ERROR = 'sign_tx_error',
@@ -255,6 +257,11 @@ export const errorDetails: ErrorDetailsMap = {
     description: 'Failed to get account address from Ledger device.',
     content: 'Please ensure the device is connected and try again.',
   },
+  get_remove_account_index_fee_error: {
+    title: 'Get Remove Account Index Fee Error',
+    description: 'Failed to get remove account index fee.',
+    content: 'Please try again later or contact support if the issue persists.',
+  },
   get_remove_identity_fee_error: {
     title: 'Get Remove Identity Fee Error',
     description: 'Failed to get remove identity fee.',
@@ -353,6 +360,11 @@ export const errorDetails: ErrorDetailsMap = {
   prepare_tx_error: {
     title: 'Prepare Transaction Error',
     description: 'Failed to prepare transaction.',
+    content: 'Please try again later or contact support if the issue persists.',
+  },
+  remove_account_index_error: {
+    title: 'Remove Account Index Error',
+    description: 'Failed to remove account index.',
     content: 'Please try again later or contact support if the issue persists.',
   },
   remove_identity_error: {

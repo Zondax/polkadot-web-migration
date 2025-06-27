@@ -3,7 +3,7 @@
 import type { Native, Reserved, Staking } from '@/state/types/ledger'
 import { BN } from '@polkadot/util'
 import { LockClosedIcon } from '@radix-ui/react-icons'
-import { ArrowRightLeftIcon, BarChartIcon, Check, ClockIcon, Group, LockOpenIcon, User, UserCog } from 'lucide-react'
+import { ArrowRightLeftIcon, BarChartIcon, Check, ClockIcon, Group, Hash, LockOpenIcon, User, UserCog } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { ExplorerLink } from '@/components/ExplorerLink'
@@ -133,6 +133,9 @@ const ReservedDetails = ({ reservedData, token }: { reservedData: Reserved; toke
 
       {reservedData.identity?.deposit.gtn(0) &&
         renderDetailsItem(<User className="w-4 h-4 text-polkadot-lime" />, 'Identity Deposit', reservedData.identity.deposit, token)}
+
+      {reservedData.index?.deposit.gtn(0) &&
+        renderDetailsItem(<Hash className="w-4 h-4 text-polkadot-lime" />, 'Account Index Deposit', reservedData.index.deposit, token)}
 
       {reservedData.multisig?.total.gtn(0) && (
         <div className="flex flex-col gap-1">
