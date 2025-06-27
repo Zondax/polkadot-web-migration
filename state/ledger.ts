@@ -660,7 +660,7 @@ export const ledgerState$ = observable({
         status: AppStatus.ERROR,
         error: {
           source: 'synchronization',
-          description: internalError.title ?? '',
+          description: internalError.title ?? 'An unexpected error occurred',
         },
       }
     }

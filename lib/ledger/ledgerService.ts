@@ -5,8 +5,7 @@ import type { GenericeResponseAddress } from '@zondax/ledger-substrate/dist/comm
 
 import type { ConnectionResponse, DeviceConnectionProps } from '@/lib/ledger/types'
 
-import { InternalErrorType } from '@/config/errors'
-import { InternalError } from '@/lib/utils/error'
+import { LedgerError, ResponseError } from '@zondax/ledger-js'
 import { openApp } from './openApp'
 
 /**
@@ -56,7 +55,7 @@ export class LedgerService implements ILedgerService {
   async openApp(transport: Transport, appName: string): Promise<{ connection?: DeviceConnectionProps }> {
     if (!transport) {
       console.debug('[ledgerService] Transport not available')
-      throw new InternalError(InternalErrorType.TRANSPORT_ERROR)
+      throw new ResponseError(LedgerError.UnknownTransportError, 'Transport not available')
     }
     console.debug(`[ledgerService] Opening ${appName} app`)
     await openApp(transport, appName)
@@ -124,7 +123,7 @@ export class LedgerService implements ILedgerService {
     const connection = await this.establishDeviceConnection(onDisconnect)
     if (!connection) {
       console.debug('[ledgerService] Failed to establish device connection')
-      throw new InternalError(InternalErrorType.CONNECTION_ERROR)
+      throw new ResponseError(LedgerError.UnknownTransportError, 'Transport not available')
     }
 
     console.debug(`[ledgerService] Device connected successfully, the app is ${connection.isAppOpen ? 'open' : 'closed'}`)
@@ -136,11 +135,13 @@ export class LedgerService implements ILedgerService {
    */
   async getAccountAddress(bip44Path: string, ss58prefix: number, showAddrInDevice: boolean): Promise<GenericeResponseAddress | undefined> {
     if (!this.deviceConnection?.genericApp) {
-      throw new InternalError(InternalErrorType.APP_NOT_OPEN)
+      throw new ResponseError(LedgerError.AppDoesNotSeemToBeOpen, 'App not open')
     }
 
+    console.debug(`[ledgerService] Getting address for path: ${bip44Path}`)
     const genericApp = this.deviceConnection.genericApp as unknown as PolkadotGenericApp
     const address = await genericApp.getAddress(bip44Path, ss58prefix, showAddrInDevice)
+    console.debug(`[ledgerService] Found address: ${address.address} for path: ${bip44Path}`)
     return address
   }
 
@@ -154,7 +155,7 @@ export class LedgerService implements ILedgerService {
     proof1: Uint8Array
   ): Promise<{ signature?: Buffer<ArrayBufferLike> }> {
     if (!this.deviceConnection?.genericApp) {
-      throw new InternalError(InternalErrorType.APP_NOT_OPEN)
+      throw new ResponseError(LedgerError.AppDoesNotSeemToBeOpen, 'App not open')
     }
 
     console.debug(`[ledgerService] Signing transaction for path: ${bip44Path}, chainId: ${chainId}`)

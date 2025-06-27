@@ -55,20 +55,6 @@ export class InternalError extends Error {
 }
 
 /**
- * Checks if a given error name is a known error type.
- *
- * @param name - The error name to check.
- * @returns True if the error name is a known error type, false otherwise.
- */
-function isKnownErrorName(name: unknown): name is InternalErrorType {
-  if (typeof name !== 'string') return false
-
-  const isInternalErrorType = Object.values(InternalErrorType).includes(name as InternalErrorType)
-  const isLedgerError = Object.values(ERROR_DESCRIPTION_OVERRIDE).includes(name)
-  return isInternalErrorType || isLedgerError
-}
-
-/**
  * Interprets a \@zondax/ledger-js error and returns a detailed error object.
  *
  * @param error - The error to map.
@@ -93,10 +79,6 @@ export function interpretUnknownError(error: unknown, defaultError: InternalErro
     errorName,
     errorMessage,
   })
-
-  if (isKnownErrorName(errorName)) {
-    return new InternalError(errorName)
-  }
 
   return new InternalError(defaultError)
 }
