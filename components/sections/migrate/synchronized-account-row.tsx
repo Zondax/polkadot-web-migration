@@ -509,7 +509,7 @@ const SynchronizedAccountRow = ({
           <div className="flex gap-2 justify-start items-center">{actions.map(action => renderAction(action))}</div>
         ) : (
           <div className="text-sm text-muted-foreground/60 font-medium flex items-center gap-2">
-            <Check className="h-4 w-4 text-muted-foreground/65" />
+            <Check className="h-4 w-4 text-polkadot-pink" />
             Ready to migrate
           </div>
         )}
