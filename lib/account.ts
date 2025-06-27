@@ -39,6 +39,7 @@ import {
   type TransactionDetails,
   TransactionStatus,
 } from 'state/types/ledger'
+import { InternalError } from './utils'
 
 const HOURS_IN_A_DAY = 24
 
@@ -107,7 +108,7 @@ export async function getApiAndProvider(rpcEndpoint: string): Promise<{ api?: Ap
 
   console.debug(`Failed to connect to the blockchain after ${MAX_CONNECTION_RETRIES} attempts: The node is not responding.`)
 
-  throw InternalErrorType.FAILED_TO_CONNECT_TO_BLOCKCHAIN
+  throw new InternalError(InternalErrorType.FAILED_TO_CONNECT_TO_BLOCKCHAIN)
 }
 
 // Get Balance
@@ -335,7 +336,7 @@ export async function prepareTransaction(
     }
   }
 
-  if (!transferableBalance) throw InternalErrorType.INSUFFICIENT_BALANCE
+  if (!transferableBalance) throw new InternalError(InternalErrorType.INSUFFICIENT_BALANCE)
 
   let calls: SubmittableExtrinsic<'promise', ISubmittableResult>[] = nfts.map(item => {
     return !item.isUnique
@@ -357,14 +358,14 @@ export async function prepareTransaction(
       const adjustedAmount = transferableBalance.sub(partialFeeBN)
 
       if (adjustedAmount.lte(new BN(0))) {
-        throw InternalErrorType.INSUFFICIENT_BALANCE
+        throw new InternalError(InternalErrorType.INSUFFICIENT_BALANCE)
       }
       // Rebuild the calls with the adjusted amount
       calls = [...calls, api.tx.balances.transferKeepAlive(receiverAddress, adjustedAmount)]
     } else {
       const totalNeeded = partialFeeBN.add(nativeAmount)
       if (transferableBalance.lt(totalNeeded)) {
-        throw InternalErrorType.INSUFFICIENT_BALANCE_TO_COVER_FEE
+        throw new InternalError(InternalErrorType.INSUFFICIENT_BALANCE_TO_COVER_FEE)
       }
       calls.push(api.tx.balances.transferKeepAlive(receiverAddress, nativeAmount))
     }
@@ -379,7 +380,7 @@ export async function prepareTransaction(
     const partialFeeBN = new BN(partialFee)
 
     if (transferableBalance.lt(partialFeeBN)) {
-      throw InternalErrorType.INSUFFICIENT_BALANCE
+      throw new InternalError(InternalErrorType.INSUFFICIENT_BALANCE)
     }
   }
 
@@ -793,7 +794,7 @@ async function getNFTsCommon(
       // Create a new connection using the provided endpoint
       const { api, provider } = await getApiAndProvider(apiOrEndpoint)
       if (!api) {
-        throw InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR
+        throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
       }
       apiToUse = api
       providerToDisconnect = provider
