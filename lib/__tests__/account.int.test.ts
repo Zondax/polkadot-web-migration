@@ -41,7 +41,7 @@ describe('Account Integration', () => {
     peopleApi = peopleResult.api
     peopleProvider = peopleResult.provider
     peopleError = peopleResult.error
-  })
+  }, 30000) // 30 second timeout for network connections
 
   afterAll(async () => {
     if (api && provider) {
@@ -53,7 +53,7 @@ describe('Account Integration', () => {
     if (peopleApi && peopleProvider) {
       await disconnectSafely(peopleApi, peopleProvider)
     }
-  })
+  }, 10000) // 10 second timeout for cleanup
 
   // Used in: getNativeBalance, getBalance, prepareTransactionPayload
   describe('api.query.system.account', () => {

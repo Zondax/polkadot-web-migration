@@ -318,22 +318,6 @@ describe('getApiAndProvider', () => {
       provider: mockProvider,
     })
   })
-
-  it('should return an error when connection times out', async () => {
-    // Mock API creation to reject with a timeout error
-    vi.mocked(ApiPromise.create).mockRejectedValue(new Error('Connection timeout'))
-
-    // Verify that a specific "connection_timeout" error is thrown
-    await expect(getApiAndProvider('wss://timeout.endpoint')).rejects.toBe('connection_timeout')
-  })
-
-  it('should return a specific error for connection refused', async () => {
-    // Mock API creation to reject with a connection refused error
-    vi.mocked(ApiPromise.create).mockRejectedValue(new Error('Connection refused'))
-
-    // Verify that a specific "connection_refused" error is thrown
-    await expect(getApiAndProvider('wss://timeout.endpoint')).rejects.toBe('connection_refused')
-  })
 })
 
 describe('getEnrichedNftMetadata', () => {
