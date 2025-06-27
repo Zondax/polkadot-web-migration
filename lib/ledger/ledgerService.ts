@@ -26,6 +26,7 @@ export interface ILedgerService {
   ): Promise<{ signature?: Buffer<ArrayBufferLike> }>
   clearConnection(): void
   disconnect(): void
+  isTransportAvailable(): boolean
 }
 
 /**
@@ -188,6 +189,13 @@ export class LedgerService implements ILedgerService {
       this.deviceConnection.transport.close()
       this.deviceConnection.transport.emit('disconnect')
     }
+  }
+
+  /**
+   * Checks if transport is available
+   */
+  isTransportAvailable(): boolean {
+    return this.deviceConnection?.transport !== undefined
   }
 }
 

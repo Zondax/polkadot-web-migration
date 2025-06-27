@@ -52,7 +52,21 @@ export const ledgerClient = {
         const addresses: (GenericeResponseAddress | undefined)[] = []
         for (let i = 0; i < maxAddressesToFetch; i++) {
           const derivedPath = getBip44Path(app.bip44Path, i)
-          const address = await ledgerService.getAccountAddress(derivedPath, app.ss58Prefix, false)
+
+          // Set timeout for 15 seconds
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => {
+              // Check if transport is available
+              if (!ledgerService.isTransportAvailable()) {
+                reject(new Error('Ledger transport not available'))
+              } else {
+                reject(new Error('Ledger operation timed out'))
+              }
+            }, 15000)
+          })
+
+          // Race between the actual operation and the timeout
+          const address = await Promise.race([ledgerService.getAccountAddress(derivedPath, app.ss58Prefix, false), timeoutPromise])
           addresses.push({ ...address, path: derivedPath } as Address)
         }
 
@@ -69,7 +83,22 @@ export const ledgerClient = {
       async () => {
         // get address
         const derivedPath = getBip44Path(bip44Path, index)
-        const genericAddress = await ledgerService.getAccountAddress(derivedPath, ss58Prefix, true)
+
+        // Set timeout for 15 seconds
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => {
+            // Check if transport is available
+            if (!ledgerService.isTransportAvailable()) {
+              reject(new Error('Ledger transport not available'))
+            } else {
+              reject(new Error('Ledger operation timed out'))
+            }
+          }, 15000)
+        })
+
+        // Race between the actual operation and the timeout
+        const genericAddress = await Promise.race([ledgerService.getAccountAddress(derivedPath, ss58Prefix, true), timeoutPromise])
+
         const address: Address = {
           ...genericAddress,
           path: derivedPath,
