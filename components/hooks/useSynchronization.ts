@@ -122,9 +122,13 @@ export const useSynchronization = (): UseSynchronizationReturn => {
   }, [isRescaning, apps$])
 
   // Clear synchronization data
-  const restartSynchronization = useCallback(() => {
+  const restartSynchronization = useCallback(async () => {
     ledgerState$.clearSynchronization()
-    ledgerState$.synchronizeAccounts()
+
+    const result = await ledgerState$.connectLedger()
+    if (result.connected && result.isAppOpen) {
+      ledgerState$.synchronizeAccounts()
+    }
   }, [])
 
   const updateTransaction = useCallback(
