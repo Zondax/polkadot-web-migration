@@ -660,7 +660,7 @@ export const ledgerState$ = observable({
         status: AppStatus.ERROR,
         error: {
           source: 'synchronization',
-          description: internalError.title ?? 'An unexpected error occurred',
+          description: internalError.description ?? 'An unexpected error occurred',
         },
       }
     }
@@ -1112,7 +1112,7 @@ export const ledgerState$ = observable({
       return { txPromise: response.txPromise }
     } catch (error) {
       const internalError = interpretError(error, InternalErrorType.MIGRATION_ERROR)
-      updateMigratedStatus(appId, accountType, account.path, balance.type, TransactionStatus.ERROR, internalError.title)
+      updateMigratedStatus(appId, accountType, account.path, balance.type, TransactionStatus.ERROR, internalError.description)
 
       // Increment fails counter
       updateMigrationResultCounter('fails')
@@ -1197,7 +1197,7 @@ export const ledgerState$ = observable({
       await ledgerClient.unstakeBalance(appId, address, path, amount, updateTxStatus)
     } catch (error) {
       const internalError = interpretError(error, InternalErrorType.UNSTAKE_ERROR)
-      updateTxStatus(TransactionStatus.ERROR, internalError.title)
+      updateTxStatus(TransactionStatus.ERROR, internalError.description)
     }
   },
 
@@ -1227,7 +1227,7 @@ export const ledgerState$ = observable({
       await ledgerClient.withdrawBalance(appId, address, path, updateTxStatus)
     } catch (error) {
       const internalError = interpretError(error, InternalErrorType.WITHDRAW_ERROR)
-      updateTxStatus(TransactionStatus.ERROR, internalError.title)
+      updateTxStatus(TransactionStatus.ERROR, internalError.description)
     }
   },
 
@@ -1250,7 +1250,7 @@ export const ledgerState$ = observable({
       await ledgerClient.removeIdentity(appId, address, path, updateTxStatus)
     } catch (error) {
       const internalError = interpretError(error, InternalErrorType.REMOVE_IDENTITY_ERROR)
-      updateTxStatus(TransactionStatus.ERROR, internalError.title)
+      updateTxStatus(TransactionStatus.ERROR, internalError.description)
     }
   },
 
@@ -1276,7 +1276,7 @@ export const ledgerState$ = observable({
       }
     } catch (error) {
       const internalError = interpretError(error, InternalErrorType.APPROVE_MULTISIG_CALL_ERROR)
-      updateTxStatus(TransactionStatus.ERROR, internalError.title)
+      updateTxStatus(TransactionStatus.ERROR, internalError.description)
     }
   },
 
@@ -1285,7 +1285,7 @@ export const ledgerState$ = observable({
       await ledgerClient.removeProxies(appId, address, path, updateTxStatus)
     } catch (error) {
       const internalError = interpretError(error, InternalErrorType.REMOVE_PROXY_ERROR)
-      updateTxStatus(TransactionStatus.ERROR, internalError.title)
+      updateTxStatus(TransactionStatus.ERROR, internalError.description)
     }
   },
 

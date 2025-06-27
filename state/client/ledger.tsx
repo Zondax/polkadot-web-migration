@@ -24,7 +24,7 @@ import type { ConnectionResponse } from '@/lib/ledger/types'
 import { getBip44Path } from '@/lib/utils/address'
 import { getTransferableAndNfts } from '@/lib/utils/balance'
 
-import { withErrorHandling } from '@/lib/utils'
+import { InternalError, withErrorHandling } from '@/lib/utils'
 import type { BN } from '@polkadot/util'
 import {
   type Address,
@@ -97,7 +97,7 @@ export const ledgerClient = {
         const { balance, senderAddress, senderPath, receiverAddress, appConfig, multisigInfo, accountType } = validation
         const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
         if (!api) {
-          throw InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR
+          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
 
         // Determine which type of balance we're dealing with
@@ -115,7 +115,7 @@ export const ledgerClient = {
           multisigInfo
         )
         if (!preparedTx) {
-          throw InternalErrorType.PREPARE_TX_ERROR
+          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
         }
         const { transfer, payload, metadataHash, nonce, proof1, payloadBytes, callData } = preparedTx
 
@@ -125,7 +125,7 @@ export const ledgerClient = {
         // Sign transaction with Ledger
         const { signature } = await ledgerService.signTransaction(senderPath, payloadBytes, chainId, proof1)
         if (!signature) {
-          throw InternalErrorType.SIGN_TX_ERROR
+          throw new InternalError(InternalErrorType.SIGN_TX_ERROR)
         }
 
         // Create signed extrinsic
@@ -153,26 +153,26 @@ export const ledgerClient = {
   async unstakeBalance(appId: AppId, address: string, path: string, amount: BN, updateTxStatus: UpdateTransactionStatus) {
     const appConfig = appsConfigs.get(appId)
     if (!appConfig?.rpcEndpoint) {
-      throw InternalErrorType.APP_CONFIG_NOT_FOUND
+      throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
     }
 
     return withErrorHandling(
       async () => {
         const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
         if (!api) {
-          throw InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR
+          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
 
         const unstakeTx = await prepareUnstakeTransaction(api, amount)
 
         if (!unstakeTx) {
-          throw InternalErrorType.PREPARE_TX_ERROR
+          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
         }
 
         // Prepare transaction payload
         const preparedTx = await prepareTransactionPayload(api, address, appConfig, unstakeTx)
         if (!preparedTx) {
-          throw InternalErrorType.PREPARE_TX_ERROR
+          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
         }
         const { transfer, payload, metadataHash, nonce, proof1, payloadBytes } = preparedTx
 
@@ -182,7 +182,7 @@ export const ledgerClient = {
         // Sign transaction with Ledger
         const { signature } = await ledgerService.signTransaction(path, payloadBytes, chainId, proof1)
         if (!signature) {
-          throw InternalErrorType.SIGN_TX_ERROR
+          throw new InternalError(InternalErrorType.SIGN_TX_ERROR)
         }
 
         // Create signed extrinsic
@@ -198,19 +198,19 @@ export const ledgerClient = {
   async getUnstakeFee(appId: AppId, address: string, amount: BN): Promise<BN | undefined> {
     const appConfig = appsConfigs.get(appId)
     if (!appConfig?.rpcEndpoint) {
-      throw InternalErrorType.APP_CONFIG_NOT_FOUND
+      throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
     }
 
     return withErrorHandling(
       async () => {
         const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
         if (!api) {
-          throw InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR
+          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
 
         const unstakeTx = await prepareUnstakeTransaction(api, amount)
         if (!unstakeTx) {
-          throw InternalErrorType.PREPARE_TX_ERROR
+          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
         }
 
         const estimatedFee = await getTxFee(unstakeTx, address)
@@ -224,14 +224,14 @@ export const ledgerClient = {
   async withdrawBalance(appId: AppId, address: string, path: string, updateTxStatus: UpdateTransactionStatus) {
     const appConfig = appsConfigs.get(appId)
     if (!appConfig?.rpcEndpoint) {
-      throw InternalErrorType.APP_CONFIG_NOT_FOUND
+      throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
     }
 
     return withErrorHandling(
       async () => {
         const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
         if (!api) {
-          throw InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR
+          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
 
         const withdrawTx = await prepareWithdrawTransaction(api)
@@ -239,7 +239,7 @@ export const ledgerClient = {
         // Prepare transaction payload
         const preparedTx = await prepareTransactionPayload(api, address, appConfig, withdrawTx)
         if (!preparedTx) {
-          throw InternalErrorType.PREPARE_TX_ERROR
+          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
         }
         const { transfer, payload, metadataHash, nonce, proof1, payloadBytes } = preparedTx
 
@@ -249,7 +249,7 @@ export const ledgerClient = {
         // Sign transaction with Ledger
         const { signature } = await ledgerService.signTransaction(path, payloadBytes, chainId, proof1)
         if (!signature) {
-          throw InternalErrorType.SIGN_TX_ERROR
+          throw new InternalError(InternalErrorType.SIGN_TX_ERROR)
         }
 
         // Create signed extrinsic
@@ -265,14 +265,14 @@ export const ledgerClient = {
   async getWithdrawFee(appId: AppId, address: string): Promise<BN | undefined> {
     const appConfig = appsConfigs.get(appId)
     if (!appConfig?.rpcEndpoint) {
-      throw InternalErrorType.APP_CONFIG_NOT_FOUND
+      throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
     }
 
     return withErrorHandling(
       async () => {
         const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
         if (!api) {
-          throw InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR
+          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
 
         const withdrawTx = await prepareWithdrawTransaction(api)
@@ -285,26 +285,26 @@ export const ledgerClient = {
   async removeIdentity(appId: AppId, address: string, path: string, updateTxStatus: UpdateTransactionStatus) {
     const appConfig = appsConfigs.get(appId)
     if (!appConfig?.rpcEndpoint) {
-      throw InternalErrorType.APP_CONFIG_NOT_FOUND
+      throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
     }
 
     return withErrorHandling(
       async () => {
         const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
         if (!api) {
-          throw InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR
+          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
 
         const removeIdentityTx = await prepareRemoveIdentityTransaction(api, address)
 
         if (!removeIdentityTx) {
-          throw InternalErrorType.PREPARE_TX_ERROR
+          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
         }
 
         // Prepare transaction payload
         const preparedTx = await prepareTransactionPayload(api, address, appConfig, removeIdentityTx)
         if (!preparedTx) {
-          throw InternalErrorType.PREPARE_TX_ERROR
+          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
         }
         const { transfer, payload, metadataHash, nonce, proof1, payloadBytes } = preparedTx
 
@@ -314,7 +314,7 @@ export const ledgerClient = {
         // Sign transaction with Ledger
         const { signature } = await ledgerService.signTransaction(path, payloadBytes, chainId, proof1)
         if (!signature) {
-          throw InternalErrorType.SIGN_TX_ERROR
+          throw new InternalError(InternalErrorType.SIGN_TX_ERROR)
         }
 
         // Create signed extrinsic
@@ -330,19 +330,19 @@ export const ledgerClient = {
   async getRemoveIdentityFee(appId: AppId, address: string): Promise<BN | undefined> {
     const appConfig = appsConfigs.get(appId)
     if (!appConfig?.rpcEndpoint) {
-      throw InternalErrorType.APP_CONFIG_NOT_FOUND
+      throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
     }
 
     return withErrorHandling(
       async () => {
         const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
         if (!api) {
-          throw InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR
+          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
 
         const removeIdentityTx = await prepareRemoveIdentityTransaction(api, address)
         if (!removeIdentityTx) {
-          throw InternalErrorType.PREPARE_TX_ERROR
+          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
         }
 
         const estimatedFee = await getTxFee(removeIdentityTx, address)
@@ -365,7 +365,7 @@ export const ledgerClient = {
       async () => {
         const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
         if (!api) {
-          throw InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR
+          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
 
         // Determine which type of balance we're dealing with
@@ -382,7 +382,7 @@ export const ledgerClient = {
           nativeAmount
         )
         if (!preparedTx) {
-          throw InternalErrorType.PREPARE_TX_ERROR
+          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
         }
 
         const { transfer } = preparedTx
@@ -421,7 +421,7 @@ export const ledgerClient = {
       async () => {
         const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
         if (!api) {
-          throw InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR
+          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
 
         const multiTx = await prepareApproveAsMultiTx(
@@ -436,7 +436,7 @@ export const ledgerClient = {
         // Prepare transaction payload
         const preparedTx = await prepareTransactionPayload(api, signer, appConfig, multiTx)
         if (!preparedTx) {
-          throw InternalErrorType.PREPARE_TX_ERROR
+          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
         }
         const { transfer, payload, metadataHash, nonce, proof1, payloadBytes } = preparedTx
 
@@ -446,7 +446,7 @@ export const ledgerClient = {
         // Sign transaction with Ledger
         const { signature } = await ledgerService.signTransaction(signerPath, payloadBytes, chainId, proof1)
         if (!signature) {
-          throw InternalErrorType.SIGN_TX_ERROR
+          throw new InternalError(InternalErrorType.SIGN_TX_ERROR)
         }
 
         // Create signed extrinsic
@@ -483,7 +483,7 @@ export const ledgerClient = {
       async () => {
         const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
         if (!api) {
-          throw InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR
+          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
 
         const multiTx = await prepareAsMultiTx(
@@ -499,7 +499,7 @@ export const ledgerClient = {
         // Prepare transaction payload
         const preparedTx = await prepareTransactionPayload(api, signer, appConfig, multiTx)
         if (!preparedTx) {
-          throw InternalErrorType.PREPARE_TX_ERROR
+          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
         }
         const { transfer, payload, metadataHash, nonce, proof1, payloadBytes } = preparedTx
 
@@ -509,7 +509,7 @@ export const ledgerClient = {
         // Sign transaction with Ledger
         const { signature } = await ledgerService.signTransaction(signerPath, payloadBytes, chainId, proof1)
         if (!signature) {
-          throw InternalErrorType.SIGN_TX_ERROR
+          throw new InternalError(InternalErrorType.SIGN_TX_ERROR)
         }
 
         // Create signed extrinsic
@@ -529,14 +529,14 @@ export const ledgerClient = {
   async validateCallDataMatchesHash(appId: AppId, callData: string, expectedCallHash: string): Promise<boolean> {
     const appConfig = appsConfigs.get(appId)
     if (!appConfig?.rpcEndpoint) {
-      throw InternalErrorType.APP_CONFIG_NOT_FOUND
+      throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
     }
 
     return withErrorHandling(
       async () => {
         const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
         if (!api) {
-          throw InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR
+          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
         return validateCallDataMatchesHash(api, callData, expectedCallHash)
       },
@@ -551,26 +551,26 @@ export const ledgerClient = {
   async removeProxies(appId: AppId, address: string, path: string, updateTxStatus: UpdateTransactionStatus) {
     const appConfig = appsConfigs.get(appId)
     if (!appConfig?.rpcEndpoint) {
-      throw InternalErrorType.APP_CONFIG_NOT_FOUND
+      throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
     }
 
     return withErrorHandling(
       async () => {
         const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
         if (!api) {
-          throw InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR
+          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
 
         const removeProxyTx = await prepareRemoveProxiesTransaction(api)
 
         if (!removeProxyTx) {
-          throw InternalErrorType.PREPARE_TX_ERROR
+          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
         }
 
         // Prepare transaction payload
         const preparedTx = await prepareTransactionPayload(api, address, appConfig, removeProxyTx)
         if (!preparedTx) {
-          throw InternalErrorType.PREPARE_TX_ERROR
+          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
         }
         const { transfer, payload, metadataHash, nonce, proof1, payloadBytes } = preparedTx
 
@@ -580,7 +580,7 @@ export const ledgerClient = {
         // Sign transaction with Ledger
         const { signature } = await ledgerService.signTransaction(path, payloadBytes, chainId, proof1)
         if (!signature) {
-          throw InternalErrorType.SIGN_TX_ERROR
+          throw new InternalError(InternalErrorType.SIGN_TX_ERROR)
         }
 
         // Create signed extrinsic
@@ -596,19 +596,19 @@ export const ledgerClient = {
   async getRemoveProxiesFee(appId: AppId, address: string): Promise<BN | undefined> {
     const appConfig = appsConfigs.get(appId)
     if (!appConfig?.rpcEndpoint) {
-      throw InternalErrorType.APP_CONFIG_NOT_FOUND
+      throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
     }
 
     return withErrorHandling(
       async () => {
         const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
         if (!api) {
-          throw InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR
+          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
 
         const removeProxyTx = await prepareRemoveProxiesTransaction(api)
         if (!removeProxyTx) {
-          throw InternalErrorType.PREPARE_TX_ERROR
+          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
         }
 
         const estimatedFee = await getTxFee(removeProxyTx, address)
