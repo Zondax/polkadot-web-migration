@@ -3,6 +3,7 @@ import {
   AlertCircle,
   Banknote,
   BanknoteArrowDown,
+  Check,
   Group,
   Info,
   KeyRound,
@@ -506,7 +507,12 @@ const SynchronizedAccountRow = ({
         {/* Additional Actions */}
         {actions.length > 0 ? (
           <div className="flex gap-2 justify-start items-center">{actions.map(action => renderAction(action))}</div>
-        ) : null}
+        ) : (
+          <div className="text-sm text-muted-foreground/60 font-medium flex items-center gap-2">
+            <Check className="h-4 w-4 text-polkadot-pink" />
+            Ready to migrate
+          </div>
+        )}
       </TableCell>
       <UnstakeDialog open={unstakeOpen} setOpen={setUnstakeOpen} maxUnstake={maxUnstake} token={token} account={account} appId={appId} />
       <WithdrawDialog open={withdrawOpen} setOpen={setWithdrawOpen} token={token} account={account} appId={appId} />
