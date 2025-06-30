@@ -99,13 +99,24 @@ describe('InvalidSynchronizedAccountRow component', () => {
     appId: 'polkadot' as const,
   }
 
+  // Helper function to render component within proper table structure
+  const renderInTable = (props = defaultProps) => {
+    return render(
+      <table>
+        <tbody>
+          <InvalidSynchronizedAccountRow {...props} />
+        </tbody>
+      </table>
+    )
+  }
+
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
   describe('basic rendering', () => {
     it('should render account row with address', () => {
-      render(<InvalidSynchronizedAccountRow {...defaultProps} />)
+      renderInTable()
 
       expect(screen.getByTestId('table-row')).toBeInTheDocument()
       const explorerLinks = screen.getAllByTestId('explorer-link')
@@ -113,14 +124,14 @@ describe('InvalidSynchronizedAccountRow component', () => {
     })
 
     it('should render info icon with tooltip', () => {
-      render(<InvalidSynchronizedAccountRow {...defaultProps} />)
+      renderInTable()
 
       expect(screen.getByTestId('info-icon')).toBeInTheDocument()
       expect(screen.getByTestId('info-icon')).toHaveClass('h-4 w-4 text-muted-foreground')
     })
 
     it('should apply rowSpan to the first table cell', () => {
-      render(<InvalidSynchronizedAccountRow {...defaultProps} rowSpan={3} />)
+      renderInTable({ ...defaultProps, rowSpan: 3 })
 
       const cells = screen.getAllByTestId('table-cell')
       expect(cells[0]).toHaveAttribute('rowSpan', '3')
@@ -132,7 +143,7 @@ describe('InvalidSynchronizedAccountRow component', () => {
         address: undefined,
       }
 
-      render(<InvalidSynchronizedAccountRow {...defaultProps} account={accountWithoutAddress} />)
+      renderInTable({ ...defaultProps, account: accountWithoutAddress })
 
       const explorerLinks = screen.getAllByTestId('explorer-link')
       expect(explorerLinks[0]).toHaveTextContent('')
@@ -141,7 +152,7 @@ describe('InvalidSynchronizedAccountRow component', () => {
 
   describe('tooltip content', () => {
     it('should show address details in tooltip', () => {
-      render(<InvalidSynchronizedAccountRow {...defaultProps} />)
+      renderInTable()
 
       // The tooltip content is rendered inside the wrapper
       const tooltipWrapper = screen.getByTestId('tooltip-content-wrapper')
@@ -164,7 +175,7 @@ describe('InvalidSynchronizedAccountRow component', () => {
         path: undefined,
       }
 
-      render(<InvalidSynchronizedAccountRow {...defaultProps} account={accountWithoutPath} />)
+      renderInTable({ ...defaultProps, account: accountWithoutPath })
 
       const tooltipWrapper = screen.getByTestId('tooltip-content-wrapper')
       const tooltipItems = tooltipWrapper.querySelectorAll('[data-testid="tooltip-item"]')
@@ -179,7 +190,7 @@ describe('InvalidSynchronizedAccountRow component', () => {
         pubKey: undefined,
       }
 
-      render(<InvalidSynchronizedAccountRow {...defaultProps} account={accountWithoutPubKey} />)
+      renderInTable({ ...defaultProps, account: accountWithoutPubKey })
 
       const tooltipWrapper = screen.getByTestId('tooltip-content-wrapper')
       const tooltipItems = tooltipWrapper.querySelectorAll('[data-testid="tooltip-item"]')
@@ -189,7 +200,7 @@ describe('InvalidSynchronizedAccountRow component', () => {
     })
 
     it('should handle multisig account without path and pubKey', () => {
-      render(<InvalidSynchronizedAccountRow {...defaultProps} account={mockMultisigAddress} />)
+      renderInTable({ ...defaultProps, account: mockMultisigAddress })
 
       const tooltipWrapper = screen.getByTestId('tooltip-content-wrapper')
       const tooltipItems = tooltipWrapper.querySelectorAll('[data-testid="tooltip-item"]')
@@ -205,7 +216,7 @@ describe('InvalidSynchronizedAccountRow component', () => {
         isLoading: true,
       }
 
-      render(<InvalidSynchronizedAccountRow {...defaultProps} account={loadingAccount} />)
+      renderInTable({ ...defaultProps, account: loadingAccount })
 
       expect(screen.getByTestId('spinner')).toBeInTheDocument()
       expect(screen.getByText('Loading...')).toBeInTheDocument()
@@ -217,7 +228,7 @@ describe('InvalidSynchronizedAccountRow component', () => {
         error: { source: 'synchronization', description: 'Failed to sync account' },
       }
 
-      render(<InvalidSynchronizedAccountRow {...defaultProps} account={accountWithError} />)
+      renderInTable({ ...defaultProps, account: accountWithError })
 
       expect(screen.getByTestId('alert-circle')).toBeInTheDocument()
       expect(screen.getByTestId('alert-circle')).toHaveClass('h-4 w-4 text-destructive cursor-help')
@@ -234,14 +245,14 @@ describe('InvalidSynchronizedAccountRow component', () => {
         error: { source: 'synchronization', description: undefined },
       }
 
-      render(<InvalidSynchronizedAccountRow {...defaultProps} account={accountWithError} />)
+      renderInTable({ ...defaultProps, account: accountWithError })
 
       // The component checks for error?.description, so if description is undefined, no error icon is shown
       expect(screen.queryByTestId('alert-circle')).not.toBeInTheDocument()
     })
 
     it('should not show any status icon when no loading or error', () => {
-      render(<InvalidSynchronizedAccountRow {...defaultProps} />)
+      renderInTable()
 
       expect(screen.queryByTestId('spinner')).not.toBeInTheDocument()
       expect(screen.queryByTestId('alert-circle')).not.toBeInTheDocument()
@@ -254,7 +265,7 @@ describe('InvalidSynchronizedAccountRow component', () => {
         error: { source: 'synchronization', description: 'Error' },
       }
 
-      render(<InvalidSynchronizedAccountRow {...defaultProps} account={accountWithBoth} />)
+      renderInTable({ ...defaultProps, account: accountWithBoth })
 
       expect(screen.getByTestId('spinner')).toBeInTheDocument()
       expect(screen.queryByTestId('alert-circle')).not.toBeInTheDocument()
@@ -263,14 +274,14 @@ describe('InvalidSynchronizedAccountRow component', () => {
 
   describe('table structure', () => {
     it('should render two table cells', () => {
-      render(<InvalidSynchronizedAccountRow {...defaultProps} />)
+      renderInTable()
 
       const cells = screen.getAllByTestId('table-cell')
       expect(cells).toHaveLength(2)
     })
 
     it('should apply correct classes to cells', () => {
-      render(<InvalidSynchronizedAccountRow {...defaultProps} />)
+      renderInTable()
 
       const cells = screen.getAllByTestId('table-cell')
       expect(cells[0]).toHaveClass('py-2 text-sm')
@@ -278,7 +289,7 @@ describe('InvalidSynchronizedAccountRow component', () => {
     })
 
     it('should render explorer link with correct classes', () => {
-      render(<InvalidSynchronizedAccountRow {...defaultProps} />)
+      renderInTable()
 
       const explorerLinks = screen.getAllByTestId('explorer-link')
       expect(explorerLinks[0]).toHaveClass('break-all')
@@ -287,7 +298,7 @@ describe('InvalidSynchronizedAccountRow component', () => {
 
   describe('key prop', () => {
     it('should use address as key when available', () => {
-      const { container } = render(<InvalidSynchronizedAccountRow {...defaultProps} />)
+      const { container } = renderInTable()
 
       const row = container.querySelector('tr')
       expect(row).toBeTruthy()
@@ -299,9 +310,7 @@ describe('InvalidSynchronizedAccountRow component', () => {
         address: undefined,
       }
 
-      const { container } = render(
-        <InvalidSynchronizedAccountRow {...defaultProps} account={accountWithoutAddress} accountIndex={5} />
-      )
+      const { container } = renderInTable({ ...defaultProps, account: accountWithoutAddress, accountIndex: 5 })
 
       const row = container.querySelector('tr')
       expect(row).toBeTruthy()

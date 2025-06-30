@@ -365,6 +365,18 @@ describe('client helpers', () => {
           InternalErrorType.NO_PENDING_MULTISIG_CALL
         )
       })
+
+      it('should throw NO_SIGNATORY_ADDRESS error when member has no path', () => {
+        const membersWithoutPath: MultisigMember[] = [
+          { address: TEST_ADDRESSES.ADDRESS1, path: undefined as any, internal: true },
+          { address: TEST_ADDRESSES.ADDRESS2, path: "m/44'/354'/0'/0'/1'", internal: false },
+        ]
+        const accountWithMemberWithoutPath = { ...mockMultisigAccount, members: membersWithoutPath }
+
+        expect(() => validateApproveAsMultiParams(mockAppId, accountWithMemberWithoutPath, mockCallHash, mockSigner)).toThrow(
+          InternalErrorType.NO_SIGNATORY_ADDRESS
+        )
+      })
     })
   })
 

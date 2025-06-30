@@ -39,8 +39,8 @@ const MigratedAccountsTable = ({ apps, multisigAddresses }: MigratedAccountsTabl
           </TableRow>
         </TableHeader>
         <TableBody>
-          {apps.map(app => (
-            <MigratedAccountRows key={app.id?.toString()} app={app} multisigAddresses={multisigAddresses} />
+          {apps.map((app, index) => (
+            <MigratedAccountRows key={app.id?.toString() || `app-${index}`} app={app} multisigAddresses={multisigAddresses} />
           ))}
         </TableBody>
       </Table>

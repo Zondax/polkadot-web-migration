@@ -168,7 +168,13 @@ describe('SynchronizedAccountRow component', () => {
   })
 
   it('should render account row with basic information', () => {
-    render(<SynchronizedAccountRow {...defaultProps} />)
+    render(
+      <table>
+        <tbody>
+          <SynchronizedAccountRow {...defaultProps} />
+        </tbody>
+      </table>
+    )
 
     // Check for account address
     expect(screen.getByText('5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY')).toBeInTheDocument()
@@ -179,7 +185,13 @@ describe('SynchronizedAccountRow component', () => {
   })
 
   it('should render checkbox for account selection', () => {
-    render(<SynchronizedAccountRow {...defaultProps} />)
+    render(
+      <table>
+        <tbody>
+          <SynchronizedAccountRow {...defaultProps} />
+        </tbody>
+      </table>
+    )
 
     const checkbox = screen.getByRole('checkbox')
     expect(checkbox).toBeInTheDocument()
@@ -187,14 +199,26 @@ describe('SynchronizedAccountRow component', () => {
   })
 
   it('should show action buttons when balance has staking', () => {
-    render(<SynchronizedAccountRow {...defaultProps} />)
+    render(
+      <table>
+        <tbody>
+          <SynchronizedAccountRow {...defaultProps} />
+        </tbody>
+      </table>
+    )
 
     expect(screen.getByText('Unstake')).toBeInTheDocument()
     expect(screen.getByText('Withdraw')).toBeInTheDocument()
   })
 
   it('should render destination address select', () => {
-    render(<SynchronizedAccountRow {...defaultProps} />)
+    render(
+      <table>
+        <tbody>
+          <SynchronizedAccountRow {...defaultProps} />
+        </tbody>
+      </table>
+    )
 
     expect(screen.getByText('DestinationAddressSelect')).toBeInTheDocument()
   })
@@ -209,13 +233,25 @@ describe('SynchronizedAccountRow component', () => {
       canUnstake: false,
     }
 
-    render(<SynchronizedAccountRow {...defaultProps} balance={balanceWithoutActions} />)
+    render(
+      <table>
+        <tbody>
+          <SynchronizedAccountRow {...defaultProps} balance={balanceWithoutActions} />
+        </tbody>
+      </table>
+    )
 
     expect(screen.getByText('Ready to migrate')).toBeInTheDocument()
   })
 
   it('should render without balance', () => {
-    render(<SynchronizedAccountRow {...defaultProps} balance={undefined} balanceIndex={undefined} />)
+    render(
+      <table>
+        <tbody>
+          <SynchronizedAccountRow {...defaultProps} balance={undefined} balanceIndex={undefined} />
+        </tbody>
+      </table>
+    )
 
     // Should show dashes for missing data
     const cells = screen.getAllByText('-')
@@ -233,7 +269,13 @@ describe('SynchronizedAccountRow component', () => {
       pendingMultisigCalls: [],
     }
 
-    render(<SynchronizedAccountRow {...defaultProps} account={multisigAccount} />)
+    render(
+      <table>
+        <tbody>
+          <SynchronizedAccountRow {...defaultProps} account={multisigAccount} />
+        </tbody>
+      </table>
+    )
 
     // Should render signatory address select
     expect(screen.getByText('5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY')).toBeInTheDocument()
@@ -260,7 +302,13 @@ describe('SynchronizedAccountRow component', () => {
       isLoading: true,
     }
 
-    render(<SynchronizedAccountRow {...defaultProps} account={loadingAccount} />)
+    render(
+      <table>
+        <tbody>
+          <SynchronizedAccountRow {...defaultProps} account={loadingAccount} />
+        </tbody>
+      </table>
+    )
 
     expect(screen.getByText('Loading...')).toBeInTheDocument()
   })

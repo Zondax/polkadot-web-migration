@@ -144,16 +144,27 @@ describe('MigratedAccountRows component', () => {
     })
   })
 
+  // Helper function to render component within proper table structure
+  const renderInTable = (component: React.ReactElement) => {
+    return render(
+      <table>
+        <tbody>
+          {component}
+        </tbody>
+      </table>
+    )
+  }
+
   describe('basic rendering', () => {
     it('should render rows for regular accounts', () => {
-      render(<MigratedAccountRows app={mockApp} />)
+      renderInTable(<MigratedAccountRows app={mockApp} />)
 
       const rows = screen.getAllByTestId('table-row')
       expect(rows).toHaveLength(1)
     })
 
     it('should render rows for multisig accounts', () => {
-      render(<MigratedAccountRows app={mockApp} multisigAddresses />)
+      renderInTable(<MigratedAccountRows app={mockApp} multisigAddresses />)
 
       const rows = screen.getAllByTestId('table-row')
       expect(rows).toHaveLength(1)
@@ -183,20 +194,20 @@ describe('MigratedAccountRows component', () => {
 
   describe('app icon column', () => {
     it('should render app icon when available', () => {
-      render(<MigratedAccountRows app={mockApp} />)
+      renderInTable(<MigratedAccountRows app={mockApp} />)
 
       const iconContainer = document.querySelector('[data-testid="token-logo-polkadot"]')
       expect(iconContainer).toBeInTheDocument()
     })
 
     it('should call useTokenLogo with correct app id', () => {
-      render(<MigratedAccountRows app={mockApp} />)
+      renderInTable(<MigratedAccountRows app={mockApp} />)
 
       expect(useTokenLogo).toHaveBeenCalledWith('polkadot')
     })
 
     it('should hide icon column on small screens', () => {
-      render(<MigratedAccountRows app={mockApp} />)
+      renderInTable(<MigratedAccountRows app={mockApp} />)
 
       const cells = screen.getAllByTestId('table-cell')
       const iconCell = cells[0]
@@ -206,7 +217,7 @@ describe('MigratedAccountRows component', () => {
     it('should handle missing icon gracefully', () => {
       ;(useTokenLogo as any).mockReturnValue(null)
       
-      render(<MigratedAccountRows app={mockApp} />)
+      renderInTable(<MigratedAccountRows app={mockApp} />)
 
       const rows = screen.getAllByTestId('table-row')
       expect(rows).toHaveLength(1)
@@ -215,7 +226,7 @@ describe('MigratedAccountRows component', () => {
 
   describe('source address column', () => {
     it('should render source address with correct props', () => {
-      render(<MigratedAccountRows app={mockApp} />)
+      renderInTable(<MigratedAccountRows app={mockApp} />)
 
       const explorerLink = screen.getAllByTestId('explorer-link')[0]
       expect(explorerLink).toHaveAttribute('data-value', '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY')
@@ -227,7 +238,7 @@ describe('MigratedAccountRows component', () => {
 
   describe('public key column (regular addresses)', () => {
     it('should render public key when available', () => {
-      render(<MigratedAccountRows app={mockApp} />)
+      renderInTable(<MigratedAccountRows app={mockApp} />)
 
       const explorerLinks = screen.getAllByTestId('explorer-link')
       const pubKeyLink = explorerLinks[1] // Second link should be pubKey
@@ -240,7 +251,7 @@ describe('MigratedAccountRows component', () => {
       const addressWithoutPubKey = { ...mockAddress, pubKey: '' }
       const appWithoutPubKey = { ...mockApp, accounts: [addressWithoutPubKey] }
       
-      render(<MigratedAccountRows app={appWithoutPubKey} />)
+      renderInTable(<MigratedAccountRows app={appWithoutPubKey} />)
 
       const explorerLinks = screen.getAllByTestId('explorer-link')
       const pubKeyLink = explorerLinks[1]
@@ -250,7 +261,7 @@ describe('MigratedAccountRows component', () => {
     })
 
     it('should not render public key column for multisig addresses', () => {
-      render(<MigratedAccountRows app={mockApp} multisigAddresses />)
+      renderInTable(<MigratedAccountRows app={mockApp} multisigAddresses />)
 
       const cells = screen.getAllByTestId('table-cell')
       // Should not have as many cells since pubKey column is hidden
@@ -260,7 +271,7 @@ describe('MigratedAccountRows component', () => {
 
   describe('multisig-specific columns', () => {
     it('should render signatory address for multisig', () => {
-      render(<MigratedAccountRows app={mockApp} multisigAddresses />)
+      renderInTable(<MigratedAccountRows app={mockApp} multisigAddresses />)
 
       const explorerLinks = screen.getAllByTestId('explorer-link')
       const signatoryLink = explorerLinks.find(link => 
@@ -275,7 +286,7 @@ describe('MigratedAccountRows component', () => {
       const multisigWithoutSignatory = { ...mockMultisigAddress, balances: [balanceWithoutSignatory] }
       const appWithoutSignatory = { ...mockApp, multisigAccounts: [multisigWithoutSignatory] }
       
-      render(<MigratedAccountRows app={appWithoutSignatory} multisigAddresses />)
+      renderInTable(<MigratedAccountRows app={appWithoutSignatory} multisigAddresses />)
 
       const explorerLinks = screen.getAllByTestId('explorer-link')
       const signatoryLink = explorerLinks.find(link => link.getAttribute('data-value') === '-')
@@ -285,7 +296,7 @@ describe('MigratedAccountRows component', () => {
     })
 
     it('should render threshold information', () => {
-      render(<MigratedAccountRows app={mockApp} multisigAddresses />)
+      renderInTable(<MigratedAccountRows app={mockApp} multisigAddresses />)
 
       const thresholdElement = screen.getByText('2/2')
       expect(thresholdElement).toBeInTheDocument()
@@ -295,7 +306,7 @@ describe('MigratedAccountRows component', () => {
 
   describe('destination address column', () => {
     it('should render destination address', () => {
-      render(<MigratedAccountRows app={mockApp} />)
+      renderInTable(<MigratedAccountRows app={mockApp} />)
 
       const explorerLinks = screen.getAllByTestId('explorer-link')
       const destinationLink = explorerLinks.find(link => 
@@ -311,7 +322,7 @@ describe('MigratedAccountRows component', () => {
       const addressWithoutDestination = { ...mockAddress, balances: [balanceWithoutDestination] }
       const appWithoutDestination = { ...mockApp, accounts: [addressWithoutDestination] }
       
-      render(<MigratedAccountRows app={appWithoutDestination} />)
+      renderInTable(<MigratedAccountRows app={appWithoutDestination} />)
 
       const explorerLinks = screen.getAllByTestId('explorer-link')
       const destinationLink = explorerLinks.find(link => link.getAttribute('data-value') === '')
@@ -321,7 +332,7 @@ describe('MigratedAccountRows component', () => {
 
   describe('balance column', () => {
     it('should render BalanceHoverCard with correct props', () => {
-      render(<MigratedAccountRows app={mockApp} />)
+      renderInTable(<MigratedAccountRows app={mockApp} />)
 
       // BalanceHoverCard is rendered as a self-closing div, so let's check the presence in a different way
       const balanceCells = screen.getAllByTestId('table-cell')
@@ -330,7 +341,7 @@ describe('MigratedAccountRows component', () => {
     })
 
     it('should pass collections to BalanceHoverCard', () => {
-      render(<MigratedAccountRows app={mockApp} />)
+      renderInTable(<MigratedAccountRows app={mockApp} />)
 
       // Since BalanceHoverCard renders as HoverCard, we just verify it's rendered properly
       const balanceCells = screen.getAllByTestId('table-cell')
@@ -341,7 +352,7 @@ describe('MigratedAccountRows component', () => {
 
   describe('status column', () => {
     it('should render status icon', () => {
-      render(<MigratedAccountRows app={mockApp} />)
+      renderInTable(<MigratedAccountRows app={mockApp} />)
 
       const statusIcon = screen.getByTestId('status-icon')
       expect(statusIcon).toBeInTheDocument()
@@ -353,7 +364,7 @@ describe('MigratedAccountRows component', () => {
         statusMessage: 'Transaction completed',
       })
 
-      render(<MigratedAccountRows app={mockApp} />)
+      renderInTable(<MigratedAccountRows app={mockApp} />)
 
       const tooltip = screen.getByTestId('custom-tooltip')
       expect(tooltip).toHaveAttribute('data-tooltip-body', 'Transaction completed')
@@ -366,7 +377,7 @@ describe('MigratedAccountRows component', () => {
         statusMessage: undefined,
       })
 
-      render(<MigratedAccountRows app={mockApp} />)
+      renderInTable(<MigratedAccountRows app={mockApp} />)
 
       const statusIcon = screen.getByTestId('status-icon')
       expect(statusIcon).toBeInTheDocument()
@@ -374,7 +385,7 @@ describe('MigratedAccountRows component', () => {
     })
 
     it('should render transaction dropdown when transaction exists', () => {
-      render(<MigratedAccountRows app={mockApp} />)
+      renderInTable(<MigratedAccountRows app={mockApp} />)
 
       // TransactionDropdown isn't rendering in the test environment, but the status column is there
       const statusCells = screen.getAllByTestId('table-cell')
@@ -388,7 +399,7 @@ describe('MigratedAccountRows component', () => {
       const addressWithoutTransaction = { ...mockAddress, balances: [balanceWithoutTransaction] }
       const appWithoutTransaction = { ...mockApp, accounts: [addressWithoutTransaction] }
       
-      render(<MigratedAccountRows app={appWithoutTransaction} />)
+      renderInTable(<MigratedAccountRows app={appWithoutTransaction} />)
 
       expect(screen.queryByTestId('transaction-dropdown')).not.toBeInTheDocument()
     })
@@ -404,7 +415,7 @@ describe('MigratedAccountRows component', () => {
       const addressWithMultipleBalances = { ...mockAddress, balances: [mockBalance, secondBalance] }
       const appWithMultipleBalances = { ...mockApp, accounts: [addressWithMultipleBalances] }
       
-      render(<MigratedAccountRows app={appWithMultipleBalances} />)
+      renderInTable(<MigratedAccountRows app={appWithMultipleBalances} />)
 
       const rows = screen.getAllByTestId('table-row')
       expect(rows).toHaveLength(2)
@@ -419,7 +430,7 @@ describe('MigratedAccountRows component', () => {
       const addressWithMultipleBalances = { ...mockAddress, balances: [mockBalance, secondBalance] }
       const appWithMultipleBalances = { ...mockApp, accounts: [addressWithMultipleBalances] }
       
-      const { container } = render(<MigratedAccountRows app={appWithMultipleBalances} />)
+      const { container } = renderInTable(<MigratedAccountRows app={appWithMultipleBalances} />)
 
       const rows = container.querySelectorAll('tr')
       expect(rows).toHaveLength(2)
@@ -450,7 +461,7 @@ describe('MigratedAccountRows component', () => {
       const addressWithoutStatus = { ...mockAddress, balances: [balanceWithoutStatus] }
       const appWithoutStatus = { ...mockApp, accounts: [addressWithoutStatus] }
       
-      render(<MigratedAccountRows app={appWithoutStatus} />)
+      renderInTable(<MigratedAccountRows app={appWithoutStatus} />)
 
       expect(getTransactionStatus).toHaveBeenCalledWith(undefined, undefined)
     })
