@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { MockedFunction } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { convertSS58Format, getBip44Path, isMultisigAddress } from '../address'
 
@@ -11,6 +11,7 @@ vi.mock('@polkadot/keyring', () => ({
 
 // Import mocked functions
 import { decodeAddress, encodeAddress } from '@polkadot/keyring'
+
 const mockDecodeAddress = decodeAddress as MockedFunction<typeof decodeAddress>
 const mockEncodeAddress = encodeAddress as MockedFunction<typeof encodeAddress>
 

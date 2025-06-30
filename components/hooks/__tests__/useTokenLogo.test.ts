@@ -66,9 +66,9 @@ describe('useTokenLogo hook', () => {
 
     it('should return correct logo for different token IDs', () => {
       const mockIcons = {
-        'dot': 'https://example.com/dot-icon.png',
-        'ksm': 'https://example.com/ksm-icon.png',
-        'avail': 'data:image/svg+xml;base64,ABC123',
+        dot: 'https://example.com/dot-icon.png',
+        ksm: 'https://example.com/ksm-icon.png',
+        avail: 'data:image/svg+xml;base64,ABC123',
       }
 
       mockIconsGet.mockReturnValue(mockIcons)
@@ -104,7 +104,7 @@ describe('useTokenLogo hook', () => {
       const mockIcons = {
         'token-with-special-chars!@#$%': 'special-icon-url',
         'token.with.dots': 'dotted-icon-url',
-        'token_with_underscores': 'underscore-icon-url',
+        token_with_underscores: 'underscore-icon-url',
       }
 
       mockIconsGet.mockReturnValue(mockIcons)
@@ -141,9 +141,9 @@ describe('useTokenLogo hook', () => {
 
     it('should handle case-sensitive token IDs', () => {
       const mockIcons = {
-        'Token': 'uppercase-token-icon',
-        'token': 'lowercase-token-icon',
-        'TOKEN': 'all-caps-token-icon',
+        Token: 'uppercase-token-icon',
+        token: 'lowercase-token-icon',
+        TOKEN: 'all-caps-token-icon',
       }
 
       mockIconsGet.mockReturnValue(mockIcons)
@@ -196,7 +196,7 @@ describe('useTokenLogo hook', () => {
 
   describe('performance considerations', () => {
     it('should call icons.get() only once per call', () => {
-      const mockIcons = { 'test': 'test-icon' }
+      const mockIcons = { test: 'test-icon' }
       mockIconsGet.mockReturnValue(mockIcons)
 
       useTokenLogo('test')
@@ -205,7 +205,7 @@ describe('useTokenLogo hook', () => {
     })
 
     it('should handle repeated calls efficiently', () => {
-      const mockIcons = { 'test': 'test-icon' }
+      const mockIcons = { test: 'test-icon' }
       mockIconsGet.mockReturnValue(mockIcons)
 
       useTokenLogo('test')

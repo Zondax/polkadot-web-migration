@@ -1,15 +1,14 @@
+import type { BN } from '@polkadot/util'
+import { useEffect } from 'react'
 import type { Address, TransactionDetails, TransactionStatus } from 'state/types/ledger'
-
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { type AppId, type Token, getChainName } from '@/config/apps'
+import { type AppId, getChainName, type Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { formatBalance } from '@/lib/utils/format'
 import { ledgerState$ } from '@/state/ledger'
-import type { BN } from '@polkadot/util'
-import { useEffect } from 'react'
 import { DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
@@ -30,8 +29,8 @@ interface RemoveProxyFormProps {
 }
 
 function RemoveProxyForm({ token, account, appId, estimatedFee, estimatedFeeLoading }: RemoveProxyFormProps) {
-  const icon = useTokenLogo(token.logoId)
-  const appName = getChainName(appId)
+  const _icon = useTokenLogo(token.logoId)
+  const _appName = getChainName(appId)
 
   return (
     <div className="space-y-4">

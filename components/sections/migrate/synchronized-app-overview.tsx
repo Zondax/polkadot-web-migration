@@ -2,10 +2,8 @@ import { observer } from '@legendapp/state/react'
 import { ChevronDown } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { BalanceType } from 'state/types/ledger'
-
-import { muifyHtml } from '@/lib/utils/html'
-
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
+import { muifyHtml } from '@/lib/utils/html'
 import { BalanceTypeFlag } from './balance-detail-card'
 
 function SynchronizedAppOverview({
@@ -13,7 +11,12 @@ function SynchronizedAppOverview({
   appName,
   accountCount,
   totalBalance,
-}: { appId: string; appName: string; accountCount: number; totalBalance?: string }) {
+}: {
+  appId: string
+  appName: string
+  accountCount: number
+  totalBalance?: string
+}) {
   const [isExpanded, setIsExpanded] = useState(true)
 
   const icon = useTokenLogo(appId)
@@ -45,6 +48,9 @@ function SynchronizedAppOverview({
       onClick={isAccountsNotEmpty ? toggleExpand : undefined}
       onKeyDown={handleKeyDown}
       data-testid="app-row-overview"
+      role="button"
+      tabIndex={isAccountsNotEmpty ? 0 : -1}
+      aria-expanded={isExpanded}
     >
       <div className="flex items-center gap-4">
         <div className="max-h-8 w-8 h-8 overflow-hidden flex items-center justify-center">

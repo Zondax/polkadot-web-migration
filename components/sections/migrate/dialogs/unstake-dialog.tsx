@@ -1,4 +1,4 @@
-import { ledgerState$ } from '@/state/ledger'
+import type { BN } from '@polkadot/util'
 import { useEffect, useMemo, useState } from 'react'
 import type { Address, TransactionDetails, TransactionStatus } from 'state/types/ledger'
 
@@ -10,7 +10,7 @@ import type { AppId, Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { convertToRawUnits, formatBalance } from '@/lib/utils/format'
 import { validateNumberInput } from '@/lib/utils/ui'
-import type { BN } from '@polkadot/util'
+import { ledgerState$ } from '@/state/ledger'
 import { DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 

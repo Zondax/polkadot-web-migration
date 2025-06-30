@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { type ExplorerId, ExplorerItemType, buildExplorerUrl, explorers } from '../explorers'
+import { buildExplorerUrl, type ExplorerId, ExplorerItemType } from '../explorers'
 
 describe('buildExplorerUrl', () => {
   it('should build a valid Subscan transaction URL', () => {

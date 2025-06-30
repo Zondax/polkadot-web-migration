@@ -1,9 +1,7 @@
 'use client'
 
-import { uiState$ } from '@/state/ui'
 import { use$ } from '@legendapp/state/react'
 import { useEffect } from 'react'
-
 import { CustomTooltip } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { useMigration } from '@/components/hooks/useMigration'
@@ -14,6 +12,7 @@ import { ExplorerItemType } from '@/config/explorers'
 import { verificationStatusMap } from '@/config/ui'
 import { muifyHtml } from '@/lib/utils'
 import type { VerificationStatus } from '@/state/types/ledger'
+import { uiState$ } from '@/state/ui'
 
 interface AddressVerificationDialogProps {
   open: boolean

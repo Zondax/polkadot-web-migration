@@ -1,8 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-
-import { MINIMUM_AMOUNT } from '@/config/mockData'
-import { BalanceType, type Address, type AddressBalance, type Native, type NativeBalance, type NftBalance } from '@/state/types/ledger'
 import { BN } from '@polkadot/util'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { type Address, type AddressBalance, BalanceType, type Native, type NativeBalance, type NftBalance } from '@/state/types/ledger'
 
 import {
   canUnstake,
@@ -722,7 +720,10 @@ describe('balance utilities', () => {
       const nftBalance: NftBalance = {
         id: 'nft',
         type: BalanceType.NFT,
-        balance: [{ id: '1', name: 'Test NFT' }, { id: '2', name: 'Another NFT' }],
+        balance: [
+          { id: '1', name: 'Test NFT' },
+          { id: '2', name: 'Another NFT' },
+        ],
       } as NftBalance
 
       const result = getTransferableAndNfts(nftBalance, mockAccount)

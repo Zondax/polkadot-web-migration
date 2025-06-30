@@ -1,6 +1,5 @@
-import { InternalErrorType } from '@/config/errors'
 import { notifications$ } from '@/state/notifications'
-import { type InternalError, interpretError } from './error'
+import type { InternalError } from './error'
 
 /**
  * Handles an internal error and shows a notification to the user if appropriate

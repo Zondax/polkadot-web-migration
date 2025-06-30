@@ -1,9 +1,7 @@
 import type { ApiPromise } from '@polkadot/api'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-
-import { InternalErrorType } from '@/config/errors'
-
 import { BN } from '@polkadot/util'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { InternalErrorType } from '@/config/errors'
 import { prepareTransaction } from '../account'
 import { mockAppConfig as importedMockAppConfig, mockApi, mockMethod, mockNft1, mockNft2 } from './utils/__mocks__/mockData'
 

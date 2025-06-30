@@ -1,11 +1,11 @@
+import type { BN } from '@polkadot/util'
+import type { ReactNode } from 'react'
 import { CustomTooltip } from '@/components/CustomTooltip'
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
 import { Spinner } from '@/components/icons'
 import TokenIcon from '@/components/TokenIcon'
 import { type AppId, getChainName, type Token } from '@/config/apps'
 import { cn, formatBalance } from '@/lib/utils'
-import type { BN } from '@polkadot/util'
-import type { ReactNode } from 'react'
 
 export function DialogField({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <div className={`text-sm ${className}`}>{children}</div>
@@ -40,7 +40,11 @@ export function DialogEstimatedFeeContent({
   token,
   estimatedFee,
   loading,
-}: { token: Token; estimatedFee: BN | undefined; loading: boolean }) {
+}: {
+  token: Token
+  estimatedFee: BN | undefined
+  loading: boolean
+}) {
   return (
     <DialogContent loading={loading}>
       {estimatedFee ? (

@@ -1,7 +1,7 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as appsConfigModule from '@/config/apps'
 import * as explorersConfigModule from '@/config/explorers'
 import { ExplorerItemType } from '@/config/explorers'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getAddressExplorerUrl, getBlockExplorerUrl, getTransactionExplorerUrl } from '../explorers'
 
 // Mock the config modules

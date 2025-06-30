@@ -8,15 +8,16 @@ vi.mock('@/lib/utils', () => ({
   muifyHtml: vi.fn(),
 }))
 
+import type { MockedFunction } from 'vitest'
 // Import the mocked utility
 import { muifyHtml } from '@/lib/utils'
-import type { MockedFunction } from 'vitest'
 
 const mockMuifyHtml = muifyHtml as MockedFunction<typeof muifyHtml>
 
 describe('TokenIcon component', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // biome-ignore lint/security/noDangerouslySetInnerHtml: Test mock for SVG rendering
     mockMuifyHtml.mockImplementation((html: string) => <div dangerouslySetInnerHTML={{ __html: html }} />)
   })
 
@@ -30,7 +31,12 @@ describe('TokenIcon component', () => {
 
     it('should render icon when provided', () => {
       const iconSvg = '<svg><circle r="10"/></svg>'
-      mockMuifyHtml.mockReturnValue(<svg data-testid="token-svg"><circle r="10" /></svg>)
+      mockMuifyHtml.mockReturnValue(
+        <svg data-testid="token-svg" aria-label="Token icon">
+          <title>Token icon</title>
+          <circle r="10" />
+        </svg>
+      )
 
       render(<TokenIcon symbol="DOT" icon={iconSvg} />)
 
@@ -82,7 +88,9 @@ describe('TokenIcon component', () => {
     })
 
     it('should handle base64 image icons', () => {
-      const base64Icon = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=='
+      const base64Icon =
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=='
+      // biome-ignore lint/performance/noImgElement: Test mock doesn't need Next.js Image
       mockMuifyHtml.mockReturnValue(<img data-testid="base64-icon" src={base64Icon} alt="icon" />)
 
       render(<TokenIcon symbol="DOT" icon={base64Icon} />)
@@ -164,7 +172,7 @@ describe('TokenIcon component', () => {
 
       const symbolContainer = container.querySelector('.flex.h-full.items-center.justify-center.bg-muted')
       expect(symbolContainer).toBeInTheDocument()
-      
+
       const symbolText = container.querySelector('.text-xs.text-muted-foreground')
       expect(symbolText).toBeInTheDocument()
     })
@@ -225,7 +233,7 @@ describe('TokenIcon component', () => {
 
     it('should handle rapid re-renders', () => {
       const { rerender } = render(<TokenIcon symbol="DOT" />)
-      
+
       expect(screen.getByText('DOT')).toBeInTheDocument()
 
       rerender(<TokenIcon symbol="KSM" />)
@@ -253,7 +261,7 @@ describe('TokenIcon component', () => {
   describe('integration with muifyHtml', () => {
     it('should pass correct HTML to muifyHtml', () => {
       const testHtml = '<div class="test">Test HTML</div>'
-      
+
       render(<TokenIcon symbol="DOT" icon={testHtml} />)
 
       expect(mockMuifyHtml).toHaveBeenCalledWith(testHtml)

@@ -11,9 +11,9 @@ vi.mock('@/state/notifications', () => ({
   },
 }))
 
+import type { MockedFunction } from 'vitest'
 // Import the mocked state
 import { notifications$ } from '@/state/notifications'
-import type { MockedFunction } from 'vitest'
 
 const mockPush = notifications$.push as MockedFunction<typeof notifications$.push>
 
@@ -120,9 +120,9 @@ describe('notifications utilities', () => {
         },
       ]
 
-      errors.forEach(error => {
+      for (const error of errors) {
         handleErrorNotification(error)
-      })
+      }
 
       expect(mockPush).toHaveBeenCalledTimes(3)
       expect(mockPush).toHaveBeenNthCalledWith(1, {
@@ -223,12 +223,12 @@ describe('notifications utilities', () => {
         originalError: new Error(`Error ${i}`),
       }))
 
-      errors.forEach(error => {
+      for (const error of errors) {
         handleErrorNotification(error)
-      })
+      }
 
       expect(mockPush).toHaveBeenCalledTimes(10)
-      errors.forEach((error, i) => {
+      errors.forEach((_error, i) => {
         expect(mockPush).toHaveBeenNthCalledWith(i + 1, {
           title: `Error ${i}`,
           description: `Description ${i}`,

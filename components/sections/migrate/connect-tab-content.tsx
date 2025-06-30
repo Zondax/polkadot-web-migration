@@ -1,12 +1,11 @@
 'use client'
 
-import { useCallback } from 'react'
-
-import { useConnection } from '@/components/hooks/useConnection'
-import { Button } from '@/components/ui/button'
 import { motion } from 'framer-motion'
 import { Info } from 'lucide-react'
 import Link from 'next/link'
+import { useCallback } from 'react'
+import { useConnection } from '@/components/hooks/useConnection'
+import { Button } from '@/components/ui/button'
 
 interface ConnectTabContentProps {
   onContinue: () => void

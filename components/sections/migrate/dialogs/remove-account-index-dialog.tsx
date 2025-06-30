@@ -1,3 +1,6 @@
+import { BN } from '@polkadot/util'
+import { useMemo } from 'react'
+import type { Address, TransactionDetails, TransactionStatus } from 'state/types/ledger'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -5,9 +8,6 @@ import type { AppId, Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { formatBalance } from '@/lib/utils/format'
 import { ledgerState$ } from '@/state/ledger'
-import { BN } from '@polkadot/util'
-import { useMemo } from 'react'
-import type { Address, TransactionDetails, TransactionStatus } from 'state/types/ledger'
 import { DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
@@ -70,7 +70,6 @@ function RemoveAccountIndexForm({ account, appId, token, estimatedFee, estimated
 
 export default function RemoveAccountIndexDialog({ open, setOpen, account, appId, token }: RemoveAccountIndexDialogProps) {
   const index = account.index?.index
-  if (!index) return null
 
   // Wrap ledgerState$.removeAccountIndex to match the generic hook's expected signature
   const removeAccountIndexTxFn = async (
@@ -98,9 +97,11 @@ export default function RemoveAccountIndexDialog({ open, setOpen, account, appId
 
   // Estimate fee on mount
   useMemo(() => {
-    if (!open) return
+    if (!open || !index) return
     getEstimatedFee(appId, account.address, index)
   }, [open, getEstimatedFee, appId, account.address, index])
+
+  if (!index) return null
 
   const signRemoveAccountIndexTx = async () => {
     await runTransaction(appId, account.address, account.path, index)

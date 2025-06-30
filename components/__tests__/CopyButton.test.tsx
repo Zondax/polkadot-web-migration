@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { CopyButton } from '../CopyButton'
@@ -8,9 +8,9 @@ vi.mock('@/lib/utils', () => ({
   copyContent: vi.fn(),
 }))
 
+import type { MockedFunction } from 'vitest'
 // Import the mocked utility
 import { copyContent } from '@/lib/utils'
-import type { MockedFunction } from 'vitest'
 
 const mockCopyContent = copyContent as MockedFunction<typeof copyContent>
 
@@ -185,7 +185,7 @@ describe('CopyButton component', () => {
       render(<CopyButton value="test content" />)
 
       const button = screen.getByTestId('copy-button')
-      
+
       // Click multiple times rapidly
       fireEvent.click(button)
       fireEvent.click(button)
@@ -200,7 +200,7 @@ describe('CopyButton component', () => {
       render(<CopyButton value="test content" />)
 
       const button = screen.getByTestId('copy-button')
-      
+
       // First click
       act(() => {
         fireEvent.click(button)
@@ -239,7 +239,7 @@ describe('CopyButton component', () => {
       render(<CopyButton value="test content" />)
 
       const button = screen.getByTestId('copy-button')
-      
+
       // First click
       fireEvent.click(button)
       expect(screen.getByTestId('check-icon')).toBeInTheDocument()
@@ -312,7 +312,7 @@ describe('CopyButton component', () => {
       render(<CopyButton value="test content" />)
 
       const button = screen.getByTestId('copy-button')
-      
+
       // Should be focusable
       button.focus()
       expect(document.activeElement).toBe(button)
@@ -344,12 +344,12 @@ describe('CopyButton component', () => {
       render(<CopyButton value="test content" />)
 
       const button = screen.getByTestId('copy-button')
-      
+
       // Should not throw, but handle error gracefully
       act(() => {
         expect(() => fireEvent.click(button)).not.toThrow()
       })
-      
+
       // Should still show check icon (optimistic UI)
       expect(screen.getByTestId('check-icon')).toBeInTheDocument()
     })

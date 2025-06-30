@@ -147,7 +147,7 @@ describe('useLoadIcons hook', () => {
     })
 
     it('should call loadInitialIcons synchronously during effect', () => {
-      let callOrder: string[] = []
+      const callOrder: string[] = []
 
       mockLoadInitialIcons.mockImplementation(() => {
         callOrder.push('loadInitialIcons')

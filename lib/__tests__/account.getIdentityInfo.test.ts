@@ -1,7 +1,7 @@
 import type { ApiPromise } from '@polkadot/api'
 import type { DeriveAccountRegistration } from '@polkadot/api-derive/types'
-import type { Option, Vec } from '@polkadot/types-codec'
 import type { AccountId32, Balance, Registration } from '@polkadot/types/interfaces'
+import type { Option, Vec } from '@polkadot/types-codec'
 import { BN } from '@polkadot/util'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getIdentityInfo } from '../account'
@@ -12,7 +12,11 @@ function createApiMock({
   derivedIdentity,
   identityOf,
   subsOf,
-}: { derivedIdentity?: DeriveAccountRegistration; identityOf?: Option<Registration>; subsOf?: [Balance, Vec<AccountId32>] }) {
+}: {
+  derivedIdentity?: DeriveAccountRegistration
+  identityOf?: Option<Registration>
+  subsOf?: [Balance, Vec<AccountId32>]
+}) {
   return {
     derive: {
       accounts: {

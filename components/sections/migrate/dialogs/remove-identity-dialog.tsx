@@ -1,5 +1,6 @@
+import type { BN } from '@polkadot/util'
+import { useEffect } from 'react'
 import type { Address, TransactionDetails, TransactionStatus } from 'state/types/ledger'
-
 import { CustomTooltip } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
@@ -8,8 +9,6 @@ import type { AppId, Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { formatBalance } from '@/lib/utils/format'
 import { ledgerState$ } from '@/state/ledger'
-import type { BN } from '@polkadot/util'
-import { useEffect } from 'react'
 import { DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 

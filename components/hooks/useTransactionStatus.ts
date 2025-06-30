@@ -1,8 +1,8 @@
-import { type Transaction, TransactionStatus } from '@/state/types/ledger'
+import type { BN } from '@polkadot/util'
 import { useCallback, useMemo, useState } from 'react'
 
 import type { UpdateTransactionStatus } from '@/lib/account'
-import type { BN } from '@polkadot/util'
+import { type Transaction, TransactionStatus } from '@/state/types/ledger'
 
 type GenericFunction = (...args: any[]) => Promise<void>
 

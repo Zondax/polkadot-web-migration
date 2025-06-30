@@ -87,7 +87,7 @@ describe('useTabs hook', () => {
       // TODO: review expectations - verify behavior with out-of-bounds indices
       const { result } = renderHook(() => useTabs({ tabs: mockTabs }))
 
-      const initialTab = result.current.activeTab
+      const _initialTab = result.current.activeTab
 
       act(() => {
         result.current.handleTabChange(999)
@@ -209,9 +209,7 @@ describe('useTabs hook', () => {
 
   describe('edge cases', () => {
     it('should handle single tab', () => {
-      const singleTab: TabItem<string>[] = [
-        { label: 'Only Tab', value: 'only', component: MockComponent },
-      ]
+      const singleTab: TabItem<string>[] = [{ label: 'Only Tab', value: 'only', component: MockComponent }]
 
       const { result } = renderHook(() => useTabs({ tabs: singleTab }))
 

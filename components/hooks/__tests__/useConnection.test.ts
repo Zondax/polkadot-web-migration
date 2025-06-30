@@ -24,8 +24,8 @@ vi.mock('@/state/notifications', () => ({
 }))
 
 vi.mock('@legendapp/state/react', () => ({
-  use$: vi.fn((observable) => observable?.get?.() || false),
-  useObservable: vi.fn((fn) => ({ get: fn })),
+  use$: vi.fn(observable => observable?.get?.() || false),
+  useObservable: vi.fn(fn => ({ get: fn })),
 }))
 
 vi.mock('@/lib/utils', () => ({

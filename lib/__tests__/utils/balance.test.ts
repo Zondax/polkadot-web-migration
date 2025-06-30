@@ -1,7 +1,6 @@
+import { BN } from '@polkadot/util'
 import { type Address, type AddressBalance, BalanceType, type Native, type NativeBalance } from 'state/types/ledger'
 import { describe, expect, it } from 'vitest'
-
-import { BN } from '@polkadot/util'
 import {
   canUnstake,
   getNonTransferableBalance,

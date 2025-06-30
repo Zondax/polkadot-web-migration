@@ -1,9 +1,9 @@
-import type { AppId } from '@/config/apps'
-import type { App } from '@/state/ledger'
-import type { Address, MultisigAddress } from '@/state/types/ledger'
 import { observable } from '@legendapp/state'
 import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { AppId } from '@/config/apps'
+import type { App } from '@/state/ledger'
+import type { Address, MultisigAddress } from '@/state/types/ledger'
 
 // Mock the ledger state
 vi.mock('@/state/ledger', () => {

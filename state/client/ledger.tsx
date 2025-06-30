@@ -1,10 +1,9 @@
+import type { BN } from '@polkadot/util'
 import type { GenericeResponseAddress } from '@zondax/ledger-substrate/dist/common'
 import { type AppConfig, type AppId, appsConfigs } from 'config/apps'
 import { maxAddressesToFetch } from 'config/config'
 import { InternalErrorType } from 'config/errors'
-
 import {
-  type UpdateTransactionStatus,
   createSignedExtrinsic,
   getApiAndProvider,
   getTxFee,
@@ -18,15 +17,14 @@ import {
   prepareUnstakeTransaction,
   prepareWithdrawTransaction,
   submitAndHandleTransaction,
+  type UpdateTransactionStatus,
   validateCallDataMatchesHash,
 } from '@/lib/account'
 import { ledgerService } from '@/lib/ledger/ledgerService'
 import type { ConnectionResponse } from '@/lib/ledger/types'
+import { InternalError, withErrorHandling } from '@/lib/utils'
 import { getBip44Path } from '@/lib/utils/address'
 import { getTransferableAndNfts } from '@/lib/utils/balance'
-
-import { InternalError, withErrorHandling } from '@/lib/utils'
-import type { BN } from '@polkadot/util'
 import {
   type Address,
   type MultisigAddress,

@@ -58,7 +58,8 @@ describe('browser utilities', () => {
     })
 
     it('should return true for Safari on macOS', () => {
-      mockNavigator.userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15'
+      mockNavigator.userAgent =
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15'
 
       const result = isSafari()
 
@@ -66,7 +67,8 @@ describe('browser utilities', () => {
     })
 
     it('should return true for Safari on iOS', () => {
-      mockNavigator.userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1'
+      mockNavigator.userAgent =
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1'
 
       const result = isSafari()
 
@@ -74,7 +76,8 @@ describe('browser utilities', () => {
     })
 
     it('should return true for Firefox on iOS (FxiOS)', () => {
-      mockNavigator.userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/35.0.0 Mobile/15E148 Safari/605.1.15'
+      mockNavigator.userAgent =
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/35.0.0 Mobile/15E148 Safari/605.1.15'
 
       const result = isSafari()
 
@@ -82,7 +85,8 @@ describe('browser utilities', () => {
     })
 
     it('should return false for Chrome', () => {
-      mockNavigator.userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      mockNavigator.userAgent =
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
 
       const result = isSafari()
 
@@ -90,7 +94,8 @@ describe('browser utilities', () => {
     })
 
     it('should return false for Chrome on Android', () => {
-      mockNavigator.userAgent = 'Mozilla/5.0 (Linux; Android 11; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36'
+      mockNavigator.userAgent =
+        'Mozilla/5.0 (Linux; Android 11; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36'
 
       const result = isSafari()
 
@@ -98,7 +103,8 @@ describe('browser utilities', () => {
     })
 
     it('should return false for Chromium', () => {
-      mockNavigator.userAgent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/91.0.4472.124 Chrome/91.0.4472.124 Safari/537.36'
+      mockNavigator.userAgent =
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/91.0.4472.124 Chrome/91.0.4472.124 Safari/537.36'
 
       const result = isSafari()
 
@@ -106,7 +112,8 @@ describe('browser utilities', () => {
     })
 
     it('should return false for Edge', () => {
-      mockNavigator.userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 Edg/91.0.864.59'
+      mockNavigator.userAgent =
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 Edg/91.0.864.59'
 
       const result = isSafari()
 
@@ -114,7 +121,8 @@ describe('browser utilities', () => {
     })
 
     it('should return false for Opera', () => {
-      mockNavigator.userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 OPR/77.0.4054.172'
+      mockNavigator.userAgent =
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 OPR/77.0.4054.172'
 
       const result = isSafari()
 
@@ -139,7 +147,8 @@ describe('browser utilities', () => {
 
     it('should handle edge case with Safari in user agent but also Chrome', () => {
       // This shouldn't happen in real browsers but testing the logic
-      mockNavigator.userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      mockNavigator.userAgent =
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
 
       const result = isSafari()
 

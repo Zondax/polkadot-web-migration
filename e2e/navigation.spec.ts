@@ -18,7 +18,7 @@ test.describe('Navigation', () => {
     if (count > 0) {
       // Test each navigation link
       for (let i = 0; i < count; i++) {
-        const linkText = await navLinks.nth(i).textContent()
+        const _linkText = await navLinks.nth(i).textContent()
         const href = await navLinks.nth(i).getAttribute('href')
 
         // Skip external links

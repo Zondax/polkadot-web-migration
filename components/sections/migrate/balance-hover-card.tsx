@@ -1,15 +1,13 @@
-import type { AddressBalance, Native, Nft } from '@/state/types/ledger'
+import { BN } from '@polkadot/util'
+import { Info } from 'lucide-react'
 import { useMemo } from 'react'
 import type { Collections } from 'state/ledger'
-
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import type { Token } from '@/config/apps'
 import { formatBalance } from '@/lib/utils'
 import { isNativeBalance, isNftBalanceType, isUniqueBalanceType } from '@/lib/utils/balance'
 import { createNftBalances } from '@/lib/utils/nft'
-
-import { BN } from '@polkadot/util'
-import { Info } from 'lucide-react'
+import type { AddressBalance, Native, Nft } from '@/state/types/ledger'
 import BalanceGallery from './balance-gallery'
 import { BalanceType, NativeBalanceVisualization } from './balance-visualizations'
 import NftCircles from './nft-circles'

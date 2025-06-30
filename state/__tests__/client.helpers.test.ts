@@ -1,6 +1,6 @@
 import type { AppId } from 'config/apps'
 import { InternalErrorType } from 'config/errors'
-import { TEST_ADDRESSES, mockAddress1, mockFreeNativeBalance } from 'lib/__tests__/utils/__mocks__/mockData'
+import { mockAddress1, mockFreeNativeBalance, TEST_ADDRESSES } from 'lib/__tests__/utils/__mocks__/mockData'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { validateApproveAsMultiParams, validateAsMultiParams, validateMigrationParams } from '../client/helpers'
 import type { Address, AddressBalance, MultisigAddress, MultisigMember } from '../types/ledger'
@@ -25,10 +25,10 @@ vi.mock('@/lib/utils', async importOriginal => {
   }
 })
 
-// Import mocked dependencies
-import { isMultisigAddress } from '@/lib/utils'
 import { BN } from '@polkadot/util'
 import { appsConfigs } from 'config/apps'
+// Import mocked dependencies
+import { isMultisigAddress } from '@/lib/utils'
 
 const mockedAppsConfigs = vi.mocked(appsConfigs)
 const mockedIsMultisigAddress = vi.mocked(isMultisigAddress)

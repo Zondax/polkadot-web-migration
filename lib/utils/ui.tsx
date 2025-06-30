@@ -1,4 +1,4 @@
-import { type Registration, TransactionStatus } from '@/state/types/ledger'
+import { BN } from '@polkadot/util'
 import { AlertCircle, AtSign, CheckCircle, Clock, Globe, Mail, Twitter, User, Users, XCircle } from 'lucide-react'
 
 import type { TooltipItem } from '@/components/CustomTooltip'
@@ -6,7 +6,7 @@ import { ExplorerLink } from '@/components/ExplorerLink'
 import { Spinner } from '@/components/icons'
 import type { AppId, Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
-import { BN } from '@polkadot/util'
+import { type Registration, TransactionStatus } from '@/state/types/ledger'
 import { formatBalance } from './format'
 
 /**
@@ -88,7 +88,7 @@ export const validateNumberInput = (value: number, max: BN, token: Token): { val
   let inputBN: BN
   try {
     inputBN = new BN(value)
-  } catch (e) {
+  } catch (_e) {
     return { valid: false, helperText: 'Amount must be a number.' }
   }
   if (inputBN.lte(new BN(0))) {

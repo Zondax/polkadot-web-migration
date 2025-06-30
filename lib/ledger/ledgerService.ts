@@ -1,11 +1,9 @@
 import type Transport from '@ledgerhq/hw-transport'
 import TransportWebUSB from '@ledgerhq/hw-transport-webhid'
+import { LedgerError, ResponseError } from '@zondax/ledger-js'
 import { PolkadotGenericApp } from '@zondax/ledger-substrate'
 import type { GenericeResponseAddress } from '@zondax/ledger-substrate/dist/common'
-
 import type { ConnectionResponse, DeviceConnectionProps } from '@/lib/ledger/types'
-
-import { LedgerError, ResponseError } from '@zondax/ledger-js'
 import { openApp } from './openApp'
 
 /**

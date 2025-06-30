@@ -1,16 +1,15 @@
+import type { BN } from '@polkadot/util'
+import { useEffect, useMemo } from 'react'
 import type { Address, TransactionDetails, TransactionStatus } from 'state/types/ledger'
-
 import { ExplorerLink } from '@/components/ExplorerLink'
-import TokenIcon from '@/components/TokenIcon'
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
+import TokenIcon from '@/components/TokenIcon'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { type AppId, type Token, getChainName } from '@/config/apps'
+import { type AppId, getChainName, type Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { formatBalance } from '@/lib/utils/format'
 import { ledgerState$ } from '@/state/ledger'
-import type { BN } from '@polkadot/util'
-import { useEffect, useMemo } from 'react'
 import { DialogEstimatedFeeContent, DialogField, DialogLabel } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
@@ -89,7 +88,7 @@ export default function WithdrawDialog({ open, setOpen, token, account, appId }:
     }
   }, [open, getEstimatedFee, appId, account.address])
 
-  const formattedFee = useMemo(() => (estimatedFee ? formatBalance(estimatedFee, token) : undefined), [estimatedFee, token])
+  const _formattedFee = useMemo(() => (estimatedFee ? formatBalance(estimatedFee, token) : undefined), [estimatedFee, token])
 
   const signWithdrawTx = async () => {
     await runTransaction(appId, account.address, account.path)

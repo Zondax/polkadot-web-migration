@@ -1,11 +1,5 @@
-import {
-  type DisconnectedDevice,
-  type DisconnectedDeviceDuringOperation,
-  TransportError,
-  type TransportOpenUserCancelled,
-} from '@ledgerhq/errors'
-import { ERROR_DESCRIPTION_OVERRIDE, type LedgerError, ResponseError } from '@zondax/ledger-js'
-import { InternalErrorType, errorDetails, ledgerErrorToInternalErrorMap } from 'config/errors'
+import { type LedgerError, ResponseError } from '@zondax/ledger-js'
+import { errorDetails, InternalErrorType, ledgerErrorToInternalErrorMap } from 'config/errors'
 
 /**
  * Internal error class for application-specific errors
@@ -128,7 +122,7 @@ export function interpretError(error: unknown, defaultError: InternalErrorType):
     return error
   }
 
-  return interpretUnknownError(error)
+  return interpretUnknownError(error, defaultError)
 }
 
 /**
@@ -150,10 +144,7 @@ type WithErrorHandlingOptions = {
  * @param options - The options for the error handling.
  * @returns The detailed error object.
  */
-export const withErrorHandling = async <T>(
-  fn: () => Promise<T>,
-  { errorCode, operation, context }: WithErrorHandlingOptions
-): Promise<T> => {
+export const withErrorHandling = async <T>(fn: () => Promise<T>, { operation, context }: WithErrorHandlingOptions): Promise<T> => {
   try {
     return await fn()
   } catch (error: unknown) {

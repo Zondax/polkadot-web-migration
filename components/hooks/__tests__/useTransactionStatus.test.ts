@@ -1,7 +1,7 @@
-import { TransactionStatus } from '@/state/types/ledger'
-import { act, renderHook } from '@testing-library/react'
 import { BN } from '@polkadot/util'
+import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { TransactionStatus } from '@/state/types/ledger'
 
 import { useTransactionStatus } from '../useTransactionStatus'
 
@@ -33,7 +33,7 @@ describe('useTransactionStatus hook', () => {
 
   describe('runTransaction', () => {
     it('should set initial loading status and call transaction function', async () => {
-      mockTransactionFn.mockImplementation(async (updateTxStatus) => {
+      mockTransactionFn.mockImplementation(async updateTxStatus => {
         updateTxStatus(TransactionStatus.SUCCESS, 'Transaction completed')
       })
 
@@ -43,18 +43,14 @@ describe('useTransactionStatus hook', () => {
         await result.current.runTransaction('arg1', 'arg2')
       })
 
-      expect(mockTransactionFn).toHaveBeenCalledWith(
-        expect.any(Function),
-        'arg1',
-        'arg2'
-      )
+      expect(mockTransactionFn).toHaveBeenCalledWith(expect.any(Function), 'arg1', 'arg2')
       expect(result.current.isTxFinished).toBe(true)
       expect(result.current.txStatus?.status).toBe(TransactionStatus.SUCCESS)
       expect(result.current.txStatus?.statusMessage).toBe('Transaction completed')
     })
 
     it('should handle transaction failure', async () => {
-      mockTransactionFn.mockImplementation(async (updateTxStatus) => {
+      mockTransactionFn.mockImplementation(async updateTxStatus => {
         updateTxStatus(TransactionStatus.FAILED, 'Transaction failed')
       })
 
@@ -70,7 +66,7 @@ describe('useTransactionStatus hook', () => {
     })
 
     it('should handle transaction error status', async () => {
-      mockTransactionFn.mockImplementation(async (updateTxStatus) => {
+      mockTransactionFn.mockImplementation(async updateTxStatus => {
         updateTxStatus(TransactionStatus.ERROR, 'Transaction error')
       })
 
@@ -91,7 +87,7 @@ describe('useTransactionStatus hook', () => {
         blockNumber: 100,
       }
 
-      mockTransactionFn.mockImplementation(async (updateTxStatus) => {
+      mockTransactionFn.mockImplementation(async updateTxStatus => {
         updateTxStatus(TransactionStatus.SUCCESS, 'Transaction completed', txDetails)
       })
 
@@ -142,7 +138,7 @@ describe('useTransactionStatus hook', () => {
     it('should handle fee loading state correctly', async () => {
       const expectedFee = new BN(2000)
       let resolvePromise: (value: BN) => void
-      const feePromise = new Promise<BN>((resolve) => {
+      const feePromise = new Promise<BN>(resolve => {
         resolvePromise = resolve
       })
       mockFeeTxFn.mockReturnValue(feePromise)
@@ -181,7 +177,7 @@ describe('useTransactionStatus hook', () => {
 
     it('should execute sync function and track synchronization state', async () => {
       let resolveSyncPromise: () => void
-      const syncPromise = new Promise<void>((resolve) => {
+      const syncPromise = new Promise<void>(resolve => {
         resolveSyncPromise = resolve
       })
       mockSyncFn.mockReturnValue(syncPromise)
@@ -210,7 +206,7 @@ describe('useTransactionStatus hook', () => {
   describe('clearTx', () => {
     it('should reset transaction status and finished state', async () => {
       // First run a transaction
-      mockTransactionFn.mockImplementation(async (updateTxStatus) => {
+      mockTransactionFn.mockImplementation(async updateTxStatus => {
         updateTxStatus(TransactionStatus.SUCCESS, 'Transaction completed')
       })
 
@@ -236,7 +232,7 @@ describe('useTransactionStatus hook', () => {
 
   describe('isTxFailed computed state', () => {
     it('should correctly identify non-failed states', async () => {
-      mockTransactionFn.mockImplementation(async (updateTxStatus) => {
+      mockTransactionFn.mockImplementation(async updateTxStatus => {
         updateTxStatus(TransactionStatus.SUCCESS, 'Success')
       })
 
@@ -257,7 +253,7 @@ describe('useTransactionStatus hook', () => {
 
     it('should correctly identify loading state as not failed', async () => {
       // TODO: review expectations - verify if IS_LOADING should be considered non-failed
-      mockTransactionFn.mockImplementation(async (updateTxStatus) => {
+      mockTransactionFn.mockImplementation(async updateTxStatus => {
         updateTxStatus(TransactionStatus.IS_LOADING, 'Loading')
       })
 
@@ -273,7 +269,7 @@ describe('useTransactionStatus hook', () => {
 
   describe('edge cases', () => {
     it('should handle updateTxStatus with partial transaction details', async () => {
-      mockTransactionFn.mockImplementation(async (updateTxStatus) => {
+      mockTransactionFn.mockImplementation(async updateTxStatus => {
         updateTxStatus(TransactionStatus.SUCCESS, 'Success', { txHash: '0x123' })
       })
 
@@ -293,7 +289,7 @@ describe('useTransactionStatus hook', () => {
     })
 
     it('should handle multiple status updates correctly', async () => {
-      mockTransactionFn.mockImplementation(async (updateTxStatus) => {
+      mockTransactionFn.mockImplementation(async updateTxStatus => {
         updateTxStatus(TransactionStatus.IS_LOADING, 'Starting')
         updateTxStatus(TransactionStatus.PENDING, 'Pending')
         updateTxStatus(TransactionStatus.SUCCESS, 'Completed')
