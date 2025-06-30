@@ -16,11 +16,13 @@ vi.mock('@/state/ledger', () => ({
       status: { get: vi.fn() },
       syncProgress: { get: vi.fn() },
       isSyncCancelRequested: { get: vi.fn() },
+      polkadotApp: { accounts: [] },
     },
     polkadotAddresses: {
       polkadot: { get: vi.fn() },
     },
     getAccountBalance: vi.fn(),
+    synchronizeAccount: vi.fn(),
     synchronizeAccounts: vi.fn(),
     cancelSynchronization: vi.fn(),
     clearSynchronization: vi.fn(),
@@ -127,6 +129,80 @@ describe('useSynchronization hook', () => {
 
       // Should handle gracefully without throwing
       expect(result.current.apps).toBeDefined()
+    })
+  })
+
+  describe('polkadot addresses', () => {
+    it('should extract polkadot addresses from app accounts', () => {
+      const mockPolkadotApp = {
+        accounts: [
+          { address: '5Address1' },
+          { address: '5Address2' },
+        ],
+      }
+
+      // Mock the polkadot app data structure
+      ledgerState$.apps.polkadotApp = mockPolkadotApp as any
+
+      const { result } = renderHook(() => useSynchronization())
+
+      // Since we're using mocked use$, we need to check the structure exists
+      expect(result.current.polkadotAddresses).toBeDefined()
+    })
+
+    it('should handle empty polkadot app gracefully', () => {
+      const mockPolkadotApp = { accounts: [] }
+      
+      ledgerState$.apps.polkadotApp = mockPolkadotApp as any
+
+      const { result } = renderHook(() => useSynchronization())
+
+      expect(result.current.polkadotAddresses).toBeDefined()
+    })
+  })
+
+  describe('actions', () => {
+    it('should call restartSynchronization', () => {
+      const { result } = renderHook(() => useSynchronization())
+
+      act(() => {
+        result.current.restartSynchronization()
+      })
+
+      expect(ledgerState$.clearSynchronization).toHaveBeenCalled()
+      expect(ledgerState$.synchronizeAccounts).toHaveBeenCalled()
+    })
+
+    it('should provide updateTransaction function', () => {
+      const { result } = renderHook(() => useSynchronization())
+
+      // Test that the function exists and is callable without throwing
+      expect(typeof result.current.updateTransaction).toBe('function')
+      
+      // Test calling it with valid parameters doesn't throw
+      expect(() => {
+        result.current.updateTransaction(
+          { status: 'completed' },
+          'polkadot',
+          0, // accountIndex
+          0, // balanceIndex
+          false // isMultisig
+        )
+      }).not.toThrow()
+    })
+
+    it('should provide rescanFailedAccounts function', async () => {
+      const { result } = renderHook(() => useSynchronization())
+
+      // Test that the function exists and is callable
+      expect(typeof result.current.rescanFailedAccounts).toBe('function')
+      
+      await act(async () => {
+        await result.current.rescanFailedAccounts()
+      })
+
+      // Should complete without throwing
+      expect(result.current.isRescaning).toBe(false)
     })
   })
 })

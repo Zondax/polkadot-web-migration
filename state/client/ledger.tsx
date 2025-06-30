@@ -197,27 +197,31 @@ export const ledgerClient = {
   async getUnstakeFee(appId: AppId, address: string, amount: BN): Promise<BN | undefined> {
     const appConfig = appsConfigs.get(appId)
     if (!appConfig?.rpcEndpoint) {
-      throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
+      return undefined
     }
 
-    return withErrorHandling(
-      async () => {
-        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
-        if (!api) {
-          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
-        }
+    try {
+      return await withErrorHandling(
+        async () => {
+          const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+          if (!api) {
+            throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
+          }
 
-        const unstakeTx = await prepareUnstakeTransaction(api, amount)
-        if (!unstakeTx) {
-          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
-        }
+          const unstakeTx = await prepareUnstakeTransaction(api, amount)
+          if (!unstakeTx) {
+            throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
+          }
 
-        const estimatedFee = await getTxFee(unstakeTx, address)
+          const estimatedFee = await getTxFee(unstakeTx, address)
 
-        return estimatedFee
-      },
-      { errorCode: InternalErrorType.GET_UNSTAKE_FEE_ERROR, operation: 'getUnstakeFee', context: { appId, address, amount } }
-    )
+          return estimatedFee
+        },
+        { errorCode: InternalErrorType.GET_UNSTAKE_FEE_ERROR, operation: 'getUnstakeFee', context: { appId, address, amount } }
+      )
+    } catch {
+      return undefined
+    }
   },
 
   async withdrawBalance(appId: AppId, address: string, path: string, updateTxStatus: UpdateTransactionStatus) {
@@ -264,21 +268,25 @@ export const ledgerClient = {
   async getWithdrawFee(appId: AppId, address: string): Promise<BN | undefined> {
     const appConfig = appsConfigs.get(appId)
     if (!appConfig?.rpcEndpoint) {
-      throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
+      return undefined
     }
 
-    return withErrorHandling(
-      async () => {
-        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
-        if (!api) {
-          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
-        }
+    try {
+      return await withErrorHandling(
+        async () => {
+          const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+          if (!api) {
+            throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
+          }
 
-        const withdrawTx = await prepareWithdrawTransaction(api)
-        return await getTxFee(withdrawTx, address)
-      },
-      { errorCode: InternalErrorType.GET_WITHDRAW_FEE_ERROR, operation: 'getWithdrawFee', context: { appId, address } }
-    )
+          const withdrawTx = await prepareWithdrawTransaction(api)
+          return await getTxFee(withdrawTx, address)
+        },
+        { errorCode: InternalErrorType.GET_WITHDRAW_FEE_ERROR, operation: 'getWithdrawFee', context: { appId, address } }
+      )
+    } catch {
+      return undefined
+    }
   },
 
   async removeIdentity(appId: AppId, address: string, path: string, updateTxStatus: UpdateTransactionStatus) {
@@ -329,27 +337,31 @@ export const ledgerClient = {
   async getRemoveIdentityFee(appId: AppId, address: string): Promise<BN | undefined> {
     const appConfig = appsConfigs.get(appId)
     if (!appConfig?.rpcEndpoint) {
-      throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
+      return undefined
     }
 
-    return withErrorHandling(
-      async () => {
-        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
-        if (!api) {
-          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
-        }
+    try {
+      return await withErrorHandling(
+        async () => {
+          const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+          if (!api) {
+            throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
+          }
 
-        const removeIdentityTx = await prepareRemoveIdentityTransaction(api, address)
-        if (!removeIdentityTx) {
-          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
-        }
+          const removeIdentityTx = await prepareRemoveIdentityTransaction(api, address)
+          if (!removeIdentityTx) {
+            throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
+          }
 
-        const estimatedFee = await getTxFee(removeIdentityTx, address)
+          const estimatedFee = await getTxFee(removeIdentityTx, address)
 
-        return estimatedFee
-      },
-      { errorCode: InternalErrorType.GET_REMOVE_IDENTITY_FEE_ERROR, operation: 'getRemoveIdentityFee', context: { appId, address } }
-    )
+          return estimatedFee
+        },
+        { errorCode: InternalErrorType.GET_REMOVE_IDENTITY_FEE_ERROR, operation: 'getRemoveIdentityFee', context: { appId, address } }
+      )
+    } catch {
+      return undefined
+    }
   },
 
   async getMigrationTxInfo(appId: AppId, account: Address, balanceIndex: number): Promise<PreTxInfo | undefined> {
@@ -526,25 +538,29 @@ export const ledgerClient = {
   },
 
   async validateCallDataMatchesHash(appId: AppId, callData: string, expectedCallHash: string): Promise<boolean> {
-    const appConfig = appsConfigs.get(appId)
-    if (!appConfig?.rpcEndpoint) {
-      throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
-    }
-
-    return withErrorHandling(
-      async () => {
-        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
-        if (!api) {
-          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
-        }
-        return validateCallDataMatchesHash(api, callData, expectedCallHash)
-      },
-      {
-        errorCode: InternalErrorType.VALIDATE_CALL_DATA_MATCHES_HASH_ERROR,
-        operation: 'validateCallDataMatchesHash',
-        context: { appId, callData, expectedCallHash },
+    try {
+      const appConfig = appsConfigs.get(appId)
+      if (!appConfig?.rpcEndpoint) {
+        return false
       }
-    )
+
+      return await withErrorHandling(
+        async () => {
+          const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+          if (!api) {
+            throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
+          }
+          return validateCallDataMatchesHash(api, callData, expectedCallHash)
+        },
+        {
+          errorCode: InternalErrorType.VALIDATE_CALL_DATA_MATCHES_HASH_ERROR,
+          operation: 'validateCallDataMatchesHash',
+          context: { appId, callData, expectedCallHash },
+        }
+      )
+    } catch {
+      return false
+    }
   },
 
   async removeProxies(appId: AppId, address: string, path: string, updateTxStatus: UpdateTransactionStatus) {
@@ -595,27 +611,31 @@ export const ledgerClient = {
   async getRemoveProxiesFee(appId: AppId, address: string): Promise<BN | undefined> {
     const appConfig = appsConfigs.get(appId)
     if (!appConfig?.rpcEndpoint) {
-      throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
+      return undefined
     }
 
-    return withErrorHandling(
-      async () => {
-        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
-        if (!api) {
-          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
-        }
+    try {
+      return await withErrorHandling(
+        async () => {
+          const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+          if (!api) {
+            throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
+          }
 
-        const removeProxyTx = await prepareRemoveProxiesTransaction(api)
-        if (!removeProxyTx) {
-          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
-        }
+          const removeProxyTx = await prepareRemoveProxiesTransaction(api)
+          if (!removeProxyTx) {
+            throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
+          }
 
-        const estimatedFee = await getTxFee(removeProxyTx, address)
+          const estimatedFee = await getTxFee(removeProxyTx, address)
 
-        return estimatedFee
-      },
-      { errorCode: InternalErrorType.GET_REMOVE_PROXIES_FEE_ERROR, operation: 'getRemoveProxiesFee', context: { appId, address } }
-    )
+          return estimatedFee
+        },
+        { errorCode: InternalErrorType.GET_REMOVE_PROXIES_FEE_ERROR, operation: 'getRemoveProxiesFee', context: { appId, address } }
+      )
+    } catch {
+      return undefined
+    }
   },
 
   async removeAccountIndex(appId: AppId, address: string, accountIndex: string, path: string, updateTxStatus: UpdateTransactionStatus) {
@@ -668,31 +688,35 @@ export const ledgerClient = {
   async getRemoveAccountIndexFee(appId: AppId, address: string, accountIndex: string): Promise<BN | undefined> {
     const appConfig = appsConfigs.get(appId)
     if (!appConfig?.rpcEndpoint) {
-      throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
+      return undefined
     }
 
-    return withErrorHandling(
-      async () => {
-        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
-        if (!api) {
-          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
+    try {
+      return await withErrorHandling(
+        async () => {
+          const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+          if (!api) {
+            throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
+          }
+
+          const removeAccountIndexTx = await prepareRemoveAccountIndexTransaction(api, accountIndex)
+          if (!removeAccountIndexTx) {
+            throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
+          }
+
+          const estimatedFee = await getTxFee(removeAccountIndexTx, address)
+
+          return estimatedFee
+        },
+        {
+          errorCode: InternalErrorType.GET_REMOVE_ACCOUNT_INDEX_FEE_ERROR,
+          operation: 'getRemoveAccountIndexFee',
+          context: { appId, address, accountIndex },
         }
-
-        const removeAccountIndexTx = await prepareRemoveAccountIndexTransaction(api, accountIndex)
-        if (!removeAccountIndexTx) {
-          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
-        }
-
-        const estimatedFee = await getTxFee(removeAccountIndexTx, address)
-
-        return estimatedFee
-      },
-      {
-        errorCode: InternalErrorType.GET_REMOVE_ACCOUNT_INDEX_FEE_ERROR,
-        operation: 'getRemoveAccountIndexFee',
-        context: { appId, address, accountIndex },
-      }
-    )
+      )
+    } catch {
+      return undefined
+    }
   },
   clearConnection() {
     ledgerService.clearConnection()

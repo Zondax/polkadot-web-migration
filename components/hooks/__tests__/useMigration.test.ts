@@ -297,4 +297,27 @@ describe('useMigration hook', () => {
       expect(result.current.toggleAllAccounts).toBe(initialToggleAllAccounts)
     })
   })
+
+  describe('toggleAllAccounts', () => {
+    it('should handle apps without accounts gracefully', () => {
+      const mockAppsWithoutAccounts = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          // No accounts or multisigAccounts
+        },
+      ]
+
+      vi.mocked(ledgerState$.apps.apps.get).mockReturnValue(mockAppsWithoutAccounts as any)
+
+      const { result } = renderHook(() => useMigration())
+
+      // Should not throw when toggling accounts for apps without accounts
+      expect(() => {
+        act(() => {
+          result.current.toggleAllAccounts(true)
+        })
+      }).not.toThrow()
+    })
+  })
 })

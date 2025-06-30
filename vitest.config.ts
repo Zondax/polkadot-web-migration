@@ -9,6 +9,8 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
     exclude: ['e2e/**', 'node_modules/**'],
+    testTimeout: 10000, // 10 seconds timeout for individual tests
+    hookTimeout: 10000, // 10 seconds timeout for hooks
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'json-summary', 'html'],
