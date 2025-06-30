@@ -127,9 +127,7 @@ export default function RemoveProxyDialog({ open, setOpen, token, account, appId
           <DialogDescription>
             This process may require a small transaction fee. Please review the details below before proceeding.
           </DialogDescription>
-          <DialogDescription className="pt-1!">
-            The deposit will be automatically returned when the proxies are removed.
-          </DialogDescription>
+          <DialogDescription className="pt-1!">The deposit will be automatically returned when the proxies are removed.</DialogDescription>
         </DialogHeader>
         <DialogBody>
           {txStatus ? (
