@@ -48,14 +48,25 @@ export const ledgerClient = {
     return withErrorHandling(
       async () => {
         // fetch addresses
-        const addresses: (GenericeResponseAddress | undefined)[] = []
+        const addresses: Address[] = []
         for (let i = 0; i < maxAddressesToFetch; i++) {
-          const derivedPath = getBip44Path(app.bip44Path, i)
-          const address = await ledgerService.getAccountAddress(derivedPath, app.ss58Prefix, false)
-          addresses.push({ ...address, path: derivedPath } as Address)
+          try {
+            const derivedPath = getBip44Path(app.bip44Path, i)
+            const address = await ledgerService.getAccountAddress(derivedPath, app.ss58Prefix, false)
+            if (address) {
+              addresses.push({ ...address, path: derivedPath } as Address)
+            }
+          } catch {
+            // Skip failed addresses
+          }
         }
 
-        const filteredAddresses = addresses.filter((address): address is Address => address !== undefined)
+        const filteredAddresses = addresses
+
+        // If no addresses were successfully fetched, throw an error
+        if (filteredAddresses.length === 0) {
+          throw new InternalError(InternalErrorType.SYNC_ERROR)
+        }
 
         return { result: filteredAddresses }
       },
@@ -372,45 +383,49 @@ export const ledgerClient = {
 
     const { balance, senderAddress, receiverAddress, appConfig } = validation
 
-    return withErrorHandling(
-      async () => {
-        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
-        if (!api) {
-          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
-        }
+    try {
+      return await withErrorHandling(
+        async () => {
+          const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+          if (!api) {
+            throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
+          }
 
-        // Determine which type of balance we're dealing with
-        const { nftsToTransfer, nativeAmount, transferableAmount } = getTransferableAndNfts(balance, account)
+          // Determine which type of balance we're dealing with
+          const { nftsToTransfer, nativeAmount, transferableAmount } = getTransferableAndNfts(balance, account)
 
-        // Prepare transaction with the specific asset type
-        const preparedTx = await prepareTransaction(
-          api,
-          senderAddress,
-          receiverAddress,
-          transferableAmount,
-          nftsToTransfer,
-          appConfig,
-          nativeAmount
-        )
-        if (!preparedTx) {
-          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
-        }
+          // Prepare transaction with the specific asset type
+          const preparedTx = await prepareTransaction(
+            api,
+            senderAddress,
+            receiverAddress,
+            transferableAmount,
+            nftsToTransfer,
+            appConfig,
+            nativeAmount
+          )
+          if (!preparedTx) {
+            throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
+          }
 
-        const { transfer } = preparedTx
+          const { transfer } = preparedTx
 
-        // Get the estimated fee
-        const estimatedFee = await getTxFee(transfer, senderAddress)
+          // Get the estimated fee
+          const estimatedFee = await getTxFee(transfer, senderAddress)
 
-        // Get the call hash
-        const callHash = transfer.method.hash.toHex()
+          // Get the call hash
+          const callHash = transfer.method.hash.toHex()
 
-        return {
-          fee: estimatedFee,
-          callHash,
-        }
-      },
-      { errorCode: InternalErrorType.MIGRATION_TX_INFO_ERROR, operation: 'getMigrationTxInfo', context: { appId, account, balanceIndex } }
-    )
+          return {
+            fee: estimatedFee,
+            callHash,
+          }
+        },
+        { errorCode: InternalErrorType.MIGRATION_TX_INFO_ERROR, operation: 'getMigrationTxInfo', context: { appId, account, balanceIndex } }
+      )
+    } catch {
+      return undefined
+    }
   },
 
   async signApproveAsMultiTx(

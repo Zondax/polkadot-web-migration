@@ -56,7 +56,7 @@ vi.mock('config/apps', () => ({
       name: 'Polkadot',
       rpcEndpoint: 'wss://rpc.polkadot.io',
       token: { symbol: 'DOT', decimals: 10 },
-      bip44Path: "m/44'/354'/0'/0'",
+      bip44Path: "m/44'/354'/0'/0'/0'",
       ss58Prefix: 0,
     }],
   ]),
@@ -65,7 +65,7 @@ vi.mock('config/apps', () => ({
     name: 'Polkadot',
     rpcEndpoint: 'wss://rpc.polkadot.io',
     token: { symbol: 'DOT', decimals: 10 },
-    bip44Path: "m/44'/354'/0'/0'",
+    bip44Path: "m/44'/354'/0'/0'/0'",
     ss58Prefix: 0,
   },
 }))
@@ -106,7 +106,7 @@ describe('Ledger Client', () => {
     name: 'Polkadot',
     rpcEndpoint: 'wss://rpc.polkadot.io',
     token: { symbol: 'DOT', decimals: 10 },
-    bip44Path: "m/44'/354'/0'/0'",
+    bip44Path: "m/44'/354'/0'/0'/0'",
     ss58Prefix: 0,
   }
 
@@ -193,9 +193,9 @@ describe('Ledger Client', () => {
 
       expect(result).toEqual({
         result: [
-          { ...mockAddresses[0], path: "m/44'/354'/0'/0'" },
-          { ...mockAddresses[1], path: "m/44'/354'/0'/1'" },
-          { ...mockAddresses[2], path: "m/44'/354'/0'/2'" },
+          { ...mockAddresses[0], path: "m/44'/354'/0'/0'/0'" },
+          { ...mockAddresses[1], path: "m/44'/354'/0'/0'/1'" },
+          { ...mockAddresses[2], path: "m/44'/354'/0'/0'/2'" },
         ],
       })
       expect(ledgerService.getAccountAddress).toHaveBeenCalledTimes(3)
@@ -212,7 +212,7 @@ describe('Ledger Client', () => {
       const result = await ledgerClient.synchronizeAccounts(mockAppConfig)
 
       expect(result).toEqual({
-        result: [{ ...mockAddress, path: "m/44'/354'/0'/0/0" }],
+        result: [{ ...mockAddress, path: "m/44'/354'/0'/0'/0'" }],
       })
     })
 
@@ -380,6 +380,7 @@ describe('Ledger Client', () => {
         nonce: 1,
         proof1: '0xproof',
         payloadBytes: new Uint8Array([1, 2, 3]),
+        callData: '0xcalldata',
       })
       vi.mocked(ledgerService.signTransaction).mockResolvedValueOnce({
         signature: '0xsignature',
@@ -727,7 +728,14 @@ describe('Ledger Client', () => {
         transferableAmount: new BN('500000000000'),
       })
       vi.mocked(prepareTransaction).mockResolvedValueOnce({
-        transfer: mockApi.tx.balances.transfer,
+        transfer: {
+          ...mockApi.tx.balances.transfer,
+          method: {
+            hash: {
+              toHex: () => expectedCallHash
+            }
+          }
+        },
         callData: expectedCallHash,
       })
       vi.mocked(getTxFee).mockResolvedValueOnce(expectedFee)
@@ -774,6 +782,7 @@ describe('Ledger Client', () => {
   })
 
   describe('signApproveAsMultiTx', () => {
+    const mockUpdateTxStatus = vi.fn()
     const mockFormData = {
       appId: 'polkadot' as const,
       signatoryAddress: '5Signatory',
@@ -789,6 +798,8 @@ describe('Ledger Client', () => {
       vi.mocked(validateApproveAsMultiParams).mockReturnValue({
         isValid: true,
         appConfig: mockAppConfig,
+        multisigInfo: { address: '5MultisigAddress', members: [], threshold: 2 },
+        signerPath: "m/44'/354'/0'/0/1",
       })
     })
 
@@ -807,18 +818,12 @@ describe('Ledger Client', () => {
         signature: '0xsignature',
       })
 
-      const result = await ledgerClient.signApproveAsMultiTx(mockFormData)
+      await ledgerClient.signApproveAsMultiTx(mockFormData.appId, mockMultisigAddress, mockFormData.callHash, mockFormData.signatoryAddress, mockUpdateTxStatus)
 
-      expect(result).toEqual({
-        signature: '0xsignature',
-        payload: '0xpayload',
-        metadataHash: '0xhash',
-        nonce: 1,
-      })
-      expect(validateApproveAsMultiParams).toHaveBeenCalledWith(mockFormData)
+      expect(validateApproveAsMultiParams).toHaveBeenCalledWith(mockFormData.appId, mockMultisigAddress, mockFormData.callHash, mockFormData.signatoryAddress)
       expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
       expect(prepareApproveAsMultiTx).toHaveBeenCalled()
-      expect(ledgerService.signTransaction).toHaveBeenCalledWith(mockFormData.signatoryPath, new Uint8Array([1, 2, 3]), 'dot', '0xproof')
+      expect(ledgerService.signTransaction).toHaveBeenCalledWith("m/44'/354'/0'/0/1", new Uint8Array([1, 2, 3]), 'dot', '0xproof')
     })
 
     it('should return undefined for invalid params', async () => {
@@ -832,19 +837,12 @@ describe('Ledger Client', () => {
     it('should handle API connection failure', async () => {
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: undefined })
 
-      const result = await ledgerClient.signApproveAsMultiTx(mockFormData)
-
-      expect(result).toEqual({
-        signature: undefined,
-        payload: undefined,
-        metadataHash: undefined,
-        nonce: undefined,
-        error: expect.any(InternalError),
-      })
+      await expect(ledgerClient.signApproveAsMultiTx(mockFormData.appId, mockMultisigAddress, mockFormData.callHash, mockFormData.signatoryAddress, mockUpdateTxStatus)).rejects.toThrow(InternalError)
     })
   })
 
   describe('signAsMultiTx', () => {
+    const mockUpdateTxStatus = vi.fn()
     const mockFormData = {
       appId: 'polkadot' as const,
       signatoryAddress: '5Signatory',
@@ -856,6 +854,9 @@ describe('Ledger Client', () => {
       vi.mocked(validateAsMultiParams).mockReturnValue({
         isValid: true,
         appConfig: mockAppConfig,
+        multisigInfo: { address: '5MultisigAddress', members: [], threshold: 2 },
+        signerPath: "m/44'/354'/0'/0/1",
+        callData: '0xcalldata',
       })
     })
 
@@ -874,24 +875,18 @@ describe('Ledger Client', () => {
         signature: '0xsignature',
       })
 
-      const result = await ledgerClient.signAsMultiTx(mockFormData)
+      await ledgerClient.signAsMultiTx(mockFormData.appId, mockMultisigAddress, '0xcallhash', mockFormData.callData, mockFormData.signatoryAddress, mockUpdateTxStatus)
 
-      expect(result).toEqual({
-        signature: '0xsignature',
-        payload: '0xpayload',
-        metadataHash: '0xhash',
-        nonce: 1,
-      })
-      expect(validateAsMultiParams).toHaveBeenCalledWith(mockFormData)
+      expect(validateAsMultiParams).toHaveBeenCalledWith(mockFormData.appId, mockMultisigAddress, '0xcallhash', mockFormData.callData, mockFormData.signatoryAddress)
       expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
       expect(prepareAsMultiTx).toHaveBeenCalled()
-      expect(ledgerService.signTransaction).toHaveBeenCalledWith(mockFormData.signatoryPath, new Uint8Array([1, 2, 3]), 'dot', '0xproof')
+      expect(ledgerService.signTransaction).toHaveBeenCalledWith("m/44'/354'/0'/0/1", new Uint8Array([1, 2, 3]), 'dot', '0xproof')
     })
 
     it('should return undefined for invalid params', async () => {
       vi.mocked(validateAsMultiParams).mockReturnValue({ isValid: false })
 
-      const result = await ledgerClient.signAsMultiTx(mockFormData)
+      const result = await ledgerClient.signAsMultiTx(mockFormData.appId, mockMultisigAddress, '0xcallhash', mockFormData.callData, mockFormData.signatoryAddress, mockUpdateTxStatus)
 
       expect(result).toBeUndefined()
     })
@@ -899,15 +894,7 @@ describe('Ledger Client', () => {
     it('should handle API connection failure', async () => {
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: undefined })
 
-      const result = await ledgerClient.signAsMultiTx(mockFormData)
-
-      expect(result).toEqual({
-        signature: undefined,
-        payload: undefined,
-        metadataHash: undefined,
-        nonce: undefined,
-        error: expect.any(InternalError),
-      })
+      await expect(ledgerClient.signAsMultiTx(mockFormData.appId, mockMultisigAddress, '0xcallhash', mockFormData.callData, mockFormData.signatoryAddress, mockUpdateTxStatus)).rejects.toThrow(InternalError)
     })
   })
 
@@ -1096,22 +1083,13 @@ describe('Ledger Client', () => {
     it('should wrap errors with InternalError for async operations', async () => {
       vi.mocked(ledgerService.connectDevice).mockRejectedValueOnce(new Error('Connection failed'))
 
-      const result = await ledgerClient.connectDevice()
-
-      expect(result).toEqual({
-        connection: undefined,
-        error: expect.any(InternalError),
-      })
+      await expect(ledgerClient.connectDevice()).rejects.toThrow(InternalError)
     })
 
     it('should include operation context in error handling', async () => {
       vi.mocked(getApiAndProvider).mockRejectedValueOnce(new Error('API connection failed'))
 
-      const result = await ledgerClient.unstakeBalance('polkadot', mockAddress.address, mockAddress.path, new BN('1000'), vi.fn())
-
-      expect(result).toEqual({
-        error: expect.any(InternalError),
-      })
+      await expect(ledgerClient.unstakeBalance('polkadot', mockAddress.address, mockAddress.path, new BN('1000'), vi.fn())).rejects.toThrow(InternalError)
     })
 
     it('should handle undefined API gracefully', async () => {
