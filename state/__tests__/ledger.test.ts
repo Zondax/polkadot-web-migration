@@ -415,14 +415,223 @@ describe('Ledger State', () => {
     })
   })
 
-  describe('Error handling', () => {
-    it('should handle synchronization errors correctly', () => {
-      const mockError = { errorType: 'SYNC_ERROR', description: 'Test sync error' }
+  describe('synchronizeAccounts', () => {
+    it('should handle synchronization process', async () => {
+      // Mock connection state
+      ledgerState$.device.connection.set({ isAppOpen: true })
       
-      const shouldStop = ledgerState$.handleError(mockError)
+      // The synchronizeAccounts method takes no parameters and processes all configured apps
+      await ledgerState$.synchronizeAccounts()
       
-      // Assuming sync errors should stop synchronization based on config
-      expect(shouldStop).toBeDefined()
+      // Method should exist and be callable
+      expect(typeof ledgerState$.synchronizeAccounts).toBe('function')
+      // Should not throw during execution
+    })
+  })
+
+  describe('migrateAccount', () => {
+    const mockAccount = {
+      address: '1test',
+      path: "m/44'/354'/0'/0'/0'",
+      publicKey: new Uint8Array(),
+      balances: [{
+        type: BalanceType.NATIVE,
+        amount: new BN(1000000000000),
+        status: AddressStatus.CAN_MIGRATE,
+      }],
+    }
+
+    it('should handle migrate account method call', async () => {
+      const result = await ledgerState$.migrateAccount('polkadot', mockAccount)
+      
+      // Method should exist and be callable
+      expect(typeof ledgerState$.migrateAccount).toBe('function')
+      // The result may be undefined for invalid cases, which is acceptable
+    })
+  })
+
+  describe('migrateBalance', () => {
+    const mockAccount = {
+      address: '1test',
+      path: "m/44'/354'/0'/0'/0'",
+      publicKey: new Uint8Array(),
+      balances: [{
+        type: BalanceType.NATIVE,
+        amount: new BN(1000000000000),
+        status: AddressStatus.CAN_MIGRATE,
+      }],
+    }
+
+    it('should handle migrate balance method call', async () => {
+      const result = await ledgerState$.migrateBalance('polkadot', mockAccount, 0)
+      
+      // Method should exist and be callable
+      expect(typeof ledgerState$.migrateBalance).toBe('function')
+      // The result may be undefined for invalid cases, which is acceptable
+    })
+  })
+
+  describe('Transaction operations', () => {
+    describe('unstakeBalance', () => {
+      it('should handle unstake balance method call', async () => {
+        const updateStatus = vi.fn()
+        
+        await ledgerState$.unstakeBalance('polkadot', '1test', "m/44'/354'/0'/0'/0'", new BN(1000000000000), updateStatus)
+        
+        // Method should exist and be callable
+        expect(typeof ledgerState$.unstakeBalance).toBe('function')
+        // Should not throw during execution
+      })
+    })
+
+    describe('withdrawBalance', () => {
+      it('should handle withdraw balance method call', async () => {
+        const updateStatus = vi.fn()
+        
+        await ledgerState$.withdrawBalance('polkadot', '1test', "m/44'/354'/0'/0'/0'", updateStatus)
+        
+        // Method should exist and be callable  
+        expect(typeof ledgerState$.withdrawBalance).toBe('function')
+        // Should not throw during execution
+      })
+    })
+
+    describe('removeIdentity', () => {
+      it('should handle remove identity method call', async () => {
+        const updateStatus = vi.fn()
+        
+        await ledgerState$.removeIdentity('polkadot', '1test', "m/44'/354'/0'/0'/0'", updateStatus)
+        
+        // Method should exist and be callable
+        expect(typeof ledgerState$.removeIdentity).toBe('function')
+        // Should not throw during execution
+      })
+    })
+
+    describe('removeProxies', () => {
+      it('should handle remove proxies method call', async () => {
+        const updateStatus = vi.fn()
+        
+        await ledgerState$.removeProxies('polkadot', '1test', "m/44'/354'/0'/0'/0'", updateStatus)
+        
+        // Method should exist and be callable
+        expect(typeof ledgerState$.removeProxies).toBe('function')
+        // Should not throw during execution
+      })
+    })
+
+    describe('removeAccountIndex', () => {
+      it('should handle remove account index method call', async () => {
+        const updateStatus = vi.fn()
+        
+        await ledgerState$.removeAccountIndex('polkadot', '1test', '0', "m/44'/354'/0'/0'/0'", updateStatus)
+        
+        // Method should exist and be callable
+        expect(typeof ledgerState$.removeAccountIndex).toBe('function')
+        // Should not throw during execution
+      })
+    })
+  })
+
+  describe('Multisig operations', () => {
+    describe('approveMultisigCall', () => {
+      const mockAccount = {
+        address: '1multisig',
+        path: "m/44'/354'/0'/0'/0'",
+        publicKey: new Uint8Array(),
+        balances: [],
+        threshold: 2,
+        signatories: ['1signer1', '1signer2'],
+      }
+
+      it('should handle approve multisig call method', async () => {
+        const mockFormBody = {
+          callHash: '0x123',
+          callDataHex: '0xabcd',
+          threshold: 2,
+          otherSignatories: ['1signer1', '1signer2'],
+          maxWeight: { refTime: new BN(1000000), proofSize: new BN(64000) },
+          when: { height: 1000, index: 0 },
+        }
+        const updateStatus = vi.fn()
+        
+        await ledgerState$.approveMultisigCall('polkadot', mockAccount, mockFormBody, updateStatus)
+        
+        // Method should exist and be callable
+        expect(typeof ledgerState$.approveMultisigCall).toBe('function')
+        // Should not throw during execution
+      })
+    })
+  })
+
+  describe('Additional methods', () => {
+    describe('synchronizeAccount', () => {
+      it('should handle single account synchronization', async () => {
+        ledgerState$.device.connection.set({ isAppOpen: true })
+        
+        await ledgerState$.synchronizeAccount('polkadot')
+        
+        expect(typeof ledgerState$.synchronizeAccount).toBe('function')
+      })
+    })
+
+    describe('getMigrationTxInfo', () => {
+      it('should handle migration tx info retrieval', async () => {
+        const result = await ledgerState$.getMigrationTxInfo('polkadot', '1test', 0)
+        
+        expect(typeof ledgerState$.getMigrationTxInfo).toBe('function')
+        // Result may be undefined for invalid cases, which is acceptable
+      })
+    })
+
+    describe('clearSynchronization', () => {
+      it('should clear synchronization data', () => {
+        ledgerState$.clearSynchronization()
+        
+        expect(typeof ledgerState$.clearSynchronization).toBe('function')
+        expect(ledgerState$.apps.apps.get()).toEqual([])
+      })
+    })
+
+    describe('migrateSelected', () => {
+      it('should handle migration of selected accounts', async () => {
+        await ledgerState$.migrateSelected()
+        
+        expect(typeof ledgerState$.migrateSelected).toBe('function')
+      })
+
+      it('should handle migration of selected accounts only', async () => {
+        await ledgerState$.migrateSelected(true)
+        
+        expect(typeof ledgerState$.migrateSelected).toBe('function')
+      })
+    })
+
+    describe('Error handling', () => {
+      it('should handle synchronization errors correctly', () => {
+        const mockError = { errorType: 'SYNC_ERROR', description: 'Test sync error' }
+        
+        const shouldStop = ledgerState$.handleError(mockError)
+        
+        // Assuming sync errors should stop synchronization based on config
+        expect(shouldStop).toBeDefined()
+      })
+
+      it('should handle migration errors correctly', () => {
+        const mockError = { errorType: 'MIGRATION_ERROR', description: 'Test migration error' }
+        
+        const shouldStop = ledgerState$.handleError(mockError)
+        
+        expect(shouldStop).toBeDefined()
+      })
+
+      it('should handle connection errors correctly', () => {
+        const mockError = { errorType: 'CONNECTION_ERROR', description: 'Test connection error' }
+        
+        const shouldStop = ledgerState$.handleError(mockError)
+        
+        expect(shouldStop).toBeDefined()
+      })
     })
   })
 

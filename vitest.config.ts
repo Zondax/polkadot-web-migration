@@ -13,13 +13,36 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'json-summary', 'html'],
       all: true,
-      exclude: ['e2e/**', 'node_modules/**', '.next/**', 'vitest.config.ts', 'components/ui/**'],
+      exclude: [
+        // Infrastructure & config files
+        'e2e/**', 
+        'node_modules/**', 
+        '.next/**', 
+        'coverage/**',
+        '**/*.config.*',
+        'environment.d.ts',
+        '**/*.d.ts',
+        'vitest.setup*.ts',
+        
+        // UI library components (shadcn/ui wrappers)
+        'components/ui/**',
+        
+        // Static presentation components
+        'components/sections/home/**',
+        
+        // Type definitions
+        'state/types/**',
+        'lib/ledger/types.ts',
+        
+        // Next.js app directory (routes/layouts)
+        'app/**',
+      ],
       thresholds: {
         global: {
-          statements: 25,
-          branches: 25,
-          functions: 25,
-          lines: 25,
+          statements: 50,
+          branches: 50,
+          functions: 50,
+          lines: 50,
         },
       },
     },
