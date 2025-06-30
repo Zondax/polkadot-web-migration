@@ -86,7 +86,7 @@
     "prop-types": "^15.8.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "react-hook-form": "^7.58.1",
+    "react-hook-form": "^7.59.0",
     "server-only": "^0.0.1",
     "sonner": "^2.0.5",
     "tailwind-merge": "^3.3.1",
