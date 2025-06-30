@@ -56,7 +56,7 @@ function WithdrawForm({ token, account, appId, estimatedFee, estimatedFeeLoading
       <DialogField>
         <DialogLabel>Estimated Fee</DialogLabel>
         <DialogEstimatedFeeContent token={token} estimatedFee={estimatedFee} loading={estimatedFeeLoading} />
-        {insufficientBalance && <DialogError error={errorDetails.insufficient_balance.description} />}
+        {!estimatedFeeLoading && insufficientBalance && <DialogError error={errorDetails.insufficient_balance.description} />}
       </DialogField>
     </>
   )
@@ -108,6 +108,7 @@ export default function WithdrawDialog({ open, setOpen, token, account, appId, t
   }
 
   const insufficientBalance = Boolean(estimatedFee && cannotCoverFee(transferableBalance, estimatedFee))
+  const isValidFee = !estimatedFeeLoading && !insufficientBalance
 
   return (
     <Dialog open={open} onOpenChange={closeDialog}>
@@ -141,7 +142,7 @@ export default function WithdrawDialog({ open, setOpen, token, account, appId, t
             synchronizeAccount={synchronizeAccount}
             closeDialog={closeDialog}
             signTransfer={signWithdrawTx}
-            isSignDisabled={insufficientBalance || Boolean(txStatus)}
+            isSignDisabled={!isValidFee || Boolean(txStatus)}
           />
         </DialogFooter>
       </DialogContent>

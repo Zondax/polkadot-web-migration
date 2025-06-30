@@ -208,7 +208,7 @@ export default function UnstakeDialog({ open, setOpen, maxUnstake, transferableB
           <DialogDescription>
             Unstake tokens from your balance to make them available for use. Enter the amount you wish to unstake below.
           </DialogDescription>
-          <DialogDescription>
+          <DialogDescription className="pt-1!">
             After unbonding, your tokens enter a withdrawal period. Once this period ends, you can withdraw your unbonded balance to your
             account.
           </DialogDescription>

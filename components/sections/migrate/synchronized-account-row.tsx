@@ -571,6 +571,7 @@ const SynchronizedAccountRow = ({
         token={token}
         account={account}
         appId={appId}
+        transferableBalance={transferableBalance}
       />
       <RemoveProxyDialog
         open={removeProxyOpen}

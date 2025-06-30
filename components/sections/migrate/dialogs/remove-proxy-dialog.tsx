@@ -65,7 +65,7 @@ function RemoveProxyForm({ token, account, appId, estimatedFee, estimatedFeeLoad
       <DialogField>
         <DialogLabel>Estimated Fee</DialogLabel>
         <DialogEstimatedFeeContent token={token} estimatedFee={estimatedFee} loading={estimatedFeeLoading} />
-        {insufficientBalance && <DialogError error={errorDetails.insufficient_balance.description} />}
+        {!estimatedFeeLoading && insufficientBalance && <DialogError error={errorDetails.insufficient_balance.description} />}
       </DialogField>
     </div>
   )
@@ -117,6 +117,7 @@ export default function RemoveProxyDialog({ open, setOpen, token, account, appId
   }
 
   const insufficientBalance = Boolean(estimatedFee && cannotCoverFee(transferableBalance, estimatedFee))
+  const isValidFee = !estimatedFeeLoading && !insufficientBalance
 
   return (
     <Dialog open={open} onOpenChange={closeDialog}>
@@ -125,7 +126,8 @@ export default function RemoveProxyDialog({ open, setOpen, token, account, appId
           <DialogTitle>Remove Proxies</DialogTitle>
           <DialogDescription>
             This process may require a small transaction fee. Please review the details below before proceeding.
-            <DialogDescription />
+          </DialogDescription>
+          <DialogDescription className="pt-1!">
             The deposit will be automatically returned when the proxies are removed.
           </DialogDescription>
         </DialogHeader>
@@ -152,7 +154,7 @@ export default function RemoveProxyDialog({ open, setOpen, token, account, appId
             synchronizeAccount={synchronizeAccount}
             closeDialog={closeDialog}
             signTransfer={signRemoveProxyTx}
-            isSignDisabled={insufficientBalance || Boolean(txStatus)}
+            isSignDisabled={!isValidFee || Boolean(txStatus)}
           />
         </DialogFooter>
       </DialogContent>
