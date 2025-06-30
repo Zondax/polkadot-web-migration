@@ -53,3 +53,12 @@ export function DialogEstimatedFeeContent({
     </DialogContent>
   )
 }
+
+export function DialogError({ error }: { error?: string }) {
+  if (!error) return null
+  return (
+    <div className="text-xs text-red-500 mt-1" role="alert">
+      {error}
+    </div>
+  )
+}

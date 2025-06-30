@@ -1,5 +1,5 @@
 import { ledgerState$ } from '@/state/ledger'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import type { Address, TransactionDetails, TransactionStatus } from 'state/types/ledger'
 
 import { ExplorerLink } from '@/components/ExplorerLink'
@@ -7,11 +7,15 @@ import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import type { AppId, Token } from '@/config/apps'
+import { errorDetails } from '@/config/errors'
 import { ExplorerItemType } from '@/config/explorers'
+import { cannotCoverFee } from '@/lib/utils/balance'
 import { convertToRawUnits, formatBalance } from '@/lib/utils/format'
-import { validateNumberInput } from '@/lib/utils/ui'
-import type { BN } from '@polkadot/util'
-import { DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { BN } from '@polkadot/util'
+import { Controller, useForm } from 'react-hook-form'
+import z from 'zod'
+import { DialogError, DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
 interface UnstakeDialogProps {
@@ -19,46 +23,68 @@ interface UnstakeDialogProps {
   open: boolean
   setOpen: (open: boolean) => void
   maxUnstake: BN
+  transferableBalance: BN
   token: Token
   account: Address
 }
 
-interface UnstakeFormProps {
-  unstakeAmount?: number
-  setUnstakeAmount: (amount: number | undefined) => void
-  maxUnstake: BN
-  token: Token
-  account: Address
-  appId: AppId
-  estimatedFee: BN | undefined
-  estimatedFeeLoading: boolean
-  setIsUnstakeAmountValid: (valid: boolean) => void
+interface UnstakeFormData {
+  unstakeAmount: number
+  estimatedFee: BN
+}
+
+function createUnstakeSchema(maxUnstake: BN, transferableBalance: BN, token: Token) {
+  return z.object({
+    unstakeAmount: z
+      .number({ required_error: 'Amount is required', invalid_type_error: 'Amount must be a number' })
+      .min(1 / 10 ** token.decimals, 'Amount must be greater than 0')
+      .refine(
+        val => {
+          const raw = convertToRawUnits(val, token)
+          return new BN(raw).lte(maxUnstake)
+        },
+        { message: 'Amount exceeds maximum unstakable balance' }
+      ),
+    estimatedFee: z.instanceof(BN).refine(
+      val => {
+        if (cannotCoverFee(transferableBalance, val)) {
+          return false
+        }
+        return true
+      },
+      { message: `${errorDetails.insufficient_balance.description}. Transferable: ${formatBalance(transferableBalance, token)}` }
+    ),
+  })
 }
 
 function UnstakeForm({
-  unstakeAmount,
-  setUnstakeAmount,
+  form,
+  onSubmit,
   maxUnstake,
   token,
   account,
   appId,
-  estimatedFee,
   estimatedFeeLoading,
-  setIsUnstakeAmountValid,
-}: UnstakeFormProps) {
-  const [helperText, setHelperText] = useState<string>('')
+}: {
+  form: ReturnType<typeof useForm<UnstakeFormData>>
+  onSubmit: (data: UnstakeFormData) => void
+  maxUnstake: BN
+  token: Token
+  account: Address
+  appId: AppId
+  estimatedFeeLoading: boolean
+}): React.ReactElement {
   const maxUnstakeFormatted = useMemo(() => formatBalance(maxUnstake, token), [maxUnstake, token])
-
-  const handleUnstakeAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value
-    const { valid, helperText } = validateNumberInput(convertToRawUnits(Number(val), token), maxUnstake, token)
-    setIsUnstakeAmountValid(valid)
-    setUnstakeAmount(Number(val))
-    setHelperText(helperText)
-  }
+  const {
+    control,
+    watch,
+    formState: { errors },
+  } = form
+  const unstakeAmount = watch('unstakeAmount')
+  const estimatedFee = watch('estimatedFee')
 
   return (
-    <>
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
       {/* Source Address */}
       <DialogField>
         <DialogLabel>Source Address</DialogLabel>
@@ -75,32 +101,47 @@ function UnstakeForm({
           <span>Amount to Unstake</span>
           <span>Available Balance: {maxUnstakeFormatted}</span>
         </DialogLabel>
-        <Input
-          type="number"
-          min={0}
-          max={maxUnstake.toNumber()}
-          value={unstakeAmount}
-          onChange={handleUnstakeAmountChange}
-          placeholder="Amount"
-          className="font-mono"
-          error={Boolean(helperText)}
-          helperText={helperText}
+        <Controller
+          name="unstakeAmount"
+          control={control}
+          render={({ field }) => (
+            <Input
+              type="number"
+              min={0}
+              max={maxUnstake.toNumber()}
+              value={field.value ?? ''}
+              onChange={e => {
+                const val = e.target.value
+                field.onChange(val ? Number(val) : undefined)
+              }}
+              placeholder="Amount"
+              className="font-mono"
+              error={Boolean(errors.unstakeAmount)}
+              helperText={errors.unstakeAmount?.message as string}
+            />
+          )}
         />
       </DialogField>
       {/* Estimated Fee */}
-      {!helperText && unstakeAmount ? (
+      {!errors.unstakeAmount && typeof unstakeAmount === 'number' ? (
         <DialogField>
           <DialogLabel>Estimated Fee</DialogLabel>
           <DialogEstimatedFeeContent token={token} estimatedFee={estimatedFee} loading={estimatedFeeLoading} />
+          <DialogError error={!estimatedFeeLoading && errors.estimatedFee?.message ? errors.estimatedFee.message : undefined} />
         </DialogField>
       ) : null}
-    </>
+    </form>
   )
 }
 
-export default function UnstakeDialog({ open, setOpen, maxUnstake, token, account, appId }: UnstakeDialogProps) {
-  const [unstakeAmount, setUnstakeAmount] = useState<number | undefined>(undefined)
-  const [isUnstakeAmountValid, setIsUnstakeAmountValid] = useState<boolean>(true)
+export default function UnstakeDialog({ open, setOpen, maxUnstake, transferableBalance, token, account, appId }: UnstakeDialogProps) {
+  const form = useForm<UnstakeFormData>({
+    mode: 'onChange',
+    defaultValues: { unstakeAmount: undefined, estimatedFee: undefined },
+    resolver: zodResolver(createUnstakeSchema(maxUnstake, transferableBalance, token)),
+  })
+
+  const unstakeAmount = form.watch('unstakeAmount')
 
   // Wrap ledgerState$.unstakeBalance to match the generic hook's expected signature
   const unstakeTxFn = async (
@@ -112,7 +153,6 @@ export default function UnstakeDialog({ open, setOpen, maxUnstake, token, accoun
   ) => {
     await ledgerState$.unstakeBalance(appId, address, path, amount, updateTxStatus)
   }
-
   const {
     runTransaction,
     txStatus,
@@ -122,21 +162,29 @@ export default function UnstakeDialog({ open, setOpen, maxUnstake, token, accoun
     updateSynchronization,
     isSynchronizing,
     getEstimatedFee,
-    estimatedFee,
     estimatedFeeLoading,
   } = useTransactionStatus(unstakeTxFn, ledgerState$.getUnstakeFee)
 
   // Estimate fee on mount and when amount to unstake changes
   useEffect(() => {
-    if (!open || !unstakeAmount) return
+    const calculateAndValidateFee = async (unstakeAmount: number) => {
+      form.clearErrors('estimatedFee')
+
+      const fee = await getEstimatedFee(appId, account.address, unstakeAmount)
+      if (!fee) {
+        form.unregister('estimatedFee')
+        return
+      }
+      form.setValue('estimatedFee', fee, { shouldValidate: true })
+    }
+
+    if (!open || form.formState.errors.unstakeAmount || typeof unstakeAmount !== 'number') return
 
     const rawUnstakeAmount = convertToRawUnits(unstakeAmount, token)
-    getEstimatedFee(appId, account.address, rawUnstakeAmount)
-  }, [open, getEstimatedFee, appId, account.address, unstakeAmount, token])
+    calculateAndValidateFee(rawUnstakeAmount)
+  }, [open, getEstimatedFee, appId, account.address, form, unstakeAmount, token, form.setValue, form.clearErrors])
 
   const signUnstakeTx = async () => {
-    if (!unstakeAmount) return
-
     const rawUnstakeAmount = convertToRawUnits(unstakeAmount, token)
     await runTransaction(appId, account.address, account.path, rawUnstakeAmount)
   }
@@ -147,7 +195,7 @@ export default function UnstakeDialog({ open, setOpen, maxUnstake, token, accoun
   }
 
   const closeDialog = () => {
-    setUnstakeAmount(0)
+    form.reset()
     clearTx()
     setOpen(false)
   }
@@ -160,7 +208,7 @@ export default function UnstakeDialog({ open, setOpen, maxUnstake, token, accoun
           <DialogDescription>
             Unstake tokens from your balance to make them available for use. Enter the amount you wish to unstake below.
           </DialogDescription>
-          <DialogDescription>
+          <DialogDescription className="pt-1!">
             After unbonding, your tokens enter a withdrawal period. Once this period ends, you can withdraw your unbonded balance to your
             account.
           </DialogDescription>
@@ -170,15 +218,13 @@ export default function UnstakeDialog({ open, setOpen, maxUnstake, token, accoun
             <TransactionStatusBody {...txStatus} appId={appId} />
           ) : (
             <UnstakeForm
-              unstakeAmount={unstakeAmount}
-              setUnstakeAmount={setUnstakeAmount}
+              form={form}
+              onSubmit={() => form.handleSubmit(signUnstakeTx)()}
               maxUnstake={maxUnstake}
               token={token}
               account={account}
               appId={appId}
-              estimatedFee={estimatedFee}
               estimatedFeeLoading={estimatedFeeLoading}
-              setIsUnstakeAmountValid={setIsUnstakeAmountValid}
             />
           )}
         </DialogBody>
@@ -190,8 +236,8 @@ export default function UnstakeDialog({ open, setOpen, maxUnstake, token, accoun
             clearTx={clearTx}
             synchronizeAccount={synchronizeAccount}
             closeDialog={closeDialog}
-            signTransfer={signUnstakeTx}
-            isSignDisabled={!isUnstakeAmountValid || Boolean(txStatus)}
+            signTransfer={form.handleSubmit(signUnstakeTx)}
+            isSignDisabled={!form.formState.isValid || Boolean(txStatus) || estimatedFeeLoading}
           />
         </DialogFooter>
       </DialogContent>
