@@ -21,6 +21,15 @@ import {
 // Mock the environment variable
 vi.stubEnv('NEXT_PUBLIC_NODE_ENV', 'test')
 
+// Mock config/mockData at the top level
+vi.mock('@/config/mockData', () => ({
+  MINIMUM_AMOUNT: undefined,
+  mockBalances: [],
+  errorAddresses: [],
+  syncApps: [],
+  errorApps: []
+}))
+
 describe('balance utilities', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -771,6 +780,21 @@ describe('balance utilities', () => {
 
       // Since MINIMUM_AMOUNT is undefined by default, should use transferable amount
       expect(result.nativeAmount?.toString()).toBe('950')
+    })
+
+    it('should not use MINIMUM_AMOUNT for NFT balance even in development', () => {
+      // This test documents the behavior that MINIMUM_AMOUNT only applies to native balances
+      const nftBalance: NftBalance = {
+        id: 'nft',
+        type: BalanceType.NFT,
+        balance: [{ id: '1', name: 'Test NFT' }],
+      } as NftBalance
+
+      const result = getTransferableAndNfts(nftBalance, mockAccount)
+
+      // NFT balance should not be affected by MINIMUM_AMOUNT
+      expect(result.nativeAmount).toBeUndefined()
+      expect(result.nftsToTransfer).toHaveLength(1)
     })
   })
 

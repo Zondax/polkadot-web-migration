@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm:*)",
+      "Bash(pnpm test:*)",
+      "Bash(pnpm install:*)",
+      "Bash(ls:*)",
+      "Bash(touch:*)",
+      "Bash(mkdir:*)",
+      "Bash(node:*)",
+      "Bash(npx tsx:*)",
+      "Bash(npx @biomejs/biome migrate:*)",
+      "Bash(pnpm check:*)",
+      "Bash(pnpm biome check:*)",
+      "Bash(find:*)",
+      "Bash(pnpm lint:*)",
+      "Bash(mv:*)",
+      "Bash(pnpm vitest:*)",
+      "Bash(find:*)"
+    ],
+    "deny": []
+  }
+}
