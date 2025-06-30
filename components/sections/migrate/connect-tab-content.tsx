@@ -15,9 +15,13 @@ export function ConnectTabContent({ onContinue }: ConnectTabContentProps) {
   const { isLedgerConnected, isAppOpen, connectDevice } = useConnection()
 
   const handleConnect = useCallback(async () => {
-    const connected = await connectDevice()
-    if (connected) {
-      onContinue()
+    try {
+      const connected = await connectDevice()
+      if (connected) {
+        onContinue()
+      }
+    } catch (error) {
+      console.error('Failed to connect device:', error)
     }
   }, [connectDevice, onContinue])
 

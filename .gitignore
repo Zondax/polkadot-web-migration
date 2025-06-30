@@ -42,3 +42,4 @@ playwright-report/
 biome-report.json
 /playwright-report
 /coverage
+TODO.md
