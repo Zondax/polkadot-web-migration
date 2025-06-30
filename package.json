@@ -74,7 +74,7 @@
     "drizzle-kit": "^0.31.1",
     "drizzle-orm": "^0.44.2",
     "drizzle-zod": "^0.8.2",
-    "framer-motion": "^12.19.1",
+    "framer-motion": "^12.19.2",
     "html-react-parser": "^5.2.3",
     "isomorphic-dompurify": "^2.25.0",
     "jsdom": "^26.1.0",
