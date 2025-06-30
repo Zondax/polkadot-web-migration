@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest'
 
 import { BN } from '@polkadot/util'
 import {
+  cannotCoverFee,
   canUnstake,
+  getAccountTransferableBalance,
   getNonTransferableBalance,
   hasAddressBalance,
   hasNegativeBalance,
@@ -158,7 +160,6 @@ describe('canUnstake', () => {
   })
 })
 
-// =========== Tests: hasBalance ===========
 describe('hasBalance', () => {
   it('should return true if address has native balance', () => {
     expect(hasAddressBalance(mockAddress1)).toBe(true)
@@ -345,5 +346,40 @@ describe('validateReservedBreakdown', () => {
 
   it('returns false if total is negative', () => {
     expect(validateReservedBreakdown(new BN(10), new BN(20), new BN(5), new BN(35), new BN(-70))).toBe(false)
+  })
+})
+
+describe('getAccountTransferableBalance', () => {
+  it('returns the transferable balance for an account with native balance', () => {
+    const account: Address = {
+      ...mockAddress1,
+      balances: [{ type: BalanceType.NATIVE, balance: { ...mockFreeNativeBalance, transferable: new BN(12345) } }],
+    }
+    expect(getAccountTransferableBalance(account).toString()).toBe('12345')
+  })
+
+  it('returns 0 for an account with no balances', () => {
+    const account: Address = { ...mockAddress1, balances: undefined }
+    expect(getAccountTransferableBalance(account).toString()).toBe('0')
+  })
+
+  it('returns 0 for an account with no native balance', () => {
+    const account: Address = {
+      ...mockAddress1,
+      balances: [{ type: BalanceType.NFT, balance: [mockNft1] }],
+    }
+    expect(getAccountTransferableBalance(account).toString()).toBe('0')
+  })
+})
+
+describe('cannotCoverFee', () => {
+  it('returns true if transferable balance is less than fee', () => {
+    expect(cannotCoverFee(new BN(100), new BN(200))).toBe(true)
+  })
+  it('returns false if transferable balance is equal to fee', () => {
+    expect(cannotCoverFee(new BN(200), new BN(200))).toBe(false)
+  })
+  it('returns false if transferable balance is greater than fee', () => {
+    expect(cannotCoverFee(new BN(300), new BN(200))).toBe(false)
   })
 })
