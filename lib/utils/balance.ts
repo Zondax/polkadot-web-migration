@@ -122,6 +122,19 @@ export const hasAddressBalance = (account: Address): boolean => {
 }
 
 /**
+ * Returns the transferable balance for an account (Address).
+ * If a native balance is found, returns its transferable amount.
+ * Otherwise, returns BN(0).
+ * @param account The account to check
+ * @returns The transferable balance as BN
+ */
+export function getAccountTransferableBalance(account: Address): BN {
+  if (!account?.balances) return new BN(0)
+  const native = account.balances.find(isNativeBalance)
+  return native ? native.balance.transferable : new BN(0)
+}
+
+/**
  * Determines the type of balance (native or NFT), and returns the transferable amount and NFTs to transfer.
  * Used for preparing migration transactions.
  *
@@ -190,4 +203,17 @@ export const validateReservedBreakdown = (
     return false
   }
   return identityDeposit.add(multisigDeposit).add(proxyDeposit).add(indexDeposit).lte(total)
+}
+
+/**
+ * Checks if the transferable balance is insufficient to cover the required fee.
+ * Returns true if the transferable balance is less than the fee, false otherwise.
+ *
+ * @param transferableBalance - The available transferable balance as a BN.
+ * @param fee - The required fee as a BN.
+ * @returns True if the balance is insufficient, false otherwise.
+ */
+
+export const cannotCoverFee = (transferableBalance: BN, fee: BN): boolean => {
+  return transferableBalance.lt(fee)
 }

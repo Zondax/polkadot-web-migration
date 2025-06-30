@@ -1,16 +1,17 @@
 import type { Address, TransactionDetails, TransactionStatus } from 'state/types/ledger'
 
 import { ExplorerLink } from '@/components/ExplorerLink'
-import { useTokenLogo } from '@/components/hooks/useTokenLogo'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { type AppId, type Token, getChainName } from '@/config/apps'
+import type { AppId, Token } from '@/config/apps'
+import { errorDetails } from '@/config/errors'
 import { ExplorerItemType } from '@/config/explorers'
+import { cannotCoverFee } from '@/lib/utils/balance'
 import { formatBalance } from '@/lib/utils/format'
 import { ledgerState$ } from '@/state/ledger'
 import type { BN } from '@polkadot/util'
 import { useEffect } from 'react'
-import { DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
+import { DialogError, DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
 interface RemoveProxyDialogProps {
@@ -19,6 +20,7 @@ interface RemoveProxyDialogProps {
   setOpen: (open: boolean) => void
   token: Token
   account: Address
+  transferableBalance: BN
 }
 
 interface RemoveProxyFormProps {
@@ -27,12 +29,10 @@ interface RemoveProxyFormProps {
   appId: AppId
   estimatedFee?: BN
   estimatedFeeLoading: boolean
+  insufficientBalance: boolean
 }
 
-function RemoveProxyForm({ token, account, appId, estimatedFee, estimatedFeeLoading }: RemoveProxyFormProps) {
-  const icon = useTokenLogo(token.logoId)
-  const appName = getChainName(appId)
-
+function RemoveProxyForm({ token, account, appId, estimatedFee, estimatedFeeLoading, insufficientBalance }: RemoveProxyFormProps) {
   return (
     <div className="space-y-4">
       {/* Sending account */}
@@ -65,12 +65,13 @@ function RemoveProxyForm({ token, account, appId, estimatedFee, estimatedFeeLoad
       <DialogField>
         <DialogLabel>Estimated Fee</DialogLabel>
         <DialogEstimatedFeeContent token={token} estimatedFee={estimatedFee} loading={estimatedFeeLoading} />
+        {insufficientBalance && <DialogError error={errorDetails.insufficient_balance.description} />}
       </DialogField>
     </div>
   )
 }
 
-export default function RemoveProxyDialog({ open, setOpen, token, account, appId }: RemoveProxyDialogProps) {
+export default function RemoveProxyDialog({ open, setOpen, token, account, appId, transferableBalance }: RemoveProxyDialogProps) {
   // Wrap ledgerState$.removeProxies to match the generic hook's expected signature
   const removeProxyTxFn = async (
     updateTxStatus: (status: TransactionStatus, message?: string, txDetails?: TransactionDetails) => void,
@@ -115,6 +116,8 @@ export default function RemoveProxyDialog({ open, setOpen, token, account, appId
     setOpen(false)
   }
 
+  const insufficientBalance = Boolean(estimatedFee && cannotCoverFee(transferableBalance, estimatedFee))
+
   return (
     <Dialog open={open} onOpenChange={closeDialog}>
       <DialogContent>
@@ -136,6 +139,7 @@ export default function RemoveProxyDialog({ open, setOpen, token, account, appId
               appId={appId}
               estimatedFee={estimatedFee}
               estimatedFeeLoading={estimatedFeeLoading}
+              insufficientBalance={insufficientBalance}
             />
           )}
         </DialogBody>
@@ -148,7 +152,7 @@ export default function RemoveProxyDialog({ open, setOpen, token, account, appId
             synchronizeAccount={synchronizeAccount}
             closeDialog={closeDialog}
             signTransfer={signRemoveProxyTx}
-            isSignDisabled={Boolean(txStatus)}
+            isSignDisabled={insufficientBalance || Boolean(txStatus)}
           />
         </DialogFooter>
       </DialogContent>

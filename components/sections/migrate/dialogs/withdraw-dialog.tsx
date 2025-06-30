@@ -6,12 +6,13 @@ import { useTokenLogo } from '@/components/hooks/useTokenLogo'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { type AppId, type Token, getChainName } from '@/config/apps'
+import { errorDetails } from '@/config/errors'
 import { ExplorerItemType } from '@/config/explorers'
-import { formatBalance } from '@/lib/utils/format'
+import { cannotCoverFee } from '@/lib/utils/balance'
 import { ledgerState$ } from '@/state/ledger'
 import type { BN } from '@polkadot/util'
-import { useEffect, useMemo } from 'react'
-import { DialogEstimatedFeeContent, DialogField, DialogLabel } from './common-dialog-fields'
+import { useEffect } from 'react'
+import { DialogError, DialogEstimatedFeeContent, DialogField, DialogLabel } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
 interface WithdrawDialogProps {
@@ -20,6 +21,7 @@ interface WithdrawDialogProps {
   setOpen: (open: boolean) => void
   token: Token
   account: Address
+  transferableBalance: BN
 }
 
 interface WithdrawFormProps {
@@ -28,9 +30,10 @@ interface WithdrawFormProps {
   appId: AppId
   estimatedFee?: BN
   estimatedFeeLoading: boolean
+  insufficientBalance: boolean
 }
 
-function WithdrawForm({ token, account, appId, estimatedFee, estimatedFeeLoading }: WithdrawFormProps) {
+function WithdrawForm({ token, account, appId, estimatedFee, estimatedFeeLoading, insufficientBalance }: WithdrawFormProps) {
   const icon = useTokenLogo(token.logoId)
   const appName = getChainName(appId)
 
@@ -53,12 +56,13 @@ function WithdrawForm({ token, account, appId, estimatedFee, estimatedFeeLoading
       <DialogField>
         <DialogLabel>Estimated Fee</DialogLabel>
         <DialogEstimatedFeeContent token={token} estimatedFee={estimatedFee} loading={estimatedFeeLoading} />
+        {insufficientBalance && <DialogError error={errorDetails.insufficient_balance.description} />}
       </DialogField>
     </>
   )
 }
 
-export default function WithdrawDialog({ open, setOpen, token, account, appId }: WithdrawDialogProps) {
+export default function WithdrawDialog({ open, setOpen, token, account, appId, transferableBalance }: WithdrawDialogProps) {
   // Wrap ledgerState$.withdrawBalance to match the generic hook's expected signature
   const withdrawTxFn = async (
     updateTxStatus: (status: TransactionStatus, message?: string, txDetails?: TransactionDetails) => void,
@@ -89,8 +93,6 @@ export default function WithdrawDialog({ open, setOpen, token, account, appId }:
     }
   }, [open, getEstimatedFee, appId, account.address])
 
-  const formattedFee = useMemo(() => (estimatedFee ? formatBalance(estimatedFee, token) : undefined), [estimatedFee, token])
-
   const signWithdrawTx = async () => {
     await runTransaction(appId, account.address, account.path)
   }
@@ -104,6 +106,8 @@ export default function WithdrawDialog({ open, setOpen, token, account, appId }:
     clearTx()
     setOpen(false)
   }
+
+  const insufficientBalance = Boolean(estimatedFee && cannotCoverFee(transferableBalance, estimatedFee))
 
   return (
     <Dialog open={open} onOpenChange={closeDialog}>
@@ -124,6 +128,7 @@ export default function WithdrawDialog({ open, setOpen, token, account, appId }:
               appId={appId}
               estimatedFee={estimatedFee}
               estimatedFeeLoading={estimatedFeeLoading}
+              insufficientBalance={insufficientBalance}
             />
           )}
         </DialogBody>
@@ -136,7 +141,7 @@ export default function WithdrawDialog({ open, setOpen, token, account, appId }:
             synchronizeAccount={synchronizeAccount}
             closeDialog={closeDialog}
             signTransfer={signWithdrawTx}
-            isSignDisabled={Boolean(txStatus)}
+            isSignDisabled={insufficientBalance || Boolean(txStatus)}
           />
         </DialogFooter>
       </DialogContent>
