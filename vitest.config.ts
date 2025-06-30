@@ -14,6 +14,14 @@ export default defineConfig({
       reporter: ['text', 'json', 'json-summary', 'html'],
       all: true,
       exclude: ['e2e/**', 'node_modules/**', '.next/**', 'vitest.config.ts', 'components/ui/**'],
+      thresholds: {
+        global: {
+          statements: 25,
+          branches: 25,
+          functions: 25,
+          lines: 25,
+        },
+      },
     },
   },
   resolve: {

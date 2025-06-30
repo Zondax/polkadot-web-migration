@@ -26,6 +26,7 @@ describe('Ledger State', () => {
 
   describe('connectLedger', () => {
     it.skip('should set isLoading to true during connection', async () => {
+      // TODO: review expectations - this test is skipped, unclear if timeout behavior is correct
       // Mock implementation to control the flow
       const mockConnection = { isAppOpen: true }
       vi.mocked(require('@/lib/client/ledger').ledgerClient.connectDevice).mockImplementationOnce(() => {
@@ -45,6 +46,7 @@ describe('Ledger State', () => {
     })
 
     it.skip('should set connection data after successful connection', async () => {
+      // TODO: review expectations - skipped test, verify return value structure matches actual implementation
       // Mock successful connection
       const mockConnection = { isAppOpen: true }
       vi.mocked(require('@/lib/client/ledger').ledgerClient.connectDevice).mockResolvedValueOnce({
@@ -92,6 +94,7 @@ describe('Ledger State', () => {
     })
 
     it.skip('should call ledgerClient.disconnect when disconnecting', () => {
+      // TODO: review expectations - skipped test, verify if ledgerClient.disconnect should be called automatically
       // Setup for test
       const disconnectMock = vi.mocked(require('@/lib/client/ledger').ledgerClient.disconnect)
 

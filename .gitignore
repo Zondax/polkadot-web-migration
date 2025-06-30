@@ -40,3 +40,5 @@ test-results/
 playwright-report/
 .qodo
 biome-report.json
+/playwright-report
+/coverage

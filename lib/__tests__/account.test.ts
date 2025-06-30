@@ -198,6 +198,7 @@ describe('fetchFromIpfs', () => {
   })
 
   it('should fetch and parse JSON from IPFS URL', async () => {
+    // TODO: review expectations - verify which IPFS gateway is actually used in production
     const mockJsonData = {
       name: 'Test NFT',
       description: 'A test NFT',
