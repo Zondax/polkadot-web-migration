@@ -15,7 +15,7 @@ vi.mock('@/components/CustomTooltip', () => ({
 
 vi.mock('@/components/ExplorerLink', () => ({
   ExplorerLink: ({ value, appId, explorerLinkType, tooltipBody, hasCopyButton, disableTooltip }: any) => (
-    <div 
+    <div
       data-testid="explorer-link"
       data-value={value}
       data-app-id={appId}
@@ -30,7 +30,7 @@ vi.mock('@/components/ExplorerLink', () => ({
 }))
 
 vi.mock('@/components/hooks/useTokenLogo', () => ({
-  useTokenLogo: vi.fn((appId) => `<svg data-testid="token-logo-${appId}">Logo</svg>`),
+  useTokenLogo: vi.fn(appId => `<svg data-testid="token-logo-${appId}">Logo</svg>`),
 }))
 
 vi.mock('@/components/ui/table', () => ({
@@ -43,24 +43,23 @@ vi.mock('@/components/ui/table', () => ({
 }))
 
 vi.mock('@/lib/utils/html', () => ({
-  muifyHtml: (html: string) => <div dangerouslySetInnerHTML={{ __html: html }} />,
+  muifyHtml: (html: string) => <div data-testid="muified-html" dangerouslySetInnerHTML={{ __html: html }} />,
 }))
 
 vi.mock('@/lib/utils/ui', () => ({
   getTransactionStatus: vi.fn((status, message) => ({
-    statusIcon: <div data-testid="status-icon" data-status={status}>Status</div>,
+    statusIcon: (
+      <div data-testid="status-icon" data-status={status}>
+        Status
+      </div>
+    ),
     statusMessage: message || (status === TransactionStatus.SUCCESS ? 'Success' : undefined),
   })),
 }))
 
 vi.mock('./balance-hover-card', () => ({
-  BalanceHoverCard: ({ balances, collections, token, isMigration }: any) => (
-    <div 
-      data-testid="balance-hover-card"
-      data-balances-count={balances?.length}
-      data-token={token?.symbol}
-      data-is-migration={isMigration}
-    >
+  BalanceHoverCard: ({ balances, token, isMigration }: any) => (
+    <div data-testid="balance-hover-card" data-balances-count={balances?.length} data-token={token?.symbol} data-is-migration={isMigration}>
       Balance Card
     </div>
   ),
@@ -68,11 +67,7 @@ vi.mock('./balance-hover-card', () => ({
 
 vi.mock('./transaction-dropdown', () => ({
   default: ({ transaction, appId }: any) => (
-    <div 
-      data-testid="transaction-dropdown"
-      data-transaction-id={transaction?.id}
-      data-app-id={appId}
-    >
+    <div data-testid="transaction-dropdown" data-transaction-id={transaction?.id} data-app-id={appId}>
       Transaction Dropdown
     </div>
   ),
@@ -148,9 +143,7 @@ describe('MigratedAccountRows component', () => {
   const renderInTable = (component: React.ReactElement) => {
     return render(
       <table>
-        <tbody>
-          {component}
-        </tbody>
+        <tbody>{component}</tbody>
       </table>
     )
   }
@@ -216,7 +209,7 @@ describe('MigratedAccountRows component', () => {
 
     it('should handle missing icon gracefully', () => {
       ;(useTokenLogo as any).mockReturnValue(null)
-      
+
       renderInTable(<MigratedAccountRows app={mockApp} />)
 
       const rows = screen.getAllByTestId('table-row')
@@ -250,7 +243,7 @@ describe('MigratedAccountRows component', () => {
     it('should render dash when public key is empty', () => {
       const addressWithoutPubKey = { ...mockAddress, pubKey: '' }
       const appWithoutPubKey = { ...mockApp, accounts: [addressWithoutPubKey] }
-      
+
       renderInTable(<MigratedAccountRows app={appWithoutPubKey} />)
 
       const explorerLinks = screen.getAllByTestId('explorer-link')
@@ -274,8 +267,8 @@ describe('MigratedAccountRows component', () => {
       renderInTable(<MigratedAccountRows app={mockApp} multisigAddresses />)
 
       const explorerLinks = screen.getAllByTestId('explorer-link')
-      const signatoryLink = explorerLinks.find(link => 
-        link.getAttribute('data-value') === '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'
+      const signatoryLink = explorerLinks.find(
+        link => link.getAttribute('data-value') === '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'
       )
       expect(signatoryLink).toBeInTheDocument()
       expect(signatoryLink).toHaveAttribute('data-has-copy-button', 'true')
@@ -285,7 +278,7 @@ describe('MigratedAccountRows component', () => {
       const balanceWithoutSignatory = { ...mockBalance, transaction: { ...mockTransaction, signatoryAddress: undefined } }
       const multisigWithoutSignatory = { ...mockMultisigAddress, balances: [balanceWithoutSignatory] }
       const appWithoutSignatory = { ...mockApp, multisigAccounts: [multisigWithoutSignatory] }
-      
+
       renderInTable(<MigratedAccountRows app={appWithoutSignatory} multisigAddresses />)
 
       const explorerLinks = screen.getAllByTestId('explorer-link')
@@ -309,8 +302,8 @@ describe('MigratedAccountRows component', () => {
       renderInTable(<MigratedAccountRows app={mockApp} />)
 
       const explorerLinks = screen.getAllByTestId('explorer-link')
-      const destinationLink = explorerLinks.find(link => 
-        link.getAttribute('data-value') === '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty'
+      const destinationLink = explorerLinks.find(
+        link => link.getAttribute('data-value') === '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty'
       )
       expect(destinationLink).toBeInTheDocument()
       expect(destinationLink).toHaveAttribute('data-app-id', 'polkadot')
@@ -321,7 +314,7 @@ describe('MigratedAccountRows component', () => {
       const balanceWithoutDestination = { ...mockBalance, transaction: { ...mockTransaction, destinationAddress: undefined } }
       const addressWithoutDestination = { ...mockAddress, balances: [balanceWithoutDestination] }
       const appWithoutDestination = { ...mockApp, accounts: [addressWithoutDestination] }
-      
+
       renderInTable(<MigratedAccountRows app={appWithoutDestination} />)
 
       const explorerLinks = screen.getAllByTestId('explorer-link')
@@ -398,7 +391,7 @@ describe('MigratedAccountRows component', () => {
       const balanceWithoutTransaction = { ...mockBalance, transaction: undefined }
       const addressWithoutTransaction = { ...mockAddress, balances: [balanceWithoutTransaction] }
       const appWithoutTransaction = { ...mockApp, accounts: [addressWithoutTransaction] }
-      
+
       renderInTable(<MigratedAccountRows app={appWithoutTransaction} />)
 
       expect(screen.queryByTestId('transaction-dropdown')).not.toBeInTheDocument()
@@ -414,7 +407,7 @@ describe('MigratedAccountRows component', () => {
       }
       const addressWithMultipleBalances = { ...mockAddress, balances: [mockBalance, secondBalance] }
       const appWithMultipleBalances = { ...mockApp, accounts: [addressWithMultipleBalances] }
-      
+
       renderInTable(<MigratedAccountRows app={appWithMultipleBalances} />)
 
       const rows = screen.getAllByTestId('table-row')
@@ -429,7 +422,7 @@ describe('MigratedAccountRows component', () => {
       }
       const addressWithMultipleBalances = { ...mockAddress, balances: [mockBalance, secondBalance] }
       const appWithMultipleBalances = { ...mockApp, accounts: [addressWithMultipleBalances] }
-      
+
       const { container } = renderInTable(<MigratedAccountRows app={appWithMultipleBalances} />)
 
       const rows = container.querySelectorAll('tr')
@@ -441,7 +434,7 @@ describe('MigratedAccountRows component', () => {
     it('should handle account without balances', () => {
       const addressWithoutBalances = { ...mockAddress, balances: undefined }
       const appWithoutBalances = { ...mockApp, accounts: [addressWithoutBalances] }
-      
+
       const { container } = render(<MigratedAccountRows app={appWithoutBalances} />)
 
       expect(container.firstChild).toBeNull()
@@ -450,7 +443,7 @@ describe('MigratedAccountRows component', () => {
     it('should handle account with empty balances array', () => {
       const addressWithEmptyBalances = { ...mockAddress, balances: [] }
       const appWithEmptyBalances = { ...mockApp, accounts: [addressWithEmptyBalances] }
-      
+
       const { container } = render(<MigratedAccountRows app={appWithEmptyBalances} />)
 
       expect(container.firstChild).toBeNull()
@@ -460,7 +453,7 @@ describe('MigratedAccountRows component', () => {
       const balanceWithoutStatus = { ...mockBalance, transaction: { ...mockTransaction, status: undefined, statusMessage: undefined } }
       const addressWithoutStatus = { ...mockAddress, balances: [balanceWithoutStatus] }
       const appWithoutStatus = { ...mockApp, accounts: [addressWithoutStatus] }
-      
+
       renderInTable(<MigratedAccountRows app={appWithoutStatus} />)
 
       expect(getTransactionStatus).toHaveBeenCalledWith(undefined, undefined)

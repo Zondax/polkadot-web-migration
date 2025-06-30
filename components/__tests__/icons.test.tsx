@@ -7,7 +7,7 @@ describe('Icon Components', () => {
   describe('UsersIcon', () => {
     it('should render with default props', () => {
       render(<UsersIcon />)
-      
+
       const icon = screen.getByRole('img')
       expect(icon).toBeInTheDocument()
       expect(icon).toHaveAttribute('aria-labelledby', 'users-icon-title')
@@ -15,13 +15,13 @@ describe('Icon Components', () => {
 
     it('should render with title', () => {
       render(<UsersIcon />)
-      
+
       expect(screen.getByText('Users')).toBeInTheDocument()
     })
 
     it('should have correct default attributes', () => {
       render(<UsersIcon />)
-      
+
       const icon = screen.getByRole('img')
       expect(icon).toHaveAttribute('width', '24')
       expect(icon).toHaveAttribute('height', '24')
@@ -35,7 +35,7 @@ describe('Icon Components', () => {
 
     it('should accept custom props', () => {
       render(<UsersIcon className="custom-class" data-testid="custom-icon" />)
-      
+
       const icon = screen.getByRole('img')
       expect(icon).toHaveClass('custom-class')
       expect(icon).toHaveAttribute('data-testid', 'custom-icon')
@@ -43,11 +43,11 @@ describe('Icon Components', () => {
 
     it('should have proper SVG structure', () => {
       render(<UsersIcon />)
-      
+
       const icon = screen.getByRole('img')
       const paths = icon.querySelectorAll('path')
       const circles = icon.querySelectorAll('circle')
-      
+
       expect(paths).toHaveLength(3)
       expect(circles).toHaveLength(1)
     })
@@ -56,7 +56,7 @@ describe('Icon Components', () => {
   describe('SettingsIcon', () => {
     it('should render with default props', () => {
       render(<SettingsIcon />)
-      
+
       const icon = screen.getByRole('img')
       expect(icon).toBeInTheDocument()
       expect(icon).toHaveAttribute('aria-labelledby', 'settings-icon-title')
@@ -64,13 +64,13 @@ describe('Icon Components', () => {
 
     it('should render with title', () => {
       render(<SettingsIcon />)
-      
+
       expect(screen.getByText('Settings')).toBeInTheDocument()
     })
 
     it('should have correct default attributes', () => {
       render(<SettingsIcon />)
-      
+
       const icon = screen.getByRole('img')
       expect(icon).toHaveAttribute('width', '24')
       expect(icon).toHaveAttribute('height', '24')
@@ -81,7 +81,7 @@ describe('Icon Components', () => {
 
     it('should accept custom props', () => {
       render(<SettingsIcon data-testid="settings-custom" className="settings-class" />)
-      
+
       const icon = screen.getByRole('img')
       expect(icon).toHaveAttribute('data-testid', 'settings-custom')
       expect(icon).toHaveClass('settings-class')
@@ -89,11 +89,11 @@ describe('Icon Components', () => {
 
     it('should have proper SVG structure', () => {
       render(<SettingsIcon />)
-      
+
       const icon = screen.getByRole('img')
       const paths = icon.querySelectorAll('path')
       const circles = icon.querySelectorAll('circle')
-      
+
       expect(paths).toHaveLength(1)
       expect(circles).toHaveLength(1)
     })
@@ -102,7 +102,7 @@ describe('Icon Components', () => {
   describe('SearchIcon', () => {
     it('should render with default props', () => {
       render(<SearchIcon />)
-      
+
       const icon = screen.getByRole('img')
       expect(icon).toBeInTheDocument()
       expect(icon).toHaveAttribute('aria-labelledby', 'search-icon-title')
@@ -110,13 +110,13 @@ describe('Icon Components', () => {
 
     it('should render with title', () => {
       render(<SearchIcon />)
-      
+
       expect(screen.getByText('Search')).toBeInTheDocument()
     })
 
     it('should have correct default attributes', () => {
       render(<SearchIcon />)
-      
+
       const icon = screen.getByRole('img')
       expect(icon).toHaveAttribute('width', '24')
       expect(icon).toHaveAttribute('height', '24')
@@ -127,18 +127,18 @@ describe('Icon Components', () => {
 
     it('should accept custom props', () => {
       render(<SearchIcon data-testid="search-icon" />)
-      
+
       const icon = screen.getByTestId('search-icon')
       expect(icon).toBeInTheDocument()
     })
 
     it('should have proper SVG structure', () => {
       render(<SearchIcon />)
-      
+
       const icon = screen.getByRole('img')
       const paths = icon.querySelectorAll('path')
       const circles = icon.querySelectorAll('circle')
-      
+
       expect(paths).toHaveLength(1)
       expect(circles).toHaveLength(1)
     })
@@ -147,7 +147,7 @@ describe('Icon Components', () => {
   describe('Spinner', () => {
     it('should render with default props', () => {
       render(<Spinner />)
-      
+
       const spinner = screen.getByRole('img')
       expect(spinner).toBeInTheDocument()
       expect(spinner).toHaveAttribute('aria-labelledby', 'spinner-title')
@@ -155,13 +155,13 @@ describe('Icon Components', () => {
 
     it('should render with title', () => {
       render(<Spinner />)
-      
+
       expect(screen.getByText('Loading...')).toBeInTheDocument()
     })
 
     it('should have correct default attributes', () => {
       render(<Spinner />)
-      
+
       const spinner = screen.getByRole('img')
       expect(spinner).toHaveAttribute('viewBox', '0 0 24 24')
       expect(spinner).toHaveAttribute('fill', 'none')
@@ -169,7 +169,7 @@ describe('Icon Components', () => {
 
     it('should have animate-spin class by default', () => {
       render(<Spinner />)
-      
+
       const spinner = screen.getByRole('img')
       expect(spinner).toHaveClass('animate-spin')
       expect(spinner).toHaveClass('h-5')
@@ -179,7 +179,7 @@ describe('Icon Components', () => {
 
     it('should accept custom className', () => {
       render(<Spinner className="custom-spinner-class" />)
-      
+
       const spinner = screen.getByRole('img')
       expect(spinner).toHaveClass('custom-spinner-class')
       expect(spinner).toHaveClass('animate-spin') // Should still have default classes
@@ -187,7 +187,7 @@ describe('Icon Components', () => {
 
     it('should be wrapped in flex container', () => {
       const { container } = render(<Spinner />)
-      
+
       const wrapper = container.firstChild as HTMLElement
       expect(wrapper).toHaveClass('flex')
       expect(wrapper).toHaveClass('items-center')
@@ -197,21 +197,21 @@ describe('Icon Components', () => {
 
     it('should have proper SVG structure', () => {
       render(<Spinner />)
-      
+
       const spinner = screen.getByRole('img')
       const circles = spinner.querySelectorAll('circle')
       const paths = spinner.querySelectorAll('path')
-      
+
       expect(circles).toHaveLength(1)
       expect(paths).toHaveLength(1)
     })
 
     it('should have correct circle attributes', () => {
       render(<Spinner />)
-      
+
       const spinner = screen.getByRole('img')
       const circle = spinner.querySelector('circle')
-      
+
       expect(circle).toHaveAttribute('cx', '12')
       expect(circle).toHaveAttribute('cy', '12')
       expect(circle).toHaveAttribute('r', '10')
@@ -220,10 +220,10 @@ describe('Icon Components', () => {
 
     it('should have correct path attributes', () => {
       render(<Spinner />)
-      
+
       const spinner = screen.getByRole('img')
       const path = spinner.querySelector('path')
-      
+
       expect(path).toHaveClass('opacity-75')
       expect(path).toHaveAttribute('fill', 'currentColor')
     })
@@ -232,7 +232,7 @@ describe('Icon Components', () => {
   describe('Logo', () => {
     it('should render with default props', () => {
       render(<Logo />)
-      
+
       const logo = screen.getByRole('img')
       expect(logo).toBeInTheDocument()
       expect(logo).toHaveAttribute('aria-labelledby', 'logo-title')
@@ -240,13 +240,13 @@ describe('Icon Components', () => {
 
     it('should render with title', () => {
       render(<Logo />)
-      
+
       expect(screen.getByText('Application Logo')).toBeInTheDocument()
     })
 
     it('should have correct default attributes', () => {
       render(<Logo />)
-      
+
       const logo = screen.getByRole('img')
       expect(logo).toHaveAttribute('width', '32')
       expect(logo).toHaveAttribute('height', '32')
@@ -256,28 +256,28 @@ describe('Icon Components', () => {
 
     it('should have correct styling classes', () => {
       render(<Logo />)
-      
+
       const logo = screen.getByRole('img')
       expect(logo).toHaveClass('text-gray-100')
     })
 
     it('should have proper SVG structure', () => {
       render(<Logo />)
-      
+
       const logo = screen.getByRole('img')
       const rects = logo.querySelectorAll('rect')
       const paths = logo.querySelectorAll('path')
-      
+
       expect(rects).toHaveLength(1)
       expect(paths).toHaveLength(1)
     })
 
     it('should have correct rect attributes', () => {
       render(<Logo />)
-      
+
       const logo = screen.getByRole('img')
       const rect = logo.querySelector('rect')
-      
+
       expect(rect).toHaveAttribute('width', '100%')
       expect(rect).toHaveAttribute('height', '100%')
       expect(rect).toHaveAttribute('rx', '16')
@@ -286,10 +286,10 @@ describe('Icon Components', () => {
 
     it('should have correct path attributes', () => {
       render(<Logo />)
-      
+
       const logo = screen.getByRole('img')
       const path = logo.querySelector('path')
-      
+
       expect(path).toHaveAttribute('fill-rule', 'evenodd')
       expect(path).toHaveAttribute('clip-rule', 'evenodd')
       expect(path).toHaveAttribute('fill', 'black')
@@ -299,7 +299,7 @@ describe('Icon Components', () => {
   describe('VercelLogo', () => {
     it('should render with default props', () => {
       render(<VercelLogo />)
-      
+
       const logo = screen.getByRole('img')
       expect(logo).toBeInTheDocument()
       expect(logo).toHaveAttribute('aria-label', 'Vercel logomark')
@@ -307,7 +307,7 @@ describe('Icon Components', () => {
 
     it('should have correct default attributes', () => {
       render(<VercelLogo />)
-      
+
       const logo = screen.getByRole('img')
       expect(logo).toHaveAttribute('height', '64')
       expect(logo).toHaveAttribute('viewBox', '0 0 74 64')
@@ -315,7 +315,7 @@ describe('Icon Components', () => {
 
     it('should accept custom props', () => {
       render(<VercelLogo width="100" className="vercel-custom" />)
-      
+
       const logo = screen.getByRole('img')
       expect(logo).toHaveAttribute('width', '100')
       expect(logo).toHaveClass('vercel-custom')
@@ -323,19 +323,19 @@ describe('Icon Components', () => {
 
     it('should have proper SVG structure', () => {
       render(<VercelLogo />)
-      
+
       const logo = screen.getByRole('img')
       const paths = logo.querySelectorAll('path')
-      
+
       expect(paths).toHaveLength(1)
     })
 
     it('should have correct path attributes', () => {
       render(<VercelLogo />)
-      
+
       const logo = screen.getByRole('img')
       const path = logo.querySelector('path')
-      
+
       expect(path).toHaveAttribute('fill', 'currentColor')
       expect(path).toHaveAttribute('d', 'M37.5896 0.25L74.5396 64.25H0.639648L37.5896 0.25Z')
     })
@@ -385,7 +385,7 @@ describe('Icon Components', () => {
 
     it('should support keyboard navigation', () => {
       render(<UsersIcon tabIndex={0} />)
-      
+
       const icon = screen.getByRole('img')
       expect(icon).toHaveAttribute('tabindex', '0')
     })
@@ -394,7 +394,7 @@ describe('Icon Components', () => {
   describe('Customization', () => {
     it('should support custom styling for all icons', () => {
       const customClass = 'custom-icon-style'
-      
+
       render(
         <>
           <UsersIcon className={customClass} />
@@ -405,9 +405,9 @@ describe('Icon Components', () => {
       )
 
       const icons = screen.getAllByRole('img')
-      icons.slice(0, 4).forEach(icon => {
+      for (const icon of icons.slice(0, 4)) {
         expect(icon).toHaveClass(customClass)
-      })
+      }
     })
 
     it('should support custom props forwarding', () => {
@@ -443,14 +443,7 @@ describe('Icon Components', () => {
 
   describe('Props forwarding', () => {
     it('should forward all valid SVG props', () => {
-      render(
-        <UsersIcon
-          data-testid="forwarded-props-test"
-          onClick={() => {}}
-          onMouseOver={() => {}}
-          style={{ color: 'red' }}
-        />
-      )
+      render(<UsersIcon data-testid="forwarded-props-test" onClick={() => {}} onMouseOver={() => {}} style={{ color: 'red' }} />)
 
       const icon = screen.getByTestId('forwarded-props-test')
       expect(icon).toBeInTheDocument()
@@ -461,16 +454,10 @@ describe('Icon Components', () => {
       const handleClick = vi.fn()
       const handleMouseOver = vi.fn()
 
-      render(
-        <SettingsIcon
-          data-testid="event-test"
-          onClick={handleClick}
-          onMouseOver={handleMouseOver}
-        />
-      )
+      render(<SettingsIcon data-testid="event-test" onClick={handleClick} onMouseOver={handleMouseOver} />)
 
       const icon = screen.getByTestId('event-test')
-      
+
       fireEvent.click(icon)
       expect(handleClick).toHaveBeenCalled()
 

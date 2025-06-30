@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('framer-motion', () => ({
   motion: {
     div: ({ children, initial, animate, transition, className, ...props }: any) => (
-      <div 
+      <div
         className={className}
         data-initial={JSON.stringify(initial)}
         data-animate={JSON.stringify(animate)}
@@ -29,15 +29,9 @@ vi.mock('next/link', () => ({
 
 // Mock tooltip components
 vi.mock('@/components/ui/tooltip', () => ({
-  TooltipProvider: ({ children }: any) => (
-    <div data-testid="tooltip-provider">{children}</div>
-  ),
-  Tooltip: ({ children }: any) => (
-    <div data-testid="tooltip">{children}</div>
-  ),
-  TooltipTrigger: ({ children }: any) => (
-    <div data-testid="tooltip-trigger">{children}</div>
-  ),
+  TooltipProvider: ({ children }: any) => <div data-testid="tooltip-provider">{children}</div>,
+  Tooltip: ({ children }: any) => <div data-testid="tooltip">{children}</div>,
+  TooltipTrigger: ({ children }: any) => <div data-testid="tooltip-trigger">{children}</div>,
   TooltipContent: ({ children, className }: any) => (
     <div data-testid="tooltip-content" className={className}>
       {children}
@@ -54,12 +48,7 @@ describe('Header component', () => {
 
       const header = screen.getByRole('banner')
       expect(header).toBeInTheDocument()
-      expect(header).toHaveClass(
-        'flex',
-        'justify-between',
-        'items-center',
-        'mb-8'
-      )
+      expect(header).toHaveClass('flex', 'justify-between', 'items-center', 'mb-8')
     })
 
     it('should render the main link with correct href', () => {
@@ -67,12 +56,7 @@ describe('Header component', () => {
 
       const link = screen.getByRole('link')
       expect(link).toHaveAttribute('href', '/')
-      expect(link).toHaveClass(
-        'flex',
-        'items-center',
-        'space-x-2',
-        'group'
-      )
+      expect(link).toHaveClass('flex', 'items-center', 'space-x-2', 'group')
     })
 
     it('should render the application title', () => {
@@ -80,11 +64,7 @@ describe('Header component', () => {
 
       const title = screen.getByText('Polkadot Ledger Migration Assistant')
       expect(title).toBeInTheDocument()
-      expect(title).toHaveClass(
-        'font-bold',
-        'text-lg',
-        'text-white'
-      )
+      expect(title).toHaveClass('font-bold', 'text-lg', 'text-white')
     })
 
     it('should render the beta badge', () => {
@@ -92,14 +72,7 @@ describe('Header component', () => {
 
       const betaBadge = screen.getByText('BETA')
       expect(betaBadge).toBeInTheDocument()
-      expect(betaBadge).toHaveClass(
-        'text-xs',
-        'px-2',
-        'py-0.5',
-        'bg-[#FF2670]',
-        'text-white',
-        'rounded-full'
-      )
+      expect(betaBadge).toHaveClass('text-xs', 'px-2', 'py-0.5', 'bg-[#FF2670]', 'text-white', 'rounded-full')
     })
   })
 
@@ -130,15 +103,7 @@ describe('Header component', () => {
 
       const innerWhiteCircle = container.querySelector('.w-8.h-8.rounded-full.bg-white')
       expect(innerWhiteCircle).toBeInTheDocument()
-      expect(innerWhiteCircle).toHaveClass(
-        'w-8',
-        'h-8',
-        'rounded-full',
-        'bg-white',
-        'flex',
-        'items-center',
-        'justify-center'
-      )
+      expect(innerWhiteCircle).toHaveClass('w-8', 'h-8', 'rounded-full', 'bg-white', 'flex', 'items-center', 'justify-center')
     })
 
     it('should render the innermost gradient circle', () => {
@@ -146,14 +111,7 @@ describe('Header component', () => {
 
       const innermostCircle = container.querySelector('.w-6.h-6.rounded-full.bg-linear-to-r')
       expect(innermostCircle).toBeInTheDocument()
-      expect(innermostCircle).toHaveClass(
-        'w-6',
-        'h-6',
-        'rounded-full',
-        'bg-linear-to-r',
-        'from-[#FF2670]',
-        'to-[#7916F3]'
-      )
+      expect(innermostCircle).toHaveClass('w-6', 'h-6', 'rounded-full', 'bg-linear-to-r', 'from-[#FF2670]', 'to-[#7916F3]')
     })
 
     it('should have proper hover effect classes on link', () => {
@@ -193,7 +151,7 @@ describe('Header component', () => {
       const tooltipContent = screen.getByTestId('tooltip-content')
       expect(tooltipContent).toBeInTheDocument()
       expect(tooltipContent).toHaveClass('max-w-xs')
-      
+
       const message = screen.getByText(/This project is still in development/)
       expect(message).toBeInTheDocument()
       expect(message.textContent).toContain('testing purposes only')
@@ -210,11 +168,7 @@ describe('Header component', () => {
       expect(leftMotionDiv).toHaveAttribute('data-initial', '{"opacity":0,"x":-20}')
       expect(leftMotionDiv).toHaveAttribute('data-animate', '{"opacity":1,"x":0}')
       expect(leftMotionDiv).toHaveAttribute('data-transition', '{"duration":0.5}')
-      expect(leftMotionDiv).toHaveClass(
-        'flex',
-        'items-center',
-        'space-x-2'
-      )
+      expect(leftMotionDiv).toHaveClass('flex', 'items-center', 'space-x-2')
     })
 
     it('should render right motion div with correct animation props', () => {
@@ -234,7 +188,7 @@ describe('Header component', () => {
       const motionDivs = container.querySelectorAll('[data-initial]')
       const leftDiv = motionDivs[0]
       const rightDiv = motionDivs[1]
-      
+
       expect(leftDiv).toHaveAttribute('data-initial', '{"opacity":0,"x":-20}')
       expect(rightDiv).toHaveAttribute('data-initial', '{"opacity":0,"x":20}')
     })
@@ -245,23 +199,14 @@ describe('Header component', () => {
       render(<Header />)
 
       const header = screen.getByRole('banner')
-      expect(header).toHaveClass(
-        'flex',
-        'justify-between',
-        'items-center',
-        'mb-8'
-      )
+      expect(header).toHaveClass('flex', 'justify-between', 'items-center', 'mb-8')
     })
 
     it('should render link with proper flex classes', () => {
       render(<Header />)
 
       const link = screen.getByRole('link')
-      expect(link).toHaveClass(
-        'flex',
-        'items-center',
-        'space-x-2'
-      )
+      expect(link).toHaveClass('flex', 'items-center', 'space-x-2')
     })
 
     it('should render title container with proper gap', () => {
@@ -269,11 +214,7 @@ describe('Header component', () => {
 
       const titleContainer = container.querySelector('.flex.flex-row.gap-2')
       expect(titleContainer).toBeInTheDocument()
-      expect(titleContainer).toHaveClass(
-        'flex',
-        'flex-row',
-        'gap-2'
-      )
+      expect(titleContainer).toHaveClass('flex', 'flex-row', 'gap-2')
     })
 
     it('should have beta badge within tooltip trigger', () => {
@@ -306,7 +247,7 @@ describe('Header component', () => {
 
       const betaBadge = screen.getByText('BETA')
       const tooltipContent = screen.getByTestId('tooltip-content')
-      
+
       expect(betaBadge).toBeInTheDocument()
       expect(tooltipContent).toBeInTheDocument()
       expect(tooltipContent).toHaveTextContent('This project is still in development')
@@ -352,7 +293,7 @@ describe('Header component', () => {
 
       const motionDivs = container.querySelectorAll('[data-initial]')
       const rightMotionDiv = motionDivs[1]
-      
+
       // Should be empty since User component is commented out
       expect(rightMotionDiv.textContent).toBe('')
     })

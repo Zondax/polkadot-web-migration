@@ -9,13 +9,7 @@ import RemoveProxyDialog from '../remove-proxy-dialog'
 // Mock external dependencies
 vi.mock('@/components/ExplorerLink', () => ({
   ExplorerLink: vi.fn(({ value, appId, explorerLinkType, size }) => (
-    <div
-      data-testid="explorer-link"
-      data-value={value}
-      data-app-id={appId}
-      data-explorer-type={explorerLinkType}
-      data-size={size}
-    >
+    <div data-testid="explorer-link" data-value={value} data-app-id={appId} data-explorer-type={explorerLinkType} data-size={size}>
       {value}
     </div>
   )),
@@ -43,19 +37,15 @@ vi.mock('@/components/hooks/useTransactionStatus', () => ({
 vi.mock('@/components/ui/dialog', () => ({
   Dialog: vi.fn(({ children, open, onOpenChange }) =>
     open ? (
-      <div data-testid="dialog" onBlur={() => onOpenChange?.(false)}>
+      <div data-testid="dialog" role="dialog" onBlur={() => onOpenChange?.(false)}>
         {children}
       </div>
     ) : null
   ),
-  DialogContent: vi.fn(({ children }) => (
-    <div data-testid="dialog-content">{children}</div>
-  )),
+  DialogContent: vi.fn(({ children }) => <div data-testid="dialog-content">{children}</div>),
   DialogHeader: vi.fn(({ children }) => <div data-testid="dialog-header">{children}</div>),
   DialogTitle: vi.fn(({ children }) => <h2 data-testid="dialog-title">{children}</h2>),
-  DialogDescription: vi.fn(({ children }) => (
-    <div data-testid="dialog-description">{children}</div>
-  )),
+  DialogDescription: vi.fn(({ children }) => <div data-testid="dialog-description">{children}</div>),
   DialogBody: vi.fn(({ children }) => <div data-testid="dialog-body">{children}</div>),
   DialogFooter: vi.fn(({ children }) => <div data-testid="dialog-footer">{children}</div>),
 }))
@@ -73,9 +63,7 @@ vi.mock('@/config/explorers', () => ({
 }))
 
 vi.mock('@/lib/utils/format', () => ({
-  formatBalance: vi.fn((balance, token) => 
-    balance ? `${balance.toString()} ${token.symbol}` : `0 ${token.symbol}`
-  ),
+  formatBalance: vi.fn((balance, token) => (balance ? `${balance.toString()} ${token.symbol}` : `0 ${token.symbol}`)),
 }))
 
 vi.mock('@/state/ledger', () => ({
@@ -88,48 +76,31 @@ vi.mock('@/state/ledger', () => ({
 
 vi.mock('../common-dialog-fields', () => ({
   DialogField: vi.fn(({ children }) => <div data-testid="dialog-field">{children}</div>),
-  DialogLabel: vi.fn(({ children }) => (
-    <label data-testid="dialog-label">{children}</label>
-  )),
+  DialogLabel: vi.fn(({ children }) => <div data-testid="dialog-label">{children}</div>),
   DialogNetworkContent: vi.fn(({ token, appId }) => (
     <div data-testid="dialog-network-content" data-token={token.symbol} data-app-id={appId}>
       Network Content
     </div>
   )),
   DialogEstimatedFeeContent: vi.fn(({ token, estimatedFee, loading }) => (
-    <div data-testid="dialog-estimated-fee-content">
-      {loading ? 'Loading...' : `${estimatedFee?.toString()} ${token.symbol}`}
-    </div>
+    <div data-testid="dialog-estimated-fee-content">{loading ? 'Loading...' : `${estimatedFee?.toString()} ${token.symbol}`}</div>
   )),
 }))
 
 vi.mock('../transaction-dialog', () => ({
   TransactionDialogFooter: vi.fn(
-    ({
-      isTxFinished,
-      isTxFailed,
-      isSynchronizing,
-      clearTx,
-      synchronizeAccount,
-      closeDialog,
-      signTransfer,
-      isSignDisabled,
-    }) => (
+    ({ isTxFinished, isTxFailed, isSynchronizing, clearTx, synchronizeAccount, closeDialog, signTransfer, isSignDisabled }) => (
       <div data-testid="transaction-dialog-footer">
-        <button
-          data-testid="sign-button"
-          onClick={signTransfer}
-          disabled={isSignDisabled}
-        >
+        <button type="button" data-testid="sign-button" onClick={signTransfer} disabled={isSignDisabled}>
           Remove Proxies
         </button>
-        <button data-testid="close-button" onClick={closeDialog}>
+        <button type="button" data-testid="close-button" onClick={closeDialog}>
           Close
         </button>
-        <button data-testid="clear-tx-button" onClick={clearTx}>
+        <button type="button" data-testid="clear-tx-button" onClick={clearTx}>
           Clear
         </button>
-        <button data-testid="sync-button" onClick={synchronizeAccount}>
+        <button type="button" data-testid="sync-button" onClick={synchronizeAccount}>
           Sync
         </button>
         <span data-testid="status">
@@ -204,15 +175,11 @@ describe('RemoveProxyDialog', () => {
       expect(descriptions[0]).toHaveTextContent(
         'This process may require a small transaction fee. Please review the details below before proceeding.'
       )
-      expect(descriptions[0]).toHaveTextContent(
-        'The deposit will be automatically returned when the proxies are removed.'
-      )
+      expect(descriptions[0]).toHaveTextContent('The deposit will be automatically returned when the proxies are removed.')
     })
 
     it('should not render when open is false', () => {
-      const { container } = render(
-        <RemoveProxyDialog {...defaultProps} open={false} />
-      )
+      const { container } = render(<RemoveProxyDialog {...defaultProps} open={false} />)
 
       expect(container.firstChild).toBeNull()
     })
@@ -251,15 +218,11 @@ describe('RemoveProxyDialog', () => {
       render(<RemoveProxyDialog {...defaultProps} />)
 
       expect(screen.getByText('Proxy Addresses to Be Removed')).toBeInTheDocument()
-      
+
       const explorerLinks = screen.getAllByTestId('explorer-link')
-      const proxy1Link = explorerLinks.find(
-        link => link.getAttribute('data-value') === '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty'
-      )
-      const proxy2Link = explorerLinks.find(
-        link => link.getAttribute('data-value') === '5DAAnrj7VHTznn2C221g2pvCnvVy9AHbLP7RP9ueGZFg7AAW'
-      )
-      
+      const proxy1Link = explorerLinks.find(link => link.getAttribute('data-value') === '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty')
+      const proxy2Link = explorerLinks.find(link => link.getAttribute('data-value') === '5DAAnrj7VHTznn2C221g2pvCnvVy9AHbLP7RP9ueGZFg7AAW')
+
       expect(proxy1Link).toBeInTheDocument()
       expect(proxy2Link).toBeInTheDocument()
     })
@@ -286,12 +249,7 @@ describe('RemoveProxyDialog', () => {
         proxy: undefined,
       }
 
-      render(
-        <RemoveProxyDialog
-          {...defaultProps}
-          account={accountWithoutProxy}
-        />
-      )
+      render(<RemoveProxyDialog {...defaultProps} account={accountWithoutProxy} />)
 
       expect(screen.queryByText('Deposit to Be Returned')).not.toBeInTheDocument()
       expect(screen.getAllByTestId('dialog-field')).toHaveLength(4) // Source, Proxies, Network, Fee (Proxies field always rendered even if empty)
@@ -312,12 +270,7 @@ describe('RemoveProxyDialog', () => {
         },
       }
 
-      render(
-        <RemoveProxyDialog
-          {...defaultProps}
-          account={accountWithoutDeposit}
-        />
-      )
+      render(<RemoveProxyDialog {...defaultProps} account={accountWithoutDeposit} />)
 
       expect(screen.queryByText('Deposit to Be Returned')).not.toBeInTheDocument()
       expect(screen.getAllByTestId('dialog-field')).toHaveLength(4) // Source, Proxies, Network, Fee (no Deposit)
@@ -334,9 +287,7 @@ describe('RemoveProxyDialog', () => {
   describe('transaction handling', () => {
     it('should handle sign transaction button click', async () => {
       const mockRunTransaction = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: mockRunTransaction,
@@ -354,24 +305,18 @@ describe('RemoveProxyDialog', () => {
       render(<RemoveProxyDialog {...defaultProps} />)
 
       const signButton = screen.getByTestId('sign-button')
-      
+
       await act(async () => {
         fireEvent.click(signButton)
       })
 
-      expect(mockRunTransaction).toHaveBeenCalledWith(
-        'polkadot',
-        '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
-        "m/44'/354'/0'/0'/0'"
-      )
+      expect(mockRunTransaction).toHaveBeenCalledWith('polkadot', '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY', "m/44'/354'/0'/0'/0'")
     })
 
     it('should handle close dialog', async () => {
       const mockSetOpen = vi.fn()
       const mockClearTx = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -389,7 +334,7 @@ describe('RemoveProxyDialog', () => {
       render(<RemoveProxyDialog {...defaultProps} setOpen={mockSetOpen} />)
 
       const closeButton = screen.getByTestId('close-button')
-      
+
       await act(async () => {
         fireEvent.click(closeButton)
       })
@@ -401,9 +346,7 @@ describe('RemoveProxyDialog', () => {
     it('should handle synchronize account', async () => {
       const mockSetOpen = vi.fn()
       const mockUpdateSynchronization = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -421,7 +364,7 @@ describe('RemoveProxyDialog', () => {
       render(<RemoveProxyDialog {...defaultProps} setOpen={mockSetOpen} />)
 
       const syncButton = screen.getByTestId('sync-button')
-      
+
       await act(async () => {
         fireEvent.click(syncButton)
       })
@@ -431,9 +374,7 @@ describe('RemoveProxyDialog', () => {
     })
 
     it('should show transaction status when tx is in progress', async () => {
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -460,9 +401,7 @@ describe('RemoveProxyDialog', () => {
     })
 
     it('should disable sign button when transaction is in progress', async () => {
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -489,9 +428,7 @@ describe('RemoveProxyDialog', () => {
 
   describe('fee estimation', () => {
     it('should show loading state for estimated fee', async () => {
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -513,9 +450,7 @@ describe('RemoveProxyDialog', () => {
 
     it('should call getEstimatedFee on mount when dialog is open', async () => {
       const mockGetEstimatedFee = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -532,17 +467,12 @@ describe('RemoveProxyDialog', () => {
 
       render(<RemoveProxyDialog {...defaultProps} />)
 
-      expect(mockGetEstimatedFee).toHaveBeenCalledWith(
-        'polkadot',
-        '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'
-      )
+      expect(mockGetEstimatedFee).toHaveBeenCalledWith('polkadot', '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY')
     })
 
     it('should not call getEstimatedFee when dialog is closed', async () => {
       const mockGetEstimatedFee = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -579,18 +509,11 @@ describe('RemoveProxyDialog', () => {
         },
       }
 
-      render(
-        <RemoveProxyDialog
-          {...defaultProps}
-          account={accountWithSingleProxy}
-        />
-      )
+      render(<RemoveProxyDialog {...defaultProps} account={accountWithSingleProxy} />)
 
       const explorerLinks = screen.getAllByTestId('explorer-link')
-      const proxyLink = explorerLinks.find(
-        link => link.getAttribute('data-value') === '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty'
-      )
-      
+      const proxyLink = explorerLinks.find(link => link.getAttribute('data-value') === '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty')
+
       expect(proxyLink).toBeInTheDocument()
       expect(screen.getByText('50000000000 DOT')).toBeInTheDocument()
     })
@@ -604,12 +527,7 @@ describe('RemoveProxyDialog', () => {
         },
       }
 
-      render(
-        <RemoveProxyDialog
-          {...defaultProps}
-          account={accountWithEmptyProxies}
-        />
-      )
+      render(<RemoveProxyDialog {...defaultProps} account={accountWithEmptyProxies} />)
 
       expect(screen.getByText('Proxy Addresses to Be Removed')).toBeInTheDocument()
       // Should still render the field but with no proxy links
@@ -639,12 +557,7 @@ describe('RemoveProxyDialog', () => {
         },
       }
 
-      render(
-        <RemoveProxyDialog
-          {...defaultProps}
-          account={accountWithVariedProxies}
-        />
-      )
+      render(<RemoveProxyDialog {...defaultProps} account={accountWithVariedProxies} />)
 
       const explorerLinks = screen.getAllByTestId('explorer-link')
       expect(explorerLinks).toHaveLength(3) // Source + 2 proxies
@@ -668,12 +581,7 @@ describe('RemoveProxyDialog', () => {
         },
       }
 
-      render(
-        <RemoveProxyDialog
-          {...defaultProps}
-          account={accountWithDifferentDeposit}
-        />
-      )
+      render(<RemoveProxyDialog {...defaultProps} account={accountWithDifferentDeposit} />)
 
       expect(screen.getByText('500000000000 DOT')).toBeInTheDocument()
     })
@@ -692,9 +600,9 @@ describe('RemoveProxyDialog', () => {
       render(<RemoveProxyDialog {...kusamaProps} />)
 
       const explorerLinks = screen.getAllByTestId('explorer-link')
-      explorerLinks.forEach(link => {
+      for (const link of explorerLinks) {
         expect(link).toHaveAttribute('data-app-id', 'kusama')
-      })
+      }
 
       const networkContent = screen.getByTestId('dialog-network-content')
       expect(networkContent).toHaveAttribute('data-token', 'KSM')
@@ -708,17 +616,10 @@ describe('RemoveProxyDialog', () => {
         path: "m/44'/354'/0'/0'/1'",
       }
 
-      render(
-        <RemoveProxyDialog
-          {...defaultProps}
-          account={accountWithDifferentAddress}
-        />
-      )
+      render(<RemoveProxyDialog {...defaultProps} account={accountWithDifferentAddress} />)
 
       const explorerLinks = screen.getAllByTestId('explorer-link')
-      const sourceLink = explorerLinks.find(
-        link => link.getAttribute('data-value') === '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty'
-      )
+      const sourceLink = explorerLinks.find(link => link.getAttribute('data-value') === '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty')
       expect(sourceLink).toBeInTheDocument()
     })
 
@@ -737,12 +638,7 @@ describe('RemoveProxyDialog', () => {
         },
       }
 
-      render(
-        <RemoveProxyDialog
-          {...defaultProps}
-          account={accountWithNullDeposit}
-        />
-      )
+      render(<RemoveProxyDialog {...defaultProps} account={accountWithNullDeposit} />)
 
       // Null is not undefined, so the deposit field will still render
       expect(screen.getByText('Deposit to Be Returned')).toBeInTheDocument()
@@ -817,12 +713,7 @@ describe('RemoveProxyDialog', () => {
         proxy: undefined,
       }
 
-      render(
-        <RemoveProxyDialog
-          {...defaultProps}
-          account={accountWithoutProxy}
-        />
-      )
+      render(<RemoveProxyDialog {...defaultProps} account={accountWithoutProxy} />)
 
       const labels = screen.getAllByTestId('dialog-label')
       expect(labels).toHaveLength(4)

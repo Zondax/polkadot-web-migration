@@ -9,17 +9,17 @@ vi.mock('@legendapp/state/react', () => ({
   use$: vi.fn(() => ({
     polkadot: 'polkadot-icon-data',
     kusama: 'kusama-icon-data',
-  }))
+  })),
 }))
 
 vi.mock('state/ui', () => ({
   uiState$: {
-    icons: {}
-  }
+    icons: {},
+  },
 }))
 
 vi.mock('@/components/hooks/useSynchronization', () => ({
-  useSynchronization: vi.fn()
+  useSynchronization: vi.fn(),
 }))
 
 vi.mock('@/components/CustomTooltip', () => ({
@@ -27,7 +27,7 @@ vi.mock('@/components/CustomTooltip', () => ({
     <div data-testid="tooltip" title={tooltipBody}>
       {children}
     </div>
-  )
+  ),
 }))
 
 vi.mock('@/components/TokenIcon', () => ({
@@ -35,7 +35,7 @@ vi.mock('@/components/TokenIcon', () => ({
     <div data-testid="token-icon" data-icon={icon} data-symbol={symbol} data-size={size}>
       {symbol}
     </div>
-  )
+  ),
 }))
 
 vi.mock('@/components/ui/badge', () => ({
@@ -43,44 +43,53 @@ vi.mock('@/components/ui/badge', () => ({
     <div data-testid="badge" data-variant={variant} className={className}>
       {children}
     </div>
-  )
+  ),
 }))
 
 vi.mock('@/config/apps', () => ({
   appsConfigs: new Map([
-    ['polkadot', {
-      id: 'polkadot',
-      name: 'Polkadot',
-      token: { symbol: 'DOT', decimals: 10 },
-      rpcEndpoint: 'wss://rpc.polkadot.io'
-    }],
-    ['kusama', {
-      id: 'kusama',
-      name: 'Kusama',
-      token: { symbol: 'KSM', decimals: 12 },
-      rpcEndpoint: 'wss://kusama-rpc.polkadot.io'
-    }],
-    ['westend', {
-      id: 'westend',
-      name: 'Westend',
-      token: { symbol: 'WND', decimals: 12 },
-      // No rpcEndpoint - should be filtered out
-    }]
+    [
+      'polkadot',
+      {
+        id: 'polkadot',
+        name: 'Polkadot',
+        token: { symbol: 'DOT', decimals: 10 },
+        rpcEndpoint: 'wss://rpc.polkadot.io',
+      },
+    ],
+    [
+      'kusama',
+      {
+        id: 'kusama',
+        name: 'Kusama',
+        token: { symbol: 'KSM', decimals: 12 },
+        rpcEndpoint: 'wss://kusama-rpc.polkadot.io',
+      },
+    ],
+    [
+      'westend',
+      {
+        id: 'westend',
+        name: 'Westend',
+        token: { symbol: 'WND', decimals: 12 },
+        // No rpcEndpoint - should be filtered out
+      },
+    ],
   ]),
   polkadotAppConfig: {
     id: 'polkadot',
     name: 'Polkadot',
     token: { symbol: 'DOT', decimals: 10 },
-    rpcEndpoint: 'wss://rpc.polkadot.io'
+    rpcEndpoint: 'wss://rpc.polkadot.io',
   },
   getChainName: vi.fn((id: string) => {
     const names: Record<string, string> = {
       polkadot: 'Polkadot',
       kusama: 'Kusama',
-      westend: 'Westend'
+      westend: 'Westend',
     }
     return names[id] || id
-  })
+  }),
 }))
 
 vi.mock('@/lib/utils', () => ({
@@ -96,7 +105,7 @@ vi.mock('@/lib/utils', () => ({
       return app.accounts.length > 0
     }
     return false
-  })
+  }),
 }))
 
 // Import mocked functions
@@ -113,16 +122,16 @@ const mockHasAppAccounts = hasAppAccounts as ReturnType<typeof vi.fn>
 describe('AppScanningGrid', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    
+
     // Default mock implementations
     mockUseSynchronization.mockReturnValue({
-      apps: []
+      apps: [],
     })
     mockGetChainName.mockImplementation((id: string) => {
       const names: Record<string, string> = {
         polkadot: 'Polkadot',
         kusama: 'Kusama',
-        westend: 'Westend'
+        westend: 'Westend',
       }
       return names[id] || id
     })
@@ -132,7 +141,7 @@ describe('AppScanningGrid', () => {
   describe('Grid Rendering', () => {
     it('should render grid with all apps that have RPC endpoints', () => {
       mockUseSynchronization.mockReturnValue({
-        apps: []
+        apps: [],
       })
 
       render(<AppScanningGrid />)
@@ -145,7 +154,7 @@ describe('AppScanningGrid', () => {
 
     it('should render with correct grid classes', () => {
       mockUseSynchronization.mockReturnValue({
-        apps: []
+        apps: [],
       })
 
       const { container } = render(<AppScanningGrid />)
@@ -158,7 +167,7 @@ describe('AppScanningGrid', () => {
   describe('AppScanItem - Status Rendering', () => {
     it('should render app in default/waiting state', () => {
       mockUseSynchronization.mockReturnValue({
-        apps: []
+        apps: [],
       })
       mockGetAppTotalAccounts.mockReturnValue(0)
       mockHasAppAccounts.mockReturnValue(false)
@@ -178,12 +187,12 @@ describe('AppScanningGrid', () => {
         status: AppStatus.SYNCHRONIZED,
         accounts: [
           { address: 'address1', balances: [] },
-          { address: 'address2', balances: [] }
-        ]
+          { address: 'address2', balances: [] },
+        ],
       }
 
       mockUseSynchronization.mockReturnValue({
-        apps: [synchronizedApp]
+        apps: [synchronizedApp],
       })
       mockGetAppTotalAccounts.mockReturnValue(2)
       mockHasAppAccounts.mockReturnValue(true)
@@ -200,13 +209,11 @@ describe('AppScanningGrid', () => {
         name: 'Polkadot',
         token: { symbol: 'DOT', decimals: 10 },
         status: AppStatus.SYNCHRONIZED,
-        accounts: [
-          { address: 'address1', balances: [] }
-        ]
+        accounts: [{ address: 'address1', balances: [] }],
       }
 
       mockUseSynchronization.mockReturnValue({
-        apps: [synchronizedApp]
+        apps: [synchronizedApp],
       })
       mockGetAppTotalAccounts.mockReturnValue(1)
       mockHasAppAccounts.mockReturnValue(true)
@@ -223,11 +230,11 @@ describe('AppScanningGrid', () => {
         name: 'Polkadot',
         token: { symbol: 'DOT', decimals: 10 },
         status: AppStatus.SYNCHRONIZED,
-        accounts: []
+        accounts: [],
       }
 
       mockUseSynchronization.mockReturnValue({
-        apps: [synchronizedApp]
+        apps: [synchronizedApp],
       })
       mockGetAppTotalAccounts.mockReturnValue(0)
       mockHasAppAccounts.mockReturnValue(false)
@@ -243,13 +250,11 @@ describe('AppScanningGrid', () => {
         name: 'Polkadot',
         token: { symbol: 'DOT', decimals: 10 },
         status: AppStatus.MIGRATED,
-        accounts: [
-          { address: 'address1', balances: [] }
-        ]
+        accounts: [{ address: 'address1', balances: [] }],
       }
 
       mockUseSynchronization.mockReturnValue({
-        apps: [migratedApp]
+        apps: [migratedApp],
       })
       mockGetAppTotalAccounts.mockReturnValue(1)
       mockHasAppAccounts.mockReturnValue(true)
@@ -264,11 +269,11 @@ describe('AppScanningGrid', () => {
         id: 'polkadot',
         name: 'Polkadot',
         token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.ERROR
+        status: AppStatus.ERROR,
       }
 
       mockUseSynchronization.mockReturnValue({
-        apps: [errorApp]
+        apps: [errorApp],
       })
 
       render(<AppScanningGrid />)
@@ -283,11 +288,11 @@ describe('AppScanningGrid', () => {
         id: 'polkadot',
         name: 'Polkadot',
         token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.LOADING
+        status: AppStatus.LOADING,
       }
 
       mockUseSynchronization.mockReturnValue({
-        apps: [loadingApp]
+        apps: [loadingApp],
       })
 
       render(<AppScanningGrid />)
@@ -300,11 +305,11 @@ describe('AppScanningGrid', () => {
         id: 'polkadot',
         name: 'Polkadot',
         token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.RESCANNING
+        status: AppStatus.RESCANNING,
       }
 
       mockUseSynchronization.mockReturnValue({
-        apps: [rescanningApp]
+        apps: [rescanningApp],
       })
 
       render(<AppScanningGrid />)
@@ -319,11 +324,11 @@ describe('AppScanningGrid', () => {
         id: 'polkadot',
         name: 'Custom Polkadot Name',
         token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.SYNCHRONIZED
+        status: AppStatus.SYNCHRONIZED,
       }
 
       mockUseSynchronization.mockReturnValue({
-        apps: [appWithName]
+        apps: [appWithName],
       })
 
       render(<AppScanningGrid />)
@@ -335,11 +340,11 @@ describe('AppScanningGrid', () => {
       const appWithoutName: App = {
         id: 'polkadot',
         token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.SYNCHRONIZED
+        status: AppStatus.SYNCHRONIZED,
       }
 
       mockUseSynchronization.mockReturnValue({
-        apps: [appWithoutName]
+        apps: [appWithoutName],
       })
       mockGetChainName.mockReturnValue('Polkadot Chain')
 
@@ -353,11 +358,11 @@ describe('AppScanningGrid', () => {
       const appWithoutName: App = {
         id: 'polkadot',
         token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.SYNCHRONIZED
+        status: AppStatus.SYNCHRONIZED,
       }
 
       mockUseSynchronization.mockReturnValue({
-        apps: [appWithoutName]
+        apps: [appWithoutName],
       })
       mockGetChainName.mockReturnValue('')
 
@@ -368,7 +373,7 @@ describe('AppScanningGrid', () => {
 
     it('should render token icon with correct props', () => {
       mockUseSynchronization.mockReturnValue({
-        apps: []
+        apps: [],
       })
 
       render(<AppScanningGrid />)
@@ -387,11 +392,11 @@ describe('AppScanningGrid', () => {
         name: 'Polkadot',
         token: { symbol: 'DOT', decimals: 10 },
         status: AppStatus.SYNCHRONIZED,
-        accounts: [{ address: 'addr1', balances: [] }]
+        accounts: [{ address: 'addr1', balances: [] }],
       }
 
       mockUseSynchronization.mockReturnValue({
-        apps: [synchronizedApp]
+        apps: [synchronizedApp],
       })
       mockGetAppTotalAccounts.mockReturnValue(1)
       mockHasAppAccounts.mockReturnValue(true)
@@ -406,11 +411,11 @@ describe('AppScanningGrid', () => {
         id: 'polkadot',
         name: 'Polkadot',
         token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.RESCANNING
+        status: AppStatus.RESCANNING,
       }
 
       mockUseSynchronization.mockReturnValue({
-        apps: [rescanningApp]
+        apps: [rescanningApp],
       })
 
       render(<AppScanningGrid />)
@@ -420,7 +425,7 @@ describe('AppScanningGrid', () => {
 
     it('should not display badge for apps with undefined status', () => {
       mockUseSynchronization.mockReturnValue({
-        apps: []
+        apps: [],
       })
 
       render(<AppScanningGrid />)
@@ -440,11 +445,11 @@ describe('AppScanningGrid', () => {
         name: 'Polkadot',
         token: { symbol: 'DOT', decimals: 10 },
         status: AppStatus.SYNCHRONIZED,
-        accounts: [{ address: 'addr1', balances: [] }]
+        accounts: [{ address: 'addr1', balances: [] }],
       }
 
       mockUseSynchronization.mockReturnValue({
-        apps: [synchronizedApp]
+        apps: [synchronizedApp],
       })
       mockGetAppTotalAccounts.mockReturnValue(1)
       mockHasAppAccounts.mockReturnValue(true)
@@ -462,11 +467,11 @@ describe('AppScanningGrid', () => {
         id: 'polkadot',
         name: 'Polkadot',
         token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.ERROR
+        status: AppStatus.ERROR,
       }
 
       mockUseSynchronization.mockReturnValue({
-        apps: [errorApp]
+        apps: [errorApp],
       })
 
       render(<AppScanningGrid />)
@@ -482,11 +487,11 @@ describe('AppScanningGrid', () => {
         id: 'polkadot',
         name: 'Polkadot',
         token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.LOADING
+        status: AppStatus.LOADING,
       }
 
       mockUseSynchronization.mockReturnValue({
-        apps: [loadingApp]
+        apps: [loadingApp],
       })
 
       render(<AppScanningGrid />)
@@ -505,11 +510,11 @@ describe('AppScanningGrid', () => {
         name: 'Polkadot',
         token: { symbol: 'DOT', decimals: 10 },
         status: AppStatus.SYNCHRONIZED,
-        accounts: undefined
+        accounts: undefined,
       }
 
       mockUseSynchronization.mockReturnValue({
-        apps: [appWithNullAccounts]
+        apps: [appWithNullAccounts],
       })
       mockGetAppTotalAccounts.mockReturnValue(0)
       mockHasAppAccounts.mockReturnValue(false)
@@ -521,7 +526,7 @@ describe('AppScanningGrid', () => {
 
     it('should handle empty apps array from synchronization', () => {
       mockUseSynchronization.mockReturnValue({
-        apps: []
+        apps: [],
       })
 
       render(<AppScanningGrid />)
@@ -536,11 +541,11 @@ describe('AppScanningGrid', () => {
         id: 'polkadot',
         name: 'Very Very Very Very Very Long Blockchain Network Name That Should Be Truncated',
         token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.SYNCHRONIZED
+        status: AppStatus.SYNCHRONIZED,
       }
 
       mockUseSynchronization.mockReturnValue({
-        apps: [appWithLongName]
+        apps: [appWithLongName],
       })
 
       render(<AppScanningGrid />)

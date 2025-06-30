@@ -27,7 +27,7 @@ vi.mock('@/config/mockData', () => ({
   mockBalances: [],
   errorAddresses: [],
   syncApps: [],
-  errorApps: []
+  errorApps: [],
 }))
 
 describe('balance utilities', () => {
@@ -800,13 +800,13 @@ describe('balance utilities', () => {
     it('should use MINIMUM_AMOUNT for native balance in development mode', () => {
       // Note: Testing the development path is challenging due to module imports,
       // but we can verify the code path exists and would work if MINIMUM_AMOUNT was set
-      
+
       // First save the current environment variable
       const originalNodeEnv = process.env.NEXT_PUBLIC_NODE_ENV
-      
+
       // Temporarily set to development
       process.env.NEXT_PUBLIC_NODE_ENV = 'development'
-      
+
       const nativeBalance: NativeBalance = {
         id: 'native',
         type: BalanceType.NATIVE,
@@ -821,11 +821,11 @@ describe('balance utilities', () => {
 
       const result = getTransferableAndNfts(nativeBalance, mockAccount)
 
-      // Since MINIMUM_AMOUNT is mocked as undefined in our tests, 
+      // Since MINIMUM_AMOUNT is mocked as undefined in our tests,
       // it should still use the transferable amount
       expect(result.nativeAmount?.toString()).toBe('950')
       expect(result.transferableAmount.toString()).toBe('950')
-      
+
       // Restore original environment variable
       process.env.NEXT_PUBLIC_NODE_ENV = originalNodeEnv
     })

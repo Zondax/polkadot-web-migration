@@ -16,7 +16,7 @@ describe('EmptyStateRow component', () => {
 
     it('should render with correct container styling', () => {
       const { container } = render(<EmptyStateRow label={mockLabel} icon={mockIcon} />)
-      
+
       const containerDiv = container.firstChild as HTMLElement
       expect(containerDiv).toHaveClass(
         'bg-gray-50',
@@ -35,31 +35,16 @@ describe('EmptyStateRow component', () => {
 
     it('should render content with correct flex layout', () => {
       render(<EmptyStateRow label={mockLabel} icon={mockIcon} />)
-      
+
       const contentDiv = screen.getByText(mockLabel).parentElement
-      expect(contentDiv).toHaveClass(
-        'flex',
-        'flex-col',
-        'items-center',
-        'justify-center',
-        'w-full',
-        'gap-2',
-        'py-8'
-      )
+      expect(contentDiv).toHaveClass('flex', 'flex-col', 'items-center', 'justify-center', 'w-full', 'gap-2', 'py-8')
     })
 
     it('should render label with correct styling', () => {
       render(<EmptyStateRow label={mockLabel} icon={mockIcon} />)
-      
+
       const labelElement = screen.getByText(mockLabel)
-      expect(labelElement).toHaveClass(
-        'text-gray-500',
-        'text-base',
-        'font-medium',
-        'text-center',
-        'max-w-lg',
-        'mx-auto'
-      )
+      expect(labelElement).toHaveClass('text-gray-500', 'text-base', 'font-medium', 'text-center', 'max-w-lg', 'mx-auto')
     })
   })
 
@@ -72,7 +57,11 @@ describe('EmptyStateRow component', () => {
     })
 
     it('should render with different icon', () => {
-      const customIcon = <svg data-testid="custom-svg-icon">Custom SVG</svg>
+      const customIcon = (
+        <svg data-testid="custom-svg-icon">
+          <title>Custom SVG</title>Custom SVG
+        </svg>
+      )
       render(<EmptyStateRow label={mockLabel} icon={customIcon} />)
 
       expect(screen.getByTestId('custom-svg-icon')).toBeInTheDocument()
@@ -85,7 +74,7 @@ describe('EmptyStateRow component', () => {
           <span>Icon</span>
         </div>
       )
-      
+
       render(<EmptyStateRow label={mockLabel} icon={complexIcon} />)
 
       const iconElement = screen.getByTestId('complex-icon')
@@ -102,7 +91,8 @@ describe('EmptyStateRow component', () => {
     })
 
     it('should handle long label text', () => {
-      const longLabel = 'This is a very long label that should still be displayed correctly within the max-width constraints of the component layout'
+      const longLabel =
+        'This is a very long label that should still be displayed correctly within the max-width constraints of the component layout'
       render(<EmptyStateRow label={longLabel} icon={mockIcon} />)
 
       expect(screen.getByText(longLabel)).toBeInTheDocument()
@@ -115,21 +105,21 @@ describe('EmptyStateRow component', () => {
 
       const contentDiv = screen.getByText(mockLabel).parentElement
       const children = Array.from(contentDiv?.children || [])
-      
+
       expect(children[0]).toContainElement(screen.getByTestId('mock-icon'))
       expect(children[1]).toBe(screen.getByText(mockLabel))
     })
 
     it('should maintain proper spacing between icon and label', () => {
       render(<EmptyStateRow label={mockLabel} icon={mockIcon} />)
-      
+
       const contentDiv = screen.getByText(mockLabel).parentElement
       expect(contentDiv).toHaveClass('gap-2')
     })
 
     it('should have minimum height constraint', () => {
       const { container } = render(<EmptyStateRow label={mockLabel} icon={mockIcon} />)
-      
+
       const containerDiv = container.firstChild as HTMLElement
       expect(containerDiv).toHaveClass('min-h-[80px]')
     })
@@ -165,7 +155,7 @@ describe('EmptyStateRow component', () => {
     })
 
     it('should handle icon with no content', () => {
-      const emptyIcon = <div data-testid="empty-icon"></div>
+      const emptyIcon = <div data-testid="empty-icon" />
       render(<EmptyStateRow label={mockLabel} icon={emptyIcon} />)
 
       expect(screen.getByTestId('empty-icon')).toBeInTheDocument()

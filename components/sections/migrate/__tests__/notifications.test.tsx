@@ -1,16 +1,15 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import React from 'react'
 
 // Hoist mocks properly
 const { mockToast, mockToastCustom, mockToastDismiss } = vi.hoisted(() => {
   const toast = vi.fn(() => 'toast-id-1')
   const custom = vi.fn()
   const dismiss = vi.fn()
-  
+
   toast.custom = custom
   toast.dismiss = dismiss
-  
+
   return {
     mockToast: toast,
     mockToastCustom: custom,
@@ -44,7 +43,7 @@ vi.mock('@/components/ui/sonner', () => ({
 }))
 
 vi.mock('@/lib/utils/html', () => ({
-  muifyHtml: (html: string) => <div dangerouslySetInnerHTML={{ __html: html }} />,
+  muifyHtml: (html: string) => <div data-testid="muified-html" dangerouslySetInnerHTML={{ __html: html }} />,
 }))
 
 vi.mock('@legendapp/state/react', () => ({
@@ -184,7 +183,7 @@ describe('Notifications component', () => {
       }
 
       const { rerender } = render(<Notifications />)
-      
+
       act(() => {
         notifications$.active.set([notification])
       })
@@ -197,10 +196,10 @@ describe('Notifications component', () => {
       // Check that the custom toast function was called with proper params
       const customToastCall = mockToastCustom.mock.calls[0]
       const ToastComponent = customToastCall[0]
-      
+
       // Render the toast component (receives toastId as parameter)
-      const { container } = render(ToastComponent("test-id"))
-      
+      const { container } = render(ToastComponent('test-id'))
+
       expect(screen.getByText('Polkadot Notification')).toBeInTheDocument()
       expect(screen.getByText('Notification with icon')).toBeInTheDocument()
       expect(container.querySelector('svg')).toBeInTheDocument()
@@ -218,7 +217,7 @@ describe('Notifications component', () => {
       }
 
       const { rerender } = render(<Notifications />)
-      
+
       act(() => {
         notifications$.active.set([notification])
       })
@@ -231,13 +230,13 @@ describe('Notifications component', () => {
       // Get the custom toast component and render it
       const customToastCall = mockToastCustom.mock.calls[0]
       const ToastComponent = customToastCall[0]
-      
-      render(ToastComponent("test-id"))
+
+      render(ToastComponent('test-id'))
 
       expect(screen.getByText('Test Title')).toBeInTheDocument()
       expect(screen.getByText('Test Description')).toBeInTheDocument()
       expect(screen.getByTestId('button')).toHaveTextContent('Dismiss')
-      
+
       // Check that time is displayed (format: HH:MM)
       const timeRegex = /\d{1,2}:\d{2}/
       const timeElement = screen.getByText(timeRegex)
@@ -254,7 +253,7 @@ describe('Notifications component', () => {
       }
 
       const { rerender } = render(<Notifications />)
-      
+
       act(() => {
         notifications$.active.set([notification])
       })
@@ -268,7 +267,7 @@ describe('Notifications component', () => {
       const customToastCall = mockToastCustom.mock.calls[0]
       const ToastComponent = customToastCall[0]
       const toastId = 'test-toast-id'
-      
+
       // The component receives toastId as the first parameter, not as a prop
       render(ToastComponent(toastId))
 
@@ -282,7 +281,7 @@ describe('Notifications component', () => {
   describe('edge cases', () => {
     it('should handle empty active notifications array', () => {
       notifications$.active.set([])
-      
+
       render(<Notifications />)
 
       expect(mockToast).not.toHaveBeenCalled()
@@ -292,7 +291,7 @@ describe('Notifications component', () => {
     it('should handle null active notifications', () => {
       // @ts-expect-error Testing null case
       notifications$.active.set(null)
-      
+
       render(<Notifications />)
 
       expect(mockToast).not.toHaveBeenCalled()
@@ -312,7 +311,7 @@ describe('Notifications component', () => {
       }
 
       const { rerender } = render(<Notifications />)
-      
+
       act(() => {
         notifications$.active.set([notification])
       })
@@ -324,8 +323,8 @@ describe('Notifications component', () => {
 
       const customToastCall = mockToastCustom.mock.calls[0]
       const ToastComponent = customToastCall[0]
-      
-      const { container } = render(ToastComponent("test-id"))
+
+      const { container } = render(ToastComponent('test-id'))
 
       expect(screen.getByText('Missing Icon')).toBeInTheDocument()
       expect(container.querySelector('svg')).not.toBeInTheDocument()
@@ -343,7 +342,7 @@ describe('Notifications component', () => {
       }
 
       const { rerender } = render(<Notifications />)
-      
+
       act(() => {
         notifications$.active.set([notification])
       })
@@ -364,12 +363,9 @@ describe('Notifications component', () => {
         })
       })
 
-      expect(mockToastCustom).toHaveBeenCalledWith(
-        expect.any(Function),
-        {
-          id: 'toast-id-1',
-        }
-      )
+      expect(mockToastCustom).toHaveBeenCalledWith(expect.any(Function), {
+        id: 'toast-id-1',
+      })
     })
   })
 })

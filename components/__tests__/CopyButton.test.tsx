@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { CopyButton } from '../CopyButton'
@@ -70,7 +70,7 @@ describe('CopyButton component', () => {
       render(<CopyButton value={testValue} />)
 
       const button = screen.getByTestId('copy-button')
-      
+
       act(() => {
         fireEvent.click(button)
       })
@@ -83,7 +83,7 @@ describe('CopyButton component', () => {
       render(<CopyButton value="test content" />)
 
       const button = screen.getByTestId('copy-button')
-      
+
       act(() => {
         fireEvent.click(button)
       })
@@ -96,7 +96,7 @@ describe('CopyButton component', () => {
       render(<CopyButton value="test content" />)
 
       const button = screen.getByTestId('copy-button')
-      
+
       act(() => {
         fireEvent.click(button)
       })
@@ -118,7 +118,7 @@ describe('CopyButton component', () => {
       render(<CopyButton value="test content" />)
 
       const button = screen.getByTestId('copy-button')
-      
+
       act(() => {
         fireEvent.click(button)
       })
@@ -133,7 +133,7 @@ describe('CopyButton component', () => {
       render(<CopyButton value="" />)
 
       const button = screen.getByTestId('copy-button')
-      
+
       act(() => {
         fireEvent.click(button)
       })
@@ -146,7 +146,7 @@ describe('CopyButton component', () => {
       render(<CopyButton value={longValue} />)
 
       const button = screen.getByTestId('copy-button')
-      
+
       act(() => {
         fireEvent.click(button)
       })
@@ -159,7 +159,7 @@ describe('CopyButton component', () => {
       render(<CopyButton value={specialValue} />)
 
       const button = screen.getByTestId('copy-button')
-      
+
       act(() => {
         fireEvent.click(button)
       })
@@ -172,7 +172,7 @@ describe('CopyButton component', () => {
       render(<CopyButton value={unicodeValue} />)
 
       const button = screen.getByTestId('copy-button')
-      
+
       act(() => {
         fireEvent.click(button)
       })
@@ -225,7 +225,7 @@ describe('CopyButton component', () => {
       const { unmount } = render(<CopyButton value="test content" />)
 
       const button = screen.getByTestId('copy-button')
-      
+
       act(() => {
         fireEvent.click(button)
       })
@@ -245,7 +245,7 @@ describe('CopyButton component', () => {
       const { rerender } = render(<CopyButton value="initial value" />)
 
       const button = screen.getByTestId('copy-button')
-      
+
       act(() => {
         fireEvent.click(button)
       })
@@ -299,7 +299,7 @@ describe('CopyButton component', () => {
       expect(screen.getByTestId('copy-icon')).toBeInTheDocument()
 
       const button = screen.getByTestId('copy-button')
-      
+
       act(() => {
         fireEvent.click(button)
       })

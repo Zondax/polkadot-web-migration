@@ -9,13 +9,7 @@ import WithdrawDialog from '../withdraw-dialog'
 // Mock external dependencies
 vi.mock('@/components/ExplorerLink', () => ({
   ExplorerLink: vi.fn(({ value, appId, explorerLinkType, size }) => (
-    <div
-      data-testid="explorer-link"
-      data-value={value}
-      data-app-id={appId}
-      data-explorer-type={explorerLinkType}
-      data-size={size}
-    >
+    <div data-testid="explorer-link" data-value={value} data-app-id={appId} data-explorer-type={explorerLinkType} data-size={size}>
       {value}
     </div>
   )),
@@ -51,19 +45,15 @@ vi.mock('@/components/TokenIcon', () => ({
 vi.mock('@/components/ui/dialog', () => ({
   Dialog: vi.fn(({ children, open, onOpenChange }) =>
     open ? (
-      <div data-testid="dialog" onBlur={() => onOpenChange?.(false)}>
+      <div data-testid="dialog" role="dialog" onBlur={() => onOpenChange?.(false)}>
         {children}
       </div>
     ) : null
   ),
-  DialogContent: vi.fn(({ children }) => (
-    <div data-testid="dialog-content">{children}</div>
-  )),
+  DialogContent: vi.fn(({ children }) => <div data-testid="dialog-content">{children}</div>),
   DialogHeader: vi.fn(({ children }) => <div data-testid="dialog-header">{children}</div>),
   DialogTitle: vi.fn(({ children }) => <h2 data-testid="dialog-title">{children}</h2>),
-  DialogDescription: vi.fn(({ children }) => (
-    <div data-testid="dialog-description">{children}</div>
-  )),
+  DialogDescription: vi.fn(({ children }) => <div data-testid="dialog-description">{children}</div>),
   DialogBody: vi.fn(({ children }) => <div data-testid="dialog-body">{children}</div>),
   DialogFooter: vi.fn(({ children }) => <div data-testid="dialog-footer">{children}</div>),
 }))
@@ -81,9 +71,7 @@ vi.mock('@/config/explorers', () => ({
 }))
 
 vi.mock('@/lib/utils/format', () => ({
-  formatBalance: vi.fn((balance, token) => 
-    balance ? `${balance.toString()} ${token.symbol}` : `0 ${token.symbol}`
-  ),
+  formatBalance: vi.fn((balance, token) => (balance ? `${balance.toString()} ${token.symbol}` : `0 ${token.symbol}`)),
 }))
 
 vi.mock('@/state/ledger', () => ({
@@ -96,43 +84,26 @@ vi.mock('@/state/ledger', () => ({
 
 vi.mock('../common-dialog-fields', () => ({
   DialogField: vi.fn(({ children }) => <div data-testid="dialog-field">{children}</div>),
-  DialogLabel: vi.fn(({ children }) => (
-    <label data-testid="dialog-label">{children}</label>
-  )),
+  DialogLabel: vi.fn(({ children }) => <div data-testid="dialog-label">{children}</div>),
   DialogEstimatedFeeContent: vi.fn(({ token, estimatedFee, loading }) => (
-    <div data-testid="dialog-estimated-fee-content">
-      {loading ? 'Loading...' : `${estimatedFee?.toString()} ${token.symbol}`}
-    </div>
+    <div data-testid="dialog-estimated-fee-content">{loading ? 'Loading...' : `${estimatedFee?.toString()} ${token.symbol}`}</div>
   )),
 }))
 
 vi.mock('../transaction-dialog', () => ({
   TransactionDialogFooter: vi.fn(
-    ({
-      isTxFinished,
-      isTxFailed,
-      isSynchronizing,
-      clearTx,
-      synchronizeAccount,
-      closeDialog,
-      signTransfer,
-      isSignDisabled,
-    }) => (
+    ({ isTxFinished, isTxFailed, isSynchronizing, clearTx, synchronizeAccount, closeDialog, signTransfer, isSignDisabled }) => (
       <div data-testid="transaction-dialog-footer">
-        <button
-          data-testid="sign-button"
-          onClick={signTransfer}
-          disabled={isSignDisabled}
-        >
+        <button type="button" data-testid="sign-button" onClick={signTransfer} disabled={isSignDisabled}>
           Withdraw
         </button>
-        <button data-testid="close-button" onClick={closeDialog}>
+        <button type="button" data-testid="close-button" onClick={closeDialog}>
           Close
         </button>
-        <button data-testid="clear-tx-button" onClick={clearTx}>
+        <button type="button" data-testid="clear-tx-button" onClick={clearTx}>
           Clear
         </button>
-        <button data-testid="sync-button" onClick={synchronizeAccount}>
+        <button type="button" data-testid="sync-button" onClick={synchronizeAccount}>
           Sync
         </button>
         <span data-testid="status">
@@ -194,9 +165,7 @@ describe('WithdrawDialog', () => {
     })
 
     it('should not render when open is false', () => {
-      const { container } = render(
-        <WithdrawDialog {...defaultProps} open={false} />
-      )
+      const { container } = render(<WithdrawDialog {...defaultProps} open={false} />)
 
       expect(container.firstChild).toBeNull()
     })
@@ -223,10 +192,7 @@ describe('WithdrawDialog', () => {
 
       const explorerLink = screen.getByTestId('explorer-link')
       expect(explorerLink).toBeInTheDocument()
-      expect(explorerLink).toHaveAttribute(
-        'data-value',
-        '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'
-      )
+      expect(explorerLink).toHaveAttribute('data-value', '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY')
       expect(explorerLink).toHaveAttribute('data-app-id', 'polkadot')
       expect(explorerLink).toHaveAttribute('data-explorer-type', 'address')
       expect(explorerLink).toHaveAttribute('data-size', 'xs')
@@ -255,9 +221,7 @@ describe('WithdrawDialog', () => {
   describe('transaction handling', () => {
     it('should handle withdraw transaction button click', async () => {
       const mockRunTransaction = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: mockRunTransaction,
@@ -275,24 +239,18 @@ describe('WithdrawDialog', () => {
       render(<WithdrawDialog {...defaultProps} />)
 
       const signButton = screen.getByTestId('sign-button')
-      
+
       await act(async () => {
         fireEvent.click(signButton)
       })
 
-      expect(mockRunTransaction).toHaveBeenCalledWith(
-        'polkadot',
-        '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
-        "m/44'/354'/0'/0'/0'"
-      )
+      expect(mockRunTransaction).toHaveBeenCalledWith('polkadot', '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY', "m/44'/354'/0'/0'/0'")
     })
 
     it('should handle close dialog', async () => {
       const mockSetOpen = vi.fn()
       const mockClearTx = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -310,7 +268,7 @@ describe('WithdrawDialog', () => {
       render(<WithdrawDialog {...defaultProps} setOpen={mockSetOpen} />)
 
       const closeButton = screen.getByTestId('close-button')
-      
+
       await act(async () => {
         fireEvent.click(closeButton)
       })
@@ -322,9 +280,7 @@ describe('WithdrawDialog', () => {
     it('should handle synchronize account', async () => {
       const mockSetOpen = vi.fn()
       const mockUpdateSynchronization = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -342,7 +298,7 @@ describe('WithdrawDialog', () => {
       render(<WithdrawDialog {...defaultProps} setOpen={mockSetOpen} />)
 
       const syncButton = screen.getByTestId('sync-button')
-      
+
       await act(async () => {
         fireEvent.click(syncButton)
       })
@@ -352,9 +308,7 @@ describe('WithdrawDialog', () => {
     })
 
     it('should show transaction status when tx is in progress', async () => {
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -381,9 +335,7 @@ describe('WithdrawDialog', () => {
     })
 
     it('should disable sign button when transaction is in progress', async () => {
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -410,9 +362,7 @@ describe('WithdrawDialog', () => {
 
   describe('fee estimation', () => {
     it('should show loading state for estimated fee', async () => {
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -434,9 +384,7 @@ describe('WithdrawDialog', () => {
 
     it('should call getEstimatedFee on mount when dialog is open', async () => {
       const mockGetEstimatedFee = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -453,17 +401,12 @@ describe('WithdrawDialog', () => {
 
       render(<WithdrawDialog {...defaultProps} />)
 
-      expect(mockGetEstimatedFee).toHaveBeenCalledWith(
-        'polkadot',
-        '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'
-      )
+      expect(mockGetEstimatedFee).toHaveBeenCalledWith('polkadot', '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY')
     })
 
     it('should not call getEstimatedFee when dialog is closed', async () => {
       const mockGetEstimatedFee = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -484,9 +427,7 @@ describe('WithdrawDialog', () => {
     })
 
     it('should format estimated fee correctly', async () => {
-      const mockFormatBalance = vi.mocked(
-        await import('@/lib/utils/format')
-      ).formatBalance
+      const mockFormatBalance = vi.mocked(await import('@/lib/utils/format')).formatBalance
 
       mockFormatBalance.mockReturnValue('1000000000000 DOT')
 
@@ -527,24 +468,14 @@ describe('WithdrawDialog', () => {
         path: "m/44'/354'/0'/0'/1'",
       }
 
-      render(
-        <WithdrawDialog
-          {...defaultProps}
-          account={accountWithDifferentAddress}
-        />
-      )
+      render(<WithdrawDialog {...defaultProps} account={accountWithDifferentAddress} />)
 
       const explorerLink = screen.getByTestId('explorer-link')
-      expect(explorerLink).toHaveAttribute(
-        'data-value',
-        '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty'
-      )
+      expect(explorerLink).toHaveAttribute('data-value', '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty')
     })
 
     it('should handle transaction states correctly', async () => {
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -565,9 +496,7 @@ describe('WithdrawDialog', () => {
     })
 
     it('should handle failed transaction state', async () => {
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -588,9 +517,7 @@ describe('WithdrawDialog', () => {
     })
 
     it('should handle synchronizing state', async () => {
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -611,9 +538,7 @@ describe('WithdrawDialog', () => {
     })
 
     it('should handle undefined estimated fee', async () => {
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -713,9 +638,7 @@ describe('WithdrawDialog', () => {
 
   describe('component integration', () => {
     it('should use token logo hook correctly', async () => {
-      const mockUseTokenLogo = vi.mocked(
-        await import('@/components/hooks/useTokenLogo')
-      ).useTokenLogo
+      const mockUseTokenLogo = vi.mocked(await import('@/components/hooks/useTokenLogo')).useTokenLogo
 
       render(<WithdrawDialog {...defaultProps} />)
 
@@ -723,9 +646,7 @@ describe('WithdrawDialog', () => {
     })
 
     it('should use chain name correctly', async () => {
-      const mockGetChainName = vi.mocked(
-        await import('@/config/apps')
-      ).getChainName
+      const mockGetChainName = vi.mocked(await import('@/config/apps')).getChainName
 
       render(<WithdrawDialog {...defaultProps} />)
 
@@ -734,9 +655,7 @@ describe('WithdrawDialog', () => {
 
     it('should call ledger state functions correctly', async () => {
       const mockRunTransaction = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: mockRunTransaction,
@@ -756,7 +675,7 @@ describe('WithdrawDialog', () => {
       // Verify useTransactionStatus was called with correct function signatures
       expect(mockUseTransactionStatus).toHaveBeenCalledWith(
         expect.any(Function), // withdrawTxFn
-        expect.any(Function)  // ledgerState$.getWithdrawFee
+        expect.any(Function) // ledgerState$.getWithdrawFee
       )
     })
   })

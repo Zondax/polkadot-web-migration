@@ -33,13 +33,13 @@ describe('InvalidSynchronizedAccountsTable', () => {
 
   it('should render empty state when no accounts provided', () => {
     render(<InvalidSynchronizedAccountsTable {...mockProps} accounts={undefined} />)
-    
+
     expect(screen.getByText(/There are no accounts available for migration/)).toBeInTheDocument()
   })
 
   it('should render empty state when accounts array is empty', () => {
     render(<InvalidSynchronizedAccountsTable {...mockProps} accounts={[]} />)
-    
+
     expect(screen.getByText(/There are no accounts available for migration/)).toBeInTheDocument()
   })
 
@@ -50,7 +50,7 @@ describe('InvalidSynchronizedAccountsTable', () => {
     ]
 
     render(<InvalidSynchronizedAccountsTable {...mockProps} accounts={mockAccounts} />)
-    
+
     expect(screen.getByTestId('account-row-0')).toBeInTheDocument()
     expect(screen.getByTestId('account-row-1')).toBeInTheDocument()
     expect(screen.getByText('5Address1')).toBeInTheDocument()
@@ -59,52 +59,34 @@ describe('InvalidSynchronizedAccountsTable', () => {
 
   it('should render table headers', () => {
     render(<InvalidSynchronizedAccountsTable {...mockProps} accounts={[]} />)
-    
+
     expect(screen.getByText('Source Address')).toBeInTheDocument()
     expect(screen.getByText('Status')).toBeInTheDocument()
   })
 
   it('should handle single account', () => {
-    const mockAccounts = [
-      { address: '5SingleAddress', error: { description: 'Single error' } },
-    ]
+    const mockAccounts = [{ address: '5SingleAddress', error: { description: 'Single error' } }]
 
     render(<InvalidSynchronizedAccountsTable {...mockProps} accounts={mockAccounts} />)
-    
+
     expect(screen.getByTestId('account-row-0')).toBeInTheDocument()
     expect(screen.getByText('5SingleAddress')).toBeInTheDocument()
   })
 
   it('should render with collections prop', () => {
-    const mockAccounts = [
-      { address: '5Address1', error: { description: 'Error 1' } },
-    ]
+    const mockAccounts = [{ address: '5Address1', error: { description: 'Error 1' } }]
     const mockCollections = { nfts: [] }
 
-    render(
-      <InvalidSynchronizedAccountsTable 
-        {...mockProps} 
-        accounts={mockAccounts} 
-        collections={mockCollections} 
-      />
-    )
-    
+    render(<InvalidSynchronizedAccountsTable {...mockProps} accounts={mockAccounts} collections={mockCollections} />)
+
     expect(screen.getByTestId('account-row-0')).toBeInTheDocument()
   })
 
   it('should render with isMultisig prop', () => {
-    const mockAccounts = [
-      { address: '5MultisigAddress', members: [], threshold: 2 },
-    ]
+    const mockAccounts = [{ address: '5MultisigAddress', members: [], threshold: 2 }]
 
-    render(
-      <InvalidSynchronizedAccountsTable 
-        {...mockProps} 
-        accounts={mockAccounts} 
-        isMultisig={true} 
-      />
-    )
-    
+    render(<InvalidSynchronizedAccountsTable {...mockProps} accounts={mockAccounts} isMultisig={true} />)
+
     expect(screen.getByTestId('account-row-0')).toBeInTheDocument()
   })
 })

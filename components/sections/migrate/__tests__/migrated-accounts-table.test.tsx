@@ -4,7 +4,11 @@ import type { App } from '@/state/ledger'
 
 // Mock dependencies
 vi.mock('lucide-react', () => ({
-  Info: ({ className }: any) => <div data-testid="info-icon" className={className}>Info</div>,
+  Info: ({ className }: any) => (
+    <div data-testid="info-icon" className={className}>
+      Info
+    </div>
+  ),
 }))
 
 vi.mock('@/components/CustomTooltip', () => ({

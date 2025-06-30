@@ -6,23 +6,39 @@ import type { Registration, Token } from '@/state/types/ledger'
 
 // Mock dependencies
 vi.mock('lucide-react', () => ({
-  AlertCircle: ({ className }: any) => <span data-testid="alert-circle" className={className}>AlertCircle</span>,
+  AlertCircle: ({ className }: any) => (
+    <span data-testid="alert-circle" className={className}>
+      AlertCircle
+    </span>
+  ),
   AtSign: () => null,
-  CheckCircle: ({ className }: any) => <span data-testid="check-circle" className={className}>CheckCircle</span>,
-  Clock: ({ className }: any) => <span data-testid="clock" className={className}>Clock</span>,
+  CheckCircle: ({ className }: any) => (
+    <span data-testid="check-circle" className={className}>
+      CheckCircle
+    </span>
+  ),
+  Clock: ({ className }: any) => (
+    <span data-testid="clock" className={className}>
+      Clock
+    </span>
+  ),
   Globe: () => null,
   Mail: () => null,
   Twitter: () => null,
   User: () => null,
   Users: () => null,
-  XCircle: ({ className }: any) => <span data-testid="x-circle" className={className}>XCircle</span>,
+  XCircle: ({ className }: any) => (
+    <span data-testid="x-circle" className={className}>
+      XCircle
+    </span>
+  ),
 }))
 
 vi.mock('@/components/ExplorerLink', () => ({
   ExplorerLink: ({ value, className }: any) => (
-    <a data-testid="explorer-link" className={className}>
+    <button type="button" data-testid="explorer-link" className={className}>
       {value}
-    </a>
+    </button>
   ),
 }))
 
@@ -31,7 +47,7 @@ vi.mock('@/components/icons', () => ({
 }))
 
 vi.mock('../format', () => ({
-  formatBalance: (value: BN, token: any, decimals?: number) => `${value.toString()} ${token.symbol}`,
+  formatBalance: (value: BN, token: any, _decimals?: number) => `${value.toString()} ${token.symbol}`,
 }))
 
 import { getIdentityItems, getTransactionStatus, validateNumberInput } from '../ui'
@@ -40,7 +56,7 @@ describe('ui utilities', () => {
   describe('getTransactionStatus', () => {
     it('should return loading status with spinner', () => {
       const result = getTransactionStatus(TransactionStatus.IS_LOADING)
-      
+
       const { container } = render(<div>{result.statusIcon}</div>)
       expect(container.querySelector('[data-testid="spinner"]')).toBeTruthy()
       expect(result.statusMessage).toBe('Loading...')
@@ -48,7 +64,7 @@ describe('ui utilities', () => {
 
     it('should return pending status with clock icon', () => {
       const result = getTransactionStatus(TransactionStatus.PENDING)
-      
+
       const { container } = render(<div>{result.statusIcon}</div>)
       expect(container.querySelector('[data-testid="clock"]')).toBeTruthy()
       expect(result.statusMessage).toBe('Transaction pending...')
@@ -56,7 +72,7 @@ describe('ui utilities', () => {
 
     it('should return in block status with clock icon', () => {
       const result = getTransactionStatus(TransactionStatus.IN_BLOCK)
-      
+
       const { container } = render(<div>{result.statusIcon}</div>)
       expect(container.querySelector('[data-testid="clock"]')).toBeTruthy()
       expect(result.statusMessage).toBeUndefined()
@@ -64,14 +80,14 @@ describe('ui utilities', () => {
 
     it('should return finalized status with clock icon', () => {
       const result = getTransactionStatus(TransactionStatus.FINALIZED)
-      
+
       const { container } = render(<div>{result.statusIcon}</div>)
       expect(container.querySelector('[data-testid="clock"]')).toBeTruthy()
     })
 
     it('should return success status with green check circle', () => {
       const result = getTransactionStatus(TransactionStatus.SUCCESS)
-      
+
       const { container } = render(<div>{result.statusIcon}</div>)
       const icon = container.querySelector('[data-testid="check-circle"]')
       expect(icon).toBeTruthy()
@@ -80,7 +96,7 @@ describe('ui utilities', () => {
 
     it('should return failed status with red x circle', () => {
       const result = getTransactionStatus(TransactionStatus.FAILED)
-      
+
       const { container } = render(<div>{result.statusIcon}</div>)
       const icon = container.querySelector('[data-testid="x-circle"]')
       expect(icon).toBeTruthy()
@@ -89,7 +105,7 @@ describe('ui utilities', () => {
 
     it('should return error status with red alert circle', () => {
       const result = getTransactionStatus(TransactionStatus.ERROR)
-      
+
       const { container } = render(<div>{result.statusIcon}</div>)
       const icon = container.querySelector('[data-testid="alert-circle"]')
       expect(icon).toBeTruthy()
@@ -98,7 +114,7 @@ describe('ui utilities', () => {
 
     it('should return warning status with yellow alert circle', () => {
       const result = getTransactionStatus(TransactionStatus.WARNING)
-      
+
       const { container } = render(<div>{result.statusIcon}</div>)
       const icon = container.querySelector('[data-testid="alert-circle"]')
       expect(icon).toBeTruthy()
@@ -107,14 +123,14 @@ describe('ui utilities', () => {
 
     it('should return completed status with clock icon', () => {
       const result = getTransactionStatus(TransactionStatus.COMPLETED)
-      
+
       const { container } = render(<div>{result.statusIcon}</div>)
       expect(container.querySelector('[data-testid="clock"]')).toBeTruthy()
     })
 
     it('should return default ready to migrate badge', () => {
       const result = getTransactionStatus(undefined)
-      
+
       const { container } = render(<div>{result.statusIcon}</div>)
       expect(container.textContent).toContain('Ready to migrate')
     })
@@ -122,10 +138,10 @@ describe('ui utilities', () => {
     it('should use custom status message when provided', () => {
       const customMessage = 'Custom status message'
       const result = getTransactionStatus(TransactionStatus.PENDING, customMessage)
-      
+
       // The function overwrites the custom message for PENDING status
       expect(result.statusMessage).toBe('Transaction pending...')
-      
+
       // Test with a status that doesn't set its own message
       const resultInBlock = getTransactionStatus(TransactionStatus.IN_BLOCK, customMessage)
       expect(resultInBlock.statusMessage).toBe(customMessage)
@@ -134,7 +150,7 @@ describe('ui utilities', () => {
     it('should include transaction hash when provided', () => {
       const txHash = '0x1234567890abcdef'
       const result = getTransactionStatus(TransactionStatus.SUCCESS, undefined, 'sm', txHash)
-      
+
       expect(result.txHash).toBe(txHash)
     })
 
@@ -142,11 +158,11 @@ describe('ui utilities', () => {
       const resultSm = getTransactionStatus(TransactionStatus.SUCCESS, undefined, 'sm')
       const resultMd = getTransactionStatus(TransactionStatus.SUCCESS, undefined, 'md')
       const resultLg = getTransactionStatus(TransactionStatus.SUCCESS, undefined, 'lg')
-      
+
       const { container: containerSm } = render(<div>{resultSm.statusIcon}</div>)
       const { container: containerMd } = render(<div>{resultMd.statusIcon}</div>)
       const { container: containerLg } = render(<div>{resultLg.statusIcon}</div>)
-      
+
       expect(containerSm.querySelector('[data-testid="check-circle"]')?.className).toContain('h-4 w-4')
       expect(containerMd.querySelector('[data-testid="check-circle"]')?.className).toContain('h-6 w-6')
       expect(containerLg.querySelector('[data-testid="check-circle"]')?.className).toContain('h-8 w-8')
@@ -163,8 +179,8 @@ describe('ui utilities', () => {
     }
 
     it('should return invalid for NaN', () => {
-      const result = validateNumberInput(NaN, new BN('1000'), mockToken)
-      
+      const result = validateNumberInput(Number.NaN, new BN('1000'), mockToken)
+
       expect(result.valid).toBe(false)
       expect(result.helperText).toBe('Amount is required.')
     })
@@ -172,28 +188,28 @@ describe('ui utilities', () => {
     it('should return invalid for non-numeric input', () => {
       // Test with a value that BN constructor would reject
       const result = validateNumberInput(Number('invalid'), new BN('1000'), mockToken)
-      
+
       expect(result.valid).toBe(false)
       expect(result.helperText).toBe('Amount is required.')
     })
 
     it('should return invalid for zero', () => {
       const result = validateNumberInput(0, new BN('1000'), mockToken)
-      
+
       expect(result.valid).toBe(false)
       expect(result.helperText).toBe('Amount must be greater than zero.')
     })
 
     it('should return invalid for negative numbers', () => {
       const result = validateNumberInput(-100, new BN('1000'), mockToken)
-      
+
       expect(result.valid).toBe(false)
       expect(result.helperText).toBe('Amount must be greater than zero.')
     })
 
     it('should return invalid when amount exceeds maximum', () => {
       const result = validateNumberInput(2000, new BN('1000'), mockToken)
-      
+
       expect(result.valid).toBe(false)
       // The mock formatBalance just returns the value + symbol
       expect(result.helperText).toContain('Amount cannot exceed your staked balance')
@@ -202,21 +218,21 @@ describe('ui utilities', () => {
 
     it('should return valid for positive number within limits', () => {
       const result = validateNumberInput(500, new BN('1000'), mockToken)
-      
+
       expect(result.valid).toBe(true)
       expect(result.helperText).toBe('')
     })
 
     it('should return valid when amount equals maximum', () => {
       const result = validateNumberInput(1000, new BN('1000'), mockToken)
-      
+
       expect(result.valid).toBe(true)
       expect(result.helperText).toBe('')
     })
 
     it('should handle whole numbers less than max', () => {
       const result = validateNumberInput(1, new BN('1000'), mockToken)
-      
+
       expect(result.valid).toBe(true)
       expect(result.helperText).toBe('')
     })
@@ -227,7 +243,7 @@ describe('ui utilities', () => {
 
     it('should return empty array when registration is undefined', () => {
       const result = getIdentityItems(undefined, mockAppId)
-      
+
       expect(result).toEqual([])
     })
 
@@ -235,9 +251,9 @@ describe('ui utilities', () => {
       const registration: Registration = {
         identity: undefined,
       }
-      
+
       const result = getIdentityItems(registration, mockAppId)
-      
+
       expect(result).toEqual([])
     })
 
@@ -253,9 +269,9 @@ describe('ui utilities', () => {
           twitter: '@example',
         },
       }
-      
+
       const result = getIdentityItems(registration, mockAppId)
-      
+
       expect(result).toHaveLength(7)
       expect(result[0].label).toBe('Parent account')
       expect(result[1].label).toBe('Parent legal name')
@@ -283,9 +299,9 @@ describe('ui utilities', () => {
           // Other fields are undefined
         },
       }
-      
+
       const result = getIdentityItems(registration, mockAppId)
-      
+
       expect(result).toHaveLength(2)
       expect(result[0].label).toBe('Display name')
       expect(result[1].label).toBe('Legal name')
@@ -297,12 +313,12 @@ describe('ui utilities', () => {
           parent: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
         },
       }
-      
+
       const result = getIdentityItems(registration, mockAppId)
-      
+
       expect(result).toHaveLength(1)
       expect(result[0].label).toBe('Parent account')
-      
+
       // Render the value to check if it's an ExplorerLink
       const { container } = render(<div>{result[0].value}</div>)
       const link = container.querySelector('[data-testid="explorer-link"]')
@@ -317,9 +333,9 @@ describe('ui utilities', () => {
           email: undefined,
         },
       }
-      
+
       const result = getIdentityItems(registration, mockAppId)
-      
+
       const emailItem = result.find(item => item.label === 'Email')
       expect(emailItem).toBeUndefined()
     })
@@ -336,9 +352,9 @@ describe('ui utilities', () => {
           twitter: '@test',
         },
       }
-      
+
       const result = getIdentityItems(registration, mockAppId)
-      
+
       // Just verify icons are present (we mocked them as null)
       expect(result[0].icon).toBeDefined() // Users icon for parent
       expect(result[1].icon).toBeDefined() // AtSign icon for displayParent

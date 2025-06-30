@@ -135,10 +135,7 @@ describe('useSynchronization hook', () => {
   describe('polkadot addresses', () => {
     it('should extract polkadot addresses from app accounts', () => {
       const mockPolkadotApp = {
-        accounts: [
-          { address: '5Address1' },
-          { address: '5Address2' },
-        ],
+        accounts: [{ address: '5Address1' }, { address: '5Address2' }],
       }
 
       // Mock the polkadot app data structure
@@ -152,7 +149,7 @@ describe('useSynchronization hook', () => {
 
     it('should handle empty polkadot app gracefully', () => {
       const mockPolkadotApp = { accounts: [] }
-      
+
       ledgerState$.apps.polkadotApp = mockPolkadotApp as any
 
       const { result } = renderHook(() => useSynchronization())
@@ -178,7 +175,7 @@ describe('useSynchronization hook', () => {
 
       // Test that the function exists and is callable without throwing
       expect(typeof result.current.updateTransaction).toBe('function')
-      
+
       // Test calling it with valid parameters doesn't throw
       expect(() => {
         result.current.updateTransaction(
@@ -196,7 +193,7 @@ describe('useSynchronization hook', () => {
 
       // Test that the function exists and is callable
       expect(typeof result.current.rescanFailedAccounts).toBe('function')
-      
+
       await act(async () => {
         await result.current.rescanFailedAccounts()
       })

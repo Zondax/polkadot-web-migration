@@ -228,14 +228,14 @@ describe('notifications utilities', () => {
       }
 
       expect(mockPush).toHaveBeenCalledTimes(10)
-      errors.forEach((_error, i) => {
+      for (const [i, _error] of errors.entries()) {
         expect(mockPush).toHaveBeenNthCalledWith(i + 1, {
           title: `Error ${i}`,
           description: `Description ${i}`,
           type: 'error',
           autoHideDuration: 5000,
         })
-      })
+      }
     })
 
     it('should not modify the original error object', () => {

@@ -34,7 +34,7 @@ global.fetch = vi.fn()
 
 // Mock balance utilities
 vi.mock('../balance', () => ({
-  hasAddressBalance: vi.fn((account) => {
+  hasAddressBalance: vi.fn(account => {
     if (!account.balances) return false
     return account.balances.some((balance: any) => {
       if (balance.type === BalanceType.NATIVE) {
@@ -43,7 +43,7 @@ vi.mock('../balance', () => ({
       return balance.balance?.length > 0
     })
   }),
-  hasBalance: vi.fn((balances) => {
+  hasBalance: vi.fn(balances => {
     return balances.some((balance: any) => {
       if (balance.type === BalanceType.NATIVE) {
         return balance.balance?.total?.gt(new BN(0))
@@ -479,10 +479,7 @@ describe('ledger utilities', () => {
 
   describe('filterAccountsForApps', () => {
     it('should include all accounts when filterByBalance is false', () => {
-      const accounts = [
-        mockAddress,
-        { ...mockAddress, balances: [] },
-      ]
+      const accounts = [mockAddress, { ...mockAddress, balances: [] }]
 
       const result = filterAccountsForApps(accounts, false)
 
@@ -490,10 +487,7 @@ describe('ledger utilities', () => {
     })
 
     it('should filter accounts with balances when filterByBalance is true', () => {
-      const accounts = [
-        mockAddress,
-        { ...mockAddress, balances: [] },
-      ]
+      const accounts = [mockAddress, { ...mockAddress, balances: [] }]
 
       const result = filterAccountsForApps(accounts, true)
 
@@ -536,7 +530,7 @@ describe('ledger utilities', () => {
         ...mockAddress,
         balances: [
           {
-            ...mockAddress.balances![0],
+            ...mockAddress.balances?.[0],
             transaction: { destinationAddress: '' },
           },
         ] as AddressBalance[],
@@ -552,7 +546,7 @@ describe('ledger utilities', () => {
         ...mockAddress,
         balances: [
           {
-            ...mockAddress.balances![0],
+            ...mockAddress.balances?.[0],
             transaction: { destinationAddress: '5GExistingAddress' },
           },
         ] as AddressBalance[],
@@ -579,7 +573,7 @@ describe('ledger utilities', () => {
         ...mockAddress,
         balances: [
           {
-            ...mockAddress.balances![0],
+            ...mockAddress.balances?.[0],
             transaction: undefined,
           },
         ] as AddressBalance[],
@@ -599,11 +593,11 @@ describe('ledger utilities', () => {
           ...mockAddress,
           balances: [
             {
-              ...mockAddress.balances![0],
+              ...mockAddress.balances?.[0],
               transaction: { destinationAddress: '5GAddress1' },
             },
             {
-              ...mockAddress.balances![0],
+              ...mockAddress.balances?.[0],
               transaction: { destinationAddress: '5GAddress2' },
             },
           ] as AddressBalance[],
@@ -633,7 +627,7 @@ describe('ledger utilities', () => {
           ...mockAddress,
           balances: [
             {
-              ...mockAddress.balances![0],
+              ...mockAddress.balances?.[0],
               transaction: { destinationAddress: '5GAddress1' },
             },
           ] as AddressBalance[],
@@ -661,7 +655,7 @@ describe('ledger utilities', () => {
           ...mockAddress,
           balances: [
             {
-              ...mockAddress.balances![0],
+              ...mockAddress.balances?.[0],
               transaction: { destinationAddress: '' },
             },
           ] as AddressBalance[],

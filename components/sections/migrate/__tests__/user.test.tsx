@@ -19,7 +19,7 @@ vi.mock('@/components/hooks/useConnection', () => ({
 // Mock the UI components
 vi.mock('@/components/ui/button', () => ({
   Button: ({ children, variant, size, className, ...props }: any) => (
-    <button data-variant={variant} data-size={size} className={className} {...props}>
+    <button type="button" data-variant={variant} data-size={size} className={className} {...props}>
       {children}
     </button>
   ),
@@ -37,18 +37,12 @@ vi.mock('@/components/ui/dropdown-menu', () => ({
       {children}
     </div>
   ),
-  DropdownMenuLabel: ({ children }: any) => (
-    <div data-testid="dropdown-label">{children}</div>
-  ),
+  DropdownMenuLabel: ({ children }: any) => <div data-testid="dropdown-label">{children}</div>,
   DropdownMenuSeparator: () => <hr data-testid="dropdown-separator" />,
   DropdownMenuItem: ({ children, onClick, disabled }: any) => (
-    <div 
-      data-testid="dropdown-item" 
-      onClick={disabled ? undefined : onClick}
-      data-disabled={disabled}
-    >
+    <button data-testid="dropdown-item" onClick={disabled ? undefined : onClick} data-disabled={disabled} type="button">
       {children}
-    </div>
+    </button>
   ),
 }))
 
@@ -56,6 +50,7 @@ vi.mock('@/components/ui/dropdown-menu', () => ({
 vi.mock('lucide-react', () => ({
   User: ({ className }: any) => (
     <svg data-testid="user-icon" className={className}>
+      <title>User Icon</title>
       User Icon
     </svg>
   ),
@@ -67,7 +62,6 @@ vi.mock('@legendapp/state/react', () => ({
 }))
 
 import User from '../user'
-import { useConnection } from '@/components/hooks/useConnection'
 
 describe('User component', () => {
   beforeEach(() => {
@@ -78,7 +72,7 @@ describe('User component', () => {
     it('should render the user dropdown trigger button', () => {
       render(<User />)
 
-      const button = screen.getByRole('button')
+      const button = screen.getByRole('button', { name: /user icon/i })
       expect(button).toBeInTheDocument()
       expect(button).toHaveAttribute('data-variant', 'outline')
       expect(button).toHaveAttribute('data-size', 'icon')
@@ -95,14 +89,8 @@ describe('User component', () => {
     it('should render button with correct styling classes', () => {
       render(<User />)
 
-      const button = screen.getByRole('button')
-      expect(button).toHaveClass(
-        'rounded-full',
-        'border-white/30',
-        'bg-white/10',
-        'hover:bg-white/20',
-        'text-white'
-      )
+      const button = screen.getByRole('button', { name: /user icon/i })
+      expect(button).toHaveClass('rounded-full', 'border-white/30', 'bg-white/10', 'hover:bg-white/20', 'text-white')
     })
 
     it('should render dropdown menu structure', () => {
@@ -181,8 +169,10 @@ describe('User component', () => {
 
       const menuItems = screen.getAllByTestId('dropdown-item')
       const connectItem = menuItems.find(item => item.textContent === 'Connect your wallet')
-      
-      fireEvent.click(connectItem!)
+      expect(connectItem).toBeTruthy()
+      if (!connectItem) throw new Error('Connect item not found')
+
+      fireEvent.click(connectItem)
       expect(mockConnectDevice).toHaveBeenCalledTimes(1)
     })
 
@@ -191,8 +181,10 @@ describe('User component', () => {
 
       const menuItems = screen.getAllByTestId('dropdown-item')
       const connectItem = menuItems.find(item => item.textContent === 'Connect your wallet')
-      
-      fireEvent.click(connectItem!)
+      expect(connectItem).toBeTruthy()
+      if (!connectItem) throw new Error('Connect item not found')
+
+      fireEvent.click(connectItem)
       expect(mockDisconnectDevice).not.toHaveBeenCalled()
     })
   })
@@ -219,8 +211,10 @@ describe('User component', () => {
 
       const menuItems = screen.getAllByTestId('dropdown-item')
       const disconnectItem = menuItems.find(item => item.textContent === 'Disconnect wallet')
-      
-      fireEvent.click(disconnectItem!)
+      expect(disconnectItem).toBeTruthy()
+      if (!disconnectItem) throw new Error('Disconnect item not found')
+
+      fireEvent.click(disconnectItem)
       expect(mockDisconnectDevice).toHaveBeenCalledTimes(1)
     })
 
@@ -229,8 +223,10 @@ describe('User component', () => {
 
       const menuItems = screen.getAllByTestId('dropdown-item')
       const disconnectItem = menuItems.find(item => item.textContent === 'Disconnect wallet')
-      
-      fireEvent.click(disconnectItem!)
+      expect(disconnectItem).toBeTruthy()
+      if (!disconnectItem) throw new Error('Disconnect item not found')
+
+      fireEvent.click(disconnectItem)
       expect(mockConnectDevice).not.toHaveBeenCalled()
     })
   })
@@ -251,7 +247,7 @@ describe('User component', () => {
         disconnectDevice: mockDisconnectDevice,
         isLedgerConnected: false,
       })
-      
+
       rerender(<User />)
       expect(screen.getByText('Connect your wallet')).toBeInTheDocument()
 
@@ -261,7 +257,7 @@ describe('User component', () => {
         disconnectDevice: mockDisconnectDevice,
         isLedgerConnected: true,
       })
-      
+
       rerender(<User />)
       expect(screen.getByText('Disconnect wallet')).toBeInTheDocument()
     })
@@ -274,11 +270,13 @@ describe('User component', () => {
 
       const menuItems = screen.getAllByTestId('dropdown-item')
       const settingsItem = menuItems.find(item => item.textContent === 'Settings')
-      
-      fireEvent.click(settingsItem!)
+      expect(settingsItem).toBeTruthy()
+      if (!settingsItem) throw new Error('Settings item not found')
+
+      fireEvent.click(settingsItem)
       // Should not trigger any action since it's disabled
       expect(consoleLog).not.toHaveBeenCalled()
-      
+
       consoleLog.mockRestore()
     })
 
@@ -288,11 +286,13 @@ describe('User component', () => {
 
       const menuItems = screen.getAllByTestId('dropdown-item')
       const supportItem = menuItems.find(item => item.textContent === 'Support')
-      
-      fireEvent.click(supportItem!)
+      expect(supportItem).toBeTruthy()
+      if (!supportItem) throw new Error('Support item not found')
+
+      fireEvent.click(supportItem)
       // Should not trigger any action since it's disabled
       expect(consoleLog).not.toHaveBeenCalled()
-      
+
       consoleLog.mockRestore()
     })
   })
@@ -301,8 +301,9 @@ describe('User component', () => {
     it('should be accessible as a button', () => {
       render(<User />)
 
-      const button = screen.getByRole('button')
+      const button = screen.getByRole('button', { name: /user icon/i })
       expect(button).toBeInTheDocument()
+      expect(button.tagName).toBe('BUTTON')
     })
 
     it('should have proper dropdown structure for screen readers', () => {

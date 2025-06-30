@@ -215,7 +215,7 @@ describe('useMigration hook', () => {
 
       // Method should exist and be callable
       expect(typeof result.current.toggleAccountSelection).toBe('function')
-      
+
       // Test that it doesn't throw with invalid parameters
       expect(() => {
         result.current.toggleAccountSelection('nonexistent', 'nonexistent', true)
@@ -227,7 +227,7 @@ describe('useMigration hook', () => {
 
       // Method should exist and be callable
       expect(typeof result.current.toggleAllAccounts).toBe('function')
-      
+
       // Test that it doesn't throw
       expect(() => {
         result.current.toggleAllAccounts(true)

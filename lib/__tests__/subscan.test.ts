@@ -118,15 +118,13 @@ describe('Subscan Integration', () => {
         status: 404,
       } as any)
 
-      await expect(getMultisigInfo(testAddress, testNetwork))
-        .rejects.toThrow('HTTP error! status: 404')
+      await expect(getMultisigInfo(testAddress, testNetwork)).rejects.toThrow('HTTP error! status: 404')
     })
 
     it('should handle network connection errors', async () => {
       vi.mocked(fetch).mockRejectedValueOnce(new Error('Network connection failed'))
 
-      await expect(getMultisigInfo(testAddress, testNetwork))
-        .rejects.toThrow('Network connection failed')
+      await expect(getMultisigInfo(testAddress, testNetwork)).rejects.toThrow('Network connection failed')
     })
 
     it('should handle JSON parsing errors', async () => {
@@ -135,8 +133,7 @@ describe('Subscan Integration', () => {
         json: vi.fn().mockRejectedValue(new Error('Invalid JSON')),
       } as any)
 
-      await expect(getMultisigInfo(testAddress, testNetwork))
-        .rejects.toThrow('Invalid JSON')
+      await expect(getMultisigInfo(testAddress, testNetwork)).rejects.toThrow('Invalid JSON')
     })
 
     it('should work with different networks', async () => {
@@ -273,8 +270,7 @@ describe('Subscan Integration', () => {
         status: 500,
       } as any)
 
-      await expect(getMultisigInfo(testAddress, testNetwork))
-        .rejects.toThrow('HTTP error! status: 500')
+      await expect(getMultisigInfo(testAddress, testNetwork)).rejects.toThrow('HTTP error! status: 500')
     })
 
     it('should handle rate limiting errors', async () => {
@@ -283,8 +279,7 @@ describe('Subscan Integration', () => {
         status: 429,
       } as any)
 
-      await expect(getMultisigInfo(testAddress, testNetwork))
-        .rejects.toThrow('HTTP error! status: 429')
+      await expect(getMultisigInfo(testAddress, testNetwork)).rejects.toThrow('HTTP error! status: 429')
     })
 
     it('should handle malformed API responses', async () => {
@@ -318,20 +313,15 @@ describe('Subscan Integration', () => {
         json: vi.fn().mockResolvedValue(mockResponse),
       } as any)
 
-      await expect(getMultisigInfo(testAddress, testNetwork))
-        .rejects.toThrow() // Should throw due to accessing properties on null
+      await expect(getMultisigInfo(testAddress, testNetwork)).rejects.toThrow() // Should throw due to accessing properties on null
     })
   })
 
   describe('SubscanMultisig interface', () => {
     it('should have correct interface structure', () => {
       const multisig: SubscanMultisig = {
-        multi_account: [
-          { address: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY' },
-        ],
-        multi_account_member: [
-          { address: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty' },
-        ],
+        multi_account: [{ address: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY' }],
+        multi_account_member: [{ address: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty' }],
         threshold: 2,
       }
 

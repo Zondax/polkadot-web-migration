@@ -8,8 +8,16 @@ vi.mock('@legendapp/state/react', () => ({
 }))
 
 vi.mock('lucide-react', () => ({
-  AlertCircle: ({ className }: any) => <div data-testid="alert-circle" className={className}>AlertCircle</div>,
-  Info: ({ className }: any) => <div data-testid="info-icon" className={className}>Info</div>,
+  AlertCircle: ({ className }: any) => (
+    <div data-testid="alert-circle" className={className}>
+      AlertCircle
+    </div>
+  ),
+  Info: ({ className }: any) => (
+    <div data-testid="info-icon" className={className}>
+      Info
+    </div>
+  ),
   KeyRound: () => null,
   Route: () => null,
   User: () => null,
@@ -25,15 +33,13 @@ vi.mock('@/components/CustomTooltip', () => ({
     } else if (typeof tooltipBody === 'string') {
       tooltipContent = tooltipBody
     }
-    
+
     return (
       <div data-testid="custom-tooltip" data-tooltip-body={tooltipContent}>
         {children}
         {/* Render the actual tooltip body for testing */}
         {tooltipBody && typeof tooltipBody === 'object' && tooltipBody.props && (
-          <div data-testid="tooltip-content-wrapper">
-            {tooltipBody}
-          </div>
+          <div data-testid="tooltip-content-wrapper">{tooltipBody}</div>
         )}
       </div>
     )
@@ -41,7 +47,7 @@ vi.mock('@/components/CustomTooltip', () => ({
   TooltipBody: ({ items }: any) => (
     <div data-testid="tooltip-body">
       {items.map((item: any, index: number) => (
-        <div key={index} data-testid="tooltip-item">
+        <div key={`${item.label}-${index}`} data-testid="tooltip-item">
           {item.label}: {typeof item.value === 'string' ? item.value : 'Component'}
         </div>
       ))}
@@ -52,9 +58,9 @@ vi.mock('@/components/CustomTooltip', () => ({
 
 vi.mock('@/components/ExplorerLink', () => ({
   ExplorerLink: ({ value, className }: any) => (
-    <a data-testid="explorer-link" className={className}>
+    <button type="button" data-testid="explorer-link" className={className}>
       {value}
-    </a>
+    </button>
   ),
 }))
 
@@ -157,11 +163,11 @@ describe('InvalidSynchronizedAccountRow component', () => {
       // The tooltip content is rendered inside the wrapper
       const tooltipWrapper = screen.getByTestId('tooltip-content-wrapper')
       expect(tooltipWrapper).toBeInTheDocument()
-      
+
       // Within the wrapper, we should find the tooltip body
       const tooltipBody = tooltipWrapper.querySelector('[data-testid="tooltip-body"]')
       expect(tooltipBody).toBeInTheDocument()
-      
+
       const tooltipItems = tooltipWrapper.querySelectorAll('[data-testid="tooltip-item"]')
       expect(tooltipItems).toHaveLength(3)
       expect(tooltipItems[0]).toHaveTextContent('Source Address: Component')
@@ -232,10 +238,8 @@ describe('InvalidSynchronizedAccountRow component', () => {
 
       expect(screen.getByTestId('alert-circle')).toBeInTheDocument()
       expect(screen.getByTestId('alert-circle')).toHaveClass('h-4 w-4 text-destructive cursor-help')
-      
-      const tooltip = screen.getAllByTestId('custom-tooltip').find(el => 
-        el.getAttribute('data-tooltip-body') === 'Failed to sync account'
-      )
+
+      const tooltip = screen.getAllByTestId('custom-tooltip').find(el => el.getAttribute('data-tooltip-body') === 'Failed to sync account')
       expect(tooltip).toBeInTheDocument()
     })
 

@@ -52,7 +52,7 @@ vi.mock('@/components/TokenIcon', () => ({
 
 vi.mock('@/components/ui/button', () => ({
   Button: vi.fn(({ children, variant, onClick }) => (
-    <button data-testid="button" data-variant={variant} onClick={onClick}>
+    <button type="button" data-testid="button" data-variant={variant} onClick={onClick}>
       {children}
     </button>
   )),
@@ -61,14 +61,12 @@ vi.mock('@/components/ui/button', () => ({
 vi.mock('@/components/ui/dialog', () => ({
   Dialog: vi.fn(({ children, open, onOpenChange }) =>
     open ? (
-      <div data-testid="dialog" onBlur={() => onOpenChange?.(false)}>
+      <div data-testid="dialog" role="dialog" onBlur={() => onOpenChange?.(false)}>
         {children}
       </div>
     ) : null
   ),
-  DialogContent: vi.fn(({ children }) => (
-    <div data-testid="dialog-content">{children}</div>
-  )),
+  DialogContent: vi.fn(({ children }) => <div data-testid="dialog-content">{children}</div>),
   DialogHeader: vi.fn(({ children }) => <div data-testid="dialog-header">{children}</div>),
   DialogTitle: vi.fn(({ children }) => <h2 data-testid="dialog-title">{children}</h2>),
   DialogDescription: vi.fn(({ children, className }) => (
@@ -139,25 +137,19 @@ describe('MigrationProgressDialog', () => {
     })
 
     it('should not render when open is false', () => {
-      const { container } = render(
-        <MigrationProgressDialog {...defaultProps} open={false} />
-      )
+      const { container } = render(<MigrationProgressDialog {...defaultProps} open={false} />)
 
       expect(container.firstChild).toBeNull()
     })
 
     it('should not render when migratingItem is undefined', () => {
-      const { container } = render(
-        <MigrationProgressDialog {...defaultProps} migratingItem={undefined} />
-      )
+      const { container } = render(<MigrationProgressDialog {...defaultProps} migratingItem={undefined} />)
 
       expect(container.firstChild).toBeNull()
     })
 
     it('should not render when migratingItem is null', () => {
-      const { container } = render(
-        <MigrationProgressDialog {...defaultProps} migratingItem={null as any} />
-      )
+      const { container } = render(<MigrationProgressDialog {...defaultProps} migratingItem={null as any} />)
 
       expect(container.firstChild).toBeNull()
     })
@@ -185,10 +177,7 @@ describe('MigrationProgressDialog', () => {
 
       const explorerLink = screen.getByTestId('explorer-link')
       expect(explorerLink).toBeInTheDocument()
-      expect(explorerLink).toHaveAttribute(
-        'data-value',
-        '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'
-      )
+      expect(explorerLink).toHaveAttribute('data-value', '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY')
       expect(explorerLink).toHaveAttribute('data-app-id', 'polkadot')
       expect(explorerLink).toHaveAttribute('data-explorer-type', 'address')
       expect(explorerLink).toHaveAttribute('data-disable-tooltip', 'true')
@@ -256,14 +245,16 @@ describe('MigrationProgressDialog', () => {
         },
       ]
 
-      scenarios.forEach(({ status, message }) => {
+      for (const { status, message } of scenarios) {
+        if (!mockMigratingItem.transaction) throw new Error('Mock transaction is required')
+
         const { rerender } = render(
           <MigrationProgressDialog
             {...defaultProps}
             migratingItem={{
               ...mockMigratingItem,
               transaction: {
-                ...mockMigratingItem.transaction!,
+                ...mockMigratingItem.transaction,
                 status,
                 statusMessage: message,
               },
@@ -275,7 +266,7 @@ describe('MigrationProgressDialog', () => {
         expect(screen.getByTestId('status-message')).toHaveTextContent(message)
 
         rerender(<div />)
-      })
+      }
     })
 
     it('should handle transaction without optional fields', () => {
@@ -284,12 +275,7 @@ describe('MigrationProgressDialog', () => {
         transaction: undefined,
       }
 
-      render(
-        <MigrationProgressDialog
-          {...defaultProps}
-          migratingItem={migratingItemWithoutTransaction}
-        />
-      )
+      render(<MigrationProgressDialog {...defaultProps} migratingItem={migratingItemWithoutTransaction} />)
 
       const statusBody = screen.getByTestId('transaction-status-body')
       expect(statusBody).toBeInTheDocument()
@@ -309,12 +295,7 @@ describe('MigrationProgressDialog', () => {
         },
       }
 
-      render(
-        <MigrationProgressDialog
-          {...defaultProps}
-          migratingItem={migratingItemWithPartialTransaction}
-        />
-      )
+      render(<MigrationProgressDialog {...defaultProps} migratingItem={migratingItemWithPartialTransaction} />)
 
       expect(screen.getByTestId('status')).toHaveTextContent(TransactionStatus.IN_BLOCK)
       expect(screen.getByTestId('status-message')).toHaveTextContent('Processing...')
@@ -328,12 +309,7 @@ describe('MigrationProgressDialog', () => {
         appName: '',
       }
 
-      render(
-        <MigrationProgressDialog
-          {...defaultProps}
-          migratingItem={migratingItemWithoutAppName}
-        />
-      )
+      render(<MigrationProgressDialog {...defaultProps} migratingItem={migratingItemWithoutAppName} />)
 
       expect(screen.getByTestId('token-icon')).toHaveAttribute('data-symbol', '')
     })
@@ -347,12 +323,7 @@ describe('MigrationProgressDialog', () => {
         },
       }
 
-      render(
-        <MigrationProgressDialog
-          {...defaultProps}
-          migratingItem={migratingItemWithoutAddress}
-        />
-      )
+      render(<MigrationProgressDialog {...defaultProps} migratingItem={migratingItemWithoutAddress} />)
 
       const explorerLink = screen.getByTestId('explorer-link')
       expect(explorerLink).toHaveAttribute('data-value', '')
@@ -365,12 +336,7 @@ describe('MigrationProgressDialog', () => {
         appName: 'Kusama',
       }
 
-      render(
-        <MigrationProgressDialog
-          {...defaultProps}
-          migratingItem={migratingItemWithDifferentApp}
-        />
-      )
+      render(<MigrationProgressDialog {...defaultProps} migratingItem={migratingItemWithDifferentApp} />)
 
       expect(screen.getByTestId('token-icon')).toHaveAttribute('data-symbol', 'Kusama')
       expect(screen.getByTestId('explorer-link')).toHaveAttribute('data-app-id', 'kusama')
@@ -382,7 +348,7 @@ describe('MigrationProgressDialog', () => {
       // The component should be wrapped with observer for reactive updates
       // This is verified by the mock that ensures observer is called
       render(<MigrationProgressDialog {...defaultProps} />)
-      
+
       expect(screen.getByTestId('dialog')).toBeInTheDocument()
     })
 

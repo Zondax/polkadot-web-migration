@@ -91,9 +91,12 @@ describe('/api/subscan/search/route', () => {
 
       const { SubscanClient } = await import('../../common/client')
       const mockRequest = vi.fn().mockResolvedValue(mockSubscanData)
-      vi.mocked(SubscanClient).mockImplementation(() => ({
-        request: mockRequest,
-      }) as any)
+      vi.mocked(SubscanClient).mockImplementation(
+        () =>
+          ({
+            request: mockRequest,
+          }) as any
+      )
 
       const request = mockNextRequest({
         network: 'polkadot',
@@ -112,12 +115,13 @@ describe('/api/subscan/search/route', () => {
 
     it('should handle SubscanError with custom status', async () => {
       const { SubscanClient } = await import('../../common/client')
-      const mockRequest = vi.fn().mockRejectedValue(
-        new SubscanError('Record not found', 10004, 404)
+      const mockRequest = vi.fn().mockRejectedValue(new SubscanError('Record not found', 10004, 404))
+      vi.mocked(SubscanClient).mockImplementation(
+        () =>
+          ({
+            request: mockRequest,
+          }) as any
       )
-      vi.mocked(SubscanClient).mockImplementation(() => ({
-        request: mockRequest,
-      }) as any)
 
       const request = mockNextRequest({
         network: 'polkadot',
@@ -133,12 +137,13 @@ describe('/api/subscan/search/route', () => {
 
     it('should handle SubscanError with rate limit', async () => {
       const { SubscanClient } = await import('../../common/client')
-      const mockRequest = vi.fn().mockRejectedValue(
-        new SubscanError('Rate limit exceeded', 10003, 429)
+      const mockRequest = vi.fn().mockRejectedValue(new SubscanError('Rate limit exceeded', 10003, 429))
+      vi.mocked(SubscanClient).mockImplementation(
+        () =>
+          ({
+            request: mockRequest,
+          }) as any
       )
-      vi.mocked(SubscanClient).mockImplementation(() => ({
-        request: mockRequest,
-      }) as any)
 
       const request = mockNextRequest({
         network: 'polkadot',
@@ -155,9 +160,12 @@ describe('/api/subscan/search/route', () => {
     it('should handle unknown errors with 500 status', async () => {
       const { SubscanClient } = await import('../../common/client')
       const mockRequest = vi.fn().mockRejectedValue(new Error('Unknown network error'))
-      vi.mocked(SubscanClient).mockImplementation(() => ({
-        request: mockRequest,
-      }) as any)
+      vi.mocked(SubscanClient).mockImplementation(
+        () =>
+          ({
+            request: mockRequest,
+          }) as any
+      )
 
       const request = mockNextRequest({
         network: 'polkadot',
@@ -188,9 +196,12 @@ describe('/api/subscan/search/route', () => {
 
       const { SubscanClient } = await import('../../common/client')
       const mockRequest = vi.fn().mockResolvedValue({ code: 0, message: 'Success', generated_at: 123 })
-      vi.mocked(SubscanClient).mockImplementation(() => ({
-        request: mockRequest,
-      }) as any)
+      vi.mocked(SubscanClient).mockImplementation(
+        () =>
+          ({
+            request: mockRequest,
+          }) as any
+      )
 
       const request = mockNextRequest({
         network: 'kusama',
@@ -210,9 +221,12 @@ describe('/api/subscan/search/route', () => {
 
       const { SubscanClient } = await import('../../common/client')
       const mockRequest = vi.fn().mockResolvedValue({ code: 0, message: 'Success', generated_at: 123 })
-      vi.mocked(SubscanClient).mockImplementation(() => ({
-        request: mockRequest,
-      }) as any)
+      vi.mocked(SubscanClient).mockImplementation(
+        () =>
+          ({
+            request: mockRequest,
+          }) as any
+      )
 
       const request = mockNextRequest({
         network: 'polkadot',
@@ -230,9 +244,12 @@ describe('/api/subscan/search/route', () => {
     it('should handle different network names', async () => {
       const { SubscanClient } = await import('../../common/client')
       const mockRequest = vi.fn().mockResolvedValue({ code: 0, message: 'Success', generated_at: 123 })
-      vi.mocked(SubscanClient).mockImplementation(() => ({
-        request: mockRequest,
-      }) as any)
+      vi.mocked(SubscanClient).mockImplementation(
+        () =>
+          ({
+            request: mockRequest,
+          }) as any
+      )
 
       const testCases = ['polkadot', 'kusama', 'westend', 'acala']
 

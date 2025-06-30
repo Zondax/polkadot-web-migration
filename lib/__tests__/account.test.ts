@@ -7,10 +7,12 @@ const originalHandler = process.listeners('unhandledRejection')[0]
 process.removeAllListeners('unhandledRejection')
 process.on('unhandledRejection', (reason, promise) => {
   // Suppress specific blockchain connection errors that are expected in tests
-  if (reason instanceof Error && 
-      (reason.message.includes('Connection failed') || 
-       reason.message.includes('failed_to_connect_to_blockchain') ||
-       reason.message.includes('Connection timeout'))) {
+  if (
+    reason instanceof Error &&
+    (reason.message.includes('Connection failed') ||
+      reason.message.includes('failed_to_connect_to_blockchain') ||
+      reason.message.includes('Connection timeout'))
+  ) {
     // These are expected failures in our connection retry tests
     return
   }
@@ -648,7 +650,7 @@ describe('getBalance', () => {
 
   it.skip('should handle API errors gracefully', async () => {
     // TODO: Review expectations - skipped due to complex getNFTsOwnedByAccount mocking requirements
-    // Reset environment to avoid development mode behavior  
+    // Reset environment to avoid development mode behavior
     const originalEnv = process.env.NEXT_PUBLIC_NODE_ENV
     process.env.NEXT_PUBLIC_NODE_ENV = 'production'
 
@@ -841,9 +843,9 @@ describe('prepareTransactionPayload', () => {
       },
       call: {
         metadata: {
-          metadataAtVersion: vi.fn().mockResolvedValue({ 
-            isNone: false, 
-            unwrap: () => mockMetadata 
+          metadataAtVersion: vi.fn().mockResolvedValue({
+            isNone: false,
+            unwrap: () => mockMetadata,
           }),
         },
       },
@@ -860,7 +862,7 @@ describe('prepareTransactionPayload', () => {
 
     // TODO: Review expectations - this test may need adjustment based on actual merkleize implementation
     const { prepareTransactionPayload } = await import('../account')
-    
+
     try {
       const result = await prepareTransactionPayload(mockApi, mockAddress.address, mockAppConfig, mockTransfer)
       // Test should pass if no errors are thrown and result structure is correct
@@ -883,9 +885,8 @@ describe('prepareTransactionPayload', () => {
     } as unknown as ApiPromise
 
     const { prepareTransactionPayload } = await import('../account')
-    
-    await expect(prepareTransactionPayload(mockApi, mockAddress.address, mockAppConfig, mockTransfer))
-      .rejects.toThrow('Nonce query failed')
+
+    await expect(prepareTransactionPayload(mockApi, mockAddress.address, mockAppConfig, mockTransfer)).rejects.toThrow('Nonce query failed')
   })
 })
 
@@ -903,7 +904,7 @@ describe('getApiAndProvider retry logic', () => {
   it('should retry connection with exponential backoff', async () => {
     const mockProvider = { disconnect: vi.fn().mockResolvedValue(undefined) }
     vi.mocked(WsProvider).mockImplementation(() => mockProvider as any)
-    
+
     // Mock ApiPromise.create to fail twice, then succeed
     vi.mocked(ApiPromise.create)
       .mockRejectedValueOnce(new Error('Connection failed'))
@@ -911,10 +912,10 @@ describe('getApiAndProvider retry logic', () => {
       .mockResolvedValueOnce({ disconnect: vi.fn() } as any)
 
     const connectionPromise = getApiAndProvider('wss://test.endpoint')
-    
+
     // Fast-forward through the retry delays
     await vi.runAllTimersAsync()
-    
+
     const result = await connectionPromise
     expect(result.api).toBeDefined()
     expect(vi.mocked(ApiPromise.create)).toHaveBeenCalledTimes(3)
@@ -923,15 +924,15 @@ describe('getApiAndProvider retry logic', () => {
   it('should throw InternalError after max retries', async () => {
     const mockProvider = { disconnect: vi.fn().mockResolvedValue(undefined) }
     vi.mocked(WsProvider).mockImplementation(() => mockProvider as any)
-    
+
     // Mock ApiPromise.create to always fail
     vi.mocked(ApiPromise.create).mockRejectedValue(new Error('Connection failed'))
 
     const connectionPromise = getApiAndProvider('wss://test.endpoint')
-    
+
     // Fast-forward through all retry delays
     await vi.runAllTimersAsync()
-    
+
     await expect(connectionPromise).rejects.toThrow(InternalError)
     expect(vi.mocked(ApiPromise.create)).toHaveBeenCalledTimes(3) // MAX_CONNECTION_RETRIES
   })

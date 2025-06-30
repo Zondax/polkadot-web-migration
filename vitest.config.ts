@@ -17,25 +17,25 @@ export default defineConfig({
       all: true,
       exclude: [
         // Infrastructure & config files
-        'e2e/**', 
-        'node_modules/**', 
-        '.next/**', 
+        'e2e/**',
+        'node_modules/**',
+        '.next/**',
         'coverage/**',
         '**/*.config.*',
         'environment.d.ts',
         '**/*.d.ts',
         'vitest.setup*.ts',
-        
+
         // UI library components (shadcn/ui wrappers)
         'components/ui/**',
-        
+
         // Static presentation components
         'components/sections/home/**',
-        
+
         // Type definitions
         'state/types/**',
         'lib/ledger/types.ts',
-        
+
         // Next.js app directory (routes/layouts)
         'app/**',
       ],

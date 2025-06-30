@@ -50,12 +50,16 @@ vi.mock('@/components/ui/badge', () => ({
 }))
 
 vi.mock('@/components/ui/button', () => ({
-  Button: ({ children, onClick }: any) => <button onClick={onClick}>{children}</button>,
+  Button: ({ children, onClick }: any) => (
+    <button type="button" onClick={onClick}>
+      {children}
+    </button>
+  ),
 }))
 
 vi.mock('@/components/ui/checkbox', () => ({
   Checkbox: ({ checked, onCheckedChange }: any) => (
-    <input type="checkbox" checked={checked} onChange={(e) => onCheckedChange(e.target.checked)} />
+    <input type="checkbox" checked={checked} onChange={e => onCheckedChange(e.target.checked)} />
   ),
 }))
 
@@ -178,7 +182,7 @@ describe('SynchronizedAccountRow component', () => {
 
     // Check for account address
     expect(screen.getByText('5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY')).toBeInTheDocument()
-    
+
     // Check for balance display
     expect(screen.getByText('1000000000000 DOT')).toBeInTheDocument() // Total
     expect(screen.getByText('500000000000 DOT')).toBeInTheDocument() // Transferable
@@ -263,9 +267,7 @@ describe('SynchronizedAccountRow component', () => {
       ...mockAccount,
       isMultisig: true,
       threshold: 2,
-      members: [
-        { address: '5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY', internal: true },
-      ],
+      members: [{ address: '5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY', internal: true }],
       pendingMultisigCalls: [],
     }
 
@@ -285,9 +287,7 @@ describe('SynchronizedAccountRow component', () => {
     const multisigAccount = {
       ...mockAccount,
       isMultisig: true,
-      members: [
-        { address: '5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY', internal: false },
-      ],
+      members: [{ address: '5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY', internal: false }],
       pendingMultisigCalls: [],
     }
 

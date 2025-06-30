@@ -43,14 +43,15 @@ function SynchronizedAppOverview({
   }
 
   return (
-    <div
-      className={`flex flex-row items-center justify-between gap-4 px-4 py-3 cursor-pointer select-none transition-colors rounded-lg ${isAccountsNotEmpty ? 'hover:bg-gray-50' : ''}`}
+    <button
+      type="button"
+      className={`w-full flex flex-row items-center justify-between gap-4 px-4 py-3 cursor-pointer select-none transition-colors rounded-lg ${isAccountsNotEmpty ? 'hover:bg-gray-50' : ''}`}
       onClick={isAccountsNotEmpty ? toggleExpand : undefined}
       onKeyDown={handleKeyDown}
       data-testid="app-row-overview"
-      role="button"
       tabIndex={isAccountsNotEmpty ? 0 : -1}
       aria-expanded={isExpanded}
+      disabled={!isAccountsNotEmpty}
     >
       <div className="flex items-center gap-4">
         <div className="max-h-8 w-8 h-8 overflow-hidden flex items-center justify-center">
@@ -79,7 +80,7 @@ function SynchronizedAppOverview({
           </div>
         )}
       </div>
-    </div>
+    </button>
   )
 }
 

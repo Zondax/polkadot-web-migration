@@ -221,42 +221,42 @@ describe('html utilities', () => {
     // Test the replacement function logic by checking it's being called correctly
     it('should call HTMLReactParser with options that contain replace function', () => {
       const htmlInput = '<ul><li>Item 1</li></ul>'
-      
+
       mockSanitize.mockReturnValue(htmlInput)
       mockHTMLReactParser.mockReturnValue(<div>Processed</div>)
-      
+
       muifyHtml(htmlInput)
-      
+
       // Verify the options object contains a replace function
       expect(mockHTMLReactParser).toHaveBeenCalledWith(
-        htmlInput, 
+        htmlInput,
         expect.objectContaining({
-          replace: expect.any(Function)
+          replace: expect.any(Function),
         })
       )
     })
 
     it('should test replacement function directly with ul element', () => {
       const htmlInput = '<ul><li>Test</li></ul>'
-      
+
       mockSanitize.mockReturnValue(htmlInput)
-      
+
       // Create a mock that captures the options
       let capturedOptions: any
-      mockHTMLReactParser.mockImplementation((html, options) => {
+      mockHTMLReactParser.mockImplementation((_html, options) => {
         capturedOptions = options
         return <div>Mock result</div>
       })
-      
+
       muifyHtml(htmlInput)
-      
+
       // Test the replace function with a mock ul element
       const mockUlNode = {
         name: 'ul',
         children: [{ name: 'li', children: [] }],
-        attribs: {}
+        attribs: {},
       }
-      
+
       if (capturedOptions?.replace) {
         const result = capturedOptions.replace(mockUlNode)
         expect(result).toBeDefined()
@@ -265,23 +265,23 @@ describe('html utilities', () => {
 
     it('should test replacement function with li element', () => {
       const htmlInput = '<li>Test item</li>'
-      
+
       mockSanitize.mockReturnValue(htmlInput)
-      
+
       let capturedOptions: any
-      mockHTMLReactParser.mockImplementation((html, options) => {
+      mockHTMLReactParser.mockImplementation((_html, options) => {
         capturedOptions = options
         return <div>Mock result</div>
       })
-      
+
       muifyHtml(htmlInput)
-      
+
       const mockLiNode = {
         name: 'li',
         children: [{ type: 'text', data: 'Test item' }],
-        attribs: {}
+        attribs: {},
       }
-      
+
       if (capturedOptions?.replace) {
         const result = capturedOptions.replace(mockLiNode)
         expect(result).toBeDefined()
@@ -290,23 +290,23 @@ describe('html utilities', () => {
 
     it('should test replacement function with h5 element', () => {
       const htmlInput = '<h5>Heading</h5>'
-      
+
       mockSanitize.mockReturnValue(htmlInput)
-      
+
       let capturedOptions: any
-      mockHTMLReactParser.mockImplementation((html, options) => {
+      mockHTMLReactParser.mockImplementation((_html, options) => {
         capturedOptions = options
         return <div>Mock result</div>
       })
-      
+
       muifyHtml(htmlInput)
-      
+
       const mockH5Node = {
         name: 'h5',
         children: [{ type: 'text', data: 'Heading' }],
-        attribs: {}
+        attribs: {},
       }
-      
+
       if (capturedOptions?.replace) {
         const result = capturedOptions.replace(mockH5Node)
         expect(result).toBeDefined()
@@ -315,23 +315,23 @@ describe('html utilities', () => {
 
     it('should test replacement function with anchor element', () => {
       const htmlInput = '<a href="https://test.com">Link</a>'
-      
+
       mockSanitize.mockReturnValue(htmlInput)
-      
+
       let capturedOptions: any
-      mockHTMLReactParser.mockImplementation((html, options) => {
+      mockHTMLReactParser.mockImplementation((_html, options) => {
         capturedOptions = options
         return <div>Mock result</div>
       })
-      
+
       muifyHtml(htmlInput)
-      
+
       const mockANode = {
         name: 'a',
         children: [{ type: 'text', data: 'Link' }],
-        attribs: { href: 'https://test.com' }
+        attribs: { href: 'https://test.com' },
       }
-      
+
       if (capturedOptions?.replace) {
         const result = capturedOptions.replace(mockANode)
         expect(result).toBeDefined()
@@ -340,23 +340,23 @@ describe('html utilities', () => {
 
     it('should test replacement function with unsupported element', () => {
       const htmlInput = '<p>Paragraph</p>'
-      
+
       mockSanitize.mockReturnValue(htmlInput)
-      
+
       let capturedOptions: any
-      mockHTMLReactParser.mockImplementation((html, options) => {
+      mockHTMLReactParser.mockImplementation((_html, options) => {
         capturedOptions = options
         return <div>Mock result</div>
       })
-      
+
       muifyHtml(htmlInput)
-      
+
       const mockPNode = {
         name: 'p',
         children: [{ type: 'text', data: 'Paragraph' }],
-        attribs: {}
+        attribs: {},
       }
-      
+
       if (capturedOptions?.replace) {
         const result = capturedOptions.replace(mockPNode)
         // Should return undefined for unsupported elements (default behavior)
@@ -366,23 +366,23 @@ describe('html utilities', () => {
 
     it('should test replacement function with node without children', () => {
       const htmlInput = '<br/>'
-      
+
       mockSanitize.mockReturnValue(htmlInput)
-      
+
       let capturedOptions: any
-      mockHTMLReactParser.mockImplementation((html, options) => {
+      mockHTMLReactParser.mockImplementation((_html, options) => {
         capturedOptions = options
         return <div>Mock result</div>
       })
-      
+
       muifyHtml(htmlInput)
-      
+
       const mockBrNode = {
         name: 'br',
-        attribs: {}
+        attribs: {},
         // Note: no children property
       }
-      
+
       if (capturedOptions?.replace) {
         const result = capturedOptions.replace(mockBrNode)
         // Should return undefined for nodes without children
@@ -399,26 +399,26 @@ describe('html utilities', () => {
         { element: 'p', expected: false }, // Should not be handled
         { element: 'div', expected: false }, // Should not be handled
       ]
-      
-      testCases.forEach(({ element, expected }) => {
+
+      for (const { element, expected } of testCases) {
         const htmlInput = `<${element}>Content</${element}>`
-        
+
         mockSanitize.mockReturnValue(htmlInput)
-        
+
         let capturedOptions: any
-        mockHTMLReactParser.mockImplementation((html, options) => {
+        mockHTMLReactParser.mockImplementation((_html, options) => {
           capturedOptions = options
           return <div>Mock result</div>
         })
-        
+
         muifyHtml(htmlInput)
-        
+
         const mockNode = {
           name: element,
           children: [{ type: 'text', data: 'Content' }],
-          attribs: element === 'a' ? { href: 'https://example.com' } : {}
+          attribs: element === 'a' ? { href: 'https://example.com' } : {},
         }
-        
+
         if (capturedOptions?.replace) {
           const result = capturedOptions.replace(mockNode)
           if (expected) {
@@ -427,7 +427,7 @@ describe('html utilities', () => {
             expect(result).toBeUndefined()
           }
         }
-      })
+      }
     })
   })
 })

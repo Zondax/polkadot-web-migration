@@ -1,5 +1,4 @@
 import type { BN } from '@polkadot/util'
-import type { GenericeResponseAddress } from '@zondax/ledger-substrate/dist/common'
 import { type AppConfig, type AppId, appsConfigs } from 'config/apps'
 import { maxAddressesToFetch } from 'config/config'
 import { InternalErrorType } from 'config/errors'

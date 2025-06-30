@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { BN } from '@polkadot/util'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { MultisigAddress, MultisigCall, MultisigMember } from '@/state/types/ledger'
@@ -8,10 +8,11 @@ import ApproveMultisigCallDialog from '../approve-multisig-call-dialog'
 
 // Mock all external dependencies
 vi.mock('lucide-react', () => ({
-  Info: vi.fn(({ className, 'aria-label': ariaLabel }) => (
-    <div data-testid="info-icon" className={className} aria-label={ariaLabel}>
+  Info: vi.fn(({ className }) => (
+    <svg data-testid="info-icon" className={className} role="img" aria-label="Info">
+      <title>Info</title>
       Info
-    </div>
+    </svg>
   )),
 }))
 
@@ -65,9 +66,9 @@ vi.mock('@/components/ui/badge', () => ({
 }))
 
 vi.mock('@/components/ui/dialog', () => ({
-  Dialog: vi.fn(({ children, open, onOpenChange }) =>
+  Dialog: vi.fn(({ children, open }) =>
     open ? (
-      <div data-testid="dialog" onBlur={() => onOpenChange?.(false)}>
+      <div data-testid="dialog" role="dialog">
         {children}
       </div>
     ) : null
@@ -79,9 +80,7 @@ vi.mock('@/components/ui/dialog', () => ({
   )),
   DialogHeader: vi.fn(({ children }) => <div data-testid="dialog-header">{children}</div>),
   DialogTitle: vi.fn(({ children }) => <h2 data-testid="dialog-title">{children}</h2>),
-  DialogDescription: vi.fn(({ children }) => (
-    <p data-testid="dialog-description">{children}</p>
-  )),
+  DialogDescription: vi.fn(({ children }) => <p data-testid="dialog-description">{children}</p>),
   DialogBody: vi.fn(({ children }) => <div data-testid="dialog-body">{children}</div>),
   DialogFooter: vi.fn(({ children }) => <div data-testid="dialog-footer">{children}</div>),
 }))
@@ -106,10 +105,7 @@ vi.mock('@/components/ui/input', () => ({
 vi.mock('@/components/ui/select', () => ({
   Select: vi.fn(({ children, value, onValueChange, disabled }) => (
     <div data-testid="select" data-value={value} data-disabled={disabled}>
-      <button
-        data-testid="select-trigger"
-        onClick={() => !disabled && onValueChange?.('test-value')}
-      >
+      <button type="button" data-testid="select-trigger" onClick={() => !disabled && onValueChange?.('test-value')}>
         Select
       </button>
       {children}
@@ -120,12 +116,8 @@ vi.mock('@/components/ui/select', () => ({
       {children}
     </div>
   )),
-  SelectValue: vi.fn(({ placeholder }) => (
-    <span data-testid="select-value">{placeholder}</span>
-  )),
-  SelectContent: vi.fn(({ children }) => (
-    <div data-testid="select-content">{children}</div>
-  )),
+  SelectValue: vi.fn(({ placeholder }) => <span data-testid="select-value">{placeholder}</span>),
+  SelectContent: vi.fn(({ children }) => <div data-testid="select-content">{children}</div>),
   SelectItem: vi.fn(({ children, value }) => (
     <div data-testid="select-item" data-value={value}>
       {children}
@@ -135,13 +127,7 @@ vi.mock('@/components/ui/select', () => ({
 
 vi.mock('@/components/ui/switch', () => ({
   default: vi.fn(({ checked, onCheckedChange, id }) => (
-    <input
-      data-testid="switch"
-      type="checkbox"
-      checked={checked}
-      onChange={e => onCheckedChange?.(e.target.checked)}
-      id={id}
-    />
+    <input data-testid="switch" type="checkbox" checked={checked} onChange={e => onCheckedChange?.(e.target.checked)} id={id} />
   )),
 }))
 
@@ -150,7 +136,7 @@ vi.mock('@/config/apps', () => ({
 }))
 
 vi.mock('@/lib/utils/format', () => ({
-  formatBalance: vi.fn((balance, token, decimals, isLong) => 
+  formatBalance: vi.fn((balance, token, _decimals, isLong) =>
     isLong ? `${balance} ${token.symbol} (full)` : `${balance} ${token.symbol}`
   ),
 }))
@@ -175,9 +161,9 @@ vi.mock('@/state/ledger', () => ({
 vi.mock('../common-dialog-fields', () => ({
   DialogField: vi.fn(({ children }) => <div data-testid="dialog-field">{children}</div>),
   DialogLabel: vi.fn(({ children, className }) => (
-    <label data-testid="dialog-label" className={className}>
+    <div data-testid="dialog-label" className={className}>
       {children}
-    </label>
+    </div>
   )),
   DialogNetworkContent: vi.fn(({ token, appId }) => (
     <div data-testid="dialog-network-content" data-token={token.symbol} data-app-id={appId}>
@@ -200,20 +186,16 @@ vi.mock('../transaction-dialog', () => ({
       mainButtonLabel,
     }) => (
       <div data-testid="transaction-dialog-footer">
-        <button
-          data-testid="sign-button"
-          onClick={signTransfer}
-          disabled={isSignDisabled}
-        >
+        <button type="button" data-testid="sign-button" onClick={signTransfer} disabled={isSignDisabled}>
           {mainButtonLabel}
         </button>
-        <button data-testid="close-button" onClick={closeDialog}>
+        <button type="button" data-testid="close-button" onClick={closeDialog}>
           Close
         </button>
-        <button data-testid="clear-tx-button" onClick={clearTx}>
+        <button type="button" data-testid="clear-tx-button" onClick={clearTx}>
           Clear
         </button>
-        <button data-testid="sync-button" onClick={synchronizeAccount}>
+        <button type="button" data-testid="sync-button" onClick={synchronizeAccount}>
           Sync
         </button>
         <span data-testid="status">
@@ -295,9 +277,7 @@ describe('ApproveMultisigCallDialog', () => {
 
       expect(screen.getByTestId('dialog')).toBeInTheDocument()
       expect(screen.getByTestId('dialog-title')).toHaveTextContent('Approve Multisig Call')
-      expect(screen.getByTestId('dialog-description')).toHaveTextContent(
-        'Approve a pending multisig call for this address'
-      )
+      expect(screen.getByTestId('dialog-description')).toHaveTextContent('Approve a pending multisig call for this address')
     })
 
     it('should not render when there are no pending calls', () => {
@@ -306,20 +286,13 @@ describe('ApproveMultisigCallDialog', () => {
         pendingMultisigCalls: [],
       }
 
-      const { container } = render(
-        <ApproveMultisigCallDialog
-          {...defaultProps}
-          account={accountWithoutPendingCalls}
-        />
-      )
+      const { container } = render(<ApproveMultisigCallDialog {...defaultProps} account={accountWithoutPendingCalls} />)
 
       expect(container.firstChild).toBeNull()
     })
 
     it('should not render when dialog is closed', () => {
-      const { container } = render(
-        <ApproveMultisigCallDialog {...defaultProps} open={false} />
-      )
+      const { container } = render(<ApproveMultisigCallDialog {...defaultProps} open={false} />)
 
       expect(container.firstChild).toBeNull()
     })
@@ -340,9 +313,7 @@ describe('ApproveMultisigCallDialog', () => {
       render(<ApproveMultisigCallDialog {...defaultProps} />)
 
       const explorerLinks = screen.getAllByTestId('explorer-link')
-      const multisigAddressLink = explorerLinks.find(
-        link => link.getAttribute('data-value') === mockMultisigAccount.address
-      )
+      const multisigAddressLink = explorerLinks.find(link => link.getAttribute('data-value') === mockMultisigAccount.address)
       expect(multisigAddressLink).toBeInTheDocument()
     })
 
@@ -350,9 +321,7 @@ describe('ApproveMultisigCallDialog', () => {
       render(<ApproveMultisigCallDialog {...defaultProps} />)
 
       const explorerLinks = screen.getAllByTestId('explorer-link')
-      const callHashLink = explorerLinks.find(
-        link => link.getAttribute('data-value') === mockPendingCalls[0].callHash
-      )
+      const callHashLink = explorerLinks.find(link => link.getAttribute('data-value') === mockPendingCalls[0].callHash)
       expect(callHashLink).toBeInTheDocument()
     })
 
@@ -376,7 +345,7 @@ describe('ApproveMultisigCallDialog', () => {
 
       const selectTriggers = screen.getAllByTestId('select-trigger')
       const callHashSelectTrigger = selectTriggers[0] // First select is for call hash
-      
+
       await act(async () => {
         fireEvent.click(callHashSelectTrigger)
       })
@@ -396,12 +365,7 @@ describe('ApproveMultisigCallDialog', () => {
         ],
       }
 
-      render(
-        <ApproveMultisigCallDialog
-          {...defaultProps}
-          account={accountWithFullApprovals}
-        />
-      )
+      render(<ApproveMultisigCallDialog {...defaultProps} account={accountWithFullApprovals} />)
 
       expect(screen.getByTestId('switch')).toBeInTheDocument()
       expect(screen.getByText('Multisig message with call (for final approval)')).toBeInTheDocument()
@@ -413,20 +377,12 @@ describe('ApproveMultisigCallDialog', () => {
         pendingMultisigCalls: [
           {
             ...mockPendingCalls[0],
-            signatories: [
-              '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
-              '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty',
-            ], // Full threshold
+            signatories: ['5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY', '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty'], // Full threshold
           },
         ],
       }
 
-      render(
-        <ApproveMultisigCallDialog
-          {...defaultProps}
-          account={accountRequiringCallData}
-        />
-      )
+      render(<ApproveMultisigCallDialog {...defaultProps} account={accountRequiringCallData} />)
 
       expect(screen.getByTestId('input')).toBeInTheDocument()
       expect(screen.getByText('Multisig Call Data')).toBeInTheDocument()
@@ -440,12 +396,7 @@ describe('ApproveMultisigCallDialog', () => {
         members: mockMembers.map(member => ({ ...member, internal: false })),
       }
 
-      render(
-        <ApproveMultisigCallDialog
-          {...defaultProps}
-          account={accountWithNoAvailableSigners}
-        />
-      )
+      render(<ApproveMultisigCallDialog {...defaultProps} account={accountWithNoAvailableSigners} />)
 
       expect(
         screen.getByText('None of your addresses are enabled to sign. All your addresses have already approved this call.')
@@ -466,7 +417,7 @@ describe('ApproveMultisigCallDialog', () => {
       render(<ApproveMultisigCallDialog {...defaultProps} setOpen={mockSetOpen} />)
 
       const closeButton = screen.getByTestId('close-button')
-      
+
       await act(async () => {
         fireEvent.click(closeButton)
       })
@@ -476,9 +427,7 @@ describe('ApproveMultisigCallDialog', () => {
 
     it('should handle form submission', async () => {
       const mockRunTransaction = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: mockRunTransaction,
@@ -493,7 +442,7 @@ describe('ApproveMultisigCallDialog', () => {
       render(<ApproveMultisigCallDialog {...defaultProps} />)
 
       const signButton = screen.getByTestId('sign-button')
-      
+
       await act(async () => {
         fireEvent.click(signButton)
       })
@@ -511,12 +460,7 @@ describe('ApproveMultisigCallDialog', () => {
         pendingMultisigCalls: undefined,
       }
 
-      const { container } = render(
-        <ApproveMultisigCallDialog
-          {...defaultProps}
-          account={accountWithUndefinedCalls}
-        />
-      )
+      const { container } = render(<ApproveMultisigCallDialog {...defaultProps} account={accountWithUndefinedCalls} />)
 
       expect(container.firstChild).toBeNull()
     })
@@ -527,12 +471,7 @@ describe('ApproveMultisigCallDialog', () => {
         members: [],
       }
 
-      render(
-        <ApproveMultisigCallDialog
-          {...defaultProps}
-          account={accountWithNoMembers}
-        />
-      )
+      render(<ApproveMultisigCallDialog {...defaultProps} account={accountWithNoMembers} />)
 
       expect(screen.getByText('No available signers')).toBeInTheDocument()
     })
@@ -551,12 +490,7 @@ describe('ApproveMultisigCallDialog', () => {
         ],
       }
 
-      render(
-        <ApproveMultisigCallDialog
-          {...defaultProps}
-          account={accountWithMultipleCalls}
-        />
-      )
+      render(<ApproveMultisigCallDialog {...defaultProps} account={accountWithMultipleCalls} />)
 
       const selectItems = screen.getAllByTestId('select-item')
       expect(selectItems).toHaveLength(2)

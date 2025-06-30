@@ -9,13 +9,7 @@ import UnstakeDialog from '../unstake-dialog'
 // Mock external dependencies
 vi.mock('@/components/ExplorerLink', () => ({
   ExplorerLink: vi.fn(({ value, appId, explorerLinkType, size }) => (
-    <div
-      data-testid="explorer-link"
-      data-value={value}
-      data-app-id={appId}
-      data-explorer-type={explorerLinkType}
-      data-size={size}
-    >
+    <div data-testid="explorer-link" data-value={value} data-app-id={appId} data-explorer-type={explorerLinkType} data-size={size}>
       {value}
     </div>
   )),
@@ -39,19 +33,15 @@ vi.mock('@/components/hooks/useTransactionStatus', () => ({
 vi.mock('@/components/ui/dialog', () => ({
   Dialog: vi.fn(({ children, open, onOpenChange }) =>
     open ? (
-      <div data-testid="dialog" onBlur={() => onOpenChange?.(false)}>
+      <div data-testid="dialog" role="dialog" onBlur={() => onOpenChange?.(false)}>
         {children}
       </div>
     ) : null
   ),
-  DialogContent: vi.fn(({ children }) => (
-    <div data-testid="dialog-content">{children}</div>
-  )),
+  DialogContent: vi.fn(({ children }) => <div data-testid="dialog-content">{children}</div>),
   DialogHeader: vi.fn(({ children }) => <div data-testid="dialog-header">{children}</div>),
   DialogTitle: vi.fn(({ children }) => <h2 data-testid="dialog-title">{children}</h2>),
-  DialogDescription: vi.fn(({ children }) => (
-    <div data-testid="dialog-description">{children}</div>
-  )),
+  DialogDescription: vi.fn(({ children }) => <div data-testid="dialog-description">{children}</div>),
   DialogBody: vi.fn(({ children }) => <div data-testid="dialog-body">{children}</div>),
   DialogFooter: vi.fn(({ children }) => <div data-testid="dialog-footer">{children}</div>),
 }))
@@ -85,11 +75,11 @@ vi.mock('@/config/explorers', () => ({
 
 vi.mock('@/lib/utils/format', () => ({
   formatBalance: vi.fn((balance, token) => `${balance.toString()} ${token.symbol}`),
-  convertToRawUnits: vi.fn((amount, token) => new BN(amount * Math.pow(10, token.decimals))),
+  convertToRawUnits: vi.fn((amount, token) => new BN(amount * 10 ** token.decimals)),
 }))
 
 vi.mock('@/lib/utils/ui', () => ({
-  validateNumberInput: vi.fn((amount, maxAmount, token) => {
+  validateNumberInput: vi.fn((amount, maxAmount, _token) => {
     if (!amount || amount.isZero()) {
       return { valid: false, helperText: 'Amount is required' }
     }
@@ -111,7 +101,9 @@ vi.mock('@/state/ledger', () => ({
 vi.mock('../common-dialog-fields', () => ({
   DialogField: vi.fn(({ children }) => <div data-testid="dialog-field">{children}</div>),
   DialogLabel: vi.fn(({ children, className }) => (
-    <label data-testid="dialog-label" className={className}>{children}</label>
+    <div data-testid="dialog-label" className={className}>
+      {children}
+    </div>
   )),
   DialogNetworkContent: vi.fn(({ token, appId }) => (
     <div data-testid="dialog-network-content" data-token={token.symbol} data-app-id={appId}>
@@ -119,39 +111,24 @@ vi.mock('../common-dialog-fields', () => ({
     </div>
   )),
   DialogEstimatedFeeContent: vi.fn(({ token, estimatedFee, loading }) => (
-    <div data-testid="dialog-estimated-fee-content">
-      {loading ? 'Loading...' : `${estimatedFee?.toString()} ${token.symbol}`}
-    </div>
+    <div data-testid="dialog-estimated-fee-content">{loading ? 'Loading...' : `${estimatedFee?.toString()} ${token.symbol}`}</div>
   )),
 }))
 
 vi.mock('../transaction-dialog', () => ({
   TransactionDialogFooter: vi.fn(
-    ({
-      isTxFinished,
-      isTxFailed,
-      isSynchronizing,
-      clearTx,
-      synchronizeAccount,
-      closeDialog,
-      signTransfer,
-      isSignDisabled,
-    }) => (
+    ({ isTxFinished, isTxFailed, isSynchronizing, clearTx, synchronizeAccount, closeDialog, signTransfer, isSignDisabled }) => (
       <div data-testid="transaction-dialog-footer">
-        <button
-          data-testid="sign-button"
-          onClick={signTransfer}
-          disabled={isSignDisabled}
-        >
+        <button type="button" data-testid="sign-button" onClick={signTransfer} disabled={isSignDisabled}>
           Unstake
         </button>
-        <button data-testid="close-button" onClick={closeDialog}>
+        <button type="button" data-testid="close-button" onClick={closeDialog}>
           Close
         </button>
-        <button data-testid="clear-tx-button" onClick={clearTx}>
+        <button type="button" data-testid="clear-tx-button" onClick={clearTx}>
           Clear
         </button>
-        <button data-testid="sync-button" onClick={synchronizeAccount}>
+        <button type="button" data-testid="sync-button" onClick={synchronizeAccount}>
           Sync
         </button>
         <span data-testid="status">
@@ -209,7 +186,7 @@ describe('UnstakeDialog', () => {
 
       expect(screen.getByTestId('dialog')).toBeInTheDocument()
       expect(screen.getByTestId('dialog-title')).toHaveTextContent('Unstake your balance')
-      
+
       const descriptions = screen.getAllByTestId('dialog-description')
       expect(descriptions).toHaveLength(2)
       expect(descriptions[0]).toHaveTextContent(
@@ -221,9 +198,7 @@ describe('UnstakeDialog', () => {
     })
 
     it('should not render when open is false', () => {
-      const { container } = render(
-        <UnstakeDialog {...defaultProps} open={false} />
-      )
+      const { container } = render(<UnstakeDialog {...defaultProps} open={false} />)
 
       expect(container.firstChild).toBeNull()
     })
@@ -250,10 +225,7 @@ describe('UnstakeDialog', () => {
 
       const explorerLink = screen.getByTestId('explorer-link')
       expect(explorerLink).toBeInTheDocument()
-      expect(explorerLink).toHaveAttribute(
-        'data-value',
-        '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'
-      )
+      expect(explorerLink).toHaveAttribute('data-value', '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY')
       expect(explorerLink).toHaveAttribute('data-app-id', 'polkadot')
       expect(explorerLink).toHaveAttribute('data-explorer-type', 'address')
       expect(explorerLink).toHaveAttribute('data-size', 'xs')
@@ -273,7 +245,7 @@ describe('UnstakeDialog', () => {
 
       expect(screen.getByText('Amount to Unstake')).toBeInTheDocument()
       expect(screen.getByText('Available Balance: 5000000000000 DOT')).toBeInTheDocument()
-      
+
       const input = screen.getByTestId('input')
       expect(input).toBeInTheDocument()
       expect(input).toHaveAttribute('type', 'number')
@@ -286,7 +258,7 @@ describe('UnstakeDialog', () => {
       render(<UnstakeDialog {...defaultProps} />)
 
       const input = screen.getByTestId('input')
-      
+
       await act(async () => {
         fireEvent.change(input, { target: { value: '100' } })
       })
@@ -295,7 +267,7 @@ describe('UnstakeDialog', () => {
       await waitFor(() => {
         expect(screen.getAllByTestId('dialog-field')).toHaveLength(4) // Source, Network, Amount, Fee
       })
-      
+
       expect(screen.getByText('Estimated Fee')).toBeInTheDocument()
       expect(screen.getByTestId('dialog-estimated-fee-content')).toBeInTheDocument()
     })
@@ -310,19 +282,17 @@ describe('UnstakeDialog', () => {
 
   describe('form validation', () => {
     it('should validate amount input and show helper text', async () => {
-      const mockValidateNumberInput = vi.mocked(
-        await import('@/lib/utils/ui')
-      ).validateNumberInput
+      const mockValidateNumberInput = vi.mocked(await import('@/lib/utils/ui')).validateNumberInput
 
       mockValidateNumberInput.mockReturnValue({
         valid: false,
-        helperText: 'Amount exceeds maximum'
+        helperText: 'Amount exceeds maximum',
       })
 
       render(<UnstakeDialog {...defaultProps} />)
 
       const input = screen.getByTestId('input')
-      
+
       await act(async () => {
         fireEvent.change(input, { target: { value: '10000' } })
       })
@@ -335,19 +305,17 @@ describe('UnstakeDialog', () => {
     })
 
     it('should disable sign button when amount is invalid', async () => {
-      const mockValidateNumberInput = vi.mocked(
-        await import('@/lib/utils/ui')
-      ).validateNumberInput
+      const mockValidateNumberInput = vi.mocked(await import('@/lib/utils/ui')).validateNumberInput
 
       mockValidateNumberInput.mockReturnValue({
         valid: false,
-        helperText: 'Amount is required'
+        helperText: 'Amount is required',
       })
 
       render(<UnstakeDialog {...defaultProps} />)
 
       const input = screen.getByTestId('input')
-      
+
       await act(async () => {
         fireEvent.change(input, { target: { value: '0' } })
       })
@@ -357,19 +325,17 @@ describe('UnstakeDialog', () => {
     })
 
     it('should enable sign button when amount is valid', async () => {
-      const mockValidateNumberInput = vi.mocked(
-        await import('@/lib/utils/ui')
-      ).validateNumberInput
+      const mockValidateNumberInput = vi.mocked(await import('@/lib/utils/ui')).validateNumberInput
 
       mockValidateNumberInput.mockReturnValue({
         valid: true,
-        helperText: ''
+        helperText: '',
       })
 
       render(<UnstakeDialog {...defaultProps} />)
 
       const input = screen.getByTestId('input')
-      
+
       await act(async () => {
         fireEvent.change(input, { target: { value: '100' } })
       })
@@ -381,19 +347,17 @@ describe('UnstakeDialog', () => {
     })
 
     it('should hide estimated fee when there are validation errors', async () => {
-      const mockValidateNumberInput = vi.mocked(
-        await import('@/lib/utils/ui')
-      ).validateNumberInput
+      const mockValidateNumberInput = vi.mocked(await import('@/lib/utils/ui')).validateNumberInput
 
       mockValidateNumberInput.mockReturnValue({
         valid: false,
-        helperText: 'Amount exceeds maximum'
+        helperText: 'Amount exceeds maximum',
       })
 
       render(<UnstakeDialog {...defaultProps} />)
 
       const input = screen.getByTestId('input')
-      
+
       await act(async () => {
         fireEvent.change(input, { target: { value: '10000' } })
       })
@@ -406,20 +370,14 @@ describe('UnstakeDialog', () => {
   describe('transaction handling', () => {
     it('should handle unstake transaction button click', async () => {
       const mockRunTransaction = vi.fn()
-      const mockConvertToRawUnits = vi.mocked(
-        await import('@/lib/utils/format')
-      ).convertToRawUnits
-      const mockValidateNumberInput = vi.mocked(
-        await import('@/lib/utils/ui')
-      ).validateNumberInput
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockConvertToRawUnits = vi.mocked(await import('@/lib/utils/format')).convertToRawUnits
+      const mockValidateNumberInput = vi.mocked(await import('@/lib/utils/ui')).validateNumberInput
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockConvertToRawUnits.mockReturnValue(new BN('1000000000000'))
       mockValidateNumberInput.mockReturnValue({
         valid: true,
-        helperText: ''
+        helperText: '',
       })
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: mockRunTransaction,
@@ -437,13 +395,13 @@ describe('UnstakeDialog', () => {
       render(<UnstakeDialog {...defaultProps} />)
 
       const input = screen.getByTestId('input')
-      
+
       await act(async () => {
         fireEvent.change(input, { target: { value: '100' } })
       })
 
       const signButton = screen.getByTestId('sign-button')
-      
+
       await act(async () => {
         fireEvent.click(signButton)
       })
@@ -458,9 +416,7 @@ describe('UnstakeDialog', () => {
 
     it('should not submit transaction when no amount is entered', async () => {
       const mockRunTransaction = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: mockRunTransaction,
@@ -478,7 +434,7 @@ describe('UnstakeDialog', () => {
       render(<UnstakeDialog {...defaultProps} />)
 
       const signButton = screen.getByTestId('sign-button')
-      
+
       await act(async () => {
         fireEvent.click(signButton)
       })
@@ -489,9 +445,7 @@ describe('UnstakeDialog', () => {
     it('should handle close dialog', async () => {
       const mockSetOpen = vi.fn()
       const mockClearTx = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -509,7 +463,7 @@ describe('UnstakeDialog', () => {
       render(<UnstakeDialog {...defaultProps} setOpen={mockSetOpen} />)
 
       const closeButton = screen.getByTestId('close-button')
-      
+
       await act(async () => {
         fireEvent.click(closeButton)
       })
@@ -521,9 +475,7 @@ describe('UnstakeDialog', () => {
     it('should handle synchronize account', async () => {
       const mockSetOpen = vi.fn()
       const mockUpdateSynchronization = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -541,7 +493,7 @@ describe('UnstakeDialog', () => {
       render(<UnstakeDialog {...defaultProps} setOpen={mockSetOpen} />)
 
       const syncButton = screen.getByTestId('sync-button')
-      
+
       await act(async () => {
         fireEvent.click(syncButton)
       })
@@ -551,9 +503,7 @@ describe('UnstakeDialog', () => {
     })
 
     it('should show transaction status when tx is in progress', async () => {
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -580,9 +530,7 @@ describe('UnstakeDialog', () => {
     })
 
     it('should disable sign button when transaction is in progress', async () => {
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -609,16 +557,12 @@ describe('UnstakeDialog', () => {
 
   describe('fee estimation', () => {
     it('should show loading state for estimated fee', async () => {
-      const mockValidateNumberInput = vi.mocked(
-        await import('@/lib/utils/ui')
-      ).validateNumberInput
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockValidateNumberInput = vi.mocked(await import('@/lib/utils/ui')).validateNumberInput
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockValidateNumberInput.mockReturnValue({
         valid: true,
-        helperText: ''
+        helperText: '',
       })
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -636,7 +580,7 @@ describe('UnstakeDialog', () => {
       render(<UnstakeDialog {...defaultProps} />)
 
       const input = screen.getByTestId('input')
-      
+
       await act(async () => {
         fireEvent.change(input, { target: { value: '100' } })
       })
@@ -648,9 +592,7 @@ describe('UnstakeDialog', () => {
 
     it('should call getEstimatedFee when amount changes', async () => {
       const mockGetEstimatedFee = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -668,23 +610,17 @@ describe('UnstakeDialog', () => {
       render(<UnstakeDialog {...defaultProps} />)
 
       const input = screen.getByTestId('input')
-      
+
       await act(async () => {
         fireEvent.change(input, { target: { value: '100' } })
       })
 
-      expect(mockGetEstimatedFee).toHaveBeenCalledWith(
-        'polkadot',
-        '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
-        expect.any(BN)
-      )
+      expect(mockGetEstimatedFee).toHaveBeenCalledWith('polkadot', '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY', expect.any(BN))
     })
 
     it('should not call getEstimatedFee when dialog is closed', async () => {
       const mockGetEstimatedFee = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(
-        await import('@/components/hooks/useTransactionStatus')
-      ).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -708,16 +644,11 @@ describe('UnstakeDialog', () => {
   describe('edge cases', () => {
     it('should handle different max unstake amounts', () => {
       const differentMaxUnstake = new BN('10000000000000')
-      
-      render(
-        <UnstakeDialog
-          {...defaultProps}
-          maxUnstake={differentMaxUnstake}
-        />
-      )
+
+      render(<UnstakeDialog {...defaultProps} maxUnstake={differentMaxUnstake} />)
 
       expect(screen.getByText('Available Balance: 10000000000000 DOT')).toBeInTheDocument()
-      
+
       const input = screen.getByTestId('input')
       expect(input).toHaveAttribute('max', differentMaxUnstake.toNumber().toString())
     })
@@ -750,27 +681,19 @@ describe('UnstakeDialog', () => {
         path: "m/44'/354'/0'/0'/1'",
       }
 
-      render(
-        <UnstakeDialog
-          {...defaultProps}
-          account={accountWithDifferentAddress}
-        />
-      )
+      render(<UnstakeDialog {...defaultProps} account={accountWithDifferentAddress} />)
 
       const explorerLink = screen.getByTestId('explorer-link')
-      expect(explorerLink).toHaveAttribute(
-        'data-value',
-        '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty'
-      )
+      expect(explorerLink).toHaveAttribute('data-value', '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty')
     })
 
     it('should reset form state when dialog closes', async () => {
       const mockSetOpen = vi.fn()
-      
+
       render(<UnstakeDialog {...defaultProps} setOpen={mockSetOpen} />)
 
       const input = screen.getByTestId('input')
-      
+
       // Enter some value
       await act(async () => {
         fireEvent.change(input, { target: { value: '100' } })
@@ -780,7 +703,7 @@ describe('UnstakeDialog', () => {
 
       // Close dialog
       const closeButton = screen.getByTestId('close-button')
-      
+
       await act(async () => {
         fireEvent.click(closeButton)
       })

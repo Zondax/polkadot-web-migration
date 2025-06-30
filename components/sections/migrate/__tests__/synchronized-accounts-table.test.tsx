@@ -167,17 +167,13 @@ describe('SynchronizedAccountsTable component', () => {
     it('should render empty state when no accounts', () => {
       render(<SynchronizedAccountsTable {...defaultProps} accounts={[]} />)
 
-      expect(
-        screen.getByText(/There are no accounts available for migration in this network/)
-      ).toBeInTheDocument()
+      expect(screen.getByText(/There are no accounts available for migration in this network/)).toBeInTheDocument()
     })
 
     it('should handle undefined accounts', () => {
       render(<SynchronizedAccountsTable {...defaultProps} accounts={undefined} />)
 
-      expect(
-        screen.getByText(/There are no accounts available for migration in this network/)
-      ).toBeInTheDocument()
+      expect(screen.getByText(/There are no accounts available for migration in this network/)).toBeInTheDocument()
     })
   })
 
@@ -290,7 +286,7 @@ describe('SynchronizedAccountsTable component', () => {
       const motionDiv = container.firstChild as HTMLElement
       expect(motionDiv).toBeTruthy()
       expect(motionDiv.tagName).toBe('DIV')
-      
+
       // Verify the table is inside the motion div
       const table = motionDiv.querySelector('table')
       expect(table).toBeTruthy()

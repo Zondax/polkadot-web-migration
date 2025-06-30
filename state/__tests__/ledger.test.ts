@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BN } from '@polkadot/util'
 
 import { AppStatus, ledgerState$ } from '../ledger'
-import { AccountType, AddressStatus, BalanceType, TransactionStatus } from '../types/ledger'
+import { AccountType, AddressStatus, BalanceType } from '../types/ledger'
 
 // Mock dependencies
 vi.mock('../client/ledger', () => ({
@@ -37,7 +37,7 @@ vi.mock('@/lib/account', () => ({
 }))
 
 vi.mock('@/lib/utils', () => ({
-  interpretError: vi.fn((error, type) => ({ errorType: type, description: 'Test error' })),
+  interpretError: vi.fn((_error, type) => ({ errorType: type, description: 'Test error' })),
 }))
 
 vi.mock('@/lib/utils/notifications', () => ({
@@ -158,7 +158,7 @@ describe('Ledger State', () => {
       const mockConnection = { isAppOpen: false }
       const { ledgerClient } = await import('../client/ledger')
       const { notifications$ } = await import('../notifications')
-      
+
       vi.mocked(ledgerClient.connectDevice).mockResolvedValueOnce({
         connection: mockConnection,
         error: undefined,
@@ -179,7 +179,7 @@ describe('Ledger State', () => {
     it('should handle connection exception', async () => {
       const { ledgerClient } = await import('../client/ledger')
       const { handleErrorNotification } = await import('@/lib/utils/notifications')
-      
+
       vi.mocked(ledgerClient.connectDevice).mockRejectedValueOnce(new Error('Connection failed'))
 
       const result = await ledgerState$.connectLedger()
@@ -209,7 +209,7 @@ describe('Ledger State', () => {
     it('should handle disconnect error', async () => {
       const { ledgerClient } = await import('../client/ledger')
       const { handleErrorNotification } = await import('@/lib/utils/notifications')
-      
+
       vi.mocked(ledgerClient.disconnect).mockImplementationOnce(() => {
         throw new Error('Disconnect failed')
       })
@@ -253,7 +253,7 @@ describe('Ledger State', () => {
   describe('Migration result tracking', () => {
     it('should track migration success counter', () => {
       expect(ledgerState$.apps.migrationResult.get().success).toBe(0)
-      
+
       // Simulate a successful migration by updating state
       ledgerState$.apps.migrationResult.set({
         success: 1,
@@ -266,7 +266,7 @@ describe('Ledger State', () => {
 
     it('should track migration failure counter', () => {
       expect(ledgerState$.apps.migrationResult.get().fails).toBe(0)
-      
+
       // Simulate a failed migration by updating state
       ledgerState$.apps.migrationResult.set({
         success: 0,
@@ -301,7 +301,7 @@ describe('Ledger State', () => {
     it('should return error app when API connection fails', async () => {
       const { ledgerClient } = await import('../client/ledger')
       const { getApiAndProvider } = await import('@/lib/account')
-      
+
       vi.mocked(ledgerClient.synchronizeAccounts).mockResolvedValueOnce({
         result: [{ address: '1test', path: "m/44'/354'/0'/0'/0'", publicKey: new Uint8Array() }],
       })
@@ -319,7 +319,7 @@ describe('Ledger State', () => {
     it('should handle mock synchronization error in development', async () => {
       const originalEnv = process.env.NEXT_PUBLIC_NODE_ENV
       process.env.NEXT_PUBLIC_NODE_ENV = 'development'
-      
+
       // Mock errorApps to include the test app
       vi.doMock('config/mockData', () => ({
         errorApps: ['polkadot'],
@@ -330,7 +330,7 @@ describe('Ledger State', () => {
 
       expect(result?.status).toBe(AppStatus.ERROR)
       expect(result?.error?.source).toBe('synchronization')
-      
+
       process.env.NEXT_PUBLIC_NODE_ENV = originalEnv
     })
   })
@@ -409,7 +409,7 @@ describe('Ledger State', () => {
 
     it('should return false when address not found in polkadot addresses', async () => {
       ledgerState$.polkadotAddresses.polkadot.set(['1other'])
-      
+
       const result = await ledgerState$.verifyDestinationAddresses('polkadot', '1test', "m/44'/354'/0'/0'/0'")
       expect(result.isVerified).toBe(false)
     })
@@ -419,10 +419,10 @@ describe('Ledger State', () => {
     it('should handle synchronization process', async () => {
       // Mock connection state
       ledgerState$.device.connection.set({ isAppOpen: true })
-      
+
       // The synchronizeAccounts method takes no parameters and processes all configured apps
       await ledgerState$.synchronizeAccounts()
-      
+
       // Method should exist and be callable
       expect(typeof ledgerState$.synchronizeAccounts).toBe('function')
       // Should not throw during execution
@@ -434,16 +434,18 @@ describe('Ledger State', () => {
       address: '1test',
       path: "m/44'/354'/0'/0'/0'",
       publicKey: new Uint8Array(),
-      balances: [{
-        type: BalanceType.NATIVE,
-        amount: new BN(1000000000000),
-        status: AddressStatus.CAN_MIGRATE,
-      }],
+      balances: [
+        {
+          type: BalanceType.NATIVE,
+          amount: new BN(1000000000000),
+          status: AddressStatus.CAN_MIGRATE,
+        },
+      ],
     }
 
     it('should handle migrate account method call', async () => {
-      const result = await ledgerState$.migrateAccount('polkadot', mockAccount)
-      
+      const _result = await ledgerState$.migrateAccount('polkadot', mockAccount)
+
       // Method should exist and be callable
       expect(typeof ledgerState$.migrateAccount).toBe('function')
       // The result may be undefined for invalid cases, which is acceptable
@@ -455,16 +457,18 @@ describe('Ledger State', () => {
       address: '1test',
       path: "m/44'/354'/0'/0'/0'",
       publicKey: new Uint8Array(),
-      balances: [{
-        type: BalanceType.NATIVE,
-        amount: new BN(1000000000000),
-        status: AddressStatus.CAN_MIGRATE,
-      }],
+      balances: [
+        {
+          type: BalanceType.NATIVE,
+          amount: new BN(1000000000000),
+          status: AddressStatus.CAN_MIGRATE,
+        },
+      ],
     }
 
     it('should handle migrate balance method call', async () => {
-      const result = await ledgerState$.migrateBalance('polkadot', mockAccount, 0)
-      
+      const _result = await ledgerState$.migrateBalance('polkadot', mockAccount, 0)
+
       // Method should exist and be callable
       expect(typeof ledgerState$.migrateBalance).toBe('function')
       // The result may be undefined for invalid cases, which is acceptable
@@ -475,9 +479,9 @@ describe('Ledger State', () => {
     describe('unstakeBalance', () => {
       it('should handle unstake balance method call', async () => {
         const updateStatus = vi.fn()
-        
+
         await ledgerState$.unstakeBalance('polkadot', '1test', "m/44'/354'/0'/0'/0'", new BN(1000000000000), updateStatus)
-        
+
         // Method should exist and be callable
         expect(typeof ledgerState$.unstakeBalance).toBe('function')
         // Should not throw during execution
@@ -487,10 +491,10 @@ describe('Ledger State', () => {
     describe('withdrawBalance', () => {
       it('should handle withdraw balance method call', async () => {
         const updateStatus = vi.fn()
-        
+
         await ledgerState$.withdrawBalance('polkadot', '1test', "m/44'/354'/0'/0'/0'", updateStatus)
-        
-        // Method should exist and be callable  
+
+        // Method should exist and be callable
         expect(typeof ledgerState$.withdrawBalance).toBe('function')
         // Should not throw during execution
       })
@@ -499,9 +503,9 @@ describe('Ledger State', () => {
     describe('removeIdentity', () => {
       it('should handle remove identity method call', async () => {
         const updateStatus = vi.fn()
-        
+
         await ledgerState$.removeIdentity('polkadot', '1test', "m/44'/354'/0'/0'/0'", updateStatus)
-        
+
         // Method should exist and be callable
         expect(typeof ledgerState$.removeIdentity).toBe('function')
         // Should not throw during execution
@@ -511,9 +515,9 @@ describe('Ledger State', () => {
     describe('removeProxies', () => {
       it('should handle remove proxies method call', async () => {
         const updateStatus = vi.fn()
-        
+
         await ledgerState$.removeProxies('polkadot', '1test', "m/44'/354'/0'/0'/0'", updateStatus)
-        
+
         // Method should exist and be callable
         expect(typeof ledgerState$.removeProxies).toBe('function')
         // Should not throw during execution
@@ -523,9 +527,9 @@ describe('Ledger State', () => {
     describe('removeAccountIndex', () => {
       it('should handle remove account index method call', async () => {
         const updateStatus = vi.fn()
-        
+
         await ledgerState$.removeAccountIndex('polkadot', '1test', '0', "m/44'/354'/0'/0'/0'", updateStatus)
-        
+
         // Method should exist and be callable
         expect(typeof ledgerState$.removeAccountIndex).toBe('function')
         // Should not throw during execution
@@ -554,9 +558,9 @@ describe('Ledger State', () => {
           when: { height: 1000, index: 0 },
         }
         const updateStatus = vi.fn()
-        
+
         await ledgerState$.approveMultisigCall('polkadot', mockAccount, mockFormBody, updateStatus)
-        
+
         // Method should exist and be callable
         expect(typeof ledgerState$.approveMultisigCall).toBe('function')
         // Should not throw during execution
@@ -568,17 +572,17 @@ describe('Ledger State', () => {
     describe('synchronizeAccount', () => {
       it('should handle single account synchronization', async () => {
         ledgerState$.device.connection.set({ isAppOpen: true })
-        
+
         await ledgerState$.synchronizeAccount('polkadot')
-        
+
         expect(typeof ledgerState$.synchronizeAccount).toBe('function')
       })
     })
 
     describe('getMigrationTxInfo', () => {
       it('should handle migration tx info retrieval', async () => {
-        const result = await ledgerState$.getMigrationTxInfo('polkadot', '1test', 0)
-        
+        const _result = await ledgerState$.getMigrationTxInfo('polkadot', '1test', 0)
+
         expect(typeof ledgerState$.getMigrationTxInfo).toBe('function')
         // Result may be undefined for invalid cases, which is acceptable
       })
@@ -587,7 +591,7 @@ describe('Ledger State', () => {
     describe('clearSynchronization', () => {
       it('should clear synchronization data', () => {
         ledgerState$.clearSynchronization()
-        
+
         expect(typeof ledgerState$.clearSynchronization).toBe('function')
         expect(ledgerState$.apps.apps.get()).toEqual([])
       })
@@ -596,13 +600,13 @@ describe('Ledger State', () => {
     describe('migrateSelected', () => {
       it('should handle migration of selected accounts', async () => {
         await ledgerState$.migrateSelected()
-        
+
         expect(typeof ledgerState$.migrateSelected).toBe('function')
       })
 
       it('should handle migration of selected accounts only', async () => {
         await ledgerState$.migrateSelected(true)
-        
+
         expect(typeof ledgerState$.migrateSelected).toBe('function')
       })
     })
@@ -610,26 +614,26 @@ describe('Ledger State', () => {
     describe('Error handling', () => {
       it('should handle synchronization errors correctly', () => {
         const mockError = { errorType: 'SYNC_ERROR', description: 'Test sync error' }
-        
+
         const shouldStop = ledgerState$.handleError(mockError)
-        
+
         // Assuming sync errors should stop synchronization based on config
         expect(shouldStop).toBeDefined()
       })
 
       it('should handle migration errors correctly', () => {
         const mockError = { errorType: 'MIGRATION_ERROR', description: 'Test migration error' }
-        
+
         const shouldStop = ledgerState$.handleError(mockError)
-        
+
         expect(shouldStop).toBeDefined()
       })
 
       it('should handle connection errors correctly', () => {
         const mockError = { errorType: 'CONNECTION_ERROR', description: 'Test connection error' }
-        
+
         const shouldStop = ledgerState$.handleError(mockError)
-        
+
         expect(shouldStop).toBeDefined()
       })
     })

@@ -7,12 +7,16 @@ import { BalanceType } from '../balance-visualizations'
 
 // Mock dependencies
 vi.mock('lucide-react', () => ({
-  Info: vi.fn(({ className }) => <div data-testid="info-icon" className={className}>Info</div>),
+  Info: vi.fn(({ className }) => (
+    <div data-testid="info-icon" className={className}>
+      Info
+    </div>
+  )),
 }))
 
 vi.mock('@/components/ui/hover-card', () => ({
   HoverCard: vi.fn(({ children }) => <div data-testid="hover-card">{children}</div>),
-  HoverCardTrigger: vi.fn(({ children, asChild }) => <div data-testid="hover-trigger">{children}</div>),
+  HoverCardTrigger: vi.fn(({ children }) => <div data-testid="hover-trigger">{children}</div>),
   HoverCardContent: vi.fn(({ children, className, align }) => (
     <div data-testid="hover-content" className={className} data-align={align}>
       {children}
@@ -28,7 +32,7 @@ vi.mock('@/lib/utils', () => ({
 }))
 
 vi.mock('../balance-gallery', () => ({
-  default: vi.fn(({ nfts, uniques, native, token, isMigration }) => {
+  default: vi.fn(({ nfts, uniques, native }) => {
     // Count total NFT items across all collections
     const nftCount = nfts?.reduce((sum, nftBalance) => sum + (nftBalance.items?.length || 0), 0) || 0
     const uniqueCount = uniques?.reduce((sum, uniqueBalance) => sum + (uniqueBalance.items?.length || 0), 0) || 0
@@ -41,11 +45,7 @@ vi.mock('../balance-gallery', () => ({
 }))
 
 vi.mock('../nft-circles', () => ({
-  default: vi.fn(({ collections }) => (
-    <div data-testid="nft-circles">
-      NFT Circles - Collections: {collections.length}
-    </div>
-  )),
+  default: vi.fn(({ collections }) => <div data-testid="nft-circles">NFT Circles - Collections: {collections.length}</div>),
 }))
 
 vi.mock('../balance-visualizations', () => ({
@@ -54,7 +54,7 @@ vi.mock('../balance-visualizations', () => ({
     Reserved: 'reserved',
     Transferable: 'transferable',
   },
-  NativeBalanceVisualization: vi.fn(({ data, token, types, hidePercentage }) => (
+  NativeBalanceVisualization: vi.fn(({ types, hidePercentage }) => (
     <div data-testid="native-balance-visualization">
       Native Balance Viz - Type: {types.join(',')}, HidePercentage: {hidePercentage ? 'yes' : 'no'}
     </div>
@@ -337,39 +337,21 @@ describe('NativeBalanceHoverCard component', () => {
 
   describe('basic rendering', () => {
     it('should render staking balance', () => {
-      render(
-        <NativeBalanceHoverCard
-          balance={mockNativeBalance}
-          token={mockToken}
-          type={BalanceType.Staking}
-        />
-      )
+      render(<NativeBalanceHoverCard balance={mockNativeBalance} token={mockToken} type={BalanceType.Staking} />)
 
       expect(screen.getByText('300000000000 DOT')).toBeInTheDocument()
       expect(screen.getByTestId('info-icon')).toBeInTheDocument()
     })
 
     it('should render reserved balance', () => {
-      render(
-        <NativeBalanceHoverCard
-          balance={mockNativeBalance}
-          token={mockToken}
-          type={BalanceType.Reserved}
-        />
-      )
+      render(<NativeBalanceHoverCard balance={mockNativeBalance} token={mockToken} type={BalanceType.Reserved} />)
 
       expect(screen.getByText('200000000000 DOT')).toBeInTheDocument()
       expect(screen.getByTestId('info-icon')).toBeInTheDocument()
     })
 
     it('should render transferable balance', () => {
-      render(
-        <NativeBalanceHoverCard
-          balance={mockNativeBalance}
-          token={mockToken}
-          type={BalanceType.Transferable}
-        />
-      )
+      render(<NativeBalanceHoverCard balance={mockNativeBalance} token={mockToken} type={BalanceType.Transferable} />)
 
       expect(screen.getByText('500000000000 DOT')).toBeInTheDocument()
       expect(screen.getByTestId('info-icon')).toBeInTheDocument()
@@ -385,13 +367,7 @@ describe('NativeBalanceHoverCard component', () => {
         },
       }
 
-      render(
-        <NativeBalanceHoverCard
-          balance={zeroBalance}
-          token={mockToken}
-          type={BalanceType.Staking}
-        />
-      )
+      render(<NativeBalanceHoverCard balance={zeroBalance} token={mockToken} type={BalanceType.Staking} />)
 
       expect(screen.getByText('0 DOT')).toBeInTheDocument()
       expect(screen.queryByTestId('info-icon')).not.toBeInTheDocument()
@@ -400,13 +376,7 @@ describe('NativeBalanceHoverCard component', () => {
 
   describe('hover interactions', () => {
     it('should show visualization on hover for non-zero balance', async () => {
-      render(
-        <NativeBalanceHoverCard
-          balance={mockNativeBalance}
-          token={mockToken}
-          type={BalanceType.Staking}
-        />
-      )
+      render(<NativeBalanceHoverCard balance={mockNativeBalance} token={mockToken} type={BalanceType.Staking} />)
 
       const trigger = screen.getByTestId('hover-trigger')
       fireEvent.mouseEnter(trigger)
@@ -430,13 +400,7 @@ describe('NativeBalanceHoverCard component', () => {
         },
       }
 
-      render(
-        <NativeBalanceHoverCard
-          balance={zeroBalance}
-          token={mockToken}
-          type={BalanceType.Staking}
-        />
-      )
+      render(<NativeBalanceHoverCard balance={zeroBalance} token={mockToken} type={BalanceType.Staking} />)
 
       expect(screen.queryByTestId('hover-content')).not.toBeInTheDocument()
     })
@@ -444,13 +408,7 @@ describe('NativeBalanceHoverCard component', () => {
 
   describe('edge cases', () => {
     it('should handle undefined balance', () => {
-      render(
-        <NativeBalanceHoverCard
-          balance={undefined}
-          token={mockToken}
-          type={BalanceType.Staking}
-        />
-      )
+      render(<NativeBalanceHoverCard balance={undefined} token={mockToken} type={BalanceType.Staking} />)
 
       expect(screen.queryByText(/DOT/)).not.toBeInTheDocument()
     })
@@ -461,13 +419,7 @@ describe('NativeBalanceHoverCard component', () => {
         staking: undefined,
       }
 
-      render(
-        <NativeBalanceHoverCard
-          balance={balanceWithoutStaking}
-          token={mockToken}
-          type={BalanceType.Staking}
-        />
-      )
+      render(<NativeBalanceHoverCard balance={balanceWithoutStaking} token={mockToken} type={BalanceType.Staking} />)
 
       expect(screen.queryByText(/DOT/)).not.toBeInTheDocument()
     })
@@ -478,13 +430,7 @@ describe('NativeBalanceHoverCard component', () => {
         reserved: undefined,
       }
 
-      render(
-        <NativeBalanceHoverCard
-          balance={balanceWithoutReserved}
-          token={mockToken}
-          type={BalanceType.Reserved}
-        />
-      )
+      render(<NativeBalanceHoverCard balance={balanceWithoutReserved} token={mockToken} type={BalanceType.Reserved} />)
 
       expect(screen.queryByText(/DOT/)).not.toBeInTheDocument()
     })
@@ -492,13 +438,7 @@ describe('NativeBalanceHoverCard component', () => {
 
   describe('hover card alignment', () => {
     it('should set proper alignment for hover content', () => {
-      render(
-        <NativeBalanceHoverCard
-          balance={mockNativeBalance}
-          token={mockToken}
-          type={BalanceType.Staking}
-        />
-      )
+      render(<NativeBalanceHoverCard balance={mockNativeBalance} token={mockToken} type={BalanceType.Staking} />)
 
       const hoverContent = screen.getByTestId('hover-content')
       expect(hoverContent).toHaveAttribute('data-align', 'end')

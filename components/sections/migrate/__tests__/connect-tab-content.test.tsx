@@ -44,13 +44,7 @@ vi.mock('@/components/hooks/useConnection', () => ({
 // Mock Button component
 vi.mock('@/components/ui/button', () => ({
   Button: ({ children, onClick, className, size, ...props }: any) => (
-    <button
-      className={className}
-      onClick={onClick}
-      data-size={size}
-      data-testid="connect-button"
-      {...props}
-    >
+    <button className={className} onClick={onClick} data-size={size} data-testid="connect-button" {...props}>
       {children}
     </button>
   ),
@@ -101,7 +95,7 @@ describe('ConnectTabContent', () => {
 
       expect(screen.getByText('Polkadot Migration App Not Installed?')).toBeInTheDocument()
       expect(screen.getByText(/If you don't have the Polkadot Migration App/)).toBeInTheDocument()
-      
+
       const ledgerLiveLink = screen.getByRole('link', { name: 'Ledger Live' })
       expect(ledgerLiveLink).toHaveAttribute('href', 'https://www.ledger.com/ledger-live')
       expect(ledgerLiveLink).toHaveAttribute('target', '_blank')
@@ -134,17 +128,17 @@ describe('ConnectTabContent', () => {
       mockIsAppOpen = false
 
       const { container } = render(<ConnectTabContent onContinue={mockOnContinue} />)
-      
+
       // Find step containers by their content
       const stepContainers = container.querySelectorAll('.rounded-xl')
-      
+
       // First two steps should be highlighted (ledger connected)
       expect(stepContainers[0]).toHaveClass('border-polkadot-green', 'bg-polkadot-green/10')
       expect(stepContainers[1]).toHaveClass('border-polkadot-green', 'bg-polkadot-green/10')
-      
+
       // Third step should show warning (app not open)
       expect(stepContainers[2]).toHaveClass('border-rose-400', 'bg-rose-50')
-      
+
       // Fourth step should not be highlighted
       expect(stepContainers[3]).not.toHaveClass('border-polkadot-green')
     })
@@ -154,14 +148,14 @@ describe('ConnectTabContent', () => {
       mockIsAppOpen = true
 
       const { container } = render(<ConnectTabContent onContinue={mockOnContinue} />)
-      
+
       const stepContainers = container.querySelectorAll('.rounded-xl')
-      
+
       // First three steps should be highlighted
       expect(stepContainers[0]).toHaveClass('border-polkadot-green', 'bg-polkadot-green/10')
       expect(stepContainers[1]).toHaveClass('border-polkadot-green', 'bg-polkadot-green/10')
       expect(stepContainers[2]).toHaveClass('border-polkadot-green', 'bg-polkadot-green/10')
-      
+
       // Fourth step should not be highlighted
       expect(stepContainers[3]).not.toHaveClass('border-polkadot-green')
     })
@@ -171,14 +165,14 @@ describe('ConnectTabContent', () => {
       mockIsAppOpen = false
 
       const { container } = render(<ConnectTabContent onContinue={mockOnContinue} />)
-      
+
       const stepContainers = container.querySelectorAll('.rounded-xl')
-      
+
       // No steps should be highlighted
-      stepContainers.forEach(container => {
+      for (const container of stepContainers) {
         expect(container).not.toHaveClass('border-polkadot-green')
         expect(container).not.toHaveClass('bg-polkadot-green/10')
-      })
+      }
     })
   })
 
@@ -188,15 +182,15 @@ describe('ConnectTabContent', () => {
       mockIsAppOpen = true
 
       const { container } = render(<ConnectTabContent onContinue={mockOnContinue} />)
-      
+
       // Find step number elements
       const stepNumbers = container.querySelectorAll('.rounded-full')
-      
+
       // First three step numbers should be highlighted
       expect(stepNumbers[0]).toHaveClass('bg-polkadot-green/20', 'text-polkadot-green')
       expect(stepNumbers[1]).toHaveClass('bg-polkadot-green/20', 'text-polkadot-green')
       expect(stepNumbers[2]).toHaveClass('bg-polkadot-green/20', 'text-polkadot-green')
-      
+
       // Fourth step number should not be highlighted
       expect(stepNumbers[3]).toHaveClass('bg-purple-100', 'text-purple-600')
     })
@@ -206,9 +200,9 @@ describe('ConnectTabContent', () => {
       mockIsAppOpen = false
 
       const { container } = render(<ConnectTabContent onContinue={mockOnContinue} />)
-      
+
       const stepNumbers = container.querySelectorAll('.rounded-full')
-      
+
       // Third step number should show warning colors
       expect(stepNumbers[2]).toHaveClass('bg-rose-100', 'text-rose-400')
     })
@@ -272,7 +266,7 @@ describe('ConnectTabContent', () => {
 
       // Should not call onContinue when error occurs
       expect(mockOnContinue).not.toHaveBeenCalled()
-      
+
       consoleErrorSpy.mockRestore()
     })
   })
@@ -335,7 +329,7 @@ describe('ConnectTabContent', () => {
       render(<ConnectTabContent onContinue={mockOnContinue} />)
 
       const connectButton = screen.getByTestId('connect-button')
-      
+
       // Click button multiple times rapidly
       fireEvent.click(connectButton)
       fireEvent.click(connectButton)

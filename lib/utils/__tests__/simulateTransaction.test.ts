@@ -20,54 +20,38 @@ describe('simulateAndHandleTransaction', () => {
       const promise = simulateAndHandleTransaction(mockUpdateStatus)
 
       // Should immediately call IN_BLOCK status
-      expect(mockUpdateStatus).toHaveBeenCalledWith(
-        TransactionStatus.IN_BLOCK,
-        'Transaction is in block',
-        {
-          txHash: '0xSIMULATED_TX_HASH',
-          blockHash: '0xSIMULATED_BLOCK_HASH',
-          blockNumber: '0xSIMULATED_BLOCK_NUMBER',
-        }
-      )
+      expect(mockUpdateStatus).toHaveBeenCalledWith(TransactionStatus.IN_BLOCK, 'Transaction is in block', {
+        txHash: '0xSIMULATED_TX_HASH',
+        blockHash: '0xSIMULATED_BLOCK_HASH',
+        blockNumber: '0xSIMULATED_BLOCK_NUMBER',
+      })
       expect(mockUpdateStatus).toHaveBeenCalledTimes(1)
 
       // Advance timer and check COMPLETED status
       await vi.advanceTimersByTimeAsync(4000)
-      expect(mockUpdateStatus).toHaveBeenCalledWith(
-        TransactionStatus.COMPLETED,
-        'Transaction is completed. Waiting confirmation...',
-        {
-          txHash: '0xSIMULATED_TX_HASH',
-          blockHash: '0xSIMULATED_BLOCK_HASH',
-          blockNumber: '0xSIMULATED_BLOCK_NUMBER',
-        }
-      )
+      expect(mockUpdateStatus).toHaveBeenCalledWith(TransactionStatus.COMPLETED, 'Transaction is completed. Waiting confirmation...', {
+        txHash: '0xSIMULATED_TX_HASH',
+        blockHash: '0xSIMULATED_BLOCK_HASH',
+        blockNumber: '0xSIMULATED_BLOCK_NUMBER',
+      })
       expect(mockUpdateStatus).toHaveBeenCalledTimes(2)
 
       // Advance timer and check FINALIZED status
       await vi.advanceTimersByTimeAsync(4000)
-      expect(mockUpdateStatus).toHaveBeenCalledWith(
-        TransactionStatus.FINALIZED,
-        'Transaction is finalized. Waiting the result...',
-        {
-          txHash: '0xSIMULATED_TX_HASH',
-          blockHash: '0xSIMULATED_BLOCK_HASH',
-          blockNumber: '0xSIMULATED_BLOCK_NUMBER',
-        }
-      )
+      expect(mockUpdateStatus).toHaveBeenCalledWith(TransactionStatus.FINALIZED, 'Transaction is finalized. Waiting the result...', {
+        txHash: '0xSIMULATED_TX_HASH',
+        blockHash: '0xSIMULATED_BLOCK_HASH',
+        blockNumber: '0xSIMULATED_BLOCK_NUMBER',
+      })
       expect(mockUpdateStatus).toHaveBeenCalledTimes(3)
 
       // Advance timer and check SUCCESS status
       await vi.advanceTimersByTimeAsync(4000)
-      expect(mockUpdateStatus).toHaveBeenCalledWith(
-        TransactionStatus.SUCCESS,
-        'Successful Transaction',
-        {
-          txHash: '0xSIMULATED_TX_HASH',
-          blockHash: '0xSIMULATED_BLOCK_HASH',
-          blockNumber: '0xSIMULATED_BLOCK_NUMBER',
-        }
-      )
+      expect(mockUpdateStatus).toHaveBeenCalledWith(TransactionStatus.SUCCESS, 'Successful Transaction', {
+        txHash: '0xSIMULATED_TX_HASH',
+        blockHash: '0xSIMULATED_BLOCK_HASH',
+        blockNumber: '0xSIMULATED_BLOCK_NUMBER',
+      })
       expect(mockUpdateStatus).toHaveBeenCalledTimes(4)
 
       await promise
@@ -82,15 +66,11 @@ describe('simulateAndHandleTransaction', () => {
 
       const promise = simulateAndHandleTransaction(mockUpdateStatus, customOptions)
 
-      expect(mockUpdateStatus).toHaveBeenCalledWith(
-        TransactionStatus.IN_BLOCK,
-        'Transaction is in block',
-        {
-          txHash: '0xCUSTOM_TX_HASH',
-          blockHash: '0xCUSTOM_BLOCK_HASH',
-          blockNumber: '0xCUSTOM_BLOCK_NUMBER',
-        }
-      )
+      expect(mockUpdateStatus).toHaveBeenCalledWith(TransactionStatus.IN_BLOCK, 'Transaction is in block', {
+        txHash: '0xCUSTOM_TX_HASH',
+        blockHash: '0xCUSTOM_BLOCK_HASH',
+        blockNumber: '0xCUSTOM_BLOCK_NUMBER',
+      })
 
       await vi.runAllTimersAsync()
       await promise
@@ -130,15 +110,11 @@ describe('simulateAndHandleTransaction', () => {
       await vi.advanceTimersByTimeAsync(4000) // COMPLETED -> FINALIZED
       await vi.advanceTimersByTimeAsync(4000) // FINALIZED -> FAILED
 
-      expect(mockUpdateStatus).toHaveBeenLastCalledWith(
-        TransactionStatus.FAILED,
-        'Simulated transaction failure',
-        {
-          txHash: '0xSIMULATED_TX_HASH',
-          blockHash: '0xSIMULATED_BLOCK_HASH',
-          blockNumber: '0xSIMULATED_BLOCK_NUMBER',
-        }
-      )
+      expect(mockUpdateStatus).toHaveBeenLastCalledWith(TransactionStatus.FAILED, 'Simulated transaction failure', {
+        txHash: '0xSIMULATED_TX_HASH',
+        blockHash: '0xSIMULATED_BLOCK_HASH',
+        blockNumber: '0xSIMULATED_BLOCK_NUMBER',
+      })
       expect(mockUpdateStatus).toHaveBeenCalledTimes(4)
 
       await promise
@@ -162,12 +138,7 @@ describe('simulateAndHandleTransaction', () => {
           await vi.advanceTimersByTimeAsync(100)
         }
         expect(mockUpdateStatus).toHaveBeenCalledTimes(i + 1)
-        expect(mockUpdateStatus).toHaveBeenNthCalledWith(
-          i + 1,
-          expectedStatuses[i],
-          expect.any(String),
-          expect.any(Object)
-        )
+        expect(mockUpdateStatus).toHaveBeenNthCalledWith(i + 1, expectedStatuses[i], expect.any(String), expect.any(Object))
       }
 
       await promise
@@ -178,15 +149,11 @@ describe('simulateAndHandleTransaction', () => {
     it('should handle undefined options', async () => {
       const promise = simulateAndHandleTransaction(mockUpdateStatus, undefined)
 
-      expect(mockUpdateStatus).toHaveBeenCalledWith(
-        TransactionStatus.IN_BLOCK,
-        'Transaction is in block',
-        {
-          txHash: '0xSIMULATED_TX_HASH',
-          blockHash: '0xSIMULATED_BLOCK_HASH',
-          blockNumber: '0xSIMULATED_BLOCK_NUMBER',
-        }
-      )
+      expect(mockUpdateStatus).toHaveBeenCalledWith(TransactionStatus.IN_BLOCK, 'Transaction is in block', {
+        txHash: '0xSIMULATED_TX_HASH',
+        blockHash: '0xSIMULATED_BLOCK_HASH',
+        blockNumber: '0xSIMULATED_BLOCK_NUMBER',
+      })
 
       await vi.runAllTimersAsync()
       await promise
@@ -195,15 +162,11 @@ describe('simulateAndHandleTransaction', () => {
     it('should handle empty options object', async () => {
       const promise = simulateAndHandleTransaction(mockUpdateStatus, {})
 
-      expect(mockUpdateStatus).toHaveBeenCalledWith(
-        TransactionStatus.IN_BLOCK,
-        'Transaction is in block',
-        {
-          txHash: '0xSIMULATED_TX_HASH',
-          blockHash: '0xSIMULATED_BLOCK_HASH',
-          blockNumber: '0xSIMULATED_BLOCK_NUMBER',
-        }
-      )
+      expect(mockUpdateStatus).toHaveBeenCalledWith(TransactionStatus.IN_BLOCK, 'Transaction is in block', {
+        txHash: '0xSIMULATED_TX_HASH',
+        blockHash: '0xSIMULATED_BLOCK_HASH',
+        blockNumber: '0xSIMULATED_BLOCK_NUMBER',
+      })
 
       await vi.runAllTimersAsync()
       await promise
@@ -218,11 +181,7 @@ describe('simulateAndHandleTransaction', () => {
       await vi.runAllTimersAsync()
 
       expect(mockUpdateStatus).toHaveBeenCalledTimes(4)
-      expect(mockUpdateStatus).toHaveBeenLastCalledWith(
-        TransactionStatus.SUCCESS,
-        'Successful Transaction',
-        expect.any(Object)
-      )
+      expect(mockUpdateStatus).toHaveBeenLastCalledWith(TransactionStatus.SUCCESS, 'Successful Transaction', expect.any(Object))
 
       await promise
     })
@@ -233,15 +192,11 @@ describe('simulateAndHandleTransaction', () => {
         // blockHash and blockNumber will use defaults
       })
 
-      expect(mockUpdateStatus).toHaveBeenCalledWith(
-        TransactionStatus.IN_BLOCK,
-        'Transaction is in block',
-        {
-          txHash: '0xONLY_TX_HASH',
-          blockHash: '0xSIMULATED_BLOCK_HASH',
-          blockNumber: '0xSIMULATED_BLOCK_NUMBER',
-        }
-      )
+      expect(mockUpdateStatus).toHaveBeenCalledWith(TransactionStatus.IN_BLOCK, 'Transaction is in block', {
+        txHash: '0xONLY_TX_HASH',
+        blockHash: '0xSIMULATED_BLOCK_HASH',
+        blockNumber: '0xSIMULATED_BLOCK_NUMBER',
+      })
 
       await vi.runAllTimersAsync()
       await promise
@@ -297,11 +252,9 @@ describe('simulateAndHandleTransaction', () => {
       }
 
       const transactionDetails: any[] = []
-      mockUpdateStatus.mockImplementation(
-        (_status: TransactionStatus, _message: string, details: any) => {
-          transactionDetails.push(details)
-        }
-      )
+      mockUpdateStatus.mockImplementation((_status: TransactionStatus, _message: string, details: any) => {
+        transactionDetails.push(details)
+      })
 
       const promise = simulateAndHandleTransaction(mockUpdateStatus, options)
 
@@ -310,13 +263,13 @@ describe('simulateAndHandleTransaction', () => {
 
       // All calls should have the same transaction details
       expect(transactionDetails).toHaveLength(4)
-      transactionDetails.forEach(details => {
+      for (const details of transactionDetails) {
         expect(details).toEqual({
           txHash: '0xCONSISTENT_TX',
           blockHash: '0xCONSISTENT_BLOCK',
           blockNumber: '12345',
         })
-      })
+      }
     })
   })
 })

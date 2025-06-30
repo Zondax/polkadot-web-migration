@@ -25,9 +25,9 @@ describe('Styles Utilities', () => {
 
     it('should handle object with boolean values', () => {
       const result = cn({
-        'class1': true,
-        'class2': false,
-        'class3': true,
+        class1: true,
+        class2: false,
+        class3: true,
       })
       expect(result).toBe('class1 class3')
     })
@@ -110,7 +110,7 @@ describe('Styles Utilities', () => {
       const isActive = true
       const isDisabled = false
       const variant = 'primary'
-      
+
       const result = cn(
         'base-button',
         isActive && 'active',
@@ -118,7 +118,7 @@ describe('Styles Utilities', () => {
         variant === 'primary' && 'btn-primary',
         variant === 'secondary' && 'btn-secondary'
       )
-      
+
       expect(result).toBe('base-button active btn-primary')
     })
 
@@ -126,7 +126,7 @@ describe('Styles Utilities', () => {
       // Test margin conflicts
       const result1 = cn('m-4', 'm-6', 'mx-8', 'ml-2')
       expect(result1).toBe('m-6 mx-8 ml-2')
-      
+
       // Test padding conflicts
       const result2 = cn('p-2', 'px-4', 'py-6', 'pt-8')
       expect(result2).toBe('p-2 px-4 py-6 pt-8')
@@ -143,9 +143,9 @@ describe('Styles Utilities', () => {
       const variantStyles = 'bg-primary text-primary-foreground hover:bg-primary/90'
       const sizeStyles = 'h-10 px-4 py-2'
       const customStyles = 'custom-button-class'
-      
+
       const result = cn(baseStyles, variantStyles, sizeStyles, customStyles)
-      
+
       expect(result).toContain('inline-flex')
       expect(result).toContain('items-center')
       expect(result).toContain('bg-primary')

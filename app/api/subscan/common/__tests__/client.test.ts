@@ -16,9 +16,9 @@ describe('SubscanClient', () => {
     })
 
     it('should construct client with network and API key', () => {
-      const client = new SubscanClient({ 
-        network: 'polkadot', 
-        apiKey: 'test-key' 
+      const client = new SubscanClient({
+        network: 'polkadot',
+        apiKey: 'test-key',
       })
       expect(client).toBeInstanceOf(SubscanClient)
     })
@@ -41,16 +41,13 @@ describe('SubscanClient', () => {
       const client = new SubscanClient({ network: 'polkadot' })
       const result = await client.request('/test/endpoint', { key: 'test' })
 
-      expect(fetch).toHaveBeenCalledWith(
-        'https://polkadot.api.subscan.io/api/v2/test/endpoint',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ key: 'test' }),
-        }
-      )
+      expect(fetch).toHaveBeenCalledWith('https://polkadot.api.subscan.io/api/v2/test/endpoint', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ key: 'test' }),
+      })
       expect(result).toEqual(mockResponse)
     })
 
@@ -66,23 +63,20 @@ describe('SubscanClient', () => {
         json: vi.fn().mockResolvedValue(mockResponse),
       } as any)
 
-      const client = new SubscanClient({ 
-        network: 'kusama', 
-        apiKey: 'secret-key' 
+      const client = new SubscanClient({
+        network: 'kusama',
+        apiKey: 'secret-key',
       })
       await client.request('/test/endpoint', { key: 'test' })
 
-      expect(fetch).toHaveBeenCalledWith(
-        'https://kusama.api.subscan.io/api/v2/test/endpoint',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-API-Key': 'secret-key',
-          },
-          body: JSON.stringify({ key: 'test' }),
-        }
-      )
+      expect(fetch).toHaveBeenCalledWith('https://kusama.api.subscan.io/api/v2/test/endpoint', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': 'secret-key',
+        },
+        body: JSON.stringify({ key: 'test' }),
+      })
     })
 
     it('should throw SubscanError when HTTP request fails', async () => {
@@ -95,15 +89,15 @@ describe('SubscanClient', () => {
 
       const client = new SubscanClient({ network: 'polkadot' })
 
-      await expect(client.request('/test/endpoint', { key: 'test' }))
-        .rejects.toThrow(SubscanError)
+      await expect(client.request('/test/endpoint', { key: 'test' })).rejects.toThrow(SubscanError)
 
       // Test the error message by creating a new client since the previous one consumed the mock
       vi.mocked(fetch).mockResolvedValueOnce(mockResponse as any)
       const client2 = new SubscanClient({ network: 'polkadot' })
-      
-      await expect(client2.request('/test/endpoint', { key: 'test' }))
-        .rejects.toThrow('HTTP error! status: 500, error: Internal Server Error')
+
+      await expect(client2.request('/test/endpoint', { key: 'test' })).rejects.toThrow(
+        'HTTP error! status: 500, error: Internal Server Error'
+      )
     })
 
     it('should throw SubscanError when Subscan API returns error code', async () => {
@@ -121,8 +115,7 @@ describe('SubscanClient', () => {
 
       const client = new SubscanClient({ network: 'polkadot' })
 
-      await expect(client.request('/test/endpoint', { key: 'test' }))
-        .rejects.toThrow(SubscanError)
+      await expect(client.request('/test/endpoint', { key: 'test' })).rejects.toThrow(SubscanError)
 
       // Test error details with a new mock
       vi.mocked(fetch).mockResolvedValueOnce(mockResponse as any)
@@ -179,8 +172,7 @@ describe('SubscanClient', () => {
 
       const client = new SubscanClient({ network: 'polkadot' })
 
-      await expect(client.request('/test/endpoint', { key: 'test' }))
-        .rejects.toThrow('Network connection failed')
+      await expect(client.request('/test/endpoint', { key: 'test' })).rejects.toThrow('Network connection failed')
     })
 
     it('should handle JSON parsing errors', async () => {
@@ -191,8 +183,7 @@ describe('SubscanClient', () => {
 
       const client = new SubscanClient({ network: 'polkadot' })
 
-      await expect(client.request('/test/endpoint', { key: 'test' }))
-        .rejects.toThrow('Invalid JSON')
+      await expect(client.request('/test/endpoint', { key: 'test' })).rejects.toThrow('Invalid JSON')
     })
 
     it('should handle different network endpoints correctly', async () => {
@@ -213,10 +204,7 @@ describe('SubscanClient', () => {
         const client = new SubscanClient({ network })
         await client.request('/test', { key: 'test' })
 
-        expect(fetch).toHaveBeenCalledWith(
-          `https://${network}.api.subscan.io/api/v2/test`,
-          expect.any(Object)
-        )
+        expect(fetch).toHaveBeenCalledWith(`https://${network}.api.subscan.io/api/v2/test`, expect.any(Object))
       }
     })
   })
@@ -225,7 +213,7 @@ describe('SubscanClient', () => {
 describe('SubscanError', () => {
   it('should create error with correct properties', () => {
     const error = new SubscanError('Test error', 10004, 404)
-    
+
     expect(error.name).toBe('SubscanError')
     expect(error.message).toBe('Test error')
     expect(error.subscanCode).toBe(10004)

@@ -23,13 +23,7 @@ vi.mock('@/components/ExplorerLink', () => ({
 
 vi.mock('@/components/ui/button', () => ({
   Button: vi.fn(({ children, variant, className, onClick, disabled }) => (
-    <button
-      data-testid="button"
-      data-variant={variant}
-      className={className}
-      onClick={onClick}
-      disabled={disabled}
-    >
+    <button type="button" data-testid="button" data-variant={variant} className={className} onClick={onClick} disabled={disabled}>
       {children}
     </button>
   )),
@@ -45,7 +39,11 @@ vi.mock('@/config/explorers', () => ({
 
 vi.mock('@/lib/utils/ui', () => ({
   getTransactionStatus: vi.fn((status, message, size) => ({
-    statusIcon: <div data-testid="status-icon" data-status={status} data-size={size}>Icon</div>,
+    statusIcon: (
+      <div data-testid="status-icon" data-status={status} data-size={size}>
+        Icon
+      </div>
+    ),
     statusMessage: message || 'Default status message',
   })),
 }))
@@ -72,17 +70,13 @@ describe('TransactionStatusBody', () => {
     })
 
     it('should not render when status is null', () => {
-      const { container } = render(
-        <TransactionStatusBody {...defaultProps} status={null} />
-      )
+      const { container } = render(<TransactionStatusBody {...defaultProps} status={null} />)
 
       expect(container.firstChild).toBeNull()
     })
 
     it('should not render when status is undefined', () => {
-      const { container } = render(
-        <TransactionStatusBody {...defaultProps} status={undefined as any} />
-      )
+      const { container } = render(<TransactionStatusBody {...defaultProps} status={undefined as any} />)
 
       expect(container.firstChild).toBeNull()
     })
@@ -90,12 +84,7 @@ describe('TransactionStatusBody', () => {
 
   describe('transaction details', () => {
     it('should render transaction hash when provided', () => {
-      render(
-        <TransactionStatusBody
-          {...defaultProps}
-          txHash="0x1234567890abcdef"
-        />
-      )
+      render(<TransactionStatusBody {...defaultProps} txHash="0x1234567890abcdef" />)
 
       expect(screen.getByText('Transaction Hash')).toBeInTheDocument()
       const explorerLink = screen.getByTestId('explorer-link')
@@ -106,12 +95,7 @@ describe('TransactionStatusBody', () => {
     })
 
     it('should render block hash when provided', () => {
-      render(
-        <TransactionStatusBody
-          {...defaultProps}
-          blockHash="0xabcdef1234567890"
-        />
-      )
+      render(<TransactionStatusBody {...defaultProps} blockHash="0xabcdef1234567890" />)
 
       expect(screen.getByText('Block Hash')).toBeInTheDocument()
       const explorerLink = screen.getByTestId('explorer-link')
@@ -120,12 +104,7 @@ describe('TransactionStatusBody', () => {
     })
 
     it('should render block number when provided', () => {
-      render(
-        <TransactionStatusBody
-          {...defaultProps}
-          blockNumber="12345"
-        />
-      )
+      render(<TransactionStatusBody {...defaultProps} blockNumber="12345" />)
 
       expect(screen.getByText('Block Number')).toBeInTheDocument()
       const explorerLink = screen.getByTestId('explorer-link')
@@ -134,14 +113,7 @@ describe('TransactionStatusBody', () => {
     })
 
     it('should render all transaction details when provided', () => {
-      render(
-        <TransactionStatusBody
-          {...defaultProps}
-          txHash="0x1234567890abcdef"
-          blockHash="0xabcdef1234567890"
-          blockNumber="12345"
-        />
-      )
+      render(<TransactionStatusBody {...defaultProps} txHash="0x1234567890abcdef" blockHash="0xabcdef1234567890" blockNumber="12345" />)
 
       expect(screen.getByText('Transaction Hash')).toBeInTheDocument()
       expect(screen.getByText('Block Hash')).toBeInTheDocument()
@@ -159,13 +131,7 @@ describe('TransactionStatusBody', () => {
     })
 
     it('should render explorer link without appId when appId is not provided', () => {
-      render(
-        <TransactionStatusBody
-          {...defaultProps}
-          appId={undefined}
-          txHash="0x1234567890abcdef"
-        />
-      )
+      render(<TransactionStatusBody {...defaultProps} appId={undefined} txHash="0x1234567890abcdef" />)
 
       const explorerLink = screen.getByTestId('explorer-link')
       expect(explorerLink).toHaveAttribute('data-value', '0x1234567890abcdef')
@@ -176,80 +142,43 @@ describe('TransactionStatusBody', () => {
 
   describe('status handling', () => {
     it('should display loading message for IS_LOADING status', () => {
-      render(
-        <TransactionStatusBody
-          {...defaultProps}
-          status={TransactionStatus.IS_LOADING}
-        />
-      )
+      render(<TransactionStatusBody {...defaultProps} status={TransactionStatus.IS_LOADING} />)
 
       expect(screen.getByText('Please sign the transaction in your Ledger device')).toBeInTheDocument()
     })
 
     it('should display status message for non-loading statuses', () => {
-      render(
-        <TransactionStatusBody
-          {...defaultProps}
-          status={TransactionStatus.SUCCESS}
-          statusMessage="Custom success message"
-        />
-      )
+      render(<TransactionStatusBody {...defaultProps} status={TransactionStatus.SUCCESS} statusMessage="Custom success message" />)
 
       expect(screen.getByText('Custom success message')).toBeInTheDocument()
       expect(screen.queryByText('Please sign the transaction in your Ledger device')).not.toBeInTheDocument()
     })
 
     it('should call getTransactionStatus with correct parameters', async () => {
-      const mockGetTransactionStatus = vi.mocked(
-        await import('@/lib/utils/ui')
-      ).getTransactionStatus
+      const mockGetTransactionStatus = vi.mocked(await import('@/lib/utils/ui')).getTransactionStatus
 
-      render(
-        <TransactionStatusBody
-          {...defaultProps}
-          status={TransactionStatus.ERROR}
-          statusMessage="Transaction failed"
-        />
-      )
+      render(<TransactionStatusBody {...defaultProps} status={TransactionStatus.ERROR} statusMessage="Transaction failed" />)
 
-      expect(mockGetTransactionStatus).toHaveBeenCalledWith(
-        TransactionStatus.ERROR,
-        'Transaction failed',
-        'lg'
-      )
+      expect(mockGetTransactionStatus).toHaveBeenCalledWith(TransactionStatus.ERROR, 'Transaction failed', 'lg')
     })
 
     it('should handle different transaction statuses', () => {
-      const statuses = [
-        TransactionStatus.SUCCESS,
-        TransactionStatus.ERROR,
-        TransactionStatus.IS_LOADING,
-        TransactionStatus.CANCELLED,
-      ]
+      const statuses = [TransactionStatus.SUCCESS, TransactionStatus.ERROR, TransactionStatus.IS_LOADING, TransactionStatus.CANCELLED]
 
-      statuses.forEach(status => {
-        const { unmount } = render(
-          <TransactionStatusBody {...defaultProps} status={status} />
-        )
+      for (const status of statuses) {
+        const { unmount } = render(<TransactionStatusBody {...defaultProps} status={status} />)
 
         if (status) {
           expect(screen.getByTestId('status-icon')).toHaveAttribute('data-status', status)
         }
         unmount()
-      })
+      }
     })
   })
 
   describe('edge cases', () => {
     it('should handle empty transaction details', () => {
-      render(
-        <TransactionStatusBody
-          {...defaultProps}
-          txHash=""
-          blockHash=""
-          blockNumber=""
-        />
-      )
+      render(<TransactionStatusBody {...defaultProps} txHash="" blockHash="" blockNumber="" />)
 
       expect(screen.queryByText('Transaction Hash')).not.toBeInTheDocument()
       expect(screen.queryByText('Block Hash')).not.toBeInTheDocument()
@@ -257,14 +186,7 @@ describe('TransactionStatusBody', () => {
     })
 
     it('should handle partial transaction details', () => {
-      render(
-        <TransactionStatusBody
-          {...defaultProps}
-          txHash="0x1234567890abcdef"
-          blockHash=""
-          blockNumber="12345"
-        />
-      )
+      render(<TransactionStatusBody {...defaultProps} txHash="0x1234567890abcdef" blockHash="" blockNumber="12345" />)
 
       expect(screen.getByText('Transaction Hash')).toBeInTheDocument()
       expect(screen.queryByText('Block Hash')).not.toBeInTheDocument()
@@ -273,13 +195,7 @@ describe('TransactionStatusBody', () => {
     })
 
     it('should handle different app IDs', () => {
-      render(
-        <TransactionStatusBody
-          {...defaultProps}
-          appId="kusama"
-          txHash="0x1234567890abcdef"
-        />
-      )
+      render(<TransactionStatusBody {...defaultProps} appId="kusama" txHash="0x1234567890abcdef" />)
 
       const explorerLink = screen.getByTestId('explorer-link')
       expect(explorerLink).toHaveAttribute('data-app-id', 'kusama')
@@ -346,13 +262,7 @@ describe('TransactionDialogFooter', () => {
 
     it('should call synchronizeAccount when update synchronization is clicked', () => {
       const mockSynchronizeAccount = vi.fn()
-      render(
-        <TransactionDialogFooter
-          {...defaultProps}
-          isTxFinished={true}
-          synchronizeAccount={mockSynchronizeAccount}
-        />
-      )
+      render(<TransactionDialogFooter {...defaultProps} isTxFinished={true} synchronizeAccount={mockSynchronizeAccount} />)
 
       const updateButton = screen.getAllByTestId('button')[1]
       fireEvent.click(updateButton)
@@ -362,14 +272,7 @@ describe('TransactionDialogFooter', () => {
 
     it('should call clearTx when try again is clicked after failed transaction', () => {
       const mockClearTx = vi.fn()
-      render(
-        <TransactionDialogFooter
-          {...defaultProps}
-          isTxFinished={true}
-          isTxFailed={true}
-          clearTx={mockClearTx}
-        />
-      )
+      render(<TransactionDialogFooter {...defaultProps} isTxFinished={true} isTxFailed={true} clearTx={mockClearTx} />)
 
       const tryAgainButton = screen.getAllByTestId('button')[1]
       fireEvent.click(tryAgainButton)
@@ -394,26 +297,14 @@ describe('TransactionDialogFooter', () => {
     })
 
     it('should disable update synchronization button when isSynchronizing is true', () => {
-      render(
-        <TransactionDialogFooter
-          {...defaultProps}
-          isTxFinished={true}
-          isSynchronizing={true}
-        />
-      )
+      render(<TransactionDialogFooter {...defaultProps} isTxFinished={true} isSynchronizing={true} />)
 
       const updateButton = screen.getAllByTestId('button')[1]
       expect(updateButton).toBeDisabled()
     })
 
     it('should enable update synchronization button when isSynchronizing is false', () => {
-      render(
-        <TransactionDialogFooter
-          {...defaultProps}
-          isTxFinished={true}
-          isSynchronizing={false}
-        />
-      )
+      render(<TransactionDialogFooter {...defaultProps} isTxFinished={true} isSynchronizing={false} />)
 
       const updateButton = screen.getAllByTestId('button')[1]
       expect(updateButton).not.toBeDisabled()
@@ -422,12 +313,7 @@ describe('TransactionDialogFooter', () => {
 
   describe('button labels', () => {
     it('should use custom main button label when provided', () => {
-      render(
-        <TransactionDialogFooter
-          {...defaultProps}
-          mainButtonLabel="Custom Action"
-        />
-      )
+      render(<TransactionDialogFooter {...defaultProps} mainButtonLabel="Custom Action" />)
 
       const signButton = screen.getAllByTestId('button')[1]
       expect(signButton).toHaveTextContent('Custom Action')
@@ -441,39 +327,21 @@ describe('TransactionDialogFooter', () => {
     })
 
     it('should show "Try again" when transaction failed', () => {
-      render(
-        <TransactionDialogFooter
-          {...defaultProps}
-          isTxFinished={true}
-          isTxFailed={true}
-        />
-      )
+      render(<TransactionDialogFooter {...defaultProps} isTxFinished={true} isTxFailed={true} />)
 
       const actionButton = screen.getAllByTestId('button')[1]
       expect(actionButton).toHaveTextContent('Try again')
     })
 
     it('should show "Update Synchronization" when transaction succeeded', () => {
-      render(
-        <TransactionDialogFooter
-          {...defaultProps}
-          isTxFinished={true}
-          isTxFailed={false}
-        />
-      )
+      render(<TransactionDialogFooter {...defaultProps} isTxFinished={true} isTxFailed={false} />)
 
       const actionButton = screen.getAllByTestId('button')[1]
       expect(actionButton).toHaveTextContent('Update Synchronization')
     })
 
     it('should show "Synchronizing..." when synchronizing', () => {
-      render(
-        <TransactionDialogFooter
-          {...defaultProps}
-          isTxFinished={true}
-          isSynchronizing={true}
-        />
-      )
+      render(<TransactionDialogFooter {...defaultProps} isTxFinished={true} isSynchronizing={true} />)
 
       const actionButton = screen.getAllByTestId('button')[1]
       expect(actionButton).toHaveTextContent('Synchronizing...')
@@ -527,7 +395,7 @@ describe('TransactionDialogFooter', () => {
         { isTxFinished: true, isTxFailed: true, isSynchronizing: true },
       ]
 
-      combinations.forEach(({ isTxFinished, isTxFailed, isSynchronizing }) => {
+      for (const { isTxFinished, isTxFailed, isSynchronizing } of combinations) {
         const { unmount } = render(
           <TransactionDialogFooter
             {...defaultProps}
@@ -540,7 +408,7 @@ describe('TransactionDialogFooter', () => {
         const buttons = screen.getAllByTestId('button')
         expect(buttons).toHaveLength(2)
         unmount()
-      })
+      }
     })
 
     it('should handle function props being undefined gracefully', () => {
@@ -563,9 +431,9 @@ describe('TransactionDialogFooter', () => {
       render(<TransactionDialogFooter {...defaultProps} />)
 
       const buttons = screen.getAllByTestId('button')
-      buttons.forEach(button => {
+      for (const button of buttons) {
         expect(button.tagName).toBe('BUTTON')
-      })
+      }
     })
 
     it('should have descriptive button text', () => {
@@ -577,14 +445,7 @@ describe('TransactionDialogFooter', () => {
     })
 
     it('should properly disable buttons when appropriate', () => {
-      render(
-        <TransactionDialogFooter
-          {...defaultProps}
-          isSignDisabled={true}
-          isTxFinished={true}
-          isSynchronizing={true}
-        />
-      )
+      render(<TransactionDialogFooter {...defaultProps} isSignDisabled={true} isTxFinished={true} isSynchronizing={true} />)
 
       const buttons = screen.getAllByTestId('button')
       expect(buttons[0]).not.toBeDisabled() // Close button is never disabled

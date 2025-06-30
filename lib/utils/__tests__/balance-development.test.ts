@@ -11,7 +11,7 @@ vi.mock('@/config/mockData', () => ({
   mockBalances: [],
   errorAddresses: [],
   syncApps: [],
-  errorApps: []
+  errorApps: [],
 }))
 
 describe('balance utilities in development mode', () => {
@@ -23,7 +23,7 @@ describe('balance utilities in development mode', () => {
     it('should use MINIMUM_AMOUNT for native balance in development mode', async () => {
       // Import the function after mocking
       const { getTransferableAndNfts } = await import('../balance')
-      
+
       const mockAccount: Address = {
         address: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
         balances: [

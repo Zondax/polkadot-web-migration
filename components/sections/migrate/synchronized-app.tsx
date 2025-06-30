@@ -69,14 +69,15 @@ function SynchronizedApp({
   return (
     <div className="bg-gray-50 rounded-lg shadow-xs border border-gray-200 mb-4">
       {/* Overview */}
-      <div
-        className={`flex flex-row items-center justify-between gap-4 px-4 py-3 cursor-pointer select-none transition-colors rounded-lg ${accounts?.length !== 0 ? 'hover:bg-gray-50' : ''}`}
+      <button
+        type="button"
+        className={`w-full flex flex-row items-center justify-between gap-4 px-4 py-3 cursor-pointer select-none transition-colors rounded-lg ${accounts?.length !== 0 ? 'hover:bg-gray-50' : ''}`}
         onClick={isAccountsNotEmpty ? toggleExpand : undefined}
         onKeyDown={handleKeyDown}
         data-testid="app-row-overview"
-        role="button"
         tabIndex={isAccountsNotEmpty ? 0 : -1}
         aria-expanded={isExpanded}
+        disabled={!isAccountsNotEmpty}
       >
         <div className="flex items-center gap-4">
           <div className="max-h-8 w-8 h-8 overflow-hidden flex items-center justify-center">
@@ -119,7 +120,7 @@ function SynchronizedApp({
             </CustomTooltip>
           </div>
         )}
-      </div>
+      </button>
       {/* Accounts Table (expandable) */}
       {isExpanded && isAccountsNotEmpty ? (
         <div className="overflow-hidden">

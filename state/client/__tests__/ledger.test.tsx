@@ -1,16 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BN } from '@polkadot/util'
 import type { AppConfig } from 'config/apps'
-import { InternalErrorType } from 'config/errors'
 import { InternalError } from '@/lib/utils'
-import {
-  AccountType,
-  type Address,
-  BalanceType,
-  type MultisigAddress,
-  type NativeBalance,
-  TransactionStatus,
-} from '@/state/types/ledger'
+import { AccountType, type Address, BalanceType, type MultisigAddress, type NativeBalance, TransactionStatus } from '@/state/types/ledger'
 import { ledgerClient } from '../ledger'
 
 // Mock all dependencies
@@ -51,14 +43,17 @@ vi.mock('../helpers', () => ({
 
 vi.mock('config/apps', () => ({
   appsConfigs: new Map([
-    ['polkadot', {
-      id: 'polkadot',
-      name: 'Polkadot',
-      rpcEndpoint: 'wss://rpc.polkadot.io',
-      token: { symbol: 'DOT', decimals: 10 },
-      bip44Path: "m/44'/354'/0'/0'/0'",
-      ss58Prefix: 0,
-    }],
+    [
+      'polkadot',
+      {
+        id: 'polkadot',
+        name: 'Polkadot',
+        rpcEndpoint: 'wss://rpc.polkadot.io',
+        token: { symbol: 'DOT', decimals: 10 },
+        bip44Path: "m/44'/354'/0'/0'/0'",
+        ss58Prefix: 0,
+      },
+    ],
   ]),
   polkadotAppConfig: {
     id: 'polkadot',
@@ -255,7 +250,7 @@ describe('Ledger Client', () => {
     beforeEach(() => {
       vi.mocked(validateMigrationParams).mockReturnValue({
         isValid: true,
-        balance: mockAddress.balances![0],
+        balance: mockAddress.balances?.[0],
         senderAddress: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
         senderPath: "m/44'/354'/0'/0/0",
         receiverAddress: '5Receiver',
@@ -359,7 +354,7 @@ describe('Ledger Client', () => {
     it('should handle multisig accounts', async () => {
       vi.mocked(validateMigrationParams).mockReturnValue({
         isValid: true,
-        balance: mockMultisigAddress.balances![0],
+        balance: mockMultisigAddress.balances?.[0],
         senderAddress: '5MultisigAddress',
         senderPath: "m/44'/354'/0'/0/0",
         receiverAddress: '5Receiver',
@@ -446,7 +441,9 @@ describe('Ledger Client', () => {
       const amount = new BN('1000000000000')
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: undefined })
 
-      await expect(ledgerClient.unstakeBalance('polkadot', mockAddress.address, mockAddress.path, amount, mockUpdateTxStatus)).rejects.toThrow(InternalError)
+      await expect(
+        ledgerClient.unstakeBalance('polkadot', mockAddress.address, mockAddress.path, amount, mockUpdateTxStatus)
+      ).rejects.toThrow(InternalError)
     })
 
     it('should handle unstake transaction preparation failure', async () => {
@@ -454,7 +451,9 @@ describe('Ledger Client', () => {
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: mockApi })
       vi.mocked(prepareUnstakeTransaction).mockResolvedValueOnce(undefined)
 
-      await expect(ledgerClient.unstakeBalance('polkadot', mockAddress.address, mockAddress.path, amount, mockUpdateTxStatus)).rejects.toThrow(InternalError)
+      await expect(
+        ledgerClient.unstakeBalance('polkadot', mockAddress.address, mockAddress.path, amount, mockUpdateTxStatus)
+      ).rejects.toThrow(InternalError)
     })
 
     it('should handle transaction payload preparation failure', async () => {
@@ -463,7 +462,9 @@ describe('Ledger Client', () => {
       vi.mocked(prepareUnstakeTransaction).mockResolvedValueOnce(mockApi.tx.balances.transfer)
       vi.mocked(prepareTransactionPayload).mockResolvedValueOnce(undefined)
 
-      await expect(ledgerClient.unstakeBalance('polkadot', mockAddress.address, mockAddress.path, amount, mockUpdateTxStatus)).rejects.toThrow(InternalError)
+      await expect(
+        ledgerClient.unstakeBalance('polkadot', mockAddress.address, mockAddress.path, amount, mockUpdateTxStatus)
+      ).rejects.toThrow(InternalError)
     })
 
     it('should handle signing failure', async () => {
@@ -482,7 +483,9 @@ describe('Ledger Client', () => {
         signature: undefined,
       })
 
-      await expect(ledgerClient.unstakeBalance('polkadot', mockAddress.address, mockAddress.path, amount, mockUpdateTxStatus)).rejects.toThrow(InternalError)
+      await expect(
+        ledgerClient.unstakeBalance('polkadot', mockAddress.address, mockAddress.path, amount, mockUpdateTxStatus)
+      ).rejects.toThrow(InternalError)
     })
   })
 
@@ -580,14 +583,18 @@ describe('Ledger Client', () => {
     it('should handle API connection failure', async () => {
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: undefined })
 
-      await expect(ledgerClient.withdrawBalance('polkadot', mockAddress.address, mockAddress.path, mockUpdateTxStatus)).rejects.toThrow(InternalError)
+      await expect(ledgerClient.withdrawBalance('polkadot', mockAddress.address, mockAddress.path, mockUpdateTxStatus)).rejects.toThrow(
+        InternalError
+      )
     })
 
     it('should handle withdraw transaction preparation failure', async () => {
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: mockApi })
       vi.mocked(prepareWithdrawTransaction).mockResolvedValueOnce(undefined)
 
-      await expect(ledgerClient.withdrawBalance('polkadot', mockAddress.address, mockAddress.path, mockUpdateTxStatus)).rejects.toThrow(InternalError)
+      await expect(ledgerClient.withdrawBalance('polkadot', mockAddress.address, mockAddress.path, mockUpdateTxStatus)).rejects.toThrow(
+        InternalError
+      )
     })
 
     it('should handle signing failure', async () => {
@@ -605,7 +612,9 @@ describe('Ledger Client', () => {
         signature: undefined,
       })
 
-      await expect(ledgerClient.withdrawBalance('polkadot', mockAddress.address, mockAddress.path, mockUpdateTxStatus)).rejects.toThrow(InternalError)
+      await expect(ledgerClient.withdrawBalance('polkadot', mockAddress.address, mockAddress.path, mockUpdateTxStatus)).rejects.toThrow(
+        InternalError
+      )
     })
   })
 
@@ -678,7 +687,9 @@ describe('Ledger Client', () => {
     it('should handle API connection failure', async () => {
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: undefined })
 
-      await expect(ledgerClient.removeIdentity('polkadot', mockAddress.address, mockAddress.path, mockUpdateTxStatus)).rejects.toThrow(InternalError)
+      await expect(ledgerClient.removeIdentity('polkadot', mockAddress.address, mockAddress.path, mockUpdateTxStatus)).rejects.toThrow(
+        InternalError
+      )
     })
   })
 
@@ -708,7 +719,7 @@ describe('Ledger Client', () => {
     beforeEach(() => {
       vi.mocked(validateMigrationParams).mockReturnValue({
         isValid: true,
-        balance: mockAddress.balances![0],
+        balance: mockAddress.balances?.[0],
         senderAddress: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
         senderPath: "m/44'/354'/0'/0/0",
         receiverAddress: '5Receiver',
@@ -732,9 +743,9 @@ describe('Ledger Client', () => {
           ...mockApi.tx.balances.transfer,
           method: {
             hash: {
-              toHex: () => expectedCallHash
-            }
-          }
+              toHex: () => expectedCallHash,
+            },
+          },
         },
         callData: expectedCallHash,
       })
@@ -818,9 +829,20 @@ describe('Ledger Client', () => {
         signature: '0xsignature',
       })
 
-      await ledgerClient.signApproveAsMultiTx(mockFormData.appId, mockMultisigAddress, mockFormData.callHash, mockFormData.signatoryAddress, mockUpdateTxStatus)
+      await ledgerClient.signApproveAsMultiTx(
+        mockFormData.appId,
+        mockMultisigAddress,
+        mockFormData.callHash,
+        mockFormData.signatoryAddress,
+        mockUpdateTxStatus
+      )
 
-      expect(validateApproveAsMultiParams).toHaveBeenCalledWith(mockFormData.appId, mockMultisigAddress, mockFormData.callHash, mockFormData.signatoryAddress)
+      expect(validateApproveAsMultiParams).toHaveBeenCalledWith(
+        mockFormData.appId,
+        mockMultisigAddress,
+        mockFormData.callHash,
+        mockFormData.signatoryAddress
+      )
       expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
       expect(prepareApproveAsMultiTx).toHaveBeenCalled()
       expect(ledgerService.signTransaction).toHaveBeenCalledWith("m/44'/354'/0'/0/1", new Uint8Array([1, 2, 3]), 'dot', '0xproof')
@@ -837,7 +859,15 @@ describe('Ledger Client', () => {
     it('should handle API connection failure', async () => {
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: undefined })
 
-      await expect(ledgerClient.signApproveAsMultiTx(mockFormData.appId, mockMultisigAddress, mockFormData.callHash, mockFormData.signatoryAddress, mockUpdateTxStatus)).rejects.toThrow(InternalError)
+      await expect(
+        ledgerClient.signApproveAsMultiTx(
+          mockFormData.appId,
+          mockMultisigAddress,
+          mockFormData.callHash,
+          mockFormData.signatoryAddress,
+          mockUpdateTxStatus
+        )
+      ).rejects.toThrow(InternalError)
     })
   })
 
@@ -875,9 +905,22 @@ describe('Ledger Client', () => {
         signature: '0xsignature',
       })
 
-      await ledgerClient.signAsMultiTx(mockFormData.appId, mockMultisigAddress, '0xcallhash', mockFormData.callData, mockFormData.signatoryAddress, mockUpdateTxStatus)
+      await ledgerClient.signAsMultiTx(
+        mockFormData.appId,
+        mockMultisigAddress,
+        '0xcallhash',
+        mockFormData.callData,
+        mockFormData.signatoryAddress,
+        mockUpdateTxStatus
+      )
 
-      expect(validateAsMultiParams).toHaveBeenCalledWith(mockFormData.appId, mockMultisigAddress, '0xcallhash', mockFormData.callData, mockFormData.signatoryAddress)
+      expect(validateAsMultiParams).toHaveBeenCalledWith(
+        mockFormData.appId,
+        mockMultisigAddress,
+        '0xcallhash',
+        mockFormData.callData,
+        mockFormData.signatoryAddress
+      )
       expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
       expect(prepareAsMultiTx).toHaveBeenCalled()
       expect(ledgerService.signTransaction).toHaveBeenCalledWith("m/44'/354'/0'/0/1", new Uint8Array([1, 2, 3]), 'dot', '0xproof')
@@ -886,7 +929,14 @@ describe('Ledger Client', () => {
     it('should return undefined for invalid params', async () => {
       vi.mocked(validateAsMultiParams).mockReturnValue({ isValid: false })
 
-      const result = await ledgerClient.signAsMultiTx(mockFormData.appId, mockMultisigAddress, '0xcallhash', mockFormData.callData, mockFormData.signatoryAddress, mockUpdateTxStatus)
+      const result = await ledgerClient.signAsMultiTx(
+        mockFormData.appId,
+        mockMultisigAddress,
+        '0xcallhash',
+        mockFormData.callData,
+        mockFormData.signatoryAddress,
+        mockUpdateTxStatus
+      )
 
       expect(result).toBeUndefined()
     })
@@ -894,7 +944,16 @@ describe('Ledger Client', () => {
     it('should handle API connection failure', async () => {
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: undefined })
 
-      await expect(ledgerClient.signAsMultiTx(mockFormData.appId, mockMultisigAddress, '0xcallhash', mockFormData.callData, mockFormData.signatoryAddress, mockUpdateTxStatus)).rejects.toThrow(InternalError)
+      await expect(
+        ledgerClient.signAsMultiTx(
+          mockFormData.appId,
+          mockMultisigAddress,
+          '0xcallhash',
+          mockFormData.callData,
+          mockFormData.signatoryAddress,
+          mockUpdateTxStatus
+        )
+      ).rejects.toThrow(InternalError)
     })
   })
 
@@ -1089,7 +1148,9 @@ describe('Ledger Client', () => {
     it('should include operation context in error handling', async () => {
       vi.mocked(getApiAndProvider).mockRejectedValueOnce(new Error('API connection failed'))
 
-      await expect(ledgerClient.unstakeBalance('polkadot', mockAddress.address, mockAddress.path, new BN('1000'), vi.fn())).rejects.toThrow(InternalError)
+      await expect(ledgerClient.unstakeBalance('polkadot', mockAddress.address, mockAddress.path, new BN('1000'), vi.fn())).rejects.toThrow(
+        InternalError
+      )
     })
 
     it('should handle undefined API gracefully', async () => {

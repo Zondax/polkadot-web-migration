@@ -29,7 +29,7 @@ describe('LedgerService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     ledgerService = new LedgerService()
-    
+
     // Create mock transport
     mockTransport = {
       close: vi.fn(),
@@ -50,8 +50,7 @@ describe('LedgerService', () => {
 
   describe('openApp', () => {
     it('should throw error when transport is not available', async () => {
-      await expect(ledgerService.openApp(null as any, 'Polkadot Migration'))
-        .rejects.toThrow('Transport not available')
+      await expect(ledgerService.openApp(null as any, 'Polkadot Migration')).rejects.toThrow('Transport not available')
     })
 
     it('should successfully open app when transport is available', async () => {
@@ -111,8 +110,7 @@ describe('LedgerService', () => {
       const TransportWebUSB = await import('@ledgerhq/hw-transport-webhid')
       vi.mocked(TransportWebUSB.default.create).mockRejectedValueOnce(new Error('Transport failed'))
 
-      await expect(ledgerService.initializeTransport())
-        .rejects.toThrow('Transport failed')
+      await expect(ledgerService.initializeTransport()).rejects.toThrow('Transport failed')
     })
   })
 
@@ -146,17 +144,17 @@ describe('LedgerService', () => {
   describe('establishDeviceConnection', () => {
     it('should use existing transport when available', async () => {
       // Set up existing connection
-      const existingConnection = {
+      const _existingConnection = {
         transport: mockTransport,
         genericApp: mockGenericApp,
         isAppOpen: false,
       }
-      
+
       // Simulate existing connection by calling initializeTransport first
       const TransportWebUSB = await import('@ledgerhq/hw-transport-webhid')
       vi.mocked(TransportWebUSB.default.create).mockResolvedValueOnce(mockTransport)
       await ledgerService.initializeTransport()
-      
+
       vi.mocked(mockGenericApp.getVersion).mockResolvedValueOnce('1.0.0')
 
       const result = await ledgerService.establishDeviceConnection()
@@ -182,7 +180,7 @@ describe('LedgerService', () => {
     it('should attempt to open app when not open', async () => {
       const TransportWebUSB = await import('@ledgerhq/hw-transport-webhid')
       const { openApp } = await import('../openApp')
-      
+
       vi.mocked(TransportWebUSB.default.create).mockResolvedValueOnce(mockTransport)
       vi.mocked(mockGenericApp.getVersion).mockResolvedValueOnce(null) // App not open
       vi.mocked(openApp).mockResolvedValueOnce(undefined)
@@ -196,8 +194,7 @@ describe('LedgerService', () => {
       const TransportWebUSB = await import('@ledgerhq/hw-transport-webhid')
       vi.mocked(TransportWebUSB.default.create).mockRejectedValueOnce(new Error('Transport failed'))
 
-      await expect(ledgerService.establishDeviceConnection())
-        .rejects.toThrow('Transport failed')
+      await expect(ledgerService.establishDeviceConnection()).rejects.toThrow('Transport failed')
     })
   })
 
@@ -223,8 +220,7 @@ describe('LedgerService', () => {
       const originalEstablish = ledgerService.establishDeviceConnection
       ledgerService.establishDeviceConnection = vi.fn().mockResolvedValueOnce(undefined)
 
-      await expect(ledgerService.connectDevice())
-        .rejects.toThrow('Transport not available')
+      await expect(ledgerService.connectDevice()).rejects.toThrow('Transport not available')
 
       // Restore original method
       ledgerService.establishDeviceConnection = originalEstablish
@@ -233,7 +229,7 @@ describe('LedgerService', () => {
     it('should pass onDisconnect callback to establishDeviceConnection', async () => {
       const TransportWebUSB = await import('@ledgerhq/hw-transport-webhid')
       const onDisconnectCallback = vi.fn()
-      
+
       vi.mocked(TransportWebUSB.default.create).mockResolvedValueOnce(mockTransport)
       vi.mocked(mockGenericApp.getVersion).mockResolvedValueOnce('1.0.0')
 
@@ -242,7 +238,7 @@ describe('LedgerService', () => {
       // Verify the callback was passed through by simulating a disconnect
       const disconnectHandler = vi.mocked(mockTransport.on).mock.calls[0][1]
       disconnectHandler()
-      
+
       expect(onDisconnectCallback).toHaveBeenCalled()
     })
   })
@@ -273,15 +269,13 @@ describe('LedgerService', () => {
       // Clear the connection
       ledgerService.clearConnection()
 
-      await expect(ledgerService.getAccountAddress("m/44'/354'/0'/0'/0'", 0, false))
-        .rejects.toThrow('App not open')
+      await expect(ledgerService.getAccountAddress("m/44'/354'/0'/0'/0'", 0, false)).rejects.toThrow('App not open')
     })
 
     it('should handle address retrieval failure', async () => {
       vi.mocked(mockGenericApp.getAddress).mockRejectedValueOnce(new Error('Address retrieval failed'))
 
-      await expect(ledgerService.getAccountAddress("m/44'/354'/0'/0'/0'", 0, false))
-        .rejects.toThrow('Address retrieval failed')
+      await expect(ledgerService.getAccountAddress("m/44'/354'/0'/0'/0'", 0, false)).rejects.toThrow('Address retrieval failed')
     })
 
     it('should work with different BIP44 paths and prefixes', async () => {
@@ -321,11 +315,7 @@ describe('LedgerService', () => {
       const result = await ledgerService.signTransaction(bip44Path, payloadBytes, chainId, proof1)
 
       expect(mockGenericApp.txMetadataChainId).toBe(chainId)
-      expect(mockGenericApp.signWithMetadataEd25519).toHaveBeenCalledWith(
-        bip44Path,
-        Buffer.from(payloadBytes),
-        Buffer.from(proof1)
-      )
+      expect(mockGenericApp.signWithMetadataEd25519).toHaveBeenCalledWith(bip44Path, Buffer.from(payloadBytes), Buffer.from(proof1))
       expect(result).toEqual({ signature: mockSignature })
     })
 
@@ -336,8 +326,7 @@ describe('LedgerService', () => {
       const payloadBytes = new Uint8Array([1, 2, 3])
       const proof1 = new Uint8Array([4, 5, 6])
 
-      await expect(ledgerService.signTransaction("m/44'/354'/0'/0'/0'", payloadBytes, 'polkadot', proof1))
-        .rejects.toThrow('App not open')
+      await expect(ledgerService.signTransaction("m/44'/354'/0'/0'/0'", payloadBytes, 'polkadot', proof1)).rejects.toThrow('App not open')
     })
 
     it('should handle signing failure', async () => {
@@ -346,8 +335,7 @@ describe('LedgerService', () => {
       const payloadBytes = new Uint8Array([1, 2, 3])
       const proof1 = new Uint8Array([4, 5, 6])
 
-      await expect(ledgerService.signTransaction("m/44'/354'/0'/0'/0'", payloadBytes, 'polkadot', proof1))
-        .rejects.toThrow('Signing failed')
+      await expect(ledgerService.signTransaction("m/44'/354'/0'/0'/0'", payloadBytes, 'polkadot', proof1)).rejects.toThrow('Signing failed')
     })
 
     it('should work with different chain IDs', async () => {
@@ -377,8 +365,7 @@ describe('LedgerService', () => {
       ledgerService.clearConnection()
 
       // Verify connection is cleared by trying to get an address (should fail)
-      await expect(ledgerService.getAccountAddress("m/44'/354'/0'/0'/0'", 0, false))
-        .rejects.toThrow('App not open')
+      await expect(ledgerService.getAccountAddress("m/44'/354'/0'/0'/0'", 0, false)).rejects.toThrow('App not open')
     })
 
     it('should be safe to call multiple times', () => {
@@ -442,23 +429,19 @@ describe('LedgerService', () => {
       disconnectHandler()
 
       // Verify connection is cleared by trying to get an address (should fail)
-      await expect(ledgerService.getAccountAddress("m/44'/354'/0'/0'/0'", 0, false))
-        .rejects.toThrow('App not open')
+      await expect(ledgerService.getAccountAddress("m/44'/354'/0'/0'/0'", 0, false)).rejects.toThrow('App not open')
     })
   })
 
   describe('error handling', () => {
     it('should handle ResponseError correctly', async () => {
-      const responseError = new ResponseError(LedgerError.AppDoesNotSeemToBeOpen, 'Test error')
-      
-      await expect(ledgerService.openApp(null as any, 'Polkadot Migration'))
-        .rejects.toThrow(ResponseError)
+      const _responseError = new ResponseError(LedgerError.AppDoesNotSeemToBeOpen, 'Test error')
+
+      await expect(ledgerService.openApp(null as any, 'Polkadot Migration')).rejects.toThrow(ResponseError)
     })
 
     it('should handle LedgerError correctly', async () => {
-      vi.mocked(mockGenericApp.getAddress).mockRejectedValueOnce(
-        new ResponseError(LedgerError.UserRejected, 'User rejected')
-      )
+      vi.mocked(mockGenericApp.getAddress).mockRejectedValueOnce(new ResponseError(LedgerError.UserRejected, 'User rejected'))
 
       // Set up connection first
       const TransportWebUSB = await import('@ledgerhq/hw-transport-webhid')
@@ -466,8 +449,7 @@ describe('LedgerService', () => {
       vi.mocked(mockGenericApp.getVersion).mockResolvedValueOnce('1.0.0')
       await ledgerService.connectDevice()
 
-      await expect(ledgerService.getAccountAddress("m/44'/354'/0'/0'/0'", 0, false))
-        .rejects.toThrow('User rejected')
+      await expect(ledgerService.getAccountAddress("m/44'/354'/0'/0'/0'", 0, false)).rejects.toThrow('User rejected')
     })
   })
 

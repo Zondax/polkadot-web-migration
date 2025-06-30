@@ -1,9 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import { ExplorerItemType } from '@/config/explorers'
 
 // Mock dependencies
 vi.mock('@/config/apps', () => ({
-  getAppConfig: vi.fn((appId) => {
+  getAppConfig: vi.fn(appId => {
     const configs = {
       polkadot: {
         id: 'polkadot',
@@ -160,7 +159,7 @@ describe('explorer utilities', () => {
     it('should handle block hash with different formats', () => {
       const hash1 = '0xabcdef1234567890'
       const hash2 = 'abcdef1234567890'
-      
+
       const url1 = getBlockExplorerUrl('polkadot', hash1)
       const url2 = getBlockExplorerUrl('polkadot', hash2)
 
@@ -169,7 +168,7 @@ describe('explorer utilities', () => {
     })
 
     it('should handle very long block hashes', () => {
-      const longHash = '0x' + 'a'.repeat(64)
+      const longHash = `0x${'a'.repeat(64)}`
       const url = getBlockExplorerUrl('polkadot', longHash)
 
       expect(url).toContain(longHash)
@@ -189,17 +188,17 @@ describe('explorer utilities', () => {
 
     it('should handle null app config', () => {
       vi.mocked(getAppConfig).mockReturnValueOnce(null)
-      
+
       const url = getTransactionExplorerUrl('null' as any, '0x1234')
-      
+
       expect(url).toBe('')
     })
 
     it('should handle undefined app config', () => {
       vi.mocked(getAppConfig).mockReturnValueOnce(undefined)
-      
+
       const url = getAddressExplorerUrl('undefined' as any, '5GrwvaEF')
-      
+
       expect(url).toBe('')
     })
   })

@@ -62,7 +62,7 @@ describe('Multisig Utilities', () => {
       vi.mocked(ledgerClient.validateCallDataMatchesHash).mockResolvedValueOnce(true)
 
       const result = await validateCallData('polkadot', '0x123abc', '0x456def')
-      
+
       expect(ledgerClient.validateCallDataMatchesHash).toHaveBeenCalledWith('polkadot', '0x123abc', '0x456def')
       expect(result).toEqual({ isValid: true })
     })
@@ -72,7 +72,7 @@ describe('Multisig Utilities', () => {
       vi.mocked(ledgerClient.validateCallDataMatchesHash).mockResolvedValueOnce(false)
 
       const result = await validateCallData('polkadot', '0x123abc', '0x456def')
-      
+
       expect(result).toEqual({
         isValid: false,
         error: callDataValidationMessages.invalid,
@@ -84,7 +84,7 @@ describe('Multisig Utilities', () => {
       vi.mocked(ledgerClient.validateCallDataMatchesHash).mockRejectedValueOnce(new Error('Network error'))
 
       const result = await validateCallData('polkadot', '0x123abc', '0x456def')
-      
+
       expect(result).toEqual({
         isValid: false,
         error: callDataValidationMessages.failed,
@@ -96,7 +96,7 @@ describe('Multisig Utilities', () => {
       vi.mocked(ledgerClient.validateCallDataMatchesHash).mockResolvedValueOnce(true)
 
       await validateCallData('kusama', '0x123abc', '0x456def')
-      
+
       expect(ledgerClient.validateCallDataMatchesHash).toHaveBeenCalledWith('kusama', '0x123abc', '0x456def')
     })
 
@@ -105,7 +105,7 @@ describe('Multisig Utilities', () => {
       vi.mocked(ledgerClient.validateCallDataMatchesHash).mockResolvedValueOnce(true)
 
       const result = await validateCallData('polkadot', '0x123ABC', '0x456DEF')
-      
+
       expect(result).toEqual({ isValid: true })
     })
 
@@ -114,7 +114,7 @@ describe('Multisig Utilities', () => {
       vi.mocked(ledgerClient.validateCallDataMatchesHash).mockResolvedValueOnce(true)
 
       const result = await validateCallData('polkadot', '0x123aBc', '0x456dEf')
-      
+
       expect(result).toEqual({ isValid: true })
     })
 
@@ -122,9 +122,9 @@ describe('Multisig Utilities', () => {
       const { ledgerClient } = await import('@/state/client/ledger')
       vi.mocked(ledgerClient.validateCallDataMatchesHash).mockResolvedValueOnce(true)
 
-      const longHex = '0x' + 'a'.repeat(1000)
+      const longHex = `0x${'a'.repeat(1000)}`
       const result = await validateCallData('polkadot', longHex, '0x456def')
-      
+
       expect(result).toEqual({ isValid: true })
     })
   })
@@ -158,10 +158,7 @@ describe('Multisig Utilities', () => {
 
       const result = getAvailableSigners(pendingCall, members)
 
-      expect(result).toEqual([
-        createMultisigMember('bob', true),
-        createMultisigMember('dave', true),
-      ])
+      expect(result).toEqual([createMultisigMember('bob', true), createMultisigMember('dave', true)])
     })
 
     it('should return empty array when all internal members have signed', () => {
@@ -190,11 +187,7 @@ describe('Multisig Utilities', () => {
 
       const result = getAvailableSigners(pendingCall, members)
 
-      expect(result).toEqual([
-        createMultisigMember('alice', true),
-        createMultisigMember('bob', true),
-        createMultisigMember('dave', true),
-      ])
+      expect(result).toEqual([createMultisigMember('alice', true), createMultisigMember('bob', true), createMultisigMember('dave', true)])
     })
 
     it('should handle empty members array', () => {
@@ -207,10 +200,7 @@ describe('Multisig Utilities', () => {
     })
 
     it('should handle undefined signatories', () => {
-      const members: MultisigMember[] = [
-        createMultisigMember('alice', true),
-        createMultisigMember('bob', true),
-      ]
+      const members: MultisigMember[] = [createMultisigMember('alice', true), createMultisigMember('bob', true)]
 
       const pendingCall: MultisigCall = {
         signatories: undefined as any,
@@ -225,10 +215,7 @@ describe('Multisig Utilities', () => {
 
       const result = getAvailableSigners(pendingCall, members)
 
-      expect(result).toEqual([
-        createMultisigMember('alice', true),
-        createMultisigMember('bob', true),
-      ])
+      expect(result).toEqual([createMultisigMember('alice', true), createMultisigMember('bob', true)])
     })
 
     it('should exclude external members even if they have not signed', () => {
@@ -242,10 +229,7 @@ describe('Multisig Utilities', () => {
 
       const result = getAvailableSigners(pendingCall, members)
 
-      expect(result).toEqual([
-        createMultisigMember('alice', true),
-        createMultisigMember('charlie', true),
-      ])
+      expect(result).toEqual([createMultisigMember('alice', true), createMultisigMember('charlie', true)])
     })
 
     it('should handle partial address matches correctly', () => {
@@ -259,10 +243,7 @@ describe('Multisig Utilities', () => {
 
       const result = getAvailableSigners(pendingCall, members)
 
-      expect(result).toEqual([
-        createMultisigMember('alice123', true),
-        createMultisigMember('bob', true),
-      ])
+      expect(result).toEqual([createMultisigMember('alice123', true), createMultisigMember('bob', true)])
     })
 
     it('should be case sensitive for addresses', () => {
@@ -276,10 +257,7 @@ describe('Multisig Utilities', () => {
 
       const result = getAvailableSigners(pendingCall, members)
 
-      expect(result).toEqual([
-        createMultisigMember('Alice', true),
-        createMultisigMember('bob', true),
-      ])
+      expect(result).toEqual([createMultisigMember('Alice', true), createMultisigMember('bob', true)])
     })
   })
 })
