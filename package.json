@@ -71,7 +71,7 @@
     "axios": "^1.10.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "drizzle-kit": "^0.31.1",
+    "drizzle-kit": "^0.31.4",
     "drizzle-orm": "^0.44.2",
     "drizzle-zod": "^0.8.2",
     "framer-motion": "^12.19.1",
