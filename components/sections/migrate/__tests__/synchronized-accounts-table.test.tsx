@@ -1,8 +1,9 @@
-import { BN } from '@polkadot/util'
 import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BalanceType } from '@/state/types/ledger'
 import type { Address, MultisigAddress, NativeBalance } from '@/state/types/ledger'
+import { TEST_ADDRESSES, TEST_PATHS, TEST_PUBKEYS } from '@/tests/fixtures/addresses'
+import { TEST_AMOUNTS } from '@/tests/fixtures/balances'
 
 // Mock dependencies
 vi.mock('@legendapp/state/react', () => ({
@@ -50,44 +51,44 @@ describe('SynchronizedAccountsTable component', () => {
   }
 
   const mockAddress: Address = {
-    address: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
-    path: "m/44'/354'/0'/0/0",
-    pubKey: '0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d',
+    address: TEST_ADDRESSES.ALICE,
+    path: TEST_PATHS.DEFAULT,
+    pubKey: TEST_PUBKEYS[TEST_ADDRESSES.ALICE],
     selected: false,
     balances: [
       {
         id: 'native',
         type: BalanceType.NATIVE,
         balance: {
-          total: new BN('1000000000000'),
-          transferable: new BN('500000000000'),
-          free: new BN('900000000000'),
-          reserved: { total: new BN('100000000000') },
-          frozen: new BN('0'),
+          total: TEST_AMOUNTS.HUNDRED_DOT,
+          transferable: TEST_AMOUNTS.HUNDRED_DOT.divn(2), // 50 DOT
+          free: TEST_AMOUNTS.HUNDRED_DOT.muln(9).divn(10), // 90 DOT
+          reserved: { total: TEST_AMOUNTS.TEN_DOT },
+          frozen: TEST_AMOUNTS.ZERO,
         },
       } as NativeBalance,
     ],
   }
 
   const mockMultisigAddress: MultisigAddress = {
-    address: '5DTestAddress',
+    address: TEST_ADDRESSES.MULTISIG_ADDRESS,
     selected: false,
     isMultisig: true,
     threshold: 2,
     members: [
-      { address: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY', internal: true },
-      { address: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty', internal: false },
+      { address: TEST_ADDRESSES.ALICE, internal: true },
+      { address: TEST_ADDRESSES.ADDRESS1, internal: false },
     ],
     balances: [
       {
         id: 'native',
         type: BalanceType.NATIVE,
         balance: {
-          total: new BN('2000000000000'),
-          transferable: new BN('1500000000000'),
-          free: new BN('1900000000000'),
-          reserved: { total: new BN('100000000000') },
-          frozen: new BN('0'),
+          total: TEST_AMOUNTS.HUNDRED_DOT.muln(2), // 200 DOT
+          transferable: TEST_AMOUNTS.HUNDRED_DOT.muln(15).divn(10), // 150 DOT
+          free: TEST_AMOUNTS.HUNDRED_DOT.muln(19).divn(10), // 190 DOT
+          reserved: { total: TEST_AMOUNTS.TEN_DOT },
+          frozen: TEST_AMOUNTS.ZERO,
         },
       } as NativeBalance,
     ],
@@ -96,7 +97,7 @@ describe('SynchronizedAccountsTable component', () => {
   const defaultProps = {
     accounts: [mockAddress],
     token: mockToken,
-    polkadotAddresses: ['1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'],
+    polkadotAddresses: [TEST_ADDRESSES.ADDRESS2],
     appId: 'polkadot' as const,
     updateTransaction: vi.fn(),
   }
@@ -141,11 +142,11 @@ describe('SynchronizedAccountsTable component', () => {
             id: 'native',
             type: BalanceType.NATIVE,
             balance: {
-              total: new BN('1000000000000'),
-              transferable: new BN('500000000000'),
-              free: new BN('900000000000'),
-              reserved: { total: new BN('100000000000') },
-              frozen: new BN('0'),
+              total: TEST_AMOUNTS.HUNDRED_DOT,
+              transferable: TEST_AMOUNTS.HUNDRED_DOT.divn(2), // 50 DOT
+              free: TEST_AMOUNTS.HUNDRED_DOT.muln(9).divn(10), // 90 DOT
+              reserved: { total: TEST_AMOUNTS.TEN_DOT },
+              frozen: TEST_AMOUNTS.ZERO,
             },
           } as NativeBalance,
           {
@@ -213,7 +214,7 @@ describe('SynchronizedAccountsTable component', () => {
 
       const rows = screen.getAllByTestId('synchronized-account-row')
       expect(rows).toHaveLength(1)
-      expect(screen.getByText('Account: 5DTestAddress')).toBeInTheDocument()
+      expect(screen.getByText(`Account: ${TEST_ADDRESSES.MULTISIG_ADDRESS}`)).toBeInTheDocument()
     })
 
     it('should handle mixed regular and multisig accounts', () => {
@@ -224,7 +225,7 @@ describe('SynchronizedAccountsTable component', () => {
       const rows = screen.getAllByTestId('synchronized-account-row')
       expect(rows).toHaveLength(2)
       expect(screen.getByText('Account: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY')).toBeInTheDocument()
-      expect(screen.getByText('Account: 5DTestAddress')).toBeInTheDocument()
+      expect(screen.getByText(`Account: ${TEST_ADDRESSES.MULTISIG_ADDRESS}`)).toBeInTheDocument()
     })
   })
 
@@ -251,11 +252,11 @@ describe('SynchronizedAccountsTable component', () => {
             id: 'native',
             type: BalanceType.NATIVE,
             balance: {
-              total: new BN('1000'),
-              transferable: new BN('500'),
-              free: new BN('900'),
-              reserved: { total: new BN('100') },
-              frozen: new BN('0'),
+              total: TEST_AMOUNTS.DUST_AMOUNT.muln(1000),
+              transferable: TEST_AMOUNTS.DUST_AMOUNT.muln(500),
+              free: TEST_AMOUNTS.DUST_AMOUNT.muln(900),
+              reserved: { total: TEST_AMOUNTS.DUST_AMOUNT.muln(100) },
+              frozen: TEST_AMOUNTS.ZERO,
             },
           } as NativeBalance,
           {

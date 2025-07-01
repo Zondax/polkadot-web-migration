@@ -3,6 +3,8 @@ import { BN } from '@polkadot/util'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Address } from '@/state/types/ledger'
 import type { AppId, Token } from '@/config/apps'
+import { TEST_ADDRESSES, TEST_PATHS, TEST_PUBKEYS } from '@/tests/fixtures/addresses'
+import { TEST_AMOUNTS } from '@/tests/fixtures/balances'
 
 import RemoveAccountIndexDialog from '../remove-account-index-dialog'
 
@@ -28,7 +30,7 @@ vi.mock('@/components/hooks/useTransactionStatus', () => ({
     updateSynchronization: vi.fn(),
     isSynchronizing: false,
     getEstimatedFee: vi.fn(),
-    estimatedFee: new BN('1000000000000'),
+    estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
     estimatedFeeLoading: false,
   })),
 }))
@@ -127,9 +129,9 @@ describe('RemoveAccountIndexDialog', () => {
   const mockAppId: AppId = 'polkadot'
 
   const mockAccount: Address = {
-    address: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
-    path: "m/44'/354'/0'/0'/0'",
-    pubKey: '0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d',
+    address: TEST_ADDRESSES.ALICE,
+    path: TEST_PATHS.DEFAULT,
+    pubKey: TEST_PUBKEYS[TEST_ADDRESSES.ALICE],
     selected: false,
     index: {
       index: '42',
@@ -189,7 +191,7 @@ describe('RemoveAccountIndexDialog', () => {
 
       const explorerLink = screen.getByTestId('explorer-link')
       expect(explorerLink).toBeInTheDocument()
-      expect(explorerLink).toHaveAttribute('data-value', '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY')
+      expect(explorerLink).toHaveAttribute('data-value', TEST_ADDRESSES.ALICE)
       expect(explorerLink).toHaveAttribute('data-app-id', 'polkadot')
       expect(explorerLink).toHaveAttribute('data-explorer-type', 'address')
     })
@@ -255,7 +257,7 @@ describe('RemoveAccountIndexDialog', () => {
         updateSynchronization: vi.fn(),
         isSynchronizing: false,
         getEstimatedFee: vi.fn(),
-        estimatedFee: new BN('1000000000000'),
+        estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
         estimatedFeeLoading: false,
       })
 
@@ -267,12 +269,7 @@ describe('RemoveAccountIndexDialog', () => {
         fireEvent.click(signButton)
       })
 
-      expect(mockRunTransaction).toHaveBeenCalledWith(
-        'polkadot',
-        '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
-        "m/44'/354'/0'/0'/0'",
-        '42'
-      )
+      expect(mockRunTransaction).toHaveBeenCalledWith('polkadot', TEST_ADDRESSES.ALICE, "m/44'/354'/0'/0'/0'", '42')
     })
 
     it('should handle close dialog', async () => {
@@ -289,7 +286,7 @@ describe('RemoveAccountIndexDialog', () => {
         updateSynchronization: vi.fn(),
         isSynchronizing: false,
         getEstimatedFee: vi.fn(),
-        estimatedFee: new BN('1000000000000'),
+        estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
         estimatedFeeLoading: false,
       })
 
@@ -319,7 +316,7 @@ describe('RemoveAccountIndexDialog', () => {
         updateSynchronization: mockUpdateSynchronization,
         isSynchronizing: false,
         getEstimatedFee: vi.fn(),
-        estimatedFee: new BN('1000000000000'),
+        estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
         estimatedFeeLoading: false,
       })
 
@@ -350,7 +347,7 @@ describe('RemoveAccountIndexDialog', () => {
         updateSynchronization: vi.fn(),
         isSynchronizing: false,
         getEstimatedFee: vi.fn(),
-        estimatedFee: new BN('1000000000000'),
+        estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
         estimatedFeeLoading: false,
       })
 
@@ -377,7 +374,7 @@ describe('RemoveAccountIndexDialog', () => {
         updateSynchronization: vi.fn(),
         isSynchronizing: false,
         getEstimatedFee: vi.fn(),
-        estimatedFee: new BN('1000000000000'),
+        estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
         estimatedFeeLoading: false,
       })
 
@@ -423,13 +420,13 @@ describe('RemoveAccountIndexDialog', () => {
         updateSynchronization: vi.fn(),
         isSynchronizing: false,
         getEstimatedFee: mockGetEstimatedFee,
-        estimatedFee: new BN('1000000000000'),
+        estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
         estimatedFeeLoading: false,
       })
 
       render(<RemoveAccountIndexDialog {...defaultProps} />)
 
-      expect(mockGetEstimatedFee).toHaveBeenCalledWith('polkadot', '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY', '42')
+      expect(mockGetEstimatedFee).toHaveBeenCalledWith('polkadot', TEST_ADDRESSES.ALICE, '42')
     })
   })
 

@@ -3,6 +3,15 @@ import { BN } from '@polkadot/util'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Address } from '@/state/types/ledger'
 import type { AppId, Token } from '@/config/apps'
+import { createTestAccount } from '@/tests/utils/testHelpers'
+import { TEST_ADDRESSES, TEST_PATHS, TEST_PUBKEYS } from '@/tests/fixtures/addresses'
+import { TEST_AMOUNTS } from '@/tests/fixtures/balances'
+
+// Mock form values
+let formValues = {
+  unstakeAmount: undefined as number | undefined,
+  estimatedFee: undefined as any,
+}
 
 // Mock external dependencies - all mocks must be hoisted before imports
 vi.mock('@/components/ExplorerLink', () => ({
@@ -22,8 +31,8 @@ vi.mock('@/components/hooks/useTransactionStatus', () => ({
     isTxFailed: false,
     updateSynchronization: vi.fn(),
     isSynchronizing: false,
-    getEstimatedFee: vi.fn().mockResolvedValue(new BN('1000000000000')),
-    estimatedFee: new BN('1000000000000'),
+    getEstimatedFee: vi.fn().mockResolvedValue(TEST_AMOUNTS.HUNDRED_DOT),
+    estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
     estimatedFeeLoading: false,
   })),
 }))
@@ -42,6 +51,14 @@ vi.mock('@/components/ui/dialog', () => ({
   DialogDescription: vi.fn(({ children }) => <div data-testid="dialog-description">{children}</div>),
   DialogBody: vi.fn(({ children }) => <div data-testid="dialog-body">{children}</div>),
   DialogFooter: vi.fn(({ children }) => <div data-testid="dialog-footer">{children}</div>),
+}))
+
+vi.mock('@/lib/utils/format', () => ({
+  formatBalance: vi.fn((balance, token) => (balance ? `${balance.toString()} ${token.symbol}` : `0 ${token.symbol}`)),
+  convertToRawUnits: vi.fn((amount, token) => {
+    if (typeof amount !== 'number' || !token) return '0'
+    return String(Math.floor(amount * 10 ** token.decimals))
+  }),
 }))
 
 vi.mock('@/components/ui/input', () => ({
@@ -71,11 +88,6 @@ vi.mock('@/config/explorers', () => ({
   },
 }))
 
-vi.mock('@/lib/utils/format', () => ({
-  formatBalance: vi.fn((balance, token) => (balance ? `${balance.toString()} ${token.symbol}` : `0 ${token.symbol}`)),
-  convertToRawUnits: vi.fn((amount, token) => new BN(amount * 10 ** token.decimals)),
-}))
-
 vi.mock('@/state/ledger', () => ({
   ledgerState$: {
     unstakeBalance: vi.fn(),
@@ -86,8 +98,10 @@ vi.mock('@/state/ledger', () => ({
 
 vi.mock('state/types/ledger', () => ({}))
 
+// react-hook-form mock is defined below
+
 vi.mock('@hookform/resolvers/zod', () => ({
-  zodResolver: vi.fn(() => vi.fn()),
+  zodResolver: vi.fn(() => () => Promise.resolve({ values: {}, errors: {} })),
 }))
 
 vi.mock('@/lib/utils/balance', () => ({
@@ -104,8 +118,7 @@ vi.mock('@/config/errors', () => ({
   },
 }))
 
-// Create a store for form values
-let formValues = { unstakeAmount: undefined, estimatedFee: undefined }
+// formValues already declared above
 
 vi.mock('react-hook-form', () => ({
   useForm: vi.fn(() => ({
@@ -233,15 +246,15 @@ describe('UnstakeDialog', () => {
 
   const mockAppId: AppId = 'polkadot'
 
-  const mockAccount: Address = {
-    address: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
-    path: "m/44'/354'/0'/0'/0'",
-    pubKey: '0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d',
+  const mockAccount: Address = createTestAccount({
+    address: TEST_ADDRESSES.ALICE,
+    path: TEST_PATHS.DEFAULT,
+    pubKey: TEST_PUBKEYS[TEST_ADDRESSES.ALICE],
     selected: false,
-  }
+  })
 
-  const mockMaxUnstake = new BN('5000000000000')
-  const mockTransferableBalance = new BN('10000000000000')
+  const mockMaxUnstake = TEST_AMOUNTS.HUNDRED_DOT.muln(5) // 500 DOT
+  const mockTransferableBalance = TEST_AMOUNTS.THOUSAND_DOT // 1000 DOT
 
   const defaultProps = {
     open: true,
@@ -304,7 +317,7 @@ describe('UnstakeDialog', () => {
 
       const explorerLink = screen.getByTestId('explorer-link')
       expect(explorerLink).toBeInTheDocument()
-      expect(explorerLink).toHaveAttribute('data-value', '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY')
+      expect(explorerLink).toHaveAttribute('data-value', TEST_ADDRESSES.ALICE)
       expect(explorerLink).toHaveAttribute('data-app-id', 'polkadot')
       expect(explorerLink).toHaveAttribute('data-explorer-type', 'address')
       expect(explorerLink).toHaveAttribute('data-size', 'xs')
@@ -323,7 +336,7 @@ describe('UnstakeDialog', () => {
       render(<UnstakeDialog {...defaultProps} />)
 
       expect(screen.getByText('Amount to Unstake')).toBeInTheDocument()
-      expect(screen.getByText('Available Balance: 5000000000000 DOT')).toBeInTheDocument()
+      expect(screen.getByText(`Available Balance: ${mockMaxUnstake.toString()} DOT`)).toBeInTheDocument()
 
       const input = screen.getByTestId('input')
       expect(input).toBeInTheDocument()
@@ -333,10 +346,10 @@ describe('UnstakeDialog', () => {
       expect(input).toHaveAttribute('placeholder', 'Amount')
     })
 
-    it.todo('should show estimated fee field when valid amount is entered', async () => {
+    it.skip('should show estimated fee field when valid amount is entered', async () => {
       // Mock getEstimatedFee to also set the form value
       const mockGetEstimatedFee = vi.fn().mockImplementation(async () => {
-        const fee = new BN('1000000000000')
+        const fee = TEST_AMOUNTS.HUNDRED_DOT
         formValues.estimatedFee = fee
         return fee
       })
@@ -350,7 +363,7 @@ describe('UnstakeDialog', () => {
         updateSynchronization: vi.fn(),
         isSynchronizing: false,
         getEstimatedFee: mockGetEstimatedFee,
-        estimatedFee: new BN('1000000000000'),
+        estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
         estimatedFeeLoading: false,
       })
 
@@ -385,22 +398,38 @@ describe('UnstakeDialog', () => {
   })
 
   describe('form validation', () => {
-    it.todo('should validate amount input and show helper text', async () => {
+    it.skip('should validate amount input and show helper text', async () => {
       render(<UnstakeDialog {...defaultProps} />)
 
       const input = screen.getByTestId('input')
 
-      // Enter amount that exceeds maximum (in token units, not raw)
-      // maxUnstake is 5000000000000 raw units = 500 token units (with 10 decimals)
+      // Test invalid amount (exceeds max)
       await act(async () => {
-        fireEvent.change(input, { target: { value: '600' } })
+        fireEvent.change(input, { target: { value: '20000' } }) // Exceeds mockMaxUnstake (10000)
       })
 
       await waitFor(() => {
-        expect(screen.getByTestId('helper-text')).toHaveTextContent('Amount exceeds maximum unstakable balance')
+        expect(screen.getByText('Amount exceeds maximum unstakable balance')).toBeInTheDocument()
       })
 
-      expect(input).toHaveAttribute('data-error', 'true')
+      // Test zero amount
+      await act(async () => {
+        fireEvent.change(input, { target: { value: '0' } })
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText('Amount must be greater than 0')).toBeInTheDocument()
+      })
+
+      // Test valid amount - should not show error
+      await act(async () => {
+        fireEvent.change(input, { target: { value: '100' } })
+      })
+
+      await waitFor(() => {
+        expect(screen.queryByText('Amount exceeds maximum unstakable balance')).not.toBeInTheDocument()
+        expect(screen.queryByText('Amount must be greater than 0')).not.toBeInTheDocument()
+      })
     })
 
     it('should disable sign button when amount is invalid', async () => {
@@ -418,7 +447,7 @@ describe('UnstakeDialog', () => {
       })
     })
 
-    it.todo('should enable sign button when amount is valid', async () => {
+    it.skip('should enable sign button when amount is valid', async () => {
       render(<UnstakeDialog {...defaultProps} />)
 
       const input = screen.getByTestId('input')
@@ -450,10 +479,10 @@ describe('UnstakeDialog', () => {
   })
 
   describe('transaction handling', () => {
-    it.todo('should handle unstake transaction button click', async () => {
+    it.skip('should handle unstake transaction button click', async () => {
       const mockRunTransaction = vi.fn()
 
-      mockConvertToRawUnits.mockReturnValue(new BN('1000000000000'))
+      mockConvertToRawUnits.mockReturnValue(TEST_AMOUNTS.HUNDRED_DOT)
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: mockRunTransaction,
         txStatus: null,
@@ -463,7 +492,7 @@ describe('UnstakeDialog', () => {
         updateSynchronization: vi.fn(),
         isSynchronizing: false,
         getEstimatedFee: vi.fn(),
-        estimatedFee: new BN('1000000000000'),
+        estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
         estimatedFeeLoading: false,
       })
 
@@ -501,7 +530,7 @@ describe('UnstakeDialog', () => {
         updateSynchronization: vi.fn(),
         isSynchronizing: false,
         getEstimatedFee: vi.fn(),
-        estimatedFee: new BN('1000000000000'),
+        estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
         estimatedFeeLoading: false,
       })
 
@@ -529,7 +558,7 @@ describe('UnstakeDialog', () => {
         updateSynchronization: vi.fn(),
         isSynchronizing: false,
         getEstimatedFee: vi.fn(),
-        estimatedFee: new BN('1000000000000'),
+        estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
         estimatedFeeLoading: false,
       })
 
@@ -558,7 +587,7 @@ describe('UnstakeDialog', () => {
         updateSynchronization: mockUpdateSynchronization,
         isSynchronizing: false,
         getEstimatedFee: vi.fn(),
-        estimatedFee: new BN('1000000000000'),
+        estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
         estimatedFeeLoading: false,
       })
 
@@ -587,7 +616,7 @@ describe('UnstakeDialog', () => {
         updateSynchronization: vi.fn(),
         isSynchronizing: false,
         getEstimatedFee: vi.fn(),
-        estimatedFee: new BN('1000000000000'),
+        estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
         estimatedFeeLoading: false,
       })
 
@@ -612,7 +641,7 @@ describe('UnstakeDialog', () => {
         updateSynchronization: vi.fn(),
         isSynchronizing: false,
         getEstimatedFee: vi.fn(),
-        estimatedFee: new BN('1000000000000'),
+        estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
         estimatedFeeLoading: false,
       })
 
@@ -624,7 +653,7 @@ describe('UnstakeDialog', () => {
   })
 
   describe('fee estimation', () => {
-    it.todo('should show loading state for estimated fee', async () => {
+    it.skip('should show loading state for estimated fee', async () => {
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
         txStatus: null,
@@ -651,8 +680,8 @@ describe('UnstakeDialog', () => {
       })
     })
 
-    it.todo('should call getEstimatedFee when amount changes', async () => {
-      const mockGetEstimatedFee = vi.fn().mockResolvedValue(new BN('1000000000000'))
+    it.skip('should call getEstimatedFee when amount changes', async () => {
+      const mockGetEstimatedFee = vi.fn().mockResolvedValue(TEST_AMOUNTS.HUNDRED_DOT)
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -663,7 +692,7 @@ describe('UnstakeDialog', () => {
         updateSynchronization: vi.fn(),
         isSynchronizing: false,
         getEstimatedFee: mockGetEstimatedFee,
-        estimatedFee: new BN('1000000000000'),
+        estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
         estimatedFeeLoading: false,
       })
 
@@ -693,7 +722,7 @@ describe('UnstakeDialog', () => {
         updateSynchronization: vi.fn(),
         isSynchronizing: false,
         getEstimatedFee: mockGetEstimatedFee,
-        estimatedFee: new BN('1000000000000'),
+        estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
         estimatedFeeLoading: false,
       })
 
@@ -705,7 +734,7 @@ describe('UnstakeDialog', () => {
 
   describe('edge cases', () => {
     it('should handle different max unstake amounts', () => {
-      const differentMaxUnstake = new BN('10000000000000')
+      const differentMaxUnstake = TEST_AMOUNTS.THOUSAND_DOT
 
       render(<UnstakeDialog {...defaultProps} maxUnstake={differentMaxUnstake} />)
 
@@ -749,7 +778,7 @@ describe('UnstakeDialog', () => {
       expect(explorerLink).toHaveAttribute('data-value', '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty')
     })
 
-    it.todo('should reset form state when dialog closes', async () => {
+    it.skip('should reset form state when dialog closes', async () => {
       const mockSetOpen = vi.fn()
 
       render(<UnstakeDialog {...defaultProps} setOpen={mockSetOpen} />)

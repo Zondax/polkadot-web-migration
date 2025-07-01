@@ -3,6 +3,9 @@ import { BN } from '@polkadot/util'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Address } from '@/state/types/ledger'
 import type { AppId, Token } from '@/config/apps'
+import { createTestAccount } from '@/tests/utils/testHelpers'
+import { TEST_ADDRESSES, TEST_PATHS, TEST_PUBKEYS } from '@/tests/fixtures/addresses'
+import { TEST_AMOUNTS } from '@/tests/fixtures/balances'
 
 import WithdrawDialog from '../withdraw-dialog'
 
@@ -35,7 +38,7 @@ vi.mock('@/components/hooks/useTransactionStatus', () => ({
     updateSynchronization: vi.fn(),
     isSynchronizing: false,
     getEstimatedFee: vi.fn(),
-    estimatedFee: new BN('1000000000000'),
+    estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
     estimatedFeeLoading: false,
   })),
 }))
@@ -141,12 +144,12 @@ describe('WithdrawDialog', () => {
 
   const mockAppId: AppId = 'polkadot'
 
-  const mockAccount: Address = {
-    address: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
-    path: "m/44'/354'/0'/0'/0'",
-    pubKey: '0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d',
+  const mockAccount: Address = createTestAccount({
+    address: TEST_ADDRESSES.ALICE,
+    path: TEST_PATHS.DEFAULT,
+    pubKey: TEST_PUBKEYS[TEST_ADDRESSES.ALICE],
     selected: false,
-  }
+  })
 
   const defaultProps = {
     open: true,
@@ -199,7 +202,7 @@ describe('WithdrawDialog', () => {
 
       const explorerLink = screen.getByTestId('explorer-link')
       expect(explorerLink).toBeInTheDocument()
-      expect(explorerLink).toHaveAttribute('data-value', '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY')
+      expect(explorerLink).toHaveAttribute('data-value', TEST_ADDRESSES.ALICE)
       expect(explorerLink).toHaveAttribute('data-app-id', 'polkadot')
       expect(explorerLink).toHaveAttribute('data-explorer-type', 'address')
       expect(explorerLink).toHaveAttribute('data-size', 'xs')
@@ -251,7 +254,7 @@ describe('WithdrawDialog', () => {
         fireEvent.click(signButton)
       })
 
-      expect(mockRunTransaction).toHaveBeenCalledWith('polkadot', '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY', "m/44'/354'/0'/0'/0'")
+      expect(mockRunTransaction).toHaveBeenCalledWith('polkadot', TEST_ADDRESSES.ALICE, TEST_PATHS.DEFAULT)
     })
 
     it('should handle close dialog', async () => {
@@ -408,7 +411,7 @@ describe('WithdrawDialog', () => {
 
       render(<WithdrawDialog {...defaultProps} />)
 
-      expect(mockGetEstimatedFee).toHaveBeenCalledWith('polkadot', '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY')
+      expect(mockGetEstimatedFee).toHaveBeenCalledWith('polkadot', TEST_ADDRESSES.ALICE)
     })
 
     it('should not call getEstimatedFee when dialog is closed', async () => {

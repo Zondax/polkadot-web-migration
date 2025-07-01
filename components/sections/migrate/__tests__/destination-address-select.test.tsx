@@ -3,6 +3,7 @@ import type { AddressBalance } from 'state/types/ledger'
 import { BalanceType } from 'state/types/ledger'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ExplorerItemType } from '@/config/explorers'
+import { TEST_ADDRESSES } from '@/tests/fixtures/addresses'
 import DestinationAddressSelect from '../destination-address-select'
 
 // Mock the dependencies
@@ -71,11 +72,11 @@ describe('DestinationAddressSelect component', () => {
     type: BalanceType.NATIVE,
     id: 'native',
     transaction: {
-      destinationAddress: '1234567890abcdef',
+      destinationAddress: TEST_ADDRESSES.ALICE,
     },
   } as AddressBalance
 
-  const mockPolkadotAddresses = ['1234567890abcdef', '234567890abcdef1', '34567890abcdef12']
+  const mockPolkadotAddresses = [TEST_ADDRESSES.ALICE, TEST_ADDRESSES.ADDRESS1, TEST_ADDRESSES.ADDRESS2]
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -110,7 +111,7 @@ describe('DestinationAddressSelect component', () => {
       )
 
       const select = screen.getByTestId('select') as HTMLSelectElement
-      expect(select.value).toBe('1234567890abcdef')
+      expect(select.value).toBe(TEST_ADDRESSES.ALICE)
     })
 
     it('should render without pre-selected address and use first address as default', () => {
@@ -130,7 +131,7 @@ describe('DestinationAddressSelect component', () => {
       )
 
       const select = screen.getByTestId('select') as HTMLSelectElement
-      expect(select.value).toBe('1234567890abcdef')
+      expect(select.value).toBe(TEST_ADDRESSES.ALICE)
     })
 
     it('should render disabled when no balance', () => {
@@ -194,9 +195,9 @@ describe('DestinationAddressSelect component', () => {
       )
 
       const select = screen.getByTestId('select') as HTMLSelectElement
-      fireEvent.change(select, { target: { value: '234567890abcdef1' } })
+      fireEvent.change(select, { target: { value: TEST_ADDRESSES.ADDRESS1 } })
 
-      expect(mockOnDestinationChange).toHaveBeenCalledWith('234567890abcdef1', 2)
+      expect(mockOnDestinationChange).toHaveBeenCalledWith(TEST_ADDRESSES.ADDRESS1, 2)
     })
 
     it('should update local state when balance changes', async () => {
@@ -211,12 +212,12 @@ describe('DestinationAddressSelect component', () => {
       )
 
       const select = screen.getByTestId('select') as HTMLSelectElement
-      expect(select.value).toBe('1234567890abcdef')
+      expect(select.value).toBe(TEST_ADDRESSES.ALICE)
 
       const updatedBalance: AddressBalance = {
         ...mockBalance,
         transaction: {
-          destinationAddress: '234567890abcdef1',
+          destinationAddress: TEST_ADDRESSES.ADDRESS1,
         },
       }
 
@@ -231,7 +232,7 @@ describe('DestinationAddressSelect component', () => {
       )
 
       await waitFor(() => {
-        expect(select.value).toBe('234567890abcdef1')
+        expect(select.value).toBe(TEST_ADDRESSES.ADDRESS1)
       })
     })
   })
@@ -251,14 +252,14 @@ describe('DestinationAddressSelect component', () => {
       expect(mockSelectWithCustom).toHaveBeenCalledWith(
         expect.objectContaining({
           options: [
-            { value: '1234567890abcdef', label: '1234567890abcdef' },
-            { value: '234567890abcdef1', label: '234567890abcdef1' },
-            { value: '34567890abcdef12', label: '34567890abcdef12' },
+            { value: TEST_ADDRESSES.ALICE, label: TEST_ADDRESSES.ALICE },
+            { value: TEST_ADDRESSES.ADDRESS1, label: TEST_ADDRESSES.ADDRESS1 },
+            { value: TEST_ADDRESSES.ADDRESS2, label: TEST_ADDRESSES.ADDRESS2 },
           ],
           placeholder: 'Select a Polkadot address...',
           customPlaceholder: 'Enter custom Polkadot address',
-          selectedValue: '1234567890abcdef',
-          defaultValue: '1234567890abcdef',
+          selectedValue: TEST_ADDRESSES.ALICE,
+          defaultValue: TEST_ADDRESSES.ALICE,
           disabled: false,
         }),
         undefined
@@ -325,7 +326,7 @@ describe('DestinationAddressSelect component', () => {
       )
 
       const select = screen.getByTestId('select') as HTMLSelectElement
-      expect(select.value).toBe('1234567890abcdef') // Should use first address as default
+      expect(select.value).toBe(TEST_ADDRESSES.ALICE) // Should use first address as default
     })
 
     it('should handle very long addresses', () => {

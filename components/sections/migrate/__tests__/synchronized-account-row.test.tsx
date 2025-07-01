@@ -1,6 +1,8 @@
-import { BN } from '@polkadot/util'
+import type { BN } from '@polkadot/util'
 import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { TEST_ADDRESSES } from '@/tests/fixtures/addresses'
+import { TEST_AMOUNTS } from '@/tests/fixtures/balances'
 
 // Mock all external dependencies
 vi.mock('@legendapp/state/react', () => ({
@@ -85,7 +87,7 @@ vi.mock('@/lib/utils', () => ({
 
 vi.mock('@/lib/utils/balance', () => ({
   canUnstake: (balance: any) => balance?.canUnstake === true,
-  hasStakedBalance: (balance: any) => balance?.balance?.staking?.total?.gt(new BN(0)) === true,
+  hasStakedBalance: (balance: any) => balance?.balance?.staking?.total?.gt(TEST_AMOUNTS.ZERO) === true,
   isNativeBalance: (balance: any) => balance?.type === 'native',
 }))
 
@@ -121,7 +123,7 @@ const mockToken = {
 }
 
 const mockAccount = {
-  address: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
+  address: TEST_ADDRESSES.ALICE,
   path: "m/44'/354'/0'/0/0",
   pubKey: '0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d',
   selected: false,
@@ -130,17 +132,17 @@ const mockAccount = {
 const mockNativeBalance = {
   type: 'native',
   balance: {
-    total: new BN('1000000000000'),
-    transferable: new BN('500000000000'),
+    total: TEST_AMOUNTS.HUNDRED_DOT.clone(),
+    transferable: TEST_AMOUNTS.HUNDRED_DOT.clone().divn(2), // 50 DOT
     reserved: {
-      total: new BN('200000000000'),
+      total: TEST_AMOUNTS.HUNDRED_DOT.clone().divn(5), // 20 DOT
     },
     staking: {
-      total: new BN('300000000000'),
-      active: new BN('200000000000'),
+      total: TEST_AMOUNTS.HUNDRED_DOT.clone().muln(3).divn(10), // 30 DOT
+      active: TEST_AMOUNTS.HUNDRED_DOT.clone().divn(5), // 20 DOT
       unlocking: [
         {
-          amount: new BN('100000000000'),
+          amount: TEST_AMOUNTS.TEN_DOT.clone(),
           canWithdraw: true,
         },
       ],
@@ -162,7 +164,7 @@ describe('SynchronizedAccountRow component', () => {
     balanceIndex: 0,
     rowSpan: 1,
     token: mockToken,
-    polkadotAddresses: ['1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'],
+    polkadotAddresses: [TEST_ADDRESSES.ADDRESS2],
     updateTransaction: mockUpdateTransaction,
     appId: 'polkadot' as const,
   }
@@ -181,11 +183,11 @@ describe('SynchronizedAccountRow component', () => {
     )
 
     // Check for account address
-    expect(screen.getByText('5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY')).toBeInTheDocument()
+    expect(screen.getByText(TEST_ADDRESSES.ALICE)).toBeInTheDocument()
 
     // Check for balance display
-    expect(screen.getByText('1000000000000 DOT')).toBeInTheDocument() // Total
-    expect(screen.getByText('500000000000 DOT')).toBeInTheDocument() // Transferable
+    expect(screen.getByText(`${TEST_AMOUNTS.HUNDRED_DOT.toString()} DOT`)).toBeInTheDocument() // Total
+    expect(screen.getByText(`${TEST_AMOUNTS.HUNDRED_DOT.divn(2).toString()} DOT`)).toBeInTheDocument() // Transferable
   })
 
   it('should render checkbox for account selection', () => {
@@ -267,7 +269,7 @@ describe('SynchronizedAccountRow component', () => {
       ...mockAccount,
       isMultisig: true,
       threshold: 2,
-      members: [{ address: '5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY', internal: true }],
+      members: [{ address: TEST_ADDRESSES.ADDRESS3, internal: true }],
       pendingMultisigCalls: [],
     }
 
@@ -280,14 +282,14 @@ describe('SynchronizedAccountRow component', () => {
     )
 
     // Should render signatory address select
-    expect(screen.getByText('5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY')).toBeInTheDocument()
+    expect(screen.getByText(TEST_ADDRESSES.ADDRESS3)).toBeInTheDocument()
   })
 
   it('should not render multisig with no internal members', () => {
     const multisigAccount = {
       ...mockAccount,
       isMultisig: true,
-      members: [{ address: '5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY', internal: false }],
+      members: [{ address: TEST_ADDRESSES.ADDRESS3, internal: false }],
       pendingMultisigCalls: [],
     }
 

@@ -1,8 +1,9 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
-import { BN } from '@polkadot/util'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { MultisigAddress, MultisigCall, MultisigMember } from '@/state/types/ledger'
 import type { AppId, Token } from '@/config/apps'
+import { TEST_ADDRESSES, TEST_PATHS } from '@/tests/fixtures/addresses'
+import { TEST_AMOUNTS } from '@/tests/fixtures/balances'
 
 import ApproveMultisigCallDialog from '../approve-multisig-call-dialog'
 
@@ -231,13 +232,13 @@ describe('ApproveMultisigCallDialog', () => {
 
   const mockMembers: MultisigMember[] = [
     {
-      address: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
-      path: "m/44'/354'/0'/0'/0'",
+      address: TEST_ADDRESSES.ALICE,
+      path: TEST_PATHS.DEFAULT,
       internal: true,
     },
     {
-      address: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty',
-      path: "m/44'/354'/0'/0'/1'",
+      address: TEST_ADDRESSES.ADDRESS1,
+      path: TEST_PATHS.ADDRESS1,
       internal: true,
     },
   ]
@@ -245,9 +246,9 @@ describe('ApproveMultisigCallDialog', () => {
   const mockPendingCalls: MultisigCall[] = [
     {
       callHash: '0x1234567890abcdef',
-      deposit: new BN('1000000000000'),
-      depositor: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
-      signatories: ['5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'],
+      deposit: TEST_AMOUNTS.HUNDRED_DOT,
+      depositor: TEST_ADDRESSES.ALICE,
+      signatories: [TEST_ADDRESSES.ALICE],
     },
   ]
 
@@ -364,7 +365,7 @@ describe('ApproveMultisigCallDialog', () => {
         pendingMultisigCalls: [
           {
             ...mockPendingCalls[0],
-            signatories: ['5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'], // threshold - 1
+            signatories: ['TEST_ADDRESSES.ALICE'], // threshold - 1
           },
         ],
       }
@@ -381,7 +382,7 @@ describe('ApproveMultisigCallDialog', () => {
         pendingMultisigCalls: [
           {
             ...mockPendingCalls[0],
-            signatories: ['5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY', '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty'], // Full threshold
+            signatories: ['TEST_ADDRESSES.ALICE', '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty'], // Full threshold
           },
         ],
       }
@@ -487,7 +488,7 @@ describe('ApproveMultisigCallDialog', () => {
           ...mockPendingCalls,
           {
             callHash: '0xabcdef1234567890',
-            deposit: new BN('2000000000000'),
+            deposit: TEST_AMOUNTS.HUNDRED_DOT.muln(2),
             depositor: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty',
             signatories: ['5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty'],
           },
