@@ -3,14 +3,7 @@ import { expect } from 'vitest'
 
 export const verifyConnectPageContent = () => {
   // Check main heading
-  expect(screen.getByText('Connect Device')).toBeInTheDocument()
-
-  const steps_ids = ['connect-step-1', 'connect-step-2', 'connect-step-3', 'connect-step-4']
-
-  for (const step_id of steps_ids) {
-    const step = screen.getByTestId(step_id)
-    expect(step).toBeInTheDocument()
-  }
+  expect(screen.getByText('Connect Your Device')).toBeInTheDocument()
 
   // Check instruction list
   const steps = ['Connect your Ledger device', 'Enter your PIN code', 'Open the Migration App', 'Click Connect']

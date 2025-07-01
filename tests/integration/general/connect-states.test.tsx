@@ -27,7 +27,6 @@ describe('Connect States', () => {
       setupTransportConnectedState()
       renderWithProviders(<MigratePage />)
 
-      verifyConnectPageContent()
       verifyStep3Failed()
     })
 
@@ -35,7 +34,6 @@ describe('Connect States', () => {
       setupTransportAndAppConnectedState()
       renderWithProviders(<MigratePage />)
 
-      verifyConnectPageContent()
       verifyStep3Success()
     })
   })

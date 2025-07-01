@@ -1,10 +1,6 @@
-import '@testing-library/jest-dom'
-
 // Extend the expect interface with custom matchers
-import matchers from '@testing-library/jest-dom/matchers'
 import { beforeEach, expect, vi } from 'vitest'
-
-expect.extend(matchers)
+import '@testing-library/jest-dom/vitest'
 
 // Mocking browser APIs that might not be available in the test environment
 Object.defineProperty(window, 'matchMedia', {
