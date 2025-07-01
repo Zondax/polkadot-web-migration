@@ -35,7 +35,7 @@ function SynchronizedAppOverview({
       </div>
     ) : null
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
       isAccountsNotEmpty && toggleExpand()

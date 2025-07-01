@@ -20,12 +20,12 @@ interface InvalidSynchronizedAccountsTableProps {
 
 function InvalidSynchronizedAccountsTable({
   accounts,
-  _token,
-  _polkadotAddresses,
-  _collections,
+  token: _token,
+  polkadotAddresses: _polkadotAddresses,
+  collections: _collections,
   appId,
-  _updateTransaction,
-  _isMultisig,
+  updateTransaction: _updateTransaction,
+  isMultisig: _isMultisig,
 }: InvalidSynchronizedAccountsTableProps) {
   const renderAccounts = useCallback(() => {
     if (!accounts || accounts.length === 0) {

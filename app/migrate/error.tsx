@@ -7,7 +7,7 @@ interface ErrorPageProps {
   reset: () => void
 }
 
-export default function ErrorPage({ error, _reset }: ErrorPageProps) {
+export default function ErrorPage({ error, reset: _reset }: ErrorPageProps) {
   useEffect(() => {
     // Log the error to an error reporting service
     console.error(error)

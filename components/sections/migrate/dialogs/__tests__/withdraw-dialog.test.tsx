@@ -94,7 +94,7 @@ vi.mock('../common-dialog-fields', () => ({
   DialogEstimatedFeeContent: vi.fn(({ token, estimatedFee, loading }) => (
     <div data-testid="dialog-estimated-fee-content">{loading ? 'Loading...' : `${estimatedFee?.toString()} ${token.symbol}`}</div>
   )),
-  DialogError: vi.fn(({ error }) => error ? <div data-testid="dialog-error">{error}</div> : null),
+  DialogError: vi.fn(({ error }) => (error ? <div data-testid="dialog-error">{error}</div> : null)),
 }))
 
 vi.mock('../transaction-dialog', () => ({

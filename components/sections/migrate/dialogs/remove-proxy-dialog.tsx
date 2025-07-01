@@ -1,6 +1,6 @@
 import type { BN } from '@polkadot/util'
 import { useEffect } from 'react'
-import type { Address } from 'state/types/ledger'
+import type { Address, TransactionStatus, TransactionDetails } from 'state/types/ledger'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'

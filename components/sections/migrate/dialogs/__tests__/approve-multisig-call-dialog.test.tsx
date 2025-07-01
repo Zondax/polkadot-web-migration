@@ -173,7 +173,7 @@ vi.mock('../common-dialog-fields', () => ({
       Network Content
     </div>
   )),
-  DialogError: vi.fn(({ error }) => error ? <div data-testid="dialog-error">{error}</div> : null),
+  DialogError: vi.fn(({ error }) => (error ? <div data-testid="dialog-error">{error}</div> : null)),
 }))
 
 vi.mock('../transaction-dialog', () => ({

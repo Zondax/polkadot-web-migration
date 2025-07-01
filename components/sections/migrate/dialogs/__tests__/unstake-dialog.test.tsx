@@ -72,7 +72,7 @@ vi.mock('@/config/explorers', () => ({
 }))
 
 vi.mock('@/lib/utils/format', () => ({
-  formatBalance: vi.fn((balance, token) => balance ? `${balance.toString()} ${token.symbol}` : `0 ${token.symbol}`),
+  formatBalance: vi.fn((balance, token) => (balance ? `${balance.toString()} ${token.symbol}` : `0 ${token.symbol}`)),
   convertToRawUnits: vi.fn((amount, token) => new BN(amount * 10 ** token.decimals)),
 }))
 
@@ -110,18 +110,18 @@ let formValues = { unstakeAmount: undefined, estimatedFee: undefined }
 vi.mock('react-hook-form', () => ({
   useForm: vi.fn(() => ({
     control: {},
-    handleSubmit: vi.fn((fn) => (e) => {
+    handleSubmit: vi.fn(fn => e => {
       e?.preventDefault?.()
       return fn(formValues)
     }),
-    watch: vi.fn((field) => {
+    watch: vi.fn(field => {
       if (field === 'unstakeAmount') return formValues.unstakeAmount
       if (field === 'estimatedFee') return formValues.estimatedFee
       return undefined
     }),
-    formState: { 
+    formState: {
       errors: formValues.errors || {},
-      isValid: formValues.unstakeAmount && !formValues.errors
+      isValid: formValues.unstakeAmount && !formValues.errors,
     },
     clearErrors: vi.fn(),
     setValue: vi.fn((field, value, options) => {
@@ -131,7 +131,7 @@ vi.mock('react-hook-form', () => ({
         formValues.errors = undefined
       }
     }),
-    unregister: vi.fn((field) => {
+    unregister: vi.fn(field => {
       delete formValues[field]
     }),
     reset: vi.fn(() => {
@@ -141,7 +141,7 @@ vi.mock('react-hook-form', () => ({
   Controller: vi.fn(({ render, name }) => {
     const field = {
       value: formValues[name],
-      onChange: (e) => {
+      onChange: e => {
         const value = e?.target?.value
         formValues[name] = value ? Number(value) : undefined
       },
@@ -177,7 +177,7 @@ vi.mock('../common-dialog-fields', () => ({
   DialogEstimatedFeeContent: vi.fn(({ token, estimatedFee, loading }) => (
     <div data-testid="dialog-estimated-fee-content">{loading ? 'Loading...' : `${estimatedFee?.toString()} ${token.symbol}`}</div>
   )),
-  DialogError: vi.fn(({ error }) => error ? <div data-testid="dialog-error">{error}</div> : null),
+  DialogError: vi.fn(({ error }) => (error ? <div data-testid="dialog-error">{error}</div> : null)),
 }))
 
 vi.mock('../transaction-dialog', () => ({
@@ -220,7 +220,7 @@ import { formatBalance, convertToRawUnits } from '@/lib/utils/format'
 describe('UnstakeDialog', () => {
   // Get mocked functions
   const mockUseTransactionStatus = vi.mocked(useTransactionStatus)
-  const mockFormatBalance = vi.mocked(formatBalance)
+  const _mockFormatBalance = vi.mocked(formatBalance)
   const mockConvertToRawUnits = vi.mocked(convertToRawUnits)
 
   const mockToken: Token = {
@@ -340,7 +340,7 @@ describe('UnstakeDialog', () => {
         formValues.estimatedFee = fee
         return fee
       })
-      
+
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
         txStatus: null,
