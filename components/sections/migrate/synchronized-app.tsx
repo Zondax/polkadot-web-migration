@@ -1,17 +1,15 @@
 import { observer, use$ } from '@legendapp/state/react'
+import { BN } from '@polkadot/util'
 import { ChevronDown, Info } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { type App, ledgerState$ } from 'state/ledger'
 import { type Address, BalanceType } from 'state/types/ledger'
-
-import { isNativeBalance } from '@/lib/utils/balance'
-import { formatBalance } from '@/lib/utils/format'
-import { muifyHtml } from '@/lib/utils/html'
-
 import { CustomTooltip } from '@/components/CustomTooltip'
 import type { UpdateTransaction } from '@/components/hooks/useSynchronization'
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
-import { BN } from '@polkadot/util'
+import { isNativeBalance } from '@/lib/utils/balance'
+import { formatBalance } from '@/lib/utils/format'
+import { muifyHtml } from '@/lib/utils/html'
 import { BalanceTypeFlag } from './balance-detail-card'
 import InvalidSynchronizedAccountsTable from './invalid-synchronized-accounts-table'
 import SynchronizedAccountsTable from './synchronized-accounts-table'
@@ -61,7 +59,7 @@ function SynchronizedApp({
       </div>
     ) : null
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
       isAccountsNotEmpty && toggleExpand()
@@ -71,11 +69,15 @@ function SynchronizedApp({
   return (
     <div className="bg-gray-50 rounded-lg shadow-xs border border-gray-200 mb-4">
       {/* Overview */}
-      <div
-        className={`flex flex-row items-center justify-between gap-4 px-4 py-3 cursor-pointer select-none transition-colors rounded-lg ${accounts?.length !== 0 ? 'hover:bg-gray-50' : ''}`}
+      <button
+        type="button"
+        className={`w-full flex flex-row items-center justify-between gap-4 px-4 py-3 cursor-pointer select-none transition-colors rounded-lg ${accounts?.length !== 0 ? 'hover:bg-gray-50' : ''}`}
         onClick={isAccountsNotEmpty ? toggleExpand : undefined}
         onKeyDown={handleKeyDown}
         data-testid="app-row-overview"
+        tabIndex={isAccountsNotEmpty ? 0 : -1}
+        aria-expanded={isExpanded}
+        disabled={!isAccountsNotEmpty}
       >
         <div className="flex items-center gap-4">
           <div className="max-h-8 w-8 h-8 overflow-hidden flex items-center justify-center">
@@ -118,7 +120,7 @@ function SynchronizedApp({
             </CustomTooltip>
           </div>
         )}
-      </div>
+      </button>
       {/* Accounts Table (expandable) */}
       {isExpanded && isAccountsNotEmpty ? (
         <div className="overflow-hidden">

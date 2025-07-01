@@ -1,9 +1,7 @@
 import type { App } from 'state/ledger'
 import type { Address } from 'state/types/ledger'
-import { TransactionStatus } from 'state/types/ledger'
+import { BalanceType, TransactionStatus } from 'state/types/ledger'
 import { describe, expect, it } from 'vitest'
-
-import { BalanceType } from 'state/types/ledger'
 import {
   filterAccountsForApps,
   filterInvalidSyncedApps,
@@ -40,7 +38,7 @@ import {
 
 // =========== Helper Functions ===========
 const getAppById = (apps: App[], id: string) => apps.find(app => app.id === id)
-const getAccountByPath = (accounts: Address[], path: string) => accounts.find(account => account.path === path)
+const _getAccountByPath = (accounts: Address[], path: string) => accounts.find(account => account.path === path)
 
 // =========== Tests: filterValidSyncedAppsWithBalances ===========
 describe('filterValidSyncedAppsWithBalances', () => {

@@ -1,12 +1,12 @@
+import { observer } from '@legendapp/state/react'
 import { ExplorerLink } from '@/components/ExplorerLink'
-import TokenIcon from '@/components/TokenIcon'
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
 import { TransactionStatusBody } from '@/components/sections/migrate/dialogs/transaction-dialog'
+import TokenIcon from '@/components/TokenIcon'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ExplorerItemType } from '@/config/explorers'
 import type { MigratingItem } from '@/state/types/ledger'
-import { observer } from '@legendapp/state/react'
 
 interface MigrationProgressDialogProps {
   open: boolean

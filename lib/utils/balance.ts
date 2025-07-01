@@ -1,3 +1,4 @@
+import { BN } from '@polkadot/util'
 import { MINIMUM_AMOUNT } from '@/config/mockData'
 import {
   type Address,
@@ -8,7 +9,6 @@ import {
   type Nft,
   type NftBalance,
 } from '@/state/types/ledger'
-import { BN } from '@polkadot/util'
 
 /**
  * Type guard to check if a balance is a native balance
@@ -147,7 +147,7 @@ export function getTransferableAndNfts(
   account: Address
 ): { nftsToTransfer: Nft[]; nativeAmount: BN | undefined; transferableAmount: BN } {
   let nftsToTransfer: Nft[] = []
-  let nativeAmount: BN | undefined = undefined
+  let nativeAmount: BN | undefined
   let transferableAmount = new BN(0)
 
   if (isNativeBalance(balance)) {
@@ -215,5 +215,6 @@ export const validateReservedBreakdown = (
  */
 
 export const cannotCoverFee = (transferableBalance: BN, fee: BN): boolean => {
+  if (!transferableBalance || !fee) return false
   return transferableBalance.lt(fee)
 }

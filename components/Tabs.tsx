@@ -15,7 +15,7 @@ interface TabsProps<T = string> {
 }
 
 export function Tabs<T = string>({ activeTab, tabs, onTabChange }: TabsProps<T>) {
-  const ActiveComponent = tabs[activeTab]?.component
+  const _ActiveComponent = tabs[activeTab]?.component
 
   return (
     <div>

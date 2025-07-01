@@ -3,11 +3,10 @@ import { AlertCircle, Info, KeyRound, Route, User } from 'lucide-react'
 import type { Address, MultisigAddress } from 'state/types/ledger'
 
 import { CustomTooltip, TooltipBody, type TooltipItem } from '@/components/CustomTooltip'
-import { TableCell, TableRow } from '@/components/ui/table'
-import type { AppId } from '@/config/apps'
-
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { Spinner } from '@/components/icons'
+import { TableCell, TableRow } from '@/components/ui/table'
+import type { AppId } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 
 // Component for rendering a single synchronized account row

@@ -1,19 +1,13 @@
 import type { ApiPromise } from '@polkadot/api'
-import type { Vec, u128 } from '@polkadot/types-codec'
 import type { ProxyDefinition } from '@polkadot/types/interfaces'
+import type { u128, Vec } from '@polkadot/types-codec'
 import { BN } from '@polkadot/util'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getProxyInfo } from '../account'
 
 const mockAddress = '5FakeAddress1234567890'
 
-function createApiMock({
-  proxies,
-  deposit,
-}: {
-  proxies?: Vec<ProxyDefinition>
-  deposit?: u128
-}) {
+function createApiMock({ proxies, deposit }: { proxies?: Vec<ProxyDefinition>; deposit?: u128 }) {
   return {
     query: {
       proxy: {

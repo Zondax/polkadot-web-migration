@@ -1,16 +1,15 @@
 'use client'
 
-import type { Native, Reserved, Staking } from '@/state/types/ledger'
 import { BN } from '@polkadot/util'
 import { LockClosedIcon } from '@radix-ui/react-icons'
 import { ArrowRightLeftIcon, BarChartIcon, Check, ClockIcon, Group, Hash, LockOpenIcon, User, UserCog } from 'lucide-react'
 import type { ReactNode } from 'react'
-
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import type { Token } from '@/config/apps'
 import { formatBalance } from '@/lib/utils'
+import type { Native, Reserved, Staking } from '@/state/types/ledger'
 
 export enum BalanceType {
   Transferable = 'transferable',

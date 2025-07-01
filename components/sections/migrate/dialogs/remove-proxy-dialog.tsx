@@ -1,5 +1,6 @@
-import type { Address, TransactionDetails, TransactionStatus } from 'state/types/ledger'
-
+import type { BN } from '@polkadot/util'
+import { useEffect } from 'react'
+import type { Address, TransactionStatus, TransactionDetails } from 'state/types/ledger'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -9,8 +10,6 @@ import { ExplorerItemType } from '@/config/explorers'
 import { cannotCoverFee } from '@/lib/utils/balance'
 import { formatBalance } from '@/lib/utils/format'
 import { ledgerState$ } from '@/state/ledger'
-import type { BN } from '@polkadot/util'
-import { useEffect } from 'react'
 import { DialogError, DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 

@@ -1,8 +1,6 @@
-import { merkleizeMetadata } from '@polkadot-api/merkleize-metadata'
 import { ApiPromise, WsProvider } from '@polkadot/api'
 import type { SubmittableExtrinsic } from '@polkadot/api/types'
 import type { GenericExtrinsicPayload } from '@polkadot/types'
-import type { Option, Vec, u128, u32 } from '@polkadot/types-codec'
 import type {
   AccountId32,
   Balance,
@@ -14,12 +12,14 @@ import type {
   StakingLedger,
 } from '@polkadot/types/interfaces'
 import type { ExtrinsicPayloadValue, ISubmittableResult } from '@polkadot/types/types/extrinsic'
+import type { Option, u32, u128, Vec } from '@polkadot/types-codec'
 import { BN, hexToU8a, u8aToBn } from '@polkadot/util'
 import { decodeAddress } from '@polkadot/util-crypto'
+import { merkleizeMetadata } from '@polkadot-api/merkleize-metadata'
 import type { AppConfig, AppId } from 'config/apps'
 import { DEFAULT_ERA_TIME_IN_HOURS, getEraTimeByAppId } from 'config/apps'
-import { MULTISIG_WEIGHT_BUFFER, defaultWeights } from 'config/config'
-import { InternalErrorType, errorDetails } from 'config/errors'
+import { defaultWeights, MULTISIG_WEIGHT_BUFFER } from 'config/config'
+import { errorDetails, InternalErrorType } from 'config/errors'
 import { errorAddresses, mockBalances } from 'config/mockData'
 import { getMultisigInfo } from 'lib/subscan'
 import {
@@ -86,7 +86,7 @@ export async function getApiAndProvider(rpcEndpoint: string): Promise<{ api?: Ap
 
       // If connection is successful, return the API and provider
       return { api, provider: currentProvider }
-    } catch (e) {
+    } catch (_e) {
       retryCount++
       console.debug(`Connection attempt ${retryCount} failed. Retrying... (${MAX_CONNECTION_RETRIES - retryCount} attempts remaining)`)
 
@@ -178,7 +178,7 @@ export async function getBalance(
         nfts: collections,
       },
     }
-  } catch (e) {
+  } catch (_e) {
     return {
       balances: [],
       collections: {
@@ -1441,7 +1441,7 @@ export async function getMultisigAddresses(
     }
 
     return multisigAddresses
-  } catch (error) {
+  } catch (_error) {
     return undefined
   }
 }
@@ -1572,7 +1572,7 @@ export function estimateCallWeight(call: SubmittableExtrinsic<'promise', ISubmit
       const encodedLength = calls.toString().length
       // Add weight based on the size/complexity of the batch
       totalWeight += Math.min(encodedLength * 1000, 2_000_000_000) // Cap at 2 seconds
-    } catch (error) {
+    } catch (_error) {
       // If we can't analyze the batch, use a conservative estimate
       totalWeight = 2_000_000_000 // 2 seconds for complex batch
     }
@@ -1608,7 +1608,7 @@ export function estimateCallWeight(call: SubmittableExtrinsic<'promise', ISubmit
  * @returns Estimated weight in nanoseconds
  */
 export function estimateApproveAsMultiWeight(
-  callHash: string,
+  _callHash: string,
   threshold: number,
   otherSignatories: string[],
   maybeTimepoint?: { height: number; index: number } | null
@@ -1731,7 +1731,7 @@ export function validateCallDataMatchesHash(api: ApiPromise, callData: string, e
     const matches = computedHash.toLowerCase() === expectedCallHash.toLowerCase()
 
     return matches
-  } catch (error) {
+  } catch (_error) {
     return false
   }
 }

@@ -1,28 +1,26 @@
 import { observable } from '@legendapp/state'
+import { BN } from '@polkadot/util'
 import { type AppConfig, type AppId, appsConfigs, polkadotAppConfig } from 'config/apps'
-import { InternalErrorType, errorDetails } from 'config/errors'
+import { errorDetails, InternalErrorType } from 'config/errors'
 import { errorApps, syncApps } from 'config/mockData'
-
+import type { MultisigCallFormData } from '@/components/sections/migrate/dialogs/approve-multisig-call-dialog'
 import type { Token } from '@/config/apps'
 import { maxAddressesToFetch } from '@/config/config'
 import {
-  type UpdateTransactionStatus,
   getApiAndProvider,
   getBalance,
   getIdentityInfo,
   getIndexInfo,
   getMultisigAddresses,
   getProxyInfo,
+  type UpdateTransactionStatus,
 } from '@/lib/account'
 import type { DeviceConnectionProps } from '@/lib/ledger/types'
+import { type InternalError, interpretError } from '@/lib/utils'
 import { convertSS58Format, isMultisigAddress } from '@/lib/utils/address'
 import { hasAddressBalance, hasBalance, hasNegativeBalance, validateReservedBreakdown } from '@/lib/utils/balance'
 import { filterAccountsForApps, setDefaultDestinationAddress } from '@/lib/utils/ledger'
-
-import type { MultisigCallFormData } from '@/components/sections/migrate/dialogs/approve-multisig-call-dialog'
-import { type InternalError, interpretError } from '@/lib/utils'
 import { handleErrorNotification } from '@/lib/utils/notifications'
-import { BN } from '@polkadot/util'
 import { ledgerClient } from './client/ledger'
 import { errorsToStopSync } from './config/ledger'
 import { notifications$ } from './notifications'
@@ -419,10 +417,7 @@ export const ledgerState$ = observable({
 
       const multisigAccounts: Map<string, MultisigAddress> = new Map()
 
-      const processCollections = (collections: {
-        uniques: Collection[]
-        nfts: Collection[]
-      }) => {
+      const processCollections = (collections: { uniques: Collection[]; nfts: Collection[] }) => {
         // Process uniques collections
         if (collections.uniques && collections.uniques.length > 0) {
           for (const collection of collections.uniques) {
@@ -693,7 +688,7 @@ export const ledgerState$ = observable({
       if (app) {
         updateApp(appId, app)
       }
-    } catch (error) {
+    } catch (_error) {
       updateApp(appId, {
         status: AppStatus.ERROR,
         error: {
@@ -980,7 +975,7 @@ export const ledgerState$ = observable({
   async verifyDestinationAddresses(
     appId: AppId,
     address: string,
-    path: string
+    _path: string
   ): Promise<{
     isVerified: boolean
   }> {
@@ -1016,7 +1011,7 @@ export const ledgerState$ = observable({
       const response = await ledgerClient.getAccountAddress(polkadotConfig.bip44Path, addressIndex, appConfig.ss58Prefix)
 
       return { isVerified: response.result?.address === address }
-    } catch (error) {
+    } catch (_error) {
       return { isVerified: false }
     }
   },
@@ -1192,7 +1187,7 @@ export const ledgerState$ = observable({
     try {
       const txInfo = await ledgerClient.getMigrationTxInfo(appId, address, balanceIndex)
       return txInfo
-    } catch (error) {
+    } catch (_error) {
       return undefined
     }
   },
@@ -1222,7 +1217,7 @@ export const ledgerState$ = observable({
     try {
       const estimatedFee = await ledgerClient.getUnstakeFee(appId, address, amount)
       return estimatedFee
-    } catch (error) {
+    } catch (_error) {
       return undefined
     }
   },
@@ -1251,7 +1246,7 @@ export const ledgerState$ = observable({
 
     try {
       return await ledgerClient.getWithdrawFee(appId, address)
-    } catch (error) {
+    } catch (_error) {
       return undefined
     }
   },
@@ -1268,7 +1263,7 @@ export const ledgerState$ = observable({
   async getRemoveIdentityFee(appId: AppId, address: string): Promise<BN | undefined> {
     try {
       return await ledgerClient.getRemoveIdentityFee(appId, address)
-    } catch (error) {
+    } catch (_error) {
       return undefined
     }
   },
@@ -1303,7 +1298,7 @@ export const ledgerState$ = observable({
   async getRemoveProxiesFee(appId: AppId, address: string): Promise<BN | undefined> {
     try {
       return await ledgerClient.getRemoveProxiesFee(appId, address)
-    } catch (error) {
+    } catch (_error) {
       return undefined
     }
   },
@@ -1320,7 +1315,7 @@ export const ledgerState$ = observable({
   async getRemoveAccountIndexFee(appId: AppId, address: string, accountIndex: string): Promise<BN | undefined> {
     try {
       return await ledgerClient.getRemoveAccountIndexFee(appId, address, accountIndex)
-    } catch (error) {
+    } catch (_error) {
       return undefined
     }
   },

@@ -1,8 +1,8 @@
-import { beforeEach, describe, expect, it, vi, type MockedFunction } from 'vitest'
+import { beforeEach, describe, expect, it, type MockedFunction, vi } from 'vitest'
 
 import type { AppId } from '@/config/apps'
 import type { MultisigCall, MultisigMember } from '@/state/types/ledger'
-import { callDataValidationMessages, getAvailableSigners, validateCallData, type CallDataValidationResult } from '../../utils/multisig'
+import { type CallDataValidationResult, callDataValidationMessages, getAvailableSigners, validateCallData } from '../../utils/multisig'
 
 // Mock the ledgerClient module
 vi.mock('@/state/client/ledger', () => ({
@@ -11,8 +11,8 @@ vi.mock('@/state/client/ledger', () => ({
   },
 }))
 
-import { ledgerClient } from '@/state/client/ledger'
 import { BN } from '@polkadot/util'
+import { ledgerClient } from '@/state/client/ledger'
 
 // Cast the mocked function for type safety
 const mockedValidateCallDataMatchesHash = ledgerClient.validateCallDataMatchesHash as MockedFunction<

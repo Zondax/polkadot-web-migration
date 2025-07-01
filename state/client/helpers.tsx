@@ -1,9 +1,7 @@
 import { type AppId, appsConfigs } from 'config/apps'
 import { InternalErrorType } from 'config/errors'
-
-import { hasBalance, InternalError, isMultisigAddress } from '@/lib/utils'
-
 import type { MultisigInfo } from '@/lib/account'
+import { hasBalance, InternalError, isMultisigAddress } from '@/lib/utils'
 import { AccountType, type Address, type AddressBalance, type MultisigAddress } from '../types/ledger'
 
 // Interface for the return value of validateMigrationParams
@@ -62,7 +60,7 @@ export const validateMigrationParams = (
   const receiverAddress = balance.transaction?.destinationAddress
   const hasAvailableBalance = hasBalance([balance])
   const appConfig = appsConfigs.get(appId)
-  let multisigInfo: MultisigInfo | undefined = undefined
+  let multisigInfo: MultisigInfo | undefined
 
   if (!appConfig || !appConfig.rpcEndpoint) {
     throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)

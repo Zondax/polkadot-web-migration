@@ -4,8 +4,6 @@ import { migrationTabs } from 'config/ui'
 import { motion, useAnimation } from 'framer-motion'
 import { Check } from 'lucide-react'
 import { useEffect, useState } from 'react'
-
-import { Tabs } from '@/components/Tabs'
 // Import section components
 import { useLoadIcons } from '@/components/hooks/loadIcons'
 import { useConnection } from '@/components/hooks/useConnection'
@@ -13,6 +11,7 @@ import { useTabs } from '@/components/hooks/useTabs'
 import { GradientBackground } from '@/components/sections/migrate/background'
 import { Header } from '@/components/sections/migrate/header'
 import Notifications from '@/components/sections/migrate/notifications'
+import { Tabs } from '@/components/Tabs'
 
 type TabProps = { onContinue: () => void } | { onBack: () => void }
 

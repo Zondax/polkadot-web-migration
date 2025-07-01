@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.0.6/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -7,20 +7,21 @@
   },
   "files": {
     "maxSize": 100485760,
-    "ignore": [
-      "**/.cache",
-      "**/.next",
-      "**/.turbo",
-      "**/.vscode",
-      "**/.qodo",
-      "**/package.json",
-      "**/public",
-      "**/dist",
-      "**/playwright-report",
-      "**/pnpm-lock.yaml",
-      "components/ui/**",
-      "node_modules/**",
-      "coverage/**"
+    "includes": [
+      "**",
+      "!**/.cache",
+      "!**/.next",
+      "!**/.turbo",
+      "!**/.vscode",
+      "!**/.qodo",
+      "!**/package.json",
+      "!**/public",
+      "!**/dist",
+      "!**/playwright-report",
+      "!**/pnpm-lock.yaml",
+      "!**/components/ui/**",
+      "!**/node_modules/**",
+      "!**/coverage/**"
     ]
   },
   "formatter": {
@@ -33,7 +34,7 @@
     "attributePosition": "auto",
     "bracketSpacing": true
   },
-  "organizeImports": { "enabled": true },
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "linter": {
     "enabled": true,
     "rules": {
@@ -61,9 +62,17 @@
         "noDangerouslySetInnerHtml": "warn"
       },
       "style": {
-        "noNonNullAssertion": "warn"
-      },
-      "nursery": {
+        "noNonNullAssertion": "warn",
+        "noParameterAssign": "error",
+        "useAsConstAssertion": "error",
+        "useDefaultParameterLast": "error",
+        "useEnumInitializers": "error",
+        "useSelfClosingElements": "error",
+        "useSingleVarDeclarator": "error",
+        "noUnusedTemplateLiteral": "error",
+        "useNumberNamespace": "error",
+        "noInferrableTypes": "error",
+        "noUselessElse": "error",
         "noRestrictedImports": {
           "level": "warn",
           "options": {
@@ -72,7 +81,8 @@
             }
           }
         }
-      }
+      },
+      "nursery": {}
     }
   },
   "javascript": {

@@ -1,11 +1,10 @@
-import { VerificationStatus, type AddressWithVerificationStatus, type MigratingItem } from '@/state/types/ledger'
 import { observable } from '@legendapp/state'
 import { use$ } from '@legendapp/state/react'
 import { useCallback, useEffect } from 'react'
-import { ledgerState$, type App } from 'state/ledger'
-
+import { type App, ledgerState$ } from 'state/ledger'
 import type { AppId } from '@/config/apps'
 import { addDestinationAddressesFromAccounts, filterSelectedAccountsForMigration, filterValidSyncedAppsWithBalances } from '@/lib/utils'
+import { type AddressWithVerificationStatus, type MigratingItem, VerificationStatus } from '@/state/types/ledger'
 
 interface UseMigrationReturn {
   // Computed values

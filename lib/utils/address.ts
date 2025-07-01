@@ -1,5 +1,5 @@
-import type { Address, MultisigAddress } from '@/state/types/ledger'
 import { decodeAddress as decodeAddressPolkadot, encodeAddress as encodeAddressPolkadot } from '@polkadot/keyring'
+import type { Address, MultisigAddress } from '@/state/types/ledger'
 
 /**
  * Converts an address from one network format to another by changing the SS58 prefix

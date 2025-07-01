@@ -1,11 +1,11 @@
 import axios from 'axios'
-import { AppStatus, type App } from 'state/ledger'
+import { type App, AppStatus } from 'state/ledger'
 import {
-  VerificationStatus,
   type Address,
   type AddressBalance,
   type AddressWithVerificationStatus,
   type MultisigAddress,
+  VerificationStatus,
 } from 'state/types/ledger'
 import { hasAddressBalance, hasBalance } from './balance'
 
@@ -27,7 +27,7 @@ export const getAppLightIcon = async (appId: string) => {
     try {
       const response = await axios.get(`${hubUrl}/app/${appId}/icon/light`)
       return { data: response.data, error: undefined }
-    } catch (apiError) {
+    } catch (_apiError) {
       // API call failed, try local image as fallback
     }
 
@@ -41,13 +41,13 @@ export const getAppLightIcon = async (appId: string) => {
         const svgContent = await res.text()
         return { data: svgContent, error: undefined }
       }
-    } catch (localError) {
+    } catch (_localError) {
       // Local image doesn't exist either
     }
 
     // If we get here, both API and local fetches failed
     return { data: undefined, error: 'Icon not found' }
-  } catch (error) {
+  } catch (_error) {
     return { data: undefined, error: 'Error fetching app icon' }
   }
 }
