@@ -1,6 +1,7 @@
 import { BN } from '@polkadot/util'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { TEST_AMOUNTS } from '@/tests/fixtures/balances'
 
 import { BalanceHoverCard, NativeBalanceHoverCard } from '../balance-hover-card'
 import { BalanceType } from '../balance-visualizations'
@@ -70,19 +71,19 @@ const mockToken = {
 }
 
 const mockNativeBalance = {
-  total: new BN('1000000000000'),
-  transferable: new BN('500000000000'),
+  total: TEST_AMOUNTS.HUNDRED_DOT.clone(),
+  transferable: TEST_AMOUNTS.HUNDRED_DOT.clone().divn(2), // 50 DOT
   reserved: {
-    total: new BN('200000000000'),
-    identity: new BN('100000000000'),
-    governance: new BN('100000000000'),
+    total: TEST_AMOUNTS.HUNDRED_DOT.clone().divn(5), // 20 DOT
+    identity: TEST_AMOUNTS.TEN_DOT.clone(),
+    governance: TEST_AMOUNTS.TEN_DOT.clone(),
   },
   staking: {
-    total: new BN('300000000000'),
-    active: new BN('200000000000'),
+    total: TEST_AMOUNTS.HUNDRED_DOT.clone().muln(3).divn(10), // 30 DOT
+    active: TEST_AMOUNTS.HUNDRED_DOT.clone().divn(5), // 20 DOT
     unlocking: [
       {
-        amount: new BN('100000000000'),
+        amount: TEST_AMOUNTS.TEN_DOT.clone(),
         remainingEras: 5,
       },
     ],

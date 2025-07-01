@@ -32,6 +32,7 @@
     "test:e2e:report": "playwright show-report",
     "test:e2e:sharding": "playwright test e2e -x --reporter=list --output=playwright-report --shard=$PLAYWRIGHT_SHARD",
     "test:e2e:ui": "playwright test e2e --ui",
+    "test:patterns": "./tests/lint-test-patterns.sh",
     "test:watch": "vitest"
   },
   "dependencies": {

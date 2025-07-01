@@ -1,8 +1,10 @@
 import { render, screen, fireEvent, act } from '@testing-library/react'
-import { BN } from '@polkadot/util'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Address } from '@/state/types/ledger'
 import type { AppId, Token } from '@/config/apps'
+import { createTestAccount } from '@/tests/utils/testHelpers'
+import { TEST_ADDRESSES, TEST_PATHS, TEST_PUBKEYS } from '@/tests/fixtures/addresses'
+import { TEST_AMOUNTS } from '@/tests/fixtures/balances'
 
 import RemoveProxyDialog from '../remove-proxy-dialog'
 
@@ -32,7 +34,7 @@ vi.mock('@/components/hooks/useTransactionStatus', () => ({
     updateSynchronization: vi.fn(),
     isSynchronizing: false,
     getEstimatedFee: vi.fn(),
-    estimatedFee: new BN('1000000000000'),
+    estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
     estimatedFeeLoading: false,
   })),
 }))
@@ -134,27 +136,27 @@ describe('RemoveProxyDialog', () => {
 
   const mockAppId: AppId = 'polkadot'
 
-  const mockAccount: Address = {
-    address: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
-    path: "m/44'/354'/0'/0'/0'",
-    pubKey: '0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d',
+  const mockAccount: Address = createTestAccount({
+    address: TEST_ADDRESSES.ALICE,
+    path: TEST_PATHS.DEFAULT,
+    pubKey: TEST_PUBKEYS[TEST_ADDRESSES.ALICE],
     selected: false,
     proxy: {
-      deposit: new BN('100000000000'),
+      deposit: TEST_AMOUNTS.TEN_DOT,
       proxies: [
         {
-          address: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty',
+          address: TEST_ADDRESSES.ADDRESS1,
           proxyType: 'Any',
           delay: 0,
         },
         {
-          address: '5DAAnrj7VHTznn2C221g2pvCnvVy9AHbLP7RP9ueGZFg7AAW',
+          address: TEST_ADDRESSES.ADDRESS3,
           proxyType: 'Staking',
           delay: 10,
         },
       ],
     },
-  }
+  })
 
   const defaultProps = {
     open: true,
@@ -209,9 +211,7 @@ describe('RemoveProxyDialog', () => {
       render(<RemoveProxyDialog {...defaultProps} />)
 
       const explorerLinks = screen.getAllByTestId('explorer-link')
-      const sourceAddressLink = explorerLinks.find(
-        link => link.getAttribute('data-value') === '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'
-      )
+      const sourceAddressLink = explorerLinks.find(link => link.getAttribute('data-value') === TEST_ADDRESSES.ALICE)
       expect(sourceAddressLink).toBeInTheDocument()
       expect(sourceAddressLink).toHaveAttribute('data-app-id', 'polkadot')
       expect(sourceAddressLink).toHaveAttribute('data-explorer-type', 'address')
@@ -302,7 +302,7 @@ describe('RemoveProxyDialog', () => {
         updateSynchronization: vi.fn(),
         isSynchronizing: false,
         getEstimatedFee: vi.fn(),
-        estimatedFee: new BN('1000000000000'),
+        estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
         estimatedFeeLoading: false,
       })
 
@@ -314,7 +314,7 @@ describe('RemoveProxyDialog', () => {
         fireEvent.click(signButton)
       })
 
-      expect(mockRunTransaction).toHaveBeenCalledWith('polkadot', '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY', "m/44'/354'/0'/0'/0'")
+      expect(mockRunTransaction).toHaveBeenCalledWith('polkadot', TEST_ADDRESSES.ALICE, TEST_PATHS.DEFAULT)
     })
 
     it('should handle close dialog', async () => {
@@ -331,7 +331,7 @@ describe('RemoveProxyDialog', () => {
         updateSynchronization: vi.fn(),
         isSynchronizing: false,
         getEstimatedFee: vi.fn(),
-        estimatedFee: new BN('1000000000000'),
+        estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
         estimatedFeeLoading: false,
       })
 
@@ -361,7 +361,7 @@ describe('RemoveProxyDialog', () => {
         updateSynchronization: mockUpdateSynchronization,
         isSynchronizing: false,
         getEstimatedFee: vi.fn(),
-        estimatedFee: new BN('1000000000000'),
+        estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
         estimatedFeeLoading: false,
       })
 
@@ -392,7 +392,7 @@ describe('RemoveProxyDialog', () => {
         updateSynchronization: vi.fn(),
         isSynchronizing: false,
         getEstimatedFee: vi.fn(),
-        estimatedFee: new BN('1000000000000'),
+        estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
         estimatedFeeLoading: false,
       })
 
@@ -419,7 +419,7 @@ describe('RemoveProxyDialog', () => {
         updateSynchronization: vi.fn(),
         isSynchronizing: false,
         getEstimatedFee: vi.fn(),
-        estimatedFee: new BN('1000000000000'),
+        estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
         estimatedFeeLoading: false,
       })
 
@@ -465,13 +465,13 @@ describe('RemoveProxyDialog', () => {
         updateSynchronization: vi.fn(),
         isSynchronizing: false,
         getEstimatedFee: mockGetEstimatedFee,
-        estimatedFee: new BN('1000000000000'),
+        estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
         estimatedFeeLoading: false,
       })
 
       render(<RemoveProxyDialog {...defaultProps} />)
 
-      expect(mockGetEstimatedFee).toHaveBeenCalledWith('polkadot', '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY')
+      expect(mockGetEstimatedFee).toHaveBeenCalledWith('polkadot', TEST_ADDRESSES.ALICE)
     })
 
     it('should not call getEstimatedFee when dialog is closed', async () => {
@@ -487,7 +487,7 @@ describe('RemoveProxyDialog', () => {
         updateSynchronization: vi.fn(),
         isSynchronizing: false,
         getEstimatedFee: mockGetEstimatedFee,
-        estimatedFee: new BN('1000000000000'),
+        estimatedFee: TEST_AMOUNTS.HUNDRED_DOT,
         estimatedFeeLoading: false,
       })
 
@@ -502,7 +502,7 @@ describe('RemoveProxyDialog', () => {
       const accountWithSingleProxy = {
         ...mockAccount,
         proxy: {
-          deposit: new BN('50000000000'),
+          deposit: TEST_AMOUNTS.ONE_DOT.muln(5),
           proxies: [
             {
               address: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty',
@@ -526,7 +526,7 @@ describe('RemoveProxyDialog', () => {
       const accountWithEmptyProxies = {
         ...mockAccount,
         proxy: {
-          deposit: new BN('0'),
+          deposit: TEST_AMOUNTS.ZERO,
           proxies: [],
         },
       }
@@ -545,7 +545,7 @@ describe('RemoveProxyDialog', () => {
       const accountWithVariedProxies = {
         ...mockAccount,
         proxy: {
-          deposit: new BN('200000000000'),
+          deposit: TEST_AMOUNTS.TEN_DOT.muln(2),
           proxies: [
             {
               address: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty',
@@ -574,7 +574,7 @@ describe('RemoveProxyDialog', () => {
       const accountWithDifferentDeposit = {
         ...mockAccount,
         proxy: {
-          deposit: new BN('500000000000'),
+          deposit: TEST_AMOUNTS.TEN_DOT.muln(5),
           proxies: [
             {
               address: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty',

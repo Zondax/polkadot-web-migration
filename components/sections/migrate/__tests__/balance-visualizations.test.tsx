@@ -1,7 +1,8 @@
 import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { BN } from '@polkadot/util'
+import type { BN } from '@polkadot/util'
 import type { Native } from '@/state/types/ledger'
+import { TEST_AMOUNTS } from '@/tests/fixtures/balances'
 
 // Mock dependencies
 vi.mock('@/components/ExplorerLink', () => ({
@@ -79,43 +80,43 @@ describe('NativeBalanceVisualization component', () => {
   }
 
   const createMockNative = (overrides: Partial<Native> = {}): Native => ({
-    total: new BN('1000000000000'),
-    transferable: new BN('600000000000'),
+    total: TEST_AMOUNTS.HUNDRED_DOT.clone(),
+    transferable: TEST_AMOUNTS.HUNDRED_DOT.clone().muln(6).divn(10), // 60 DOT
     staking: {
-      total: new BN('300000000000'),
-      active: new BN('200000000000'),
+      total: TEST_AMOUNTS.HUNDRED_DOT.clone().muln(3).divn(10), // 30 DOT
+      active: TEST_AMOUNTS.HUNDRED_DOT.clone().muln(2).divn(10), // 20 DOT
       unlocking: [
         {
           era: 1000,
-          value: new BN('50000000000'),
+          value: TEST_AMOUNTS.HUNDRED_DOT.clone().divn(20), // 5 DOT
           canWithdraw: true,
           timeRemaining: 'Ready',
         },
         {
           era: 1001,
-          value: new BN('50000000000'),
+          value: TEST_AMOUNTS.HUNDRED_DOT.clone().divn(20), // 5 DOT
           canWithdraw: false,
           timeRemaining: '2 days',
         },
       ],
     },
     reserved: {
-      total: new BN('100000000000'),
+      total: TEST_AMOUNTS.TEN_DOT.clone(),
       proxy: {
-        deposit: new BN('20000000000'),
+        deposit: TEST_AMOUNTS.TEN_DOT.clone().divn(5), // 2 DOT
       },
       identity: {
-        deposit: new BN('30000000000'),
+        deposit: TEST_AMOUNTS.TEN_DOT.clone().muln(3).divn(10), // 3 DOT
       },
       index: {
-        deposit: new BN('10000000000'),
+        deposit: TEST_AMOUNTS.ONE_DOT.clone(),
       },
       multisig: {
-        total: new BN('40000000000'),
+        total: TEST_AMOUNTS.TEN_DOT.clone().muln(4).divn(10), // 4 DOT
         deposits: [
           {
             callHash: '0x1234567890abcdef',
-            deposit: new BN('40000000000'),
+            deposit: TEST_AMOUNTS.TEN_DOT.clone().muln(4).divn(10), // 4 DOT
           },
         ],
       },
@@ -254,8 +255,8 @@ describe('NativeBalanceVisualization component', () => {
     it('should handle zero staking balance', () => {
       const mockData = createMockNative({
         staking: {
-          total: new BN('0'),
-          active: new BN('0'),
+          total: TEST_AMOUNTS.ZERO,
+          active: TEST_AMOUNTS.ZERO,
           unlocking: [],
         },
       })
@@ -333,11 +334,11 @@ describe('NativeBalanceVisualization component', () => {
     it('should handle zero reserved deposits', () => {
       const mockData = createMockNative({
         reserved: {
-          total: new BN('0'),
-          proxy: { deposit: new BN('0') },
-          identity: { deposit: new BN('0') },
-          index: { deposit: new BN('0') },
-          multisig: { total: new BN('0'), deposits: [] },
+          total: TEST_AMOUNTS.ZERO,
+          proxy: { deposit: TEST_AMOUNTS.ZERO },
+          identity: { deposit: TEST_AMOUNTS.ZERO },
+          index: { deposit: TEST_AMOUNTS.ZERO },
+          multisig: { total: TEST_AMOUNTS.ZERO, deposits: [] },
         },
       })
       render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
@@ -375,15 +376,15 @@ describe('NativeBalanceVisualization component', () => {
     it.skip('should handle zero total balance', () => {
       // Skipping due to division by zero in percentage calculation
       const mockData = createMockNative({
-        total: new BN('0'),
-        transferable: new BN('0'),
-        staking: { total: new BN('0'), active: new BN('0'), unlocking: [] },
+        total: TEST_AMOUNTS.ZERO,
+        transferable: TEST_AMOUNTS.ZERO,
+        staking: { total: TEST_AMOUNTS.ZERO, active: TEST_AMOUNTS.ZERO, unlocking: [] },
         reserved: {
-          total: new BN('0'),
-          proxy: { deposit: new BN('0') },
-          identity: { deposit: new BN('0') },
-          index: { deposit: new BN('0') },
-          multisig: { total: new BN('0'), deposits: [] },
+          total: TEST_AMOUNTS.ZERO,
+          proxy: { deposit: TEST_AMOUNTS.ZERO },
+          identity: { deposit: TEST_AMOUNTS.ZERO },
+          index: { deposit: TEST_AMOUNTS.ZERO },
+          multisig: { total: TEST_AMOUNTS.ZERO, deposits: [] },
         },
       })
       render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
@@ -408,15 +409,15 @@ describe('NativeBalanceVisualization component', () => {
     it('should handle multiple multisig deposits', () => {
       const mockData = createMockNative({
         reserved: {
-          total: new BN('80000000000'),
-          proxy: { deposit: new BN('0') },
-          identity: { deposit: new BN('0') },
-          index: { deposit: new BN('0') },
+          total: TEST_AMOUNTS.TEN_DOT.clone().muln(8).divn(10), // 8 DOT
+          proxy: { deposit: TEST_AMOUNTS.ZERO.clone() },
+          identity: { deposit: TEST_AMOUNTS.ZERO.clone() },
+          index: { deposit: TEST_AMOUNTS.ZERO.clone() },
           multisig: {
-            total: new BN('80000000000'),
+            total: TEST_AMOUNTS.TEN_DOT.clone().muln(8).divn(10), // 8 DOT
             deposits: [
-              { callHash: '0x1111111111111111', deposit: new BN('40000000000') },
-              { callHash: '0x2222222222222222', deposit: new BN('40000000000') },
+              { callHash: '0x1111111111111111', deposit: TEST_AMOUNTS.TEN_DOT.clone().muln(4).divn(10) }, // 4 DOT
+              { callHash: '0x2222222222222222', deposit: TEST_AMOUNTS.TEN_DOT.clone().muln(4).divn(10) }, // 4 DOT
             ],
           },
         },
@@ -432,8 +433,8 @@ describe('NativeBalanceVisualization component', () => {
     it('should handle no unlocking funds', () => {
       const mockData = createMockNative({
         staking: {
-          total: new BN('200000000000'),
-          active: new BN('200000000000'),
+          total: TEST_AMOUNTS.HUNDRED_DOT.clone().divn(5), // 20 DOT
+          active: TEST_AMOUNTS.HUNDRED_DOT.clone().divn(5), // 20 DOT
           unlocking: [],
         },
       })

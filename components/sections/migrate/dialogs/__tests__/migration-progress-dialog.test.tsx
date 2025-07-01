@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { MigratingItem } from '@/state/types/ledger'
 import { TransactionStatus } from '@/state/types/ledger'
 import type { AppId } from '@/config/apps'
+import { TEST_ADDRESSES, TEST_PATHS, TEST_PUBKEYS } from '@/tests/fixtures/addresses'
 
 import { MigrationProgressDialog } from '../migration-progress-dialog'
 
@@ -91,9 +92,9 @@ describe('MigrationProgressDialog', () => {
     appId: 'polkadot' as AppId,
     appName: 'Polkadot',
     account: {
-      address: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
-      path: "m/44'/354'/0'/0'/0'",
-      pubKey: '0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d',
+      address: TEST_ADDRESSES.ALICE,
+      path: TEST_PATHS.DEFAULT,
+      pubKey: TEST_PUBKEYS[TEST_ADDRESSES.ALICE],
       selected: false,
     },
     balance: {
@@ -177,7 +178,7 @@ describe('MigrationProgressDialog', () => {
 
       const explorerLink = screen.getByTestId('explorer-link')
       expect(explorerLink).toBeInTheDocument()
-      expect(explorerLink).toHaveAttribute('data-value', '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY')
+      expect(explorerLink).toHaveAttribute('data-value', TEST_ADDRESSES.ALICE)
       expect(explorerLink).toHaveAttribute('data-app-id', 'polkadot')
       expect(explorerLink).toHaveAttribute('data-explorer-type', 'address')
       expect(explorerLink).toHaveAttribute('data-disable-tooltip', 'true')
