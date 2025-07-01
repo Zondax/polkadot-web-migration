@@ -49,7 +49,7 @@ export async function validateCallData(appId: AppId, callDataValue: string, call
     }
 
     return { isValid: true }
-  } catch (error) {
+  } catch (_error) {
     return {
       isValid: false,
       error: callDataValidationMessages.failed,

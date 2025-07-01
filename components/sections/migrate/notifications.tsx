@@ -1,15 +1,13 @@
 'use client'
 
 import { observer } from '@legendapp/state/react'
-import { notifications$ } from 'state/notifications'
-import { uiState$ } from 'state/ui'
-
-import { muifyHtml } from '@/lib/utils/html'
-
-import { Button } from '@/components/ui/button'
-import { Toaster } from '@/components/ui/sonner'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
+import { notifications$ } from 'state/notifications'
+import { uiState$ } from 'state/ui'
+import { Button } from '@/components/ui/button'
+import { Toaster } from '@/components/ui/sonner'
+import { muifyHtml } from '@/lib/utils/html'
 
 // Custom toast notification component
 const NotificationToast = ({
@@ -18,7 +16,13 @@ const NotificationToast = ({
   time,
   appIcon,
   onDismiss,
-}: { title: string; description: string; time: string; appIcon?: React.ReactNode; onDismiss: () => void }) => {
+}: {
+  title: string
+  description: string
+  time: string
+  appIcon?: React.ReactNode
+  onDismiss: () => void
+}) => {
   return (
     <div className="w-full">
       <div className="flex justify-between items-start">
@@ -48,7 +52,7 @@ function Notifications() {
   // Effect to show toast when a new notification appears
   useEffect(() => {
     if (lastNotification) {
-      const { title, description, appId, id } = lastNotification
+      const { title, description, appId } = lastNotification
       const appIcon = appId ? uiState$.icons.get()[appId] : null
       const currentTime = new Date().toLocaleTimeString([], {
         hour: '2-digit',

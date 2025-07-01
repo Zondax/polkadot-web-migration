@@ -1,7 +1,6 @@
+import { BN } from '@polkadot/util'
 import { TransactionStatus } from 'state/types/ledger'
 import { describe, expect, it, vi } from 'vitest'
-
-import { BN } from '@polkadot/util'
 import { getTransactionStatus, validateNumberInput } from '../../utils/ui'
 import { mockApp1 } from './__mocks__/mockData'
 

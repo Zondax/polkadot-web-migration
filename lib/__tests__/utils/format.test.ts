@@ -1,8 +1,6 @@
-import { describe, expect, it } from 'vitest'
-
-import type { Token } from '@/config/apps'
-
 import { BN } from '@polkadot/util'
+import { describe, expect, it } from 'vitest'
+import type { Token } from '@/config/apps'
 import { convertToRawUnits, formatBalance, formatVersion, truncateMiddleOfString } from '../../utils/format'
 
 describe('truncateMiddleOfString', () => {

@@ -1,21 +1,19 @@
 'use client'
 
+import type { CheckedState } from '@radix-ui/react-checkbox'
 import { FolderSync, Info, Loader2, RefreshCw, User, Users, X } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { AppStatus } from 'state/ledger'
-
 import { CustomTooltip } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { useMigration } from '@/components/hooks/useMigration'
+import { useSynchronization } from '@/components/hooks/useSynchronization'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Progress } from '@/components/ui/progress'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-
-import { useSynchronization } from '@/components/hooks/useSynchronization'
 import { polkadotAppConfig } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
-import type { CheckedState } from '@radix-ui/react-checkbox'
 import AppScanningGrid from './app-scanning-grid'
 import EmptyStateRow from './empty-state-row'
 import SynchronizedApp from './synchronized-app'

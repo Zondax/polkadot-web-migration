@@ -1,12 +1,11 @@
 import { truncateMaxCharacters } from 'config/config'
 import Link from 'next/link'
-
+import { useMemo } from 'react'
 import { CustomTooltip } from '@/components/CustomTooltip'
 import type { AppId } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { cn, truncateMiddleOfString } from '@/lib/utils'
 import { getAddressExplorerUrl, getBlockExplorerUrl, getTransactionExplorerUrl } from '@/lib/utils/explorers'
-import { useMemo } from 'react'
 import { CopyButton } from './CopyButton'
 import type { ButtonSize } from './ui/button'
 
@@ -73,8 +72,6 @@ export function ExplorerLink({
   disableLink = false,
   size = 'sm',
 }: ExplorerLinkProps) {
-  if (!value) return null
-
   const explorerUrl = useMemo(() => {
     if (appId && explorerLinkType && !disableLink) {
       switch (explorerLinkType) {
@@ -91,6 +88,9 @@ export function ExplorerLink({
   }, [appId, explorerLinkType, value, disableLink])
 
   const shortAddress = useMemo(() => (truncate ? truncateMiddleOfString(value, truncateMaxCharacters) : value), [value, truncate])
+
+  if (!value) return null
+
   const displayText = children || shortAddress
 
   const content = explorerUrl ? (

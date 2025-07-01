@@ -1,3 +1,9 @@
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Info } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Controller, useForm } from 'react-hook-form'
+import type { MultisigAddress, MultisigCall, MultisigMember, TransactionDetails, TransactionStatus } from 'state/types/ledger'
+import { z } from 'zod'
 import { CustomTooltip } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
@@ -7,17 +13,11 @@ import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, Dia
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import Switch from '@/components/ui/switch'
-import { type AppId, type Token, getChainName } from '@/config/apps'
+import { type AppId, getChainName, type Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { formatBalance } from '@/lib/utils/format'
 import { callDataValidationMessages, getAvailableSigners, validateCallData } from '@/lib/utils/multisig'
 import { ledgerState$ } from '@/state/ledger'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Info } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
-import type { MultisigAddress, MultisigCall, MultisigMember, TransactionDetails, TransactionStatus } from 'state/types/ledger'
-import { z } from 'zod'
 import { DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
@@ -66,8 +66,8 @@ function MultisigCallForm({
   isCallDataRequired: boolean
   isValidatingCallData: boolean
 }) {
-  const icon = useTokenLogo(token.logoId)
-  const appName = getChainName(appId)
+  const _icon = useTokenLogo(token.logoId)
+  const _appName = getChainName(appId)
 
   const {
     control,
@@ -291,9 +291,8 @@ function MultisigCallForm({
   )
 }
 
-export default function ApproveMultisigCallDialog({ open, setOpen, token, appId, account }: ApproveMultisigCallDialogProps) {
+function ApproveMultisigCallDialogInner({ open, setOpen, token, appId, account }: ApproveMultisigCallDialogProps) {
   const pendingCalls = account.pendingMultisigCalls ?? []
-  if (pendingCalls.length === 0) return null
 
   // Initialize form with React Hook Form + Zod
   const form = useForm<MultisigCallFormData>({
@@ -347,7 +346,7 @@ export default function ApproveMultisigCallDialog({ open, setOpen, token, appId,
         } else {
           form.clearErrors('callData')
         }
-      } catch (error) {
+      } catch (_error) {
         form.setError('callData', {
           type: 'custom',
           message: callDataValidationMessages.failed,
@@ -378,7 +377,7 @@ export default function ApproveMultisigCallDialog({ open, setOpen, token, appId,
     useTransactionStatus(approveMultisigCallTxFn)
 
   // Handle form submission
-  const onSubmit = async (data: MultisigCallFormData) => {
+  const onSubmit = async (_data: MultisigCallFormData) => {
     await runTransaction(appId, account.address, account.path)
   }
 
@@ -439,4 +438,11 @@ export default function ApproveMultisigCallDialog({ open, setOpen, token, appId,
       </DialogContent>
     </Dialog>
   )
+}
+
+export default function ApproveMultisigCallDialog(props: ApproveMultisigCallDialogProps) {
+  const pendingCalls = props.account.pendingMultisigCalls ?? []
+  if (pendingCalls.length === 0) return null
+
+  return <ApproveMultisigCallDialogInner {...props} />
 }

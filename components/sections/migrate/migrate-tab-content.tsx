@@ -4,8 +4,6 @@ import { ShieldCheck } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
-import { CustomTooltip } from '@/components/CustomTooltip'
-import { ExplorerLink } from '@/components/ExplorerLink'
 import { useMigration } from '@/components/hooks/useMigration'
 import { Button } from '@/components/ui/button'
 import { hasBalance } from '@/lib/utils'

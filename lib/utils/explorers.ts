@@ -1,5 +1,5 @@
 import { type AppId, getAppConfig } from '@/config/apps'
-import { ExplorerItemType, buildExplorerUrl } from '@/config/explorers'
+import { buildExplorerUrl, ExplorerItemType } from '@/config/explorers'
 
 /**
  * Get the explorer URL for a transaction

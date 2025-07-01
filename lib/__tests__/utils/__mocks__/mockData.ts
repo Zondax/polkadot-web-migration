@@ -1,11 +1,11 @@
-import type { AppConfig } from '@/config/apps'
-import { appsConfigs } from '@/config/apps'
 import type { SubmittableExtrinsic } from '@polkadot/api/types'
 import type { ISubmittableResult } from '@polkadot/types/types'
 import { BN } from '@polkadot/util'
 import { type App, AppStatus } from 'state/ledger'
 import { type Address, BalanceType, type Collection, type MultisigAddress, type Native, type Nft, type Staking } from 'state/types/ledger'
 import { vi } from 'vitest'
+import type { AppConfig } from '@/config/apps'
+import { appsConfigs } from '@/config/apps'
 
 // =========== Common Test Addresses ===========
 export const TEST_ADDRESSES = {

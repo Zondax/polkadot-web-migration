@@ -1,7 +1,7 @@
 import type { ApiPromise } from '@polkadot/api'
 import type { u32 } from '@polkadot/types'
-import type { Option } from '@polkadot/types-codec'
 import type { AccountId32, StakingLedger } from '@polkadot/types/interfaces'
+import type { Option } from '@polkadot/types-codec'
 import { BN } from '@polkadot/util'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getStakingInfo } from '../account'

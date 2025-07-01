@@ -6,8 +6,8 @@ import { type App, AppStatus } from 'state/ledger'
 import { uiState$ } from 'state/ui'
 
 import { CustomTooltip } from '@/components/CustomTooltip'
-import TokenIcon from '@/components/TokenIcon'
 import { useSynchronization } from '@/components/hooks/useSynchronization'
+import TokenIcon from '@/components/TokenIcon'
 import { Badge } from '@/components/ui/badge'
 import { type AppConfig, appsConfigs, getChainName } from '@/config/apps'
 import { cn, getAppTotalAccounts, hasAppAccounts } from '@/lib/utils'
@@ -25,7 +25,7 @@ const AppScanItem = ({ app }: AppScanItemProps) => {
   const totalAccounts = getAppTotalAccounts(app)
 
   let displayBadge = true
-  let statusIcon: React.ReactNode = undefined
+  let statusIcon: React.ReactNode
   let statusClass = 'border-gray-200 bg-white'
   let statusText = 'Waiting'
 

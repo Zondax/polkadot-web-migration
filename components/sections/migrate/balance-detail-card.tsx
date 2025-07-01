@@ -1,7 +1,6 @@
 import { BalanceType, type Collection, type Native } from 'state/types/ledger'
-
-import TokenIcon from '@/components/TokenIcon'
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
+import TokenIcon from '@/components/TokenIcon'
 import { Badge, type BadgeProps } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { Token } from '@/config/apps'
@@ -25,6 +24,7 @@ const NftDetailCard = ({ balance, collection, isUnique }: NftDetailCardProps) =>
     <Card className="flex flex-row items-center p-3">
       <div className="h-12 w-12 rounded-full overflow-hidden mr-3 shrink-0">
         {imageUrl ? (
+          // biome-ignore lint/performance/noImgElement: NFT images are external URLs
           <img
             src={imageUrl}
             alt={`${collection?.name || collection.collectionId}`}

@@ -1,4 +1,6 @@
 import { observer } from '@legendapp/state/react'
+import { BN } from '@polkadot/util'
+import type { CheckedState } from '@radix-ui/react-checkbox'
 import {
   AlertCircle,
   Banknote,
@@ -19,25 +21,21 @@ import {
 import { useCallback, useState } from 'react'
 import type { Collections } from 'state/ledger'
 import type { Address, AddressBalance, MultisigAddress, MultisigMember } from 'state/types/ledger'
-
 import { CustomTooltip, TooltipBody, type TooltipItem } from '@/components/CustomTooltip'
-import { useMigration } from '@/components/hooks/useMigration'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { TableCell, TableRow } from '@/components/ui/table'
-import type { AppId, Token } from '@/config/apps'
-import { formatBalance, isMultisigAddress as isMultisigAddressFunction } from '@/lib/utils'
-import { canUnstake, hasStakedBalance, isNativeBalance } from '@/lib/utils/balance'
-
 import { ExplorerLink } from '@/components/ExplorerLink'
+import { useMigration } from '@/components/hooks/useMigration'
 import type { UpdateTransaction } from '@/components/hooks/useSynchronization'
 import { Spinner } from '@/components/icons'
 import { Badge } from '@/components/ui/badge'
 import { Button, type ButtonProps } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { TableCell, TableRow } from '@/components/ui/table'
+import type { AppId, Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
+import { formatBalance, isMultisigAddress as isMultisigAddressFunction } from '@/lib/utils'
+import { canUnstake, hasStakedBalance, isNativeBalance } from '@/lib/utils/balance'
 import { getIdentityItems } from '@/lib/utils/ui'
-import { BN } from '@polkadot/util'
-import type { CheckedState } from '@radix-ui/react-checkbox'
 import { BalanceHoverCard, NativeBalanceHoverCard } from './balance-hover-card'
 import { BalanceType } from './balance-visualizations'
 import DestinationAddressSelect from './destination-address-select'
@@ -104,11 +102,6 @@ const SynchronizedAccountRow = ({
   const signatoryAddress: string = balance?.transaction?.signatoryAddress ?? ''
   const isProxied: boolean = (account.proxy?.proxies.length ?? 0) > 0
 
-  if (isMultisigAddress && internalMultisigMembers.length === 0) {
-    // it shouldn't happen, but if it does, we don't want to render the row
-    return null
-  }
-
   const actions: Action[] = []
   if (hasStaked) {
     actions.push({
@@ -171,6 +164,11 @@ const SynchronizedAccountRow = ({
     },
     [toggleAccountSelection, appId, account.address]
   )
+
+  if (isMultisigAddress && internalMultisigMembers.length === 0) {
+    // it shouldn't happen, but if it does, we don't want to render the row
+    return null
+  }
 
   if (isProxied) {
     actions.push({

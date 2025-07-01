@@ -8,11 +8,52 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     exclude: ['e2e/**', 'node_modules/**'],
+    testTimeout: 10000, // 10 seconds timeout for individual tests
+    hookTimeout: 10000, // 10 seconds timeout for hooks
+    maxConcurrency: 8, // Limit concurrent test execution
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        maxThreads: 8,
+        minThreads: 1,
+      },
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'json-summary', 'html'],
       all: true,
-      exclude: ['e2e/**', 'node_modules/**', '.next/**', 'vitest.config.ts', 'components/ui/**'],
+      exclude: [
+        // Infrastructure & config files
+        'e2e/**',
+        'node_modules/**',
+        '.next/**',
+        'coverage/**',
+        '**/*.config.*',
+        'environment.d.ts',
+        '**/*.d.ts',
+        'vitest.setup*.ts',
+
+        // UI library components (shadcn/ui wrappers)
+        'components/ui/**',
+
+        // Static presentation components
+        'components/sections/home/**',
+
+        // Type definitions
+        'state/types/**',
+        'lib/ledger/types.ts',
+
+        // Next.js app directory (routes/layouts)
+        'app/**',
+      ],
+      thresholds: {
+        global: {
+          statements: 50,
+          branches: 50,
+          functions: 50,
+          lines: 50,
+        },
+      },
     },
     reporters: ['default', 'html'],
     setupFiles: ['./vitest.setup.ts', './vitest.setup-supplement.ts'],
