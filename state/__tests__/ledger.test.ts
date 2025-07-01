@@ -4,7 +4,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mockAddress1 } from '@/lib/__tests__/utils/__mocks__/mockData'
 import { InternalErrorType } from 'config/errors'
 import { AppStatus, ledgerState$ } from '../ledger'
-import { AccountType } from '../types/ledger'
+import { AccountType, AddressStatus, BalanceType } from '../types/ledger'
+import { InternalErrorType } from '@/config/errors'
+import { InternalError } from '@/lib/utils/error'
 
 // Mock dependencies
 vi.mock('../client/ledger', () => ({
@@ -583,13 +585,7 @@ describe('Ledger State', () => {
 
     describe('Error handling', () => {
       it('should handle synchronization errors correctly', () => {
-        const mockError = {
-          errorType: InternalErrorType.SYNC_ERROR,
-          description: 'Test sync error',
-          title: 'Sync Error',
-          name: 'SyncError',
-          message: 'Test sync error',
-        }
+        const mockError = new InternalError(InternalErrorType.SYNC_ERROR)
 
         const shouldStop = ledgerState$.handleError(mockError)
 
@@ -598,13 +594,7 @@ describe('Ledger State', () => {
       })
 
       it('should handle migration errors correctly', () => {
-        const mockError = {
-          errorType: InternalErrorType.MIGRATION_ERROR,
-          description: 'Test migration error',
-          title: 'Migration Error',
-          name: 'MigrationError',
-          message: 'Test migration error',
-        }
+        const mockError = new InternalError(InternalErrorType.MIGRATION_ERROR)
 
         const shouldStop = ledgerState$.handleError(mockError)
 
@@ -612,13 +602,7 @@ describe('Ledger State', () => {
       })
 
       it('should handle connection errors correctly', () => {
-        const mockError = {
-          errorType: InternalErrorType.CONNECTION_ERROR,
-          description: 'Test connection error',
-          title: 'Connection Error',
-          name: 'ConnectionError',
-          message: 'Test connection error',
-        }
+        const mockError: InternalError = new InternalError(InternalErrorType.CONNECTION_ERROR)
 
         const shouldStop = ledgerState$.handleError(mockError)
 

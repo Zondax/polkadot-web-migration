@@ -50,7 +50,7 @@ describe('LedgerService', () => {
 
   describe('openApp', () => {
     it('should throw error when transport is not available', async () => {
-      await expect(ledgerService.openApp(null as any, 'Polkadot Migration')).rejects.toThrow('Transport not available')
+      await expect(ledgerService.openApp('Polkadot Migration')).rejects.toThrow('Transport not available')
     })
 
     it('should successfully open app when transport is available', async () => {
@@ -58,7 +58,7 @@ describe('LedgerService', () => {
       vi.mocked(openApp).mockResolvedValueOnce(undefined)
       vi.mocked(mockGenericApp.getVersion).mockResolvedValueOnce('1.0.0')
 
-      const result = await ledgerService.openApp(mockTransport, 'Polkadot Migration')
+      const result = await ledgerService.openApp('Polkadot Migration')
 
       expect(openApp).toHaveBeenCalledWith(mockTransport, 'Polkadot Migration')
       expect(PolkadotGenericApp).toHaveBeenCalledWith(mockTransport)
@@ -69,14 +69,12 @@ describe('LedgerService', () => {
       })
     })
 
-    it('should return false for isAppOpen when app version check fails', async () => {
+    it('should throw an error when app version check fails', async () => {
       const { openApp } = await import('../openApp')
       vi.mocked(openApp).mockResolvedValueOnce(undefined)
       vi.mocked(mockGenericApp.getVersion).mockRejectedValueOnce(new Error('App not open'))
 
-      const result = await ledgerService.openApp(mockTransport, 'Polkadot Migration')
-
-      expect(result.connection?.isAppOpen).toBe(false)
+      await expect(ledgerService.openApp('Polkadot Migration')).rejects.toThrow('App not open')
     })
   })
 
@@ -437,11 +435,11 @@ describe('LedgerService', () => {
     it('should handle ResponseError correctly', async () => {
       const _responseError = new ResponseError(LedgerError.AppDoesNotSeemToBeOpen, 'Test error')
 
-      await expect(ledgerService.openApp(null as any, 'Polkadot Migration')).rejects.toThrow(ResponseError)
+      await expect(ledgerService.openApp('Polkadot Migration')).rejects.toThrow(ResponseError)
     })
 
     it('should handle LedgerError correctly', async () => {
-      vi.mocked(mockGenericApp.getAddress).mockRejectedValueOnce(new ResponseError(LedgerError.UserRejected, 'User rejected'))
+      vi.mocked(mockGenericApp.getAddress).mockRejectedValueOnce(new ResponseError(LedgerError.UserRefusedOnDevice, 'User rejected'))
 
       // Set up connection first
       const TransportWebUSB = await import('@ledgerhq/hw-transport-webhid')

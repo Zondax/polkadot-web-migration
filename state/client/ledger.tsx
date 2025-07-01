@@ -44,6 +44,20 @@ export const ledgerClient = {
     })
   },
 
+  async checkConnection() {
+    return withErrorHandling(async () => await ledgerService.checkConnection(), {
+      errorCode: InternalErrorType.CONNECTION_ERROR,
+      operation: 'checkConnection',
+    })
+  },
+
+  async openApp() {
+    return withErrorHandling(async () => await ledgerService.openApp('Polkadot Migration'), {
+      errorCode: InternalErrorType.CONNECTION_ERROR,
+      operation: 'openApp',
+    })
+  },
+
   async synchronizeAccounts(app: AppConfig): Promise<{ result?: Address[] }> {
     return withErrorHandling(
       async () => {
@@ -774,5 +788,9 @@ export const ledgerClient = {
 
   disconnect() {
     ledgerService.disconnect()
+  },
+
+  abortPendingCalls() {
+    ledgerService.abortPendingCalls()
   },
 }

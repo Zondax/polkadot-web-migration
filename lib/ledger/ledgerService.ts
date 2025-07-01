@@ -1,6 +1,6 @@
 import type Transport from '@ledgerhq/hw-transport'
 import TransportWebUSB from '@ledgerhq/hw-transport-webhid'
-import { LedgerError, ResponseError } from '@zondax/ledger-js'
+import { LedgerError, processErrorResponse, ResponseError } from '@zondax/ledger-js'
 import { PolkadotGenericApp } from '@zondax/ledger-substrate'
 import type { GenericeResponseAddress } from '@zondax/ledger-substrate/dist/common'
 import type { ConnectionResponse, DeviceConnectionProps } from '@/lib/ledger/types'
@@ -10,7 +10,7 @@ import { openApp } from './openApp'
  * Interface for the Ledger service that manages device interaction
  */
 export interface ILedgerService {
-  openApp(transport: Transport, appName: string): Promise<{ connection?: DeviceConnectionProps }>
+  openApp(appName: string): Promise<{ connection?: DeviceConnectionProps }>
   initializeTransport(): Promise<Transport>
   isAppOpen(genericApp: PolkadotGenericApp): Promise<boolean>
   establishDeviceConnection(): Promise<DeviceConnectionProps | undefined>
@@ -24,6 +24,8 @@ export interface ILedgerService {
   ): Promise<{ signature?: Buffer<ArrayBufferLike> }>
   clearConnection(): void
   disconnect(): void
+  isConnected(): boolean
+  abortPendingCalls(): void
 }
 
 /**
@@ -37,6 +39,8 @@ export class LedgerService implements ILedgerService {
     isAppOpen: false,
   }
 
+  private pendingCalls: Array<(reason?: any) => void> = []
+
   // Handles transport disconnection
   private handleDisconnect = () => {
     this.deviceConnection = {
@@ -44,53 +48,70 @@ export class LedgerService implements ILedgerService {
       genericApp: undefined,
       isAppOpen: false,
     }
+
+    for (const reject of this.pendingCalls) {
+      reject()
+    }
+    this.pendingCalls = []
     console.debug('[ledgerService] disconnecting')
+  }
+
+  /**
+   * Aborts all pending calls to the Ledger device
+   */
+  abortPendingCalls(): void {
+    console.debug('[ledgerService] Aborting all pending calls')
+    for (const reject of this.pendingCalls) {
+      reject()
+    }
+    this.pendingCalls = []
   }
 
   /**
    * Opens the Polkadot Migration app on the connected Ledger device
    */
-  async openApp(transport: Transport, appName: string): Promise<{ connection?: DeviceConnectionProps }> {
-    if (!transport) {
+  async openApp(appName: string): Promise<{ connection?: DeviceConnectionProps }> {
+    if (!this.deviceConnection.transport) {
       console.debug('[ledgerService] Transport not available')
       throw new ResponseError(LedgerError.UnknownTransportError, 'Transport not available')
     }
     console.debug(`[ledgerService] Opening ${appName} app`)
-    await openApp(transport, appName)
-    const genericApp = new PolkadotGenericApp(transport)
+    await openApp(this.deviceConnection.transport, appName)
+    const genericApp = new PolkadotGenericApp(this.deviceConnection.transport)
     const isAppOpen = await this.isAppOpen(genericApp)
-    return { connection: { transport, genericApp, isAppOpen } }
+    return { connection: { transport: this.deviceConnection.transport, genericApp, isAppOpen } }
   }
 
   /**
    * Initializes the Ledger transport
    */
   async initializeTransport(onDisconnect?: () => void): Promise<Transport> {
-    console.debug('[ledgerService] Initializing transport')
-    const transport = await TransportWebUSB.create()
-    this.deviceConnection.transport = transport
+    try {
+      console.debug('[ledgerService] Initializing transport')
+      const transport = await TransportWebUSB.create()
+      this.deviceConnection.transport = transport
 
-    const handleDisconnect = () => {
-      this.handleDisconnect()
-      onDisconnect?.()
+      const handleDisconnect = () => {
+        this.handleDisconnect()
+        onDisconnect?.()
+      }
+
+      transport?.on('disconnect', handleDisconnect)
+      return transport
+    } catch (e) {
+      const error = processErrorResponse(e)
+      throw error // Propagate
     }
-
-    transport?.on('disconnect', handleDisconnect)
-    return transport
   }
 
   /**
    * Checks if the app is open on the Ledger device
    */
   async isAppOpen(genericApp: PolkadotGenericApp): Promise<boolean> {
-    try {
-      console.debug('[ledgerService] Checking if app is open')
-      const version = await genericApp.getVersion()
-      return Boolean(version)
-    } catch (error) {
-      console.debug('[ledgerService] App not open:', error)
-      return false
-    }
+    console.debug('[ledgerService] Checking if app is open')
+    const version = await genericApp.getVersion()
+    console.debug('[ledgerService] App version:', version)
+    return Boolean(version)
   }
 
   /**
@@ -100,15 +121,30 @@ export class LedgerService implements ILedgerService {
     console.debug('[ledgerService] Establishing device connection')
     const transport = this.deviceConnection.transport || (await this.initializeTransport(onDisconnect))
     const genericApp = this.deviceConnection.genericApp || new PolkadotGenericApp(transport)
-    const isOpen = await this.isAppOpen(genericApp)
 
-    if (!isOpen) {
-      console.debug('[ledgerService] App not open, attempting to open')
-      this.openApp(transport, 'Polkadot Migration')
-      return { transport, genericApp, isAppOpen: false }
+    // Safely check if app is open, with fallback to false if there's an error
+    let isAppOpen = false
+    try {
+      isAppOpen = await this.isAppOpen(genericApp)
+
+      // If app is not open, try to open it automatically
+      if (!isAppOpen && transport) {
+        console.debug('[ledgerService] App not open, attempting to open automatically')
+        try {
+          openApp(transport, 'Polkadot Migration')
+          // Check again if app is open after attempting to open it
+          isAppOpen = await this.isAppOpen(genericApp)
+        } catch (openAppError) {
+          console.debug('[ledgerService] Failed to automatically open app:', openAppError)
+          // Continue with isAppOpen as false
+        }
+      }
+    } catch (error) {
+      console.debug('[ledgerService] Error checking if app is open during connection:', error)
+      // Continue with isAppOpen as false
     }
 
-    const connection = { transport, genericApp, isAppOpen: true }
+    const connection = { transport, genericApp, isAppOpen }
     this.deviceConnection = connection
     return connection
   }
@@ -132,15 +168,34 @@ export class LedgerService implements ILedgerService {
    * Gets an account address from the Ledger device
    */
   async getAccountAddress(bip44Path: string, ss58prefix: number, showAddrInDevice: boolean): Promise<GenericeResponseAddress | undefined> {
+    if (!this.deviceConnection?.transport) {
+      throw new ResponseError(LedgerError.UnknownTransportError, 'Transport not available')
+    }
+
     if (!this.deviceConnection?.genericApp) {
       throw new ResponseError(LedgerError.AppDoesNotSeemToBeOpen, 'App not open')
     }
 
-    console.debug(`[ledgerService] Getting address for path: ${bip44Path}`)
     const genericApp = this.deviceConnection.genericApp as unknown as PolkadotGenericApp
-    const address = await genericApp.getAddress(bip44Path, ss58prefix, showAddrInDevice)
-    console.debug(`[ledgerService] Found address: ${address.address} for path: ${bip44Path}`)
-    return address
+
+    let rejectFn: (reason?: any) => void = () => {}
+    const abortablePromise = new Promise<GenericeResponseAddress>((resolve, reject) => {
+      rejectFn = reject
+      genericApp.getAddress(bip44Path, ss58prefix, showAddrInDevice).then(resolve).catch(reject)
+    })
+
+    // Store the reject function
+    this.pendingCalls.push(rejectFn)
+
+    try {
+      console.debug(`[ledgerService] Getting address for path: ${bip44Path}`)
+      const address = await abortablePromise
+      console.debug(`[ledgerService] Found address: ${address.address} for path: ${bip44Path}`)
+      return address
+    } finally {
+      // Remove the reject function after completion
+      this.pendingCalls = this.pendingCalls.filter(fn => fn !== rejectFn)
+    }
   }
 
   /**
@@ -186,6 +241,28 @@ export class LedgerService implements ILedgerService {
       this.deviceConnection.transport.close()
       this.deviceConnection.transport.emit('disconnect')
     }
+  }
+
+  /**
+   * Checks if there is an active connection to the Ledger device
+   */
+  isConnected(): boolean {
+    return Boolean(this.deviceConnection?.transport && this.deviceConnection?.genericApp)
+  }
+
+  /**
+   * Checks if the device is connected and the app is open
+   */
+  async checkConnection(): Promise<boolean> {
+    const isConnected = this.isConnected() // checks transport and genericApp objects
+    console.debug('[ledgerService] Checking transport and app objects:', isConnected)
+    if (!isConnected) {
+      return false
+    }
+
+    const genericApp = this.deviceConnection.genericApp as unknown as PolkadotGenericApp
+    const isAppOpen = await this.isAppOpen(genericApp)
+    return isConnected && isAppOpen
   }
 }
 
