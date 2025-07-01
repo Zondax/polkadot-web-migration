@@ -55,7 +55,7 @@ export default defineConfig({
         },
       },
     },
-    reporters: ['default', 'html'],
+    reporters: ['default'],
     setupFiles: ['./vitest.setup.ts', './vitest.setup-supplement.ts'],
   },
   resolve: {

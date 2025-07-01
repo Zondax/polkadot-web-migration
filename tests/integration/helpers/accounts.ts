@@ -76,7 +76,7 @@ export function mockGetBalanceComputing() {
 export function mockGetBalanceWithError() {
   const mod = require('@/lib/account')
 
-  vi.spyOn(mod, 'getBalance').mockImplementation(async (address, api, appId) => {
+  vi.spyOn(mod, 'getBalance').mockImplementation(async (_address, _api, _appId) => {
     return {
       balances: [],
       collections: {

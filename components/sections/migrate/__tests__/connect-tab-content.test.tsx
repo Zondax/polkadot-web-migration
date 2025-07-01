@@ -44,7 +44,7 @@ vi.mock('@/components/hooks/useConnection', () => ({
 // Mock Button component
 vi.mock('@/components/ui/button', () => ({
   Button: ({ children, onClick, className, size, ...props }: any) => (
-    <button className={className} onClick={onClick} data-size={size} data-testid="connect-button" {...props}>
+    <button className={className} onClick={onClick} data-size={size} data-testid="connect-ledger-button" {...props}>
       {children}
     </button>
   ),
@@ -105,7 +105,7 @@ describe('ConnectTabContent', () => {
     it('should render connect button', () => {
       render(<ConnectTabContent onContinue={mockOnContinue} />)
 
-      const connectButton = screen.getByTestId('connect-button')
+      const connectButton = screen.getByTestId('connect-ledger-button')
       expect(connectButton).toBeInTheDocument()
       expect(connectButton).toHaveTextContent('Connect')
       expect(connectButton).toHaveAttribute('data-size', 'lg')
@@ -212,7 +212,7 @@ describe('ConnectTabContent', () => {
     it('should call connectDevice when connect button is clicked', async () => {
       render(<ConnectTabContent onContinue={mockOnContinue} />)
 
-      const connectButton = screen.getByTestId('connect-button')
+      const connectButton = screen.getByTestId('connect-ledger-button')
       fireEvent.click(connectButton)
 
       await waitFor(() => {
@@ -225,7 +225,7 @@ describe('ConnectTabContent', () => {
 
       render(<ConnectTabContent onContinue={mockOnContinue} />)
 
-      const connectButton = screen.getByTestId('connect-button')
+      const connectButton = screen.getByTestId('connect-ledger-button')
       fireEvent.click(connectButton)
 
       await waitFor(() => {
@@ -239,7 +239,7 @@ describe('ConnectTabContent', () => {
 
       render(<ConnectTabContent onContinue={mockOnContinue} />)
 
-      const connectButton = screen.getByTestId('connect-button')
+      const connectButton = screen.getByTestId('connect-ledger-button')
       fireEvent.click(connectButton)
 
       await waitFor(() => {
@@ -257,7 +257,7 @@ describe('ConnectTabContent', () => {
 
       render(<ConnectTabContent onContinue={mockOnContinue} />)
 
-      const connectButton = screen.getByTestId('connect-button')
+      const connectButton = screen.getByTestId('connect-ledger-button')
       fireEvent.click(connectButton)
 
       await waitFor(() => {
@@ -290,7 +290,7 @@ describe('ConnectTabContent', () => {
     it('should render connect button with correct styling classes', () => {
       render(<ConnectTabContent onContinue={mockOnContinue} />)
 
-      const connectButton = screen.getByTestId('connect-button')
+      const connectButton = screen.getByTestId('connect-ledger-button')
       expect(connectButton).toHaveClass(
         'mt-2',
         'px-8',
@@ -328,7 +328,7 @@ describe('ConnectTabContent', () => {
 
       render(<ConnectTabContent onContinue={mockOnContinue} />)
 
-      const connectButton = screen.getByTestId('connect-button')
+      const connectButton = screen.getByTestId('connect-ledger-button')
 
       // Click button multiple times rapidly
       fireEvent.click(connectButton)
@@ -353,7 +353,7 @@ describe('ConnectTabContent', () => {
       expect(stepContainers[1]).toHaveClass('border-polkadot-green')
       expect(stepContainers[2]).toHaveClass('border-polkadot-green')
 
-      const connectButton = screen.getByTestId('connect-button')
+      const connectButton = screen.getByTestId('connect-ledger-button')
       fireEvent.click(connectButton)
 
       // Highlighting should persist during connection

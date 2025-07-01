@@ -1,5 +1,5 @@
 // Extend the expect interface with custom matchers
-import { beforeEach, expect, vi } from 'vitest'
+import { beforeEach, vi } from 'vitest'
 import '@testing-library/jest-dom/vitest'
 
 // Check if window exists before mocking browser APIs

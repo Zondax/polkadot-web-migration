@@ -95,23 +95,23 @@ export const mockApi = {
       }),
     },
     utility: {
-      batchAll: vi.fn().mockImplementation(calls => ({
+      batchAll: vi.fn().mockImplementation(_calls => ({
         paymentInfo: vi.fn().mockResolvedValue({ partialFee: new BN(20000000000) }),
         method: { toHex: () => '0xutility_batch', hash: { toHex: () => '0xbatchhash' } },
       })),
     },
     staking: {
-      unbond: vi.fn().mockImplementation(amount => ({
+      unbond: vi.fn().mockImplementation(_amount => ({
         paymentInfo: vi.fn().mockResolvedValue({ partialFee: new BN(15000000000) }),
         method: { toHex: () => '0xstaking_unbond', hash: { toHex: () => '0xunbondhash' } },
       })),
-      withdrawUnbonded: vi.fn().mockImplementation(numSlashingSpans => ({
+      withdrawUnbonded: vi.fn().mockImplementation(_numSlashingSpans => ({
         paymentInfo: vi.fn().mockResolvedValue({ partialFee: new BN(15000000000) }),
         method: { toHex: () => '0xstaking_withdraw', hash: { toHex: () => '0xwithdrawhash' } },
       })),
     },
     identity: {
-      killIdentity: vi.fn().mockImplementation(address => ({
+      killIdentity: vi.fn().mockImplementation(_address => ({
         paymentInfo: vi.fn().mockResolvedValue({ partialFee: new BN(15000000000) }),
         method: { toHex: () => '0xidentity_kill', hash: { toHex: () => '0xkillidentityhash' } },
       })),
@@ -123,23 +123,23 @@ export const mockApi = {
       }),
     },
     nfts: {
-      transfer: vi.fn().mockImplementation((collectionId, itemId, receiverAddress) => ({
+      transfer: vi.fn().mockImplementation((_collectionId, _itemId, _receiverAddress) => ({
         paymentInfo: vi.fn().mockResolvedValue({ partialFee: new BN(25000000000) }),
         method: { toHex: () => '0xnfts_transfer', hash: { toHex: () => '0xnftstransferhash' } },
       })),
     },
     uniques: {
-      transfer: vi.fn().mockImplementation((collectionId, itemId, receiverAddress) => ({
+      transfer: vi.fn().mockImplementation((_collectionId, _itemId, _receiverAddress) => ({
         paymentInfo: vi.fn().mockResolvedValue({ partialFee: new BN(25000000000) }),
         method: { toHex: () => '0xuniques_transfer', hash: { toHex: () => '0xuniquestransferhash' } },
       })),
     },
     multisig: {
-      approveAsMulti: vi.fn().mockImplementation((threshold, otherSignatories, maybeTimepoint, callHash, maxWeight) => ({
+      approveAsMulti: vi.fn().mockImplementation((_threshold, _otherSignatories, _maybeTimepoint, _callHash, _maxWeight) => ({
         paymentInfo: vi.fn().mockResolvedValue({ partialFee: new BN(30000000000) }),
         method: { toHex: () => '0xmultisig_approve', hash: { toHex: () => '0xapprovehash' } },
       })),
-      asMulti: vi.fn().mockImplementation((threshold, otherSignatories, timepoint, call, maxWeight) => ({
+      asMulti: vi.fn().mockImplementation((_threshold, _otherSignatories, _timepoint, _call, _maxWeight) => ({
         paymentInfo: vi.fn().mockResolvedValue({ partialFee: new BN(40000000000) }),
         method: { toHex: () => '0xmultisig_execute', hash: { toHex: () => '0xexecutehash' } },
       })),
@@ -185,7 +185,7 @@ export const mockApi = {
   },
 
   // State methods
-  at: vi.fn().mockImplementation(blockHash => ({
+  at: vi.fn().mockImplementation(_blockHash => ({
     query: {
       system: {
         events: vi.fn().mockResolvedValue([
@@ -219,7 +219,7 @@ export const mockApi = {
   isConnected: true,
 
   // For adding signatures to extrinsics
-  addSignature: vi.fn().mockImplementation((address, signature, payload) => ({
+  addSignature: vi.fn().mockImplementation((_address, _signature, _payload) => ({
     send: vi.fn().mockImplementation(callback => {
       // Simulate a successful transaction
       setTimeout(() => {
