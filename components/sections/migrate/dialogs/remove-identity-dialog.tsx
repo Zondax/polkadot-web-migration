@@ -6,10 +6,14 @@ import { ExplorerLink } from '@/components/ExplorerLink'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { AppId, Token } from '@/config/apps'
+import { errorDetails } from '@/config/errors'
 import { ExplorerItemType } from '@/config/explorers'
+import { cannotCoverFee } from '@/lib/utils/balance'
 import { formatBalance } from '@/lib/utils/format'
 import { ledgerState$ } from '@/state/ledger'
-import { DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
+import type { BN } from '@polkadot/util'
+import { useEffect } from 'react'
+import { DialogError, DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
 interface RemoveIdentityDialogProps {
@@ -18,6 +22,7 @@ interface RemoveIdentityDialogProps {
   setOpen: (open: boolean) => void
   token: Token
   account: Address
+  transferableBalance: BN
 }
 
 interface RemoveIdentityFormProps {
@@ -26,9 +31,10 @@ interface RemoveIdentityFormProps {
   appId: AppId
   estimatedFee?: BN
   estimatedFeeLoading: boolean
+  insufficientBalance: boolean
 }
 
-function RemoveIdentityForm({ token, account, appId, estimatedFee, estimatedFeeLoading }: RemoveIdentityFormProps) {
+function RemoveIdentityForm({ token, account, appId, estimatedFee, estimatedFeeLoading, insufficientBalance }: RemoveIdentityFormProps) {
   return (
     <>
       {/* Sending account */}
@@ -54,12 +60,13 @@ function RemoveIdentityForm({ token, account, appId, estimatedFee, estimatedFeeL
       <DialogField>
         <DialogLabel>Estimated Fee</DialogLabel>
         <DialogEstimatedFeeContent token={token} estimatedFee={estimatedFee} loading={estimatedFeeLoading} />
+        {!estimatedFeeLoading && insufficientBalance && <DialogError error={errorDetails.insufficient_balance.description} />}
       </DialogField>
     </>
   )
 }
 
-export default function RemoveIdentityDialog({ open, setOpen, token, account, appId }: RemoveIdentityDialogProps) {
+export default function RemoveIdentityDialog({ open, setOpen, token, account, appId, transferableBalance }: RemoveIdentityDialogProps) {
   // Wrap ledgerState$.removeIdentity to match the generic hook's expected signature
   const removeIdentityTxFn = async (
     updateTxStatus: (status: TransactionStatus, message?: string, txDetails?: TransactionDetails) => void,
@@ -104,6 +111,9 @@ export default function RemoveIdentityDialog({ open, setOpen, token, account, ap
     setOpen(false)
   }
 
+  const insufficientBalance = Boolean(estimatedFee && cannotCoverFee(transferableBalance, estimatedFee))
+  const isValidFee = !estimatedFeeLoading && !insufficientBalance
+
   return (
     <Dialog open={open} onOpenChange={closeDialog}>
       <DialogContent>
@@ -123,6 +133,7 @@ export default function RemoveIdentityDialog({ open, setOpen, token, account, ap
               appId={appId}
               estimatedFee={estimatedFee}
               estimatedFeeLoading={estimatedFeeLoading}
+              insufficientBalance={insufficientBalance}
             />
           )}
         </DialogBody>
@@ -135,7 +146,7 @@ export default function RemoveIdentityDialog({ open, setOpen, token, account, ap
             synchronizeAccount={synchronizeAccount}
             closeDialog={closeDialog}
             signTransfer={signWithdrawTx}
-            isSignDisabled={Boolean(txStatus)}
+            isSignDisabled={!isValidFee || Boolean(txStatus)}
           />
         </DialogFooter>
       </DialogContent>

@@ -45,6 +45,7 @@ export const useTransactionStatus = <T extends GenericFunction>(
       const fee = await feeTxFn(...args)
       setFeeLoading(false)
       setFee(fee)
+      return fee
     },
     [feeTxFn]
   )

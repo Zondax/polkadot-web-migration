@@ -192,8 +192,9 @@ const SynchronizedAccountRow = ({
     return statusIcon ? <CustomTooltip tooltipBody={tooltipContent}>{statusIcon}</CustomTooltip> : null
   }
 
+  const transferableBalance: BN = isNative && balance?.balance.transferable ? balance.balance.transferable : new BN(0)
+
   const renderTransferableBalance = () => {
-    const transferableBalance: BN = isNative ? (balance?.balance.transferable ? balance.balance.transferable : new BN(0)) : new BN(0)
     const balances: AddressBalance[] = balance ? [balance] : []
 
     return (
@@ -530,9 +531,31 @@ const SynchronizedAccountRow = ({
           </div>
         )}
       </TableCell>
-      <UnstakeDialog open={unstakeOpen} setOpen={setUnstakeOpen} maxUnstake={maxUnstake} token={token} account={account} appId={appId} />
-      <WithdrawDialog open={withdrawOpen} setOpen={setWithdrawOpen} token={token} account={account} appId={appId} />
-      <RemoveIdentityDialog open={removeIdentityOpen} setOpen={setRemoveIdentityOpen} token={token} account={account} appId={appId} />
+      <UnstakeDialog
+        open={unstakeOpen}
+        setOpen={setUnstakeOpen}
+        maxUnstake={maxUnstake}
+        transferableBalance={transferableBalance}
+        token={token}
+        account={account}
+        appId={appId}
+      />
+      <WithdrawDialog
+        open={withdrawOpen}
+        setOpen={setWithdrawOpen}
+        token={token}
+        account={account}
+        appId={appId}
+        transferableBalance={transferableBalance}
+      />
+      <RemoveIdentityDialog
+        open={removeIdentityOpen}
+        setOpen={setRemoveIdentityOpen}
+        token={token}
+        account={account}
+        appId={appId}
+        transferableBalance={transferableBalance}
+      />
       <ApproveMultisigCallDialog
         open={approveMultisigCallOpen}
         setOpen={setApproveMultisigCallOpen}
@@ -540,13 +563,21 @@ const SynchronizedAccountRow = ({
         account={account as MultisigAddress}
         appId={appId}
       />
-      <RemoveProxyDialog open={removeProxyOpen} setOpen={setRemoveProxyOpen} token={token} account={account} appId={appId} />
       <RemoveAccountIndexDialog
         open={removeAccountIndexOpen}
         setOpen={setRemoveAccountIndexOpen}
         token={token}
         account={account}
         appId={appId}
+        transferableBalance={transferableBalance}
+      />
+      <RemoveProxyDialog
+        open={removeProxyOpen}
+        setOpen={setRemoveProxyOpen}
+        token={token}
+        account={account}
+        appId={appId}
+        transferableBalance={transferableBalance}
       />
     </TableRow>
   )

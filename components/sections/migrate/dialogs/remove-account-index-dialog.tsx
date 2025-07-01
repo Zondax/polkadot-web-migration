@@ -5,10 +5,15 @@ import { ExplorerLink } from '@/components/ExplorerLink'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { AppId, Token } from '@/config/apps'
+import { errorDetails } from '@/config/errors'
 import { ExplorerItemType } from '@/config/explorers'
+import { cannotCoverFee } from '@/lib/utils/balance'
 import { formatBalance } from '@/lib/utils/format'
 import { ledgerState$ } from '@/state/ledger'
-import { DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
+import { BN } from '@polkadot/util'
+import { useMemo } from 'react'
+import type { Address, TransactionDetails, TransactionStatus } from 'state/types/ledger'
+import { DialogError, DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
 interface RemoveAccountIndexDialogProps {
@@ -17,6 +22,7 @@ interface RemoveAccountIndexDialogProps {
   account: Address
   appId: AppId
   token: Token
+  transferableBalance: BN
 }
 
 interface RemoveAccountIndexFormProps {
@@ -25,9 +31,17 @@ interface RemoveAccountIndexFormProps {
   token: Token
   estimatedFee: BN | undefined
   estimatedFeeLoading: boolean
+  insufficientBalance: boolean
 }
 
-function RemoveAccountIndexForm({ account, appId, token, estimatedFee, estimatedFeeLoading }: RemoveAccountIndexFormProps) {
+function RemoveAccountIndexForm({
+  account,
+  appId,
+  token,
+  estimatedFee,
+  estimatedFeeLoading,
+  insufficientBalance,
+}: RemoveAccountIndexFormProps) {
   const index = account.index?.index
   const deposit = account.index?.deposit
 
@@ -63,12 +77,20 @@ function RemoveAccountIndexForm({ account, appId, token, estimatedFee, estimated
           estimatedFee={estimatedFee ? new BN(estimatedFee) : undefined}
           loading={estimatedFeeLoading}
         />
+        {!estimatedFeeLoading && insufficientBalance && <DialogError error={errorDetails.insufficient_balance.description} />}
       </DialogField>
     </>
   )
 }
 
-export default function RemoveAccountIndexDialog({ open, setOpen, account, appId, token }: RemoveAccountIndexDialogProps) {
+export default function RemoveAccountIndexDialog({
+  open,
+  setOpen,
+  account,
+  appId,
+  token,
+  transferableBalance,
+}: RemoveAccountIndexDialogProps) {
   const index = account.index?.index
 
   // Wrap ledgerState$.removeAccountIndex to match the generic hook's expected signature
@@ -117,6 +139,9 @@ export default function RemoveAccountIndexDialog({ open, setOpen, account, appId
     setOpen(false)
   }
 
+  const insufficientBalance = Boolean(estimatedFee && cannotCoverFee(transferableBalance, estimatedFee))
+  const isValidFee = !estimatedFeeLoading && !insufficientBalance
+
   return (
     <Dialog open={open} onOpenChange={closeDialog}>
       <DialogContent>
@@ -137,6 +162,7 @@ export default function RemoveAccountIndexDialog({ open, setOpen, account, appId
               token={token}
               estimatedFee={estimatedFee}
               estimatedFeeLoading={estimatedFeeLoading}
+              insufficientBalance={insufficientBalance}
             />
           )}
         </DialogBody>
@@ -149,7 +175,7 @@ export default function RemoveAccountIndexDialog({ open, setOpen, account, appId
             synchronizeAccount={synchronizeAccount}
             closeDialog={closeDialog}
             signTransfer={signRemoveAccountIndexTx}
-            isSignDisabled={Boolean(txStatus)}
+            isSignDisabled={!isValidFee || Boolean(txStatus)}
           />
         </DialogFooter>
       </DialogContent>
