@@ -11,6 +11,14 @@ export default defineConfig({
     exclude: ['e2e/**', 'node_modules/**'],
     testTimeout: 10000, // 10 seconds timeout for individual tests
     hookTimeout: 10000, // 10 seconds timeout for hooks
+    maxConcurrency: 8, // Limit concurrent test execution
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        maxThreads: 8,
+        minThreads: 1,
+      },
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'json-summary', 'html'],

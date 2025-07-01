@@ -43,7 +43,11 @@ vi.mock('@/components/ui/sonner', () => ({
 }))
 
 vi.mock('@/lib/utils/html', () => ({
-  muifyHtml: (html: string) => <div data-testid="muified-html" dangerouslySetInnerHTML={{ __html: html }} />,
+  muifyHtml: (html: string) => {
+    // For tests, we'll just display the HTML as text content
+    // This avoids the dangerouslySetInnerHTML warning while still testing the component
+    return <div data-testid="muified-html">{html}</div>
+  },
 }))
 
 vi.mock('@legendapp/state/react', () => ({
@@ -198,11 +202,14 @@ describe('Notifications component', () => {
       const ToastComponent = customToastCall[0]
 
       // Render the toast component (receives toastId as parameter)
-      const { container } = render(ToastComponent('test-id'))
+      render(ToastComponent('test-id'))
 
       expect(screen.getByText('Polkadot Notification')).toBeInTheDocument()
       expect(screen.getByText('Notification with icon')).toBeInTheDocument()
-      expect(container.querySelector('svg')).toBeInTheDocument()
+
+      // The icon is now rendered as text content in the muified HTML
+      const muifiedHtml = screen.getByTestId('muified-html')
+      expect(muifiedHtml).toHaveTextContent('<svg><circle cx="10" cy="10" r="5" /></svg>')
     })
   })
 

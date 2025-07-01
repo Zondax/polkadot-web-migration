@@ -43,7 +43,11 @@ vi.mock('@/components/ui/table', () => ({
 }))
 
 vi.mock('@/lib/utils/html', () => ({
-  muifyHtml: (html: string) => <div data-testid="muified-html" dangerouslySetInnerHTML={{ __html: html }} />,
+  muifyHtml: (html: string) => {
+    // For tests, we'll just display the HTML as text content
+    // This avoids the dangerouslySetInnerHTML warning while still testing the component
+    return <div data-testid="muified-html">{html}</div>
+  },
 }))
 
 vi.mock('@/lib/utils/ui', () => ({
@@ -189,8 +193,9 @@ describe('MigratedAccountRows component', () => {
     it('should render app icon when available', () => {
       renderInTable(<MigratedAccountRows app={mockApp} />)
 
-      const iconContainer = document.querySelector('[data-testid="token-logo-polkadot"]')
-      expect(iconContainer).toBeInTheDocument()
+      // The icon is now rendered as text content in the muified HTML
+      const muifiedHtml = screen.getByTestId('muified-html')
+      expect(muifiedHtml).toHaveTextContent('<svg data-testid="token-logo-polkadot">Logo</svg>')
     })
 
     it('should call useTokenLogo with correct app id', () => {
