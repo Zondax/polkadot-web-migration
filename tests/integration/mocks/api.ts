@@ -1,4 +1,3 @@
-import { InternalErrors } from '@/config/errors'
 import type { ApiPromise, WsProvider } from '@polkadot/api'
 import { BN } from '@polkadot/util'
 import { vi } from 'vitest'

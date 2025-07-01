@@ -1,5 +1,4 @@
-import { screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { describe, it } from 'vitest'
 
 import MigratePage from '@/app/migrate/page'
 import { verifyConnectPageContent } from '../helpers/connect'

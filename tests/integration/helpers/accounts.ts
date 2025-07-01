@@ -5,7 +5,6 @@ import { mockUniquesNfts } from '../mocks/ledger'
 import { mockUniquesCollections } from '../mocks/ledger'
 import { mockNfts } from '../mocks/ledger'
 
-import { InternalErrors } from '@/config/errors'
 import { mockApi, mockWsProvider } from '../mocks/api'
 
 // Mock getApiAndProvider function

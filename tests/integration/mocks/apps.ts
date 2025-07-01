@@ -1,5 +1,3 @@
-// import { type App, AppStatus } from '@/state/ledger'
-
 export const mockPolkadotAppConfigs = {
   name: 'Polkadot',
   id: 'polkadot',
