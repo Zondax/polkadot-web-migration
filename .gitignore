@@ -43,3 +43,7 @@ biome-report.json
 /playwright-report
 /coverage
 TODO.md
+
+
+# vitest
+/html/

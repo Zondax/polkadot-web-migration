@@ -130,6 +130,7 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
             if (value) setActiveView(value)
           }}
           className="justify-start"
+          data-testid="filters-toggle-group"
         >
           <ToggleGroupItem value={AccountViewType.ALL}>All</ToggleGroupItem>
           <ToggleGroupItem value={AccountViewType.ACCOUNTS}>
@@ -162,7 +163,13 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
         <div className="flex gap-2 self-start">
           {status !== AppStatus.LOADING && (
             <CustomTooltip tooltipBody="Synchronize Again">
-              <Button onClick={restartSynchronization} variant="outline" className="flex items-center gap-1" disabled={isRescaning}>
+              <Button
+                onClick={restartSynchronization}
+                variant="outline"
+                className="flex items-center gap-1"
+                disabled={isRescaning}
+                data-testid="retry-synchronize-button"
+              >
                 <RefreshCw className="h-4 w-4" />
               </Button>
             </CustomTooltip>
@@ -178,7 +185,12 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
               {isSyncCancelRequested ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />} Stop Synchronization
             </Button>
           ) : (
-            <Button onClick={handleMigrate} disabled={isLoading || appsWithoutErrors.length === 0} variant="purple">
+            <Button
+              onClick={handleMigrate}
+              disabled={isLoading || appsWithoutErrors.length === 0}
+              variant="purple"
+              data-testid="migrate-button"
+            >
               Migrate
             </Button>
           )}
@@ -190,12 +202,12 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
       {isLoading && (
         <div className="space-y-2 mb-4">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-gray-600" data-testid="">
               Synchronizing apps {syncProgress.total > 0 && `(${syncProgress.scanned} / ${syncProgress.total})`}
             </span>
             <span className="text-sm text-gray-600">{syncProgress.percentage}%</span>
           </div>
-          <Progress value={syncProgress.percentage} />
+          <Progress value={syncProgress.percentage} data-testid="app-sync-progress-bar" />
           <div className="pt-2">
             <AppScanningGrid />
           </div>
@@ -218,7 +230,7 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
           {renderFilters()}
           {isSynchronized && appsWithoutErrors.length ? (
             appsWithoutErrors.map(app => (
-              <div key={app.id.toString()}>
+              <div key={app.id.toString()} data-testid="synchronized-app-container">
                 {app.accounts && app.accounts.length > 0 && ['all', 'accounts'].includes(activeView) && (
                   <SynchronizedApp key={app.id.toString()} app={app} updateTransaction={updateTransaction} />
                 )}
@@ -241,7 +253,7 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
       )}
 
       {isSynchronized && accountsWithErrors && (
-        <>
+        <div data-testid="failed-synchronization-container">
           <div className="flex justify-between items-start gap-2 mb-6 mt-6">
             <div>
               <h2 className="text-2xl font-bold">Failed Synchronization</h2>
@@ -265,7 +277,7 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
               )}
             </div>
           ))}
-        </>
+        </div>
       )}
     </div>
   )

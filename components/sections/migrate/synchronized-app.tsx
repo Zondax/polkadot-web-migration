@@ -67,7 +67,7 @@ function SynchronizedApp({
   }
 
   return (
-    <div className="bg-gray-50 rounded-lg shadow-xs border border-gray-200 mb-4">
+    <div className="bg-gray-50 rounded-lg shadow-xs border border-gray-200 mb-4" data-testid="synchronized-app">
       {/* Overview */}
       <button
         type="button"
@@ -86,7 +86,7 @@ function SynchronizedApp({
           </div>
           <div className="flex flex-col">
             {/* Name */}
-            <div className="font-bold text-lg leading-tight">
+            <div className="font-bold text-lg leading-tight" data-testid="table-dropdown-app-name">
               {name}
               {isMultisig ? ' Multisig' : ''}
             </div>

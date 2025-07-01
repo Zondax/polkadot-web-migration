@@ -7,7 +7,6 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    setupFiles: ['./vitest.setup.ts'],
     exclude: ['e2e/**', 'node_modules/**'],
     testTimeout: 10000, // 10 seconds timeout for individual tests
     hookTimeout: 10000, // 10 seconds timeout for hooks
@@ -56,6 +55,8 @@ export default defineConfig({
         },
       },
     },
+    reporters: ['default'],
+    setupFiles: ['./vitest.setup.ts', './vitest.setup-supplement.ts'],
   },
   resolve: {
     alias: {

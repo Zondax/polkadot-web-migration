@@ -63,7 +63,6 @@
     "@radix-ui/react-toast": "^1.2.6",
     "@radix-ui/react-toggle-group": "^1.1.10",
     "@radix-ui/react-tooltip": "^1.1.8",
-    "@tailwindcss/postcss": "^4.1.10",
     "@vercel/analytics": "^1.5.0",
     "@zondax/ledger-js": "^1.2.0",
     "@zondax/ledger-substrate": "^1.1.1",
@@ -93,6 +92,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.0.6",
     "@playwright/test": "1.53.1",
+    "@tailwindcss/postcss": "^4.1.10",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "16.3.0",
     "@types/node": "24.0.7",
@@ -100,7 +100,10 @@
     "@types/react-dom": "npm:types-react-dom@19.0.0-alpha.3",
     "@vitejs/plugin-react": "4.6.0",
     "@vitest/coverage-v8": "3.2.4",
+    "@vitest/ui": "3.2.4",
+    "autoprefixer": "^10.4.21",
     "globals": "^16.2.0",
+    "postcss-nested": "^7.0.2",
     "sort-package-json": "^3.3.1",
     "typescript": "^5.8.3",
     "vitest": "3.2.4"
