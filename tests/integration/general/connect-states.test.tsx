@@ -7,14 +7,14 @@ import { renderWithProviders } from '../helpers/renderWithProviders'
 
 describe('Connect States', () => {
   describe('Device not connected', () => {
-    it('Shows all steps in black', () => {
+    it('should display all connection steps in default state when device is not connected', () => {
       renderWithProviders(<MigratePage />)
 
       verifyConnectPageContent()
       verifyAllStepsDefault()
     })
 
-    it('Shows notification', () => {
+    it('should show appropriate notification when device is not connected', () => {
       renderWithProviders(<MigratePage />)
 
       verifyConnectPageContent()
@@ -23,14 +23,14 @@ describe('Connect States', () => {
   })
 
   describe('Device connected', () => {
-    it('App not open', () => {
+    it('should display error state when device is connected but app is not open', () => {
       setupTransportConnectedState()
       renderWithProviders(<MigratePage />)
 
       verifyStep3Failed()
     })
 
-    it('App open', () => {
+    it('should display success state when device is connected and app is open', () => {
       setupTransportAndAppConnectedState()
       renderWithProviders(<MigratePage />)
 

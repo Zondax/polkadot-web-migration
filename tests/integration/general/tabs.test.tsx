@@ -6,12 +6,12 @@ import { renderWithProviders } from '../helpers/renderWithProviders'
 import { verifyConnectTabActive, verifyTabsRendered } from '../helpers/tabs'
 
 describe('Tabs', () => {
-  it('renders all three tabs with correct titles', () => {
+  it('should render Connect Device, Synchronize Accounts, and Migrate tabs with correct titles', () => {
     renderWithProviders(<MigratePage />)
     verifyTabsRendered()
   })
 
-  it('shows Connect Device tab as active by default', () => {
+  it('should display Connect Device tab as active by default with other tabs inactive', () => {
     renderWithProviders(<MigratePage />)
     verifyTabsRendered()
     verifyConnectTabActive()

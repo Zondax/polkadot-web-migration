@@ -1,20 +1,21 @@
 import type { Address } from '@/state/types/ledger'
+import { MOCK_ADDRESSES, MOCK_PATHS } from '../constants'
 
 export const mockKusamaAccount: Partial<Address> = {
-  address: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty',
-  path: "m/44'/434'/0'/0'/0'",
+  address: MOCK_ADDRESSES.KUSAMA,
+  path: MOCK_PATHS.KUSAMA,
   pubKey: '0x123456',
 }
 
 export const mockAcalaAccount: Partial<Address> = {
-  address: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty',
-  path: "m/44'/787'/0'/0'/0'",
+  address: MOCK_ADDRESSES.ACALA,
+  path: MOCK_PATHS.ACALA,
   pubKey: '0x123456',
 }
 
 export const mockPolkadotAccount: Partial<Address> = {
-  address: '15oF4uVJwmo4TdGW7VfQxNLavjCXviqxT9S1MgbjMNHr6Sp5',
-  path: "m/44'/354'/0'/0'/0'",
+  address: MOCK_ADDRESSES.POLKADOT,
+  path: MOCK_PATHS.POLKADOT,
   pubKey: '0x789abc',
 }
 
