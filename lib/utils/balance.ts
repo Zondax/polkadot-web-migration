@@ -215,5 +215,6 @@ export const validateReservedBreakdown = (
  */
 
 export const cannotCoverFee = (transferableBalance: BN, fee: BN): boolean => {
+  if (!transferableBalance || !fee) return false
   return transferableBalance.lt(fee)
 }

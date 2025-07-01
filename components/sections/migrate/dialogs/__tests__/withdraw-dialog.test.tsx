@@ -6,6 +6,12 @@ import type { AppId, Token } from '@/config/apps'
 
 import WithdrawDialog from '../withdraw-dialog'
 
+// Import mocked hooks and utilities
+import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
+import { useTokenLogo } from '@/components/hooks/useTokenLogo'
+import { formatBalance } from '@/lib/utils/format'
+import { getChainName } from '@/config/apps'
+
 // Mock external dependencies
 vi.mock('@/components/ExplorerLink', () => ({
   ExplorerLink: vi.fn(({ value, appId, explorerLinkType, size }) => (
@@ -88,6 +94,7 @@ vi.mock('../common-dialog-fields', () => ({
   DialogEstimatedFeeContent: vi.fn(({ token, estimatedFee, loading }) => (
     <div data-testid="dialog-estimated-fee-content">{loading ? 'Loading...' : `${estimatedFee?.toString()} ${token.symbol}`}</div>
   )),
+  DialogError: vi.fn(({ error }) => error ? <div data-testid="dialog-error">{error}</div> : null),
 }))
 
 vi.mock('../transaction-dialog', () => ({
@@ -221,7 +228,7 @@ describe('WithdrawDialog', () => {
   describe('transaction handling', () => {
     it('should handle withdraw transaction button click', async () => {
       const mockRunTransaction = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(useTransactionStatus)
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: mockRunTransaction,
@@ -250,7 +257,7 @@ describe('WithdrawDialog', () => {
     it('should handle close dialog', async () => {
       const mockSetOpen = vi.fn()
       const mockClearTx = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(useTransactionStatus)
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -280,7 +287,7 @@ describe('WithdrawDialog', () => {
     it('should handle synchronize account', async () => {
       const mockSetOpen = vi.fn()
       const mockUpdateSynchronization = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(useTransactionStatus)
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -308,7 +315,7 @@ describe('WithdrawDialog', () => {
     })
 
     it('should show transaction status when tx is in progress', async () => {
-      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(useTransactionStatus)
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -335,7 +342,7 @@ describe('WithdrawDialog', () => {
     })
 
     it('should disable sign button when transaction is in progress', async () => {
-      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(useTransactionStatus)
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -362,7 +369,7 @@ describe('WithdrawDialog', () => {
 
   describe('fee estimation', () => {
     it('should show loading state for estimated fee', async () => {
-      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(useTransactionStatus)
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -384,7 +391,7 @@ describe('WithdrawDialog', () => {
 
     it('should call getEstimatedFee on mount when dialog is open', async () => {
       const mockGetEstimatedFee = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(useTransactionStatus)
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -406,7 +413,7 @@ describe('WithdrawDialog', () => {
 
     it('should not call getEstimatedFee when dialog is closed', async () => {
       const mockGetEstimatedFee = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(useTransactionStatus)
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -427,7 +434,7 @@ describe('WithdrawDialog', () => {
     })
 
     it('should format estimated fee correctly', async () => {
-      const mockFormatBalance = vi.mocked(await import('@/lib/utils/format')).formatBalance
+      const mockFormatBalance = vi.mocked(formatBalance)
 
       mockFormatBalance.mockReturnValue('1000000000000 DOT')
 
@@ -475,7 +482,7 @@ describe('WithdrawDialog', () => {
     })
 
     it('should handle transaction states correctly', async () => {
-      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(useTransactionStatus)
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -496,7 +503,7 @@ describe('WithdrawDialog', () => {
     })
 
     it('should handle failed transaction state', async () => {
-      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(useTransactionStatus)
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -517,7 +524,7 @@ describe('WithdrawDialog', () => {
     })
 
     it('should handle synchronizing state', async () => {
-      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(useTransactionStatus)
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -538,7 +545,7 @@ describe('WithdrawDialog', () => {
     })
 
     it('should handle undefined estimated fee', async () => {
-      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(useTransactionStatus)
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -638,7 +645,7 @@ describe('WithdrawDialog', () => {
 
   describe('component integration', () => {
     it('should use token logo hook correctly', async () => {
-      const mockUseTokenLogo = vi.mocked(await import('@/components/hooks/useTokenLogo')).useTokenLogo
+      const mockUseTokenLogo = vi.mocked(useTokenLogo)
 
       render(<WithdrawDialog {...defaultProps} />)
 
@@ -646,7 +653,7 @@ describe('WithdrawDialog', () => {
     })
 
     it('should use chain name correctly', async () => {
-      const mockGetChainName = vi.mocked(await import('@/config/apps')).getChainName
+      const mockGetChainName = vi.mocked(getChainName)
 
       render(<WithdrawDialog {...defaultProps} />)
 
@@ -655,7 +662,7 @@ describe('WithdrawDialog', () => {
 
     it('should call ledger state functions correctly', async () => {
       const mockRunTransaction = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(useTransactionStatus)
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: mockRunTransaction,

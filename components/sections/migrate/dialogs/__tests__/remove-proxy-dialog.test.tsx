@@ -6,6 +6,9 @@ import type { AppId, Token } from '@/config/apps'
 
 import RemoveProxyDialog from '../remove-proxy-dialog'
 
+// Import mocked hooks
+import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
+
 // Mock external dependencies
 vi.mock('@/components/ExplorerLink', () => ({
   ExplorerLink: vi.fn(({ value, appId, explorerLinkType, size }) => (
@@ -85,6 +88,7 @@ vi.mock('../common-dialog-fields', () => ({
   DialogEstimatedFeeContent: vi.fn(({ token, estimatedFee, loading }) => (
     <div data-testid="dialog-estimated-fee-content">{loading ? 'Loading...' : `${estimatedFee?.toString()} ${token.symbol}`}</div>
   )),
+  DialogError: vi.fn(({ error }) => error ? <div data-testid="dialog-error">{error}</div> : null),
 }))
 
 vi.mock('../transaction-dialog', () => ({
@@ -175,7 +179,7 @@ describe('RemoveProxyDialog', () => {
       expect(descriptions[0]).toHaveTextContent(
         'This process may require a small transaction fee. Please review the details below before proceeding.'
       )
-      expect(descriptions[0]).toHaveTextContent('The deposit will be automatically returned when the proxies are removed.')
+      expect(descriptions[1]).toHaveTextContent('The deposit will be automatically returned when the proxies are removed.')
     })
 
     it('should not render when open is false', () => {
@@ -287,7 +291,7 @@ describe('RemoveProxyDialog', () => {
   describe('transaction handling', () => {
     it('should handle sign transaction button click', async () => {
       const mockRunTransaction = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(useTransactionStatus)
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: mockRunTransaction,
@@ -316,7 +320,7 @@ describe('RemoveProxyDialog', () => {
     it('should handle close dialog', async () => {
       const mockSetOpen = vi.fn()
       const mockClearTx = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(useTransactionStatus)
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -346,7 +350,7 @@ describe('RemoveProxyDialog', () => {
     it('should handle synchronize account', async () => {
       const mockSetOpen = vi.fn()
       const mockUpdateSynchronization = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(useTransactionStatus)
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -374,7 +378,7 @@ describe('RemoveProxyDialog', () => {
     })
 
     it('should show transaction status when tx is in progress', async () => {
-      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(useTransactionStatus)
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -401,7 +405,7 @@ describe('RemoveProxyDialog', () => {
     })
 
     it('should disable sign button when transaction is in progress', async () => {
-      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(useTransactionStatus)
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -428,7 +432,7 @@ describe('RemoveProxyDialog', () => {
 
   describe('fee estimation', () => {
     it('should show loading state for estimated fee', async () => {
-      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(useTransactionStatus)
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -450,7 +454,7 @@ describe('RemoveProxyDialog', () => {
 
     it('should call getEstimatedFee on mount when dialog is open', async () => {
       const mockGetEstimatedFee = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(useTransactionStatus)
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),
@@ -472,7 +476,7 @@ describe('RemoveProxyDialog', () => {
 
     it('should not call getEstimatedFee when dialog is closed', async () => {
       const mockGetEstimatedFee = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(useTransactionStatus)
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: vi.fn(),

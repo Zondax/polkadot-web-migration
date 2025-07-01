@@ -6,6 +6,9 @@ import type { AppId, Token } from '@/config/apps'
 
 import ApproveMultisigCallDialog from '../approve-multisig-call-dialog'
 
+// Import mocked hooks
+import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
+
 // Mock all external dependencies
 vi.mock('lucide-react', () => ({
   Info: vi.fn(({ className }) => (
@@ -170,6 +173,7 @@ vi.mock('../common-dialog-fields', () => ({
       Network Content
     </div>
   )),
+  DialogError: vi.fn(({ error }) => error ? <div data-testid="dialog-error">{error}</div> : null),
 }))
 
 vi.mock('../transaction-dialog', () => ({
@@ -427,7 +431,7 @@ describe('ApproveMultisigCallDialog', () => {
 
     it('should handle form submission', async () => {
       const mockRunTransaction = vi.fn()
-      const mockUseTransactionStatus = vi.mocked(await import('@/components/hooks/useTransactionStatus')).useTransactionStatus
+      const mockUseTransactionStatus = vi.mocked(useTransactionStatus)
 
       mockUseTransactionStatus.mockReturnValue({
         runTransaction: mockRunTransaction,

@@ -5,6 +5,9 @@ import { TransactionStatus } from '@/state/types/ledger'
 
 import { TransactionDialogFooter, TransactionStatusBody } from '../transaction-dialog'
 
+// Import mocked utilities
+import { getTransactionStatus } from '@/lib/utils/ui'
+
 // Mock external dependencies
 vi.mock('@/components/ExplorerLink', () => ({
   ExplorerLink: vi.fn(({ value, appId, explorerLinkType, className, hasCopyButton }) => (
@@ -155,7 +158,7 @@ describe('TransactionStatusBody', () => {
     })
 
     it('should call getTransactionStatus with correct parameters', async () => {
-      const mockGetTransactionStatus = vi.mocked(await import('@/lib/utils/ui')).getTransactionStatus
+      const mockGetTransactionStatus = vi.mocked(getTransactionStatus)
 
       render(<TransactionStatusBody {...defaultProps} status={TransactionStatus.ERROR} statusMessage="Transaction failed" />)
 
