@@ -62,14 +62,7 @@ export enum AccountType {
   ACCOUNT = 'account',
 }
 
-export type UpdateMigratedStatusFn = (
-  appId: AppId,
-  accountType: AccountType,
-  accountAddress: string,
-  status: TransactionStatus,
-  message?: string,
-  txDetails?: Transaction
-) => void
+export type UpdateMigratedStatusFn = (appId: AppId, accountType: AccountType, accountAddress: string, txDetails?: Transaction) => void
 
 /**
  * Balance information for an account
