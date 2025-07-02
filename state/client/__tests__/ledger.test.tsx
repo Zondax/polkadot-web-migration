@@ -1,8 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { BN } from '@polkadot/util'
-import type { AppConfig } from 'config/apps'
 import { InternalError } from '@/lib/utils'
 import { AccountType, type Address, BalanceType, type MultisigAddress, type NativeBalance, TransactionStatus } from '@/state/types/ledger'
+import { BN } from '@polkadot/util'
+import type { AppConfig } from 'config/apps'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ledgerClient } from '../ledger'
 
 // Mock all dependencies
@@ -32,7 +32,7 @@ vi.mock('@/lib/ledger/ledgerService', () => ({
 }))
 
 vi.mock('@/lib/utils/balance', () => ({
-  getTransferableAndNfts: vi.fn(),
+  getAccountTransferableBalance: vi.fn(() => new BN('500000000000')),
 }))
 
 vi.mock('../helpers', () => ({
@@ -69,32 +69,54 @@ vi.mock('config/config', () => ({
   maxAddressesToFetch: 3,
 }))
 
+const prepareTransactionPayloadMock = {
+  transfer: mockApi.tx.balances.transferKeepAlive, // SubmittableExtrinsic<'promise', ISubmittableResult>
+  payload: {} as any, // GenericExtrinsicPayload
+  metadataHash: new Uint8Array([0, 1, 2, 3]), // Uint8Array
+  nonce: 1,
+  proof1: new Uint8Array([4, 5, 6]), // Uint8Array
+  payloadBytes: new Uint8Array([7, 8, 9]), // Uint8Array
+} as unknown as PreparedTransactionPayload
+
+const prepareTransactionMock = {
+  ...prepareTransactionPayloadMock,
+  callData: '0xcalldata',
+} as unknown as PreparedTransaction
+
 // Import mocked modules
+import { InternalErrorType } from '@/config/errors'
 import {
+  createSignedExtrinsic,
   getApiAndProvider,
+  getTxFee,
+  prepareApproveAsMultiTx,
+  prepareAsMultiTx,
+  type PreparedTransaction,
+  type PreparedTransactionPayload,
+  prepareRemoveAccountIndexTransaction,
+  prepareRemoveIdentityTransaction,
+  prepareRemoveProxiesTransaction,
   prepareTransaction,
   prepareTransactionPayload,
-  createSignedExtrinsic,
-  submitAndHandleTransaction,
-  getTxFee,
   prepareUnstakeTransaction,
   prepareWithdrawTransaction,
-  prepareRemoveIdentityTransaction,
-  prepareAsMultiTx,
-  prepareApproveAsMultiTx,
+  submitAndHandleTransaction,
   validateCallDataMatchesHash,
-  prepareRemoveProxiesTransaction,
-  prepareRemoveAccountIndexTransaction,
 } from '@/lib/account'
 import { ledgerService } from '@/lib/ledger/ledgerService'
-import { getTransferableAndNfts } from '@/lib/utils/balance'
-import { validateMigrationParams, validateAsMultiParams, validateApproveAsMultiParams } from '../helpers'
+import { mockApi } from '@/tests/fixtures'
+import type { ApiPromise } from '@polkadot/api'
+import type { SubmittableExtrinsic } from '@polkadot/api/types'
+import type { ISubmittableResult } from '@polkadot/types/types'
+import { validateApproveAsMultiParams, validateAsMultiParams, validateMigrationParams } from '../helpers'
 
 describe('Ledger Client', () => {
   const mockApi = {
-    tx: { balances: { transfer: vi.fn() } },
+    tx: { balances: { transfer: vi.fn() }, staking: { unbond: vi.fn() } },
     rpc: { chain: { getBlockHash: vi.fn() } },
-  }
+  } as unknown as ApiPromise
+
+  const mockApiTransfer = mockApi.tx.balances.transfer as unknown as SubmittableExtrinsic<'promise', ISubmittableResult>
 
   const mockAppConfig: AppConfig = {
     id: 'polkadot',
@@ -249,11 +271,9 @@ describe('Ledger Client', () => {
 
     beforeEach(() => {
       vi.mocked(validateMigrationParams).mockReturnValue({
-        isValid: true,
-        balance: mockAddress.balances?.[0],
+        balances: mockAddress.balances ?? [],
         senderAddress: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
         senderPath: "m/44'/354'/0'/0/0",
-        receiverAddress: '5Receiver',
         appConfig: mockAppConfig,
         multisigInfo: undefined,
         accountType: AccountType.ACCOUNT,
@@ -262,139 +282,82 @@ describe('Ledger Client', () => {
 
     it('should migrate account successfully', async () => {
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: mockApi })
-      vi.mocked(getTransferableAndNfts).mockReturnValue({
-        nftsToTransfer: [],
-        nativeAmount: new BN('500000000000'),
-        transferableAmount: new BN('500000000000'),
-      })
-      vi.mocked(prepareTransaction).mockResolvedValueOnce({
-        transfer: mockApi.tx.balances.transfer,
-        payload: '0xpayload',
-        metadataHash: '0xhash',
-        nonce: 1,
-        proof1: '0xproof',
-        payloadBytes: new Uint8Array([1, 2, 3]),
-        callData: '0xcalldata',
-      })
+      vi.mocked(prepareTransaction).mockResolvedValueOnce(prepareTransactionMock)
       vi.mocked(ledgerService.signTransaction).mockResolvedValueOnce({
-        signature: '0xsignature',
+        signature: new Uint8Array([0, 1, 2, 3]) as unknown as Buffer<ArrayBufferLike>,
       })
-      vi.mocked(createSignedExtrinsic).mockReturnValue(mockApi.tx.balances.transfer)
+      vi.mocked(createSignedExtrinsic).mockReturnValue(mockApiTransfer)
       vi.mocked(submitAndHandleTransaction).mockResolvedValueOnce()
 
-      const result = await ledgerClient.migrateAccount('polkadot', mockAddress, mockUpdateStatus, 0)
+      const result = await ledgerClient.migrateAccount('polkadot', mockAddress, mockUpdateStatus)
 
       expect(result).toBeDefined()
       expect(result?.txPromise).toBeInstanceOf(Promise)
-      expect(validateMigrationParams).toHaveBeenCalledWith('polkadot', mockAddress, 0)
+      expect(validateMigrationParams).toHaveBeenCalledWith('polkadot', mockAddress)
       expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
       expect(prepareTransaction).toHaveBeenCalled()
       expect(ledgerService.signTransaction).toHaveBeenCalled()
       expect(createSignedExtrinsic).toHaveBeenCalled()
-      expect(mockUpdateStatus).toHaveBeenCalledWith(
-        'polkadot',
-        AccountType.ACCOUNT,
-        "m/44'/354'/0'/0/0",
-        BalanceType.NATIVE,
-        TransactionStatus.IS_LOADING,
-        'Transaction is loading',
-        { callData: '0xcalldata' }
-      )
+      expect(mockUpdateStatus).toHaveBeenCalledWith('polkadot', AccountType.ACCOUNT, mockAddress.address, {
+        status: TransactionStatus.IS_LOADING,
+        statusMessage: 'Transaction is loading',
+        callData: '0xcalldata',
+      })
     })
 
-    it('should return undefined for invalid migration params', async () => {
-      vi.mocked(validateMigrationParams).mockReturnValue({ isValid: false })
+    it('should return an error for invalid migration params', async () => {
+      vi.mocked(validateMigrationParams).mockImplementation(() => {
+        throw new InternalError(InternalErrorType.NO_BALANCE)
+      })
 
-      const result = await ledgerClient.migrateAccount('polkadot', mockAddress, mockUpdateStatus, 0)
-
-      expect(result).toBeUndefined()
+      await expect(ledgerClient.migrateAccount('polkadot', mockAddress, mockUpdateStatus)).rejects.toThrowError(InternalError)
       expect(getApiAndProvider).not.toHaveBeenCalled()
     })
 
     it('should handle API connection failure', async () => {
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: undefined })
 
-      await expect(ledgerClient.migrateAccount('polkadot', mockAddress, mockUpdateStatus, 0)).rejects.toThrow(InternalError)
+      await expect(ledgerClient.migrateAccount('polkadot', mockAddress, mockUpdateStatus)).rejects.toThrow(InternalError)
     })
 
     it('should handle transaction preparation failure', async () => {
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: mockApi })
-      vi.mocked(getTransferableAndNfts).mockReturnValue({
-        nftsToTransfer: [],
-        nativeAmount: new BN('500000000000'),
-        transferableAmount: new BN('500000000000'),
-      })
       vi.mocked(prepareTransaction).mockResolvedValueOnce(undefined)
 
-      await expect(ledgerClient.migrateAccount('polkadot', mockAddress, mockUpdateStatus, 0)).rejects.toThrow(InternalError)
+      await expect(ledgerClient.migrateAccount('polkadot', mockAddress, mockUpdateStatus)).rejects.toThrow(InternalError)
     })
 
     it('should handle signing failure', async () => {
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: mockApi })
-      vi.mocked(getTransferableAndNfts).mockReturnValue({
-        nftsToTransfer: [],
-        nativeAmount: new BN('500000000000'),
-        transferableAmount: new BN('500000000000'),
-      })
-      vi.mocked(prepareTransaction).mockResolvedValueOnce({
-        transfer: mockApi.tx.balances.transfer,
-        payload: '0xpayload',
-        metadataHash: '0xhash',
-        nonce: 1,
-        proof1: '0xproof',
-        payloadBytes: new Uint8Array([1, 2, 3]),
-      })
+      vi.mocked(prepareTransaction).mockResolvedValueOnce(prepareTransactionMock)
       vi.mocked(ledgerService.signTransaction).mockResolvedValueOnce({
         signature: undefined,
       })
 
-      await expect(ledgerClient.migrateAccount('polkadot', mockAddress, mockUpdateStatus, 0)).rejects.toThrow(InternalError)
+      await expect(ledgerClient.migrateAccount('polkadot', mockAddress, mockUpdateStatus)).rejects.toThrow(InternalError)
     })
 
     it('should handle multisig accounts', async () => {
       vi.mocked(validateMigrationParams).mockReturnValue({
-        isValid: true,
-        balance: mockMultisigAddress.balances?.[0],
+        balances: mockMultisigAddress.balances ?? [],
         senderAddress: '5MultisigAddress',
         senderPath: "m/44'/354'/0'/0/0",
-        receiverAddress: '5Receiver',
         appConfig: mockAppConfig,
-        multisigInfo: { threshold: 2, members: [] },
+        multisigInfo: { threshold: 2, members: [], address: '5MultisigAddress' },
         accountType: AccountType.MULTISIG,
       })
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: mockApi })
-      vi.mocked(getTransferableAndNfts).mockReturnValue({
-        nftsToTransfer: [],
-        nativeAmount: new BN('500000000000'),
-        transferableAmount: new BN('500000000000'),
-      })
-      vi.mocked(prepareTransaction).mockResolvedValueOnce({
-        transfer: mockApi.tx.balances.transfer,
-        payload: '0xpayload',
-        metadataHash: '0xhash',
-        nonce: 1,
-        proof1: '0xproof',
-        payloadBytes: new Uint8Array([1, 2, 3]),
-        callData: '0xcalldata',
-      })
+      vi.mocked(prepareTransaction).mockResolvedValueOnce(prepareTransactionMock)
       vi.mocked(ledgerService.signTransaction).mockResolvedValueOnce({
-        signature: '0xsignature',
+        signature: new Uint8Array([0, 1, 2, 3]) as unknown as Buffer<ArrayBufferLike>,
       })
-      vi.mocked(createSignedExtrinsic).mockReturnValue(mockApi.tx.balances.transfer)
+      vi.mocked(createSignedExtrinsic).mockReturnValue(mockApiTransfer)
       vi.mocked(submitAndHandleTransaction).mockResolvedValueOnce()
 
-      const result = await ledgerClient.migrateAccount('polkadot', mockMultisigAddress, mockUpdateStatus, 0)
+      const result = await ledgerClient.migrateAccount('polkadot', mockMultisigAddress, mockUpdateStatus)
 
       expect(result).toBeDefined()
-      expect(mockUpdateStatus).toHaveBeenCalledWith(
-        'polkadot',
-        AccountType.MULTISIG,
-        "m/44'/354'/0'/0/0",
-        BalanceType.NATIVE,
-        expect.any(String),
-        expect.any(String),
-        expect.any(Object)
-      )
+      expect(mockUpdateStatus).toHaveBeenCalledWith('polkadot', AccountType.MULTISIG, mockMultisigAddress.address, expect.any(Object))
     })
   })
 
@@ -404,29 +367,34 @@ describe('Ledger Client', () => {
     it('should unstake balance successfully', async () => {
       const amount = new BN('1000000000000')
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: mockApi })
-      vi.mocked(prepareUnstakeTransaction).mockResolvedValueOnce(mockApi.tx.balances.transfer)
-      vi.mocked(prepareTransactionPayload).mockResolvedValueOnce({
-        transfer: mockApi.tx.balances.transfer,
-        payload: '0xpayload',
-        metadataHash: '0xhash',
-        nonce: 1,
-        proof1: '0xproof',
-        payloadBytes: new Uint8Array([1, 2, 3]),
-      })
+      vi.mocked(prepareUnstakeTransaction).mockResolvedValueOnce(
+        mockApi.tx.staking.unbond as unknown as SubmittableExtrinsic<'promise', ISubmittableResult>
+      )
+      vi.mocked(prepareTransactionPayload).mockResolvedValueOnce(prepareTransactionMock)
       vi.mocked(ledgerService.signTransaction).mockResolvedValueOnce({
-        signature: '0xsignature',
+        signature: new Uint8Array([1, 2, 3]) as unknown as Buffer<ArrayBufferLike>,
       })
-      vi.mocked(createSignedExtrinsic).mockReturnValue(mockApi.tx.balances.transfer)
+      vi.mocked(createSignedExtrinsic).mockReturnValue(mockApiTransfer)
       vi.mocked(submitAndHandleTransaction).mockResolvedValueOnce()
 
       await ledgerClient.unstakeBalance('polkadot', mockAddress.address, mockAddress.path, amount, mockUpdateTxStatus)
 
       expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
       expect(prepareUnstakeTransaction).toHaveBeenCalledWith(mockApi, amount)
-      expect(prepareTransactionPayload).toHaveBeenCalledWith(mockApi, mockAddress.address, mockAppConfig, mockApi.tx.balances.transfer)
-      expect(ledgerService.signTransaction).toHaveBeenCalledWith(mockAddress.path, new Uint8Array([1, 2, 3]), 'dot', '0xproof')
+      expect(prepareTransactionPayload).toHaveBeenCalledWith(
+        mockApi,
+        mockAddress.address,
+        mockAppConfig,
+        mockApi.tx.staking.unbond as unknown as SubmittableExtrinsic<'promise', ISubmittableResult>
+      )
+      expect(ledgerService.signTransaction).toHaveBeenCalledWith(
+        mockAddress.path,
+        new Uint8Array([7, 8, 9]),
+        'dot',
+        new Uint8Array([4, 5, 6])
+      )
       expect(createSignedExtrinsic).toHaveBeenCalled()
-      expect(submitAndHandleTransaction).toHaveBeenCalledWith(mockApi.tx.balances.transfer, mockUpdateTxStatus, mockApi)
+      expect(submitAndHandleTransaction).toHaveBeenCalled()
     })
 
     it('should handle missing app config', async () => {
@@ -459,7 +427,7 @@ describe('Ledger Client', () => {
     it('should handle transaction payload preparation failure', async () => {
       const amount = new BN('1000000000000')
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: mockApi })
-      vi.mocked(prepareUnstakeTransaction).mockResolvedValueOnce(mockApi.tx.balances.transfer)
+      vi.mocked(prepareUnstakeTransaction).mockResolvedValueOnce(mockApiTransfer)
       vi.mocked(prepareTransactionPayload).mockResolvedValueOnce(undefined)
 
       await expect(
@@ -470,15 +438,8 @@ describe('Ledger Client', () => {
     it('should handle signing failure', async () => {
       const amount = new BN('1000000000000')
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: mockApi })
-      vi.mocked(prepareUnstakeTransaction).mockResolvedValueOnce(mockApi.tx.balances.transfer)
-      vi.mocked(prepareTransactionPayload).mockResolvedValueOnce({
-        transfer: mockApi.tx.balances.transfer,
-        payload: '0xpayload',
-        metadataHash: '0xhash',
-        nonce: 1,
-        proof1: '0xproof',
-        payloadBytes: new Uint8Array([1, 2, 3]),
-      })
+      vi.mocked(prepareUnstakeTransaction).mockResolvedValueOnce(mockApiTransfer)
+      vi.mocked(prepareTransactionPayload).mockResolvedValueOnce(prepareTransactionMock)
       vi.mocked(ledgerService.signTransaction).mockResolvedValueOnce({
         signature: undefined,
       })
@@ -494,15 +455,15 @@ describe('Ledger Client', () => {
       const amount = new BN('1000000000000')
       const expectedFee = new BN('50000000')
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: mockApi })
-      vi.mocked(prepareUnstakeTransaction).mockResolvedValueOnce(mockApi.tx.balances.transfer)
+      vi.mocked(prepareUnstakeTransaction).mockResolvedValueOnce(mockApiTransfer)
       vi.mocked(getTxFee).mockResolvedValueOnce(expectedFee)
 
       const result = await ledgerClient.getUnstakeFee('polkadot', mockAddress.address, amount)
 
-      expect(result).toBe(expectedFee)
+      expect(result).toStrictEqual(expectedFee)
       expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
       expect(prepareUnstakeTransaction).toHaveBeenCalledWith(mockApi, amount)
-      expect(getTxFee).toHaveBeenCalledWith(mockApi.tx.balances.transfer, mockAddress.address)
+      expect(getTxFee).toHaveBeenCalledWith(mockApiTransfer, mockAddress.address)
     })
 
     it('should handle missing app config', async () => {
@@ -535,7 +496,7 @@ describe('Ledger Client', () => {
     it('should handle fee calculation error', async () => {
       const amount = new BN('1000000000000')
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: mockApi })
-      vi.mocked(prepareUnstakeTransaction).mockResolvedValueOnce(mockApi.tx.balances.transfer)
+      vi.mocked(prepareUnstakeTransaction).mockResolvedValueOnce(mockApiTransfer)
       vi.mocked(getTxFee).mockRejectedValueOnce(new Error('Fee calculation failed'))
 
       const result = await ledgerClient.getUnstakeFee('polkadot', mockAddress.address, amount)
@@ -549,29 +510,27 @@ describe('Ledger Client', () => {
 
     it('should withdraw balance successfully', async () => {
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: mockApi })
-      vi.mocked(prepareWithdrawTransaction).mockResolvedValueOnce(mockApi.tx.balances.transfer)
-      vi.mocked(prepareTransactionPayload).mockResolvedValueOnce({
-        transfer: mockApi.tx.balances.transfer,
-        payload: '0xpayload',
-        metadataHash: '0xhash',
-        nonce: 1,
-        proof1: '0xproof',
-        payloadBytes: new Uint8Array([1, 2, 3]),
-      })
+      vi.mocked(prepareWithdrawTransaction).mockResolvedValueOnce(mockApiTransfer)
+      vi.mocked(prepareTransactionPayload).mockResolvedValueOnce(prepareTransactionPayloadMock)
       vi.mocked(ledgerService.signTransaction).mockResolvedValueOnce({
-        signature: '0xsignature',
+        signature: new Uint8Array([0, 1, 2, 3]) as unknown as Buffer<ArrayBufferLike>,
       })
-      vi.mocked(createSignedExtrinsic).mockReturnValue(mockApi.tx.balances.transfer)
+      vi.mocked(createSignedExtrinsic).mockReturnValue(mockApiTransfer)
       vi.mocked(submitAndHandleTransaction).mockResolvedValueOnce()
 
       await ledgerClient.withdrawBalance('polkadot', mockAddress.address, mockAddress.path, mockUpdateTxStatus)
 
       expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
       expect(prepareWithdrawTransaction).toHaveBeenCalledWith(mockApi)
-      expect(prepareTransactionPayload).toHaveBeenCalledWith(mockApi, mockAddress.address, mockAppConfig, mockApi.tx.balances.transfer)
-      expect(ledgerService.signTransaction).toHaveBeenCalledWith(mockAddress.path, new Uint8Array([1, 2, 3]), 'dot', '0xproof')
+      expect(prepareTransactionPayload).toHaveBeenCalledWith(mockApi, mockAddress.address, mockAppConfig, mockApiTransfer)
+      expect(ledgerService.signTransaction).toHaveBeenCalledWith(
+        mockAddress.path,
+        prepareTransactionPayloadMock.payloadBytes,
+        'dot',
+        prepareTransactionPayloadMock.proof1
+      )
       expect(createSignedExtrinsic).toHaveBeenCalled()
-      expect(submitAndHandleTransaction).toHaveBeenCalledWith(mockApi.tx.balances.transfer, mockUpdateTxStatus, mockApi)
+      expect(submitAndHandleTransaction).toHaveBeenCalled()
     })
 
     it('should handle missing app config', async () => {
@@ -599,15 +558,8 @@ describe('Ledger Client', () => {
 
     it('should handle signing failure', async () => {
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: mockApi })
-      vi.mocked(prepareWithdrawTransaction).mockResolvedValueOnce(mockApi.tx.balances.transfer)
-      vi.mocked(prepareTransactionPayload).mockResolvedValueOnce({
-        transfer: mockApi.tx.balances.transfer,
-        payload: '0xpayload',
-        metadataHash: '0xhash',
-        nonce: 1,
-        proof1: '0xproof',
-        payloadBytes: new Uint8Array([1, 2, 3]),
-      })
+      vi.mocked(prepareWithdrawTransaction).mockResolvedValueOnce(mockApiTransfer)
+      vi.mocked(prepareTransactionPayload).mockResolvedValueOnce(prepareTransactionMock)
       vi.mocked(ledgerService.signTransaction).mockResolvedValueOnce({
         signature: undefined,
       })
@@ -622,15 +574,15 @@ describe('Ledger Client', () => {
     it('should get withdraw fee successfully', async () => {
       const expectedFee = new BN('50000000')
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: mockApi })
-      vi.mocked(prepareWithdrawTransaction).mockResolvedValueOnce(mockApi.tx.balances.transfer)
+      vi.mocked(prepareWithdrawTransaction).mockResolvedValueOnce(mockApiTransfer)
       vi.mocked(getTxFee).mockResolvedValueOnce(expectedFee)
 
       const result = await ledgerClient.getWithdrawFee('polkadot', mockAddress.address)
 
-      expect(result).toBe(expectedFee)
+      expect(result).toStrictEqual(expectedFee)
       expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
       expect(prepareWithdrawTransaction).toHaveBeenCalledWith(mockApi)
-      expect(getTxFee).toHaveBeenCalledWith(mockApi.tx.balances.transfer, mockAddress.address)
+      expect(getTxFee).toHaveBeenCalledWith(mockApiTransfer, mockAddress.address)
     })
 
     it('should handle missing app config', async () => {
@@ -653,29 +605,27 @@ describe('Ledger Client', () => {
 
     it('should remove identity successfully', async () => {
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: mockApi })
-      vi.mocked(prepareRemoveIdentityTransaction).mockResolvedValueOnce(mockApi.tx.balances.transfer)
-      vi.mocked(prepareTransactionPayload).mockResolvedValueOnce({
-        transfer: mockApi.tx.balances.transfer,
-        payload: '0xpayload',
-        metadataHash: '0xhash',
-        nonce: 1,
-        proof1: '0xproof',
-        payloadBytes: new Uint8Array([1, 2, 3]),
-      })
+      vi.mocked(prepareRemoveIdentityTransaction).mockResolvedValueOnce(mockApiTransfer)
+      vi.mocked(prepareTransactionPayload).mockResolvedValueOnce(prepareTransactionPayloadMock)
       vi.mocked(ledgerService.signTransaction).mockResolvedValueOnce({
-        signature: '0xsignature',
+        signature: new Uint8Array([0, 1, 2, 3]) as unknown as Buffer<ArrayBufferLike>,
       })
-      vi.mocked(createSignedExtrinsic).mockReturnValue(mockApi.tx.balances.transfer)
+      vi.mocked(createSignedExtrinsic).mockReturnValue(mockApiTransfer)
       vi.mocked(submitAndHandleTransaction).mockResolvedValueOnce()
 
       await ledgerClient.removeIdentity('polkadot', mockAddress.address, mockAddress.path, mockUpdateTxStatus)
 
       expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
       expect(prepareRemoveIdentityTransaction).toHaveBeenCalledWith(mockApi, mockAddress.address)
-      expect(prepareTransactionPayload).toHaveBeenCalledWith(mockApi, mockAddress.address, mockAppConfig, mockApi.tx.balances.transfer)
-      expect(ledgerService.signTransaction).toHaveBeenCalledWith(mockAddress.path, new Uint8Array([1, 2, 3]), 'dot', '0xproof')
+      expect(prepareTransactionPayload).toHaveBeenCalledWith(mockApi, mockAddress.address, mockAppConfig, mockApiTransfer)
+      expect(ledgerService.signTransaction).toHaveBeenCalledWith(
+        mockAddress.path,
+        prepareTransactionPayloadMock.payloadBytes,
+        'dot',
+        prepareTransactionPayloadMock.proof1
+      )
       expect(createSignedExtrinsic).toHaveBeenCalled()
-      expect(submitAndHandleTransaction).toHaveBeenCalledWith(mockApi.tx.balances.transfer, mockUpdateTxStatus, mockApi)
+      expect(submitAndHandleTransaction).toHaveBeenCalled()
     })
 
     it('should handle missing app config', async () => {
@@ -697,15 +647,15 @@ describe('Ledger Client', () => {
     it('should get remove identity fee successfully', async () => {
       const expectedFee = new BN('50000000')
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: mockApi })
-      vi.mocked(prepareRemoveIdentityTransaction).mockResolvedValueOnce(mockApi.tx.balances.transfer)
+      vi.mocked(prepareRemoveIdentityTransaction).mockResolvedValueOnce(mockApiTransfer)
       vi.mocked(getTxFee).mockResolvedValueOnce(expectedFee)
 
       const result = await ledgerClient.getRemoveIdentityFee('polkadot', mockAddress.address)
 
-      expect(result).toBe(expectedFee)
+      expect(result).toStrictEqual(expectedFee)
       expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
       expect(prepareRemoveIdentityTransaction).toHaveBeenCalledWith(mockApi, mockAddress.address)
-      expect(getTxFee).toHaveBeenCalledWith(mockApi.tx.balances.transfer, mockAddress.address)
+      expect(getTxFee).toHaveBeenCalledWith(mockApiTransfer, mockAddress.address)
     })
 
     it('should handle missing app config', async () => {
@@ -718,11 +668,9 @@ describe('Ledger Client', () => {
   describe('getMigrationTxInfo', () => {
     beforeEach(() => {
       vi.mocked(validateMigrationParams).mockReturnValue({
-        isValid: true,
-        balance: mockAddress.balances?.[0],
+        balances: mockAddress.balances ?? [],
         senderAddress: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
         senderPath: "m/44'/354'/0'/0/0",
-        receiverAddress: '5Receiver',
         appConfig: mockAppConfig,
         multisigInfo: undefined,
         accountType: AccountType.ACCOUNT,
@@ -731,62 +679,50 @@ describe('Ledger Client', () => {
 
     it('should get migration transaction info successfully', async () => {
       const expectedFee = new BN('50000000')
-      const expectedCallHash = '0xcallhash'
+      const expectedCallHash = prepareTransactionMock.callData ?? ''
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: mockApi })
-      vi.mocked(getTransferableAndNfts).mockReturnValue({
-        nftsToTransfer: [],
-        nativeAmount: new BN('500000000000'),
-        transferableAmount: new BN('500000000000'),
-      })
       vi.mocked(prepareTransaction).mockResolvedValueOnce({
         transfer: {
-          ...mockApi.tx.balances.transfer,
           method: {
             hash: {
-              toHex: () => expectedCallHash,
+              toHex: vi.fn(() => prepareTransactionMock.callData ?? ''),
             },
           },
         },
-        callData: expectedCallHash,
-      })
+      } as unknown as PreparedTransaction)
       vi.mocked(getTxFee).mockResolvedValueOnce(expectedFee)
 
-      const result = await ledgerClient.getMigrationTxInfo('polkadot', mockAddress, 0)
+      const result = await ledgerClient.getMigrationTxInfo('polkadot', mockAddress)
 
       expect(result).toEqual({
         fee: expectedFee,
         callHash: expectedCallHash,
       })
-      expect(validateMigrationParams).toHaveBeenCalledWith('polkadot', mockAddress, 0)
+      expect(validateMigrationParams).toHaveBeenCalledWith('polkadot', mockAddress)
       expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
     })
 
     it('should return undefined for invalid migration params', async () => {
-      vi.mocked(validateMigrationParams).mockReturnValue({ isValid: false })
+      vi.mocked(validateMigrationParams).mockImplementation(() => {
+        throw new InternalError(InternalErrorType.NO_BALANCE)
+      })
 
-      const result = await ledgerClient.getMigrationTxInfo('polkadot', mockAddress, 0)
-
-      expect(result).toBeUndefined()
+      await expect(ledgerClient.getMigrationTxInfo('polkadot', mockAddress)).rejects.toBeInstanceOf(InternalError)
     })
 
     it('should handle API connection failure', async () => {
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: undefined })
 
-      const result = await ledgerClient.getMigrationTxInfo('polkadot', mockAddress, 0)
+      const result = await ledgerClient.getMigrationTxInfo('polkadot', mockAddress)
 
       expect(result).toBeUndefined()
     })
 
     it('should handle transaction preparation failure', async () => {
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: mockApi })
-      vi.mocked(getTransferableAndNfts).mockReturnValue({
-        nftsToTransfer: [],
-        nativeAmount: new BN('500000000000'),
-        transferableAmount: new BN('500000000000'),
-      })
       vi.mocked(prepareTransaction).mockResolvedValueOnce(undefined)
 
-      const result = await ledgerClient.getMigrationTxInfo('polkadot', mockAddress, 0)
+      const result = await ledgerClient.getMigrationTxInfo('polkadot', mockAddress)
 
       expect(result).toBeUndefined()
     })
@@ -811,22 +747,17 @@ describe('Ledger Client', () => {
         appConfig: mockAppConfig,
         multisigInfo: { address: '5MultisigAddress', members: [], threshold: 2 },
         signerPath: "m/44'/354'/0'/0/1",
+        callHash: '0xcallhash',
+        signer: '5Signatory',
       })
     })
 
     it('should sign approve as multi transaction successfully', async () => {
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: mockApi })
-      vi.mocked(prepareApproveAsMultiTx).mockResolvedValueOnce(mockApi.tx.balances.transfer)
-      vi.mocked(prepareTransactionPayload).mockResolvedValueOnce({
-        transfer: mockApi.tx.balances.transfer,
-        payload: '0xpayload',
-        metadataHash: '0xhash',
-        nonce: 1,
-        proof1: '0xproof',
-        payloadBytes: new Uint8Array([1, 2, 3]),
-      })
+      vi.mocked(prepareApproveAsMultiTx).mockResolvedValueOnce(mockApiTransfer)
+      vi.mocked(prepareTransactionPayload).mockResolvedValueOnce(prepareTransactionPayloadMock)
       vi.mocked(ledgerService.signTransaction).mockResolvedValueOnce({
-        signature: '0xsignature',
+        signature: new Uint8Array([0, 1, 2, 3]) as unknown as Buffer<ArrayBufferLike>,
       })
 
       await ledgerClient.signApproveAsMultiTx(
@@ -845,15 +776,28 @@ describe('Ledger Client', () => {
       )
       expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
       expect(prepareApproveAsMultiTx).toHaveBeenCalled()
-      expect(ledgerService.signTransaction).toHaveBeenCalledWith("m/44'/354'/0'/0/1", new Uint8Array([1, 2, 3]), 'dot', '0xproof')
+      expect(ledgerService.signTransaction).toHaveBeenCalledWith(
+        "m/44'/354'/0'/0/1",
+        prepareTransactionPayloadMock.payloadBytes,
+        'dot',
+        prepareTransactionPayloadMock.proof1
+      )
     })
 
     it('should return undefined for invalid params', async () => {
-      vi.mocked(validateApproveAsMultiParams).mockReturnValue({ isValid: false })
+      vi.mocked(validateApproveAsMultiParams).mockImplementation(() => {
+        throw new InternalError(InternalErrorType.NO_BALANCE)
+      })
 
-      const result = await ledgerClient.signApproveAsMultiTx(mockFormData)
-
-      expect(result).toBeUndefined()
+      await expect(
+        ledgerClient.signApproveAsMultiTx(
+          mockFormData.appId,
+          mockMultisigAddress,
+          mockFormData.callHash,
+          mockFormData.signatoryAddress,
+          mockUpdateTxStatus
+        )
+      ).rejects.toBeInstanceOf(InternalError)
     })
 
     it('should handle API connection failure', async () => {
@@ -877,6 +821,7 @@ describe('Ledger Client', () => {
       appId: 'polkadot' as const,
       signatoryAddress: '5Signatory',
       signatoryPath: "m/44'/354'/0'/0/1",
+      callHash: '0xcallhash',
       callData: '0xcalldata',
     }
 
@@ -887,22 +832,17 @@ describe('Ledger Client', () => {
         multisigInfo: { address: '5MultisigAddress', members: [], threshold: 2 },
         signerPath: "m/44'/354'/0'/0/1",
         callData: '0xcalldata',
+        callHash: '0xcallhash',
+        signer: '5Signatory',
       })
     })
 
     it('should sign as multi transaction successfully', async () => {
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: mockApi })
-      vi.mocked(prepareAsMultiTx).mockResolvedValueOnce(mockApi.tx.balances.transfer)
-      vi.mocked(prepareTransactionPayload).mockResolvedValueOnce({
-        transfer: mockApi.tx.balances.transfer,
-        payload: '0xpayload',
-        metadataHash: '0xhash',
-        nonce: 1,
-        proof1: '0xproof',
-        payloadBytes: new Uint8Array([1, 2, 3]),
-      })
+      vi.mocked(prepareAsMultiTx).mockResolvedValueOnce(mockApiTransfer)
+      vi.mocked(prepareTransactionPayload).mockResolvedValueOnce(prepareTransactionPayloadMock)
       vi.mocked(ledgerService.signTransaction).mockResolvedValueOnce({
-        signature: '0xsignature',
+        signature: new Uint8Array([0, 1, 2, 3]) as unknown as Buffer<ArrayBufferLike>,
       })
 
       await ledgerClient.signAsMultiTx(
@@ -923,22 +863,29 @@ describe('Ledger Client', () => {
       )
       expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
       expect(prepareAsMultiTx).toHaveBeenCalled()
-      expect(ledgerService.signTransaction).toHaveBeenCalledWith("m/44'/354'/0'/0/1", new Uint8Array([1, 2, 3]), 'dot', '0xproof')
+      expect(ledgerService.signTransaction).toHaveBeenCalledWith(
+        "m/44'/354'/0'/0/1",
+        prepareTransactionPayloadMock.payloadBytes,
+        'dot',
+        prepareTransactionPayloadMock.proof1
+      )
     })
 
     it('should return undefined for invalid params', async () => {
-      vi.mocked(validateAsMultiParams).mockReturnValue({ isValid: false })
+      vi.mocked(validateAsMultiParams).mockImplementation(() => {
+        throw new InternalError(InternalErrorType.NO_BALANCE)
+      })
 
-      const result = await ledgerClient.signAsMultiTx(
-        mockFormData.appId,
-        mockMultisigAddress,
-        '0xcallhash',
-        mockFormData.callData,
-        mockFormData.signatoryAddress,
-        mockUpdateTxStatus
-      )
-
-      expect(result).toBeUndefined()
+      await expect(
+        ledgerClient.signAsMultiTx(
+          mockFormData.appId,
+          mockMultisigAddress,
+          '0xcallhash',
+          mockFormData.callData,
+          mockFormData.signatoryAddress,
+          mockUpdateTxStatus
+        )
+      ).rejects.toBeInstanceOf(InternalError)
     })
 
     it('should handle API connection failure', async () => {
@@ -998,19 +945,12 @@ describe('Ledger Client', () => {
 
     it('should remove proxies successfully', async () => {
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: mockApi })
-      vi.mocked(prepareRemoveProxiesTransaction).mockResolvedValueOnce(mockApi.tx.balances.transfer)
-      vi.mocked(prepareTransactionPayload).mockResolvedValueOnce({
-        transfer: mockApi.tx.balances.transfer,
-        payload: '0xpayload',
-        metadataHash: '0xhash',
-        nonce: 1,
-        proof1: '0xproof',
-        payloadBytes: new Uint8Array([1, 2, 3]),
-      })
+      vi.mocked(prepareRemoveProxiesTransaction).mockResolvedValueOnce(mockApiTransfer)
+      vi.mocked(prepareTransactionPayload).mockResolvedValueOnce(prepareTransactionPayloadMock)
       vi.mocked(ledgerService.signTransaction).mockResolvedValueOnce({
-        signature: '0xsignature',
+        signature: new Uint8Array([0, 1, 2, 3]) as unknown as Buffer<ArrayBufferLike>,
       })
-      vi.mocked(createSignedExtrinsic).mockReturnValue(mockApi.tx.balances.transfer)
+      vi.mocked(createSignedExtrinsic).mockReturnValue(mockApiTransfer)
       vi.mocked(submitAndHandleTransaction).mockResolvedValueOnce()
 
       await ledgerClient.removeProxies('polkadot', mockAddress.address, mockAddress.path, mockUpdateTxStatus)
@@ -1018,9 +958,14 @@ describe('Ledger Client', () => {
       expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
       expect(prepareRemoveProxiesTransaction).toHaveBeenCalledWith(mockApi)
       expect(prepareTransactionPayload).toHaveBeenCalledWith(mockApi, mockAddress.address, mockAppConfig, mockApi.tx.balances.transfer)
-      expect(ledgerService.signTransaction).toHaveBeenCalledWith(mockAddress.path, new Uint8Array([1, 2, 3]), 'dot', '0xproof')
+      expect(ledgerService.signTransaction).toHaveBeenCalledWith(
+        mockAddress.path,
+        prepareTransactionPayloadMock.payloadBytes,
+        'dot',
+        prepareTransactionPayloadMock.proof1
+      )
       expect(createSignedExtrinsic).toHaveBeenCalled()
-      expect(submitAndHandleTransaction).toHaveBeenCalledWith(mockApi.tx.balances.transfer, mockUpdateTxStatus, mockApi)
+      expect(submitAndHandleTransaction).toHaveBeenCalled()
     })
 
     it('should handle missing app config', async () => {
@@ -1034,12 +979,12 @@ describe('Ledger Client', () => {
     it('should get remove proxies fee successfully', async () => {
       const expectedFee = new BN('50000000')
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: mockApi })
-      vi.mocked(prepareRemoveProxiesTransaction).mockResolvedValueOnce(mockApi.tx.balances.transfer)
+      vi.mocked(prepareRemoveProxiesTransaction).mockResolvedValueOnce(mockApiTransfer)
       vi.mocked(getTxFee).mockResolvedValueOnce(expectedFee)
 
       const result = await ledgerClient.getRemoveProxiesFee('polkadot', mockAddress.address)
 
-      expect(result).toBe(expectedFee)
+      expect(result).toStrictEqual(expectedFee)
       expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
       expect(prepareRemoveProxiesTransaction).toHaveBeenCalledWith(mockApi)
       expect(getTxFee).toHaveBeenCalledWith(mockApi.tx.balances.transfer, mockAddress.address)
@@ -1057,19 +1002,12 @@ describe('Ledger Client', () => {
 
     it('should remove account index successfully', async () => {
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: mockApi })
-      vi.mocked(prepareRemoveAccountIndexTransaction).mockResolvedValueOnce(mockApi.tx.balances.transfer)
-      vi.mocked(prepareTransactionPayload).mockResolvedValueOnce({
-        transfer: mockApi.tx.balances.transfer,
-        payload: '0xpayload',
-        metadataHash: '0xhash',
-        nonce: 1,
-        proof1: '0xproof',
-        payloadBytes: new Uint8Array([1, 2, 3]),
-      })
+      vi.mocked(prepareRemoveAccountIndexTransaction).mockResolvedValueOnce(mockApiTransfer)
+      vi.mocked(prepareTransactionPayload).mockResolvedValueOnce(prepareTransactionPayloadMock)
       vi.mocked(ledgerService.signTransaction).mockResolvedValueOnce({
-        signature: '0xsignature',
+        signature: new Uint8Array([0, 1, 2, 3]) as unknown as Buffer<ArrayBufferLike>,
       })
-      vi.mocked(createSignedExtrinsic).mockReturnValue(mockApi.tx.balances.transfer)
+      vi.mocked(createSignedExtrinsic).mockReturnValue(mockApiTransfer)
       vi.mocked(submitAndHandleTransaction).mockResolvedValueOnce()
 
       await ledgerClient.removeAccountIndex('polkadot', mockAddress.address, '5GTest', mockAddress.path, mockUpdateTxStatus)
@@ -1077,9 +1015,14 @@ describe('Ledger Client', () => {
       expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
       expect(prepareRemoveAccountIndexTransaction).toHaveBeenCalledWith(mockApi, '5GTest')
       expect(prepareTransactionPayload).toHaveBeenCalledWith(mockApi, mockAddress.address, mockAppConfig, mockApi.tx.balances.transfer)
-      expect(ledgerService.signTransaction).toHaveBeenCalledWith(mockAddress.path, new Uint8Array([1, 2, 3]), 'dot', '0xproof')
+      expect(ledgerService.signTransaction).toHaveBeenCalledWith(
+        mockAddress.path,
+        prepareTransactionPayloadMock.payloadBytes,
+        'dot',
+        prepareTransactionPayloadMock.proof1
+      )
       expect(createSignedExtrinsic).toHaveBeenCalled()
-      expect(submitAndHandleTransaction).toHaveBeenCalledWith(mockApi.tx.balances.transfer, mockUpdateTxStatus, mockApi)
+      expect(submitAndHandleTransaction).toHaveBeenCalled()
     })
 
     it('should handle missing app config', async () => {
@@ -1093,12 +1036,12 @@ describe('Ledger Client', () => {
     it('should get remove account index fee successfully', async () => {
       const expectedFee = new BN('50000000')
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: mockApi })
-      vi.mocked(prepareRemoveAccountIndexTransaction).mockResolvedValueOnce(mockApi.tx.balances.transfer)
+      vi.mocked(prepareRemoveAccountIndexTransaction).mockResolvedValueOnce(mockApiTransfer)
       vi.mocked(getTxFee).mockResolvedValueOnce(expectedFee)
 
       const result = await ledgerClient.getRemoveAccountIndexFee('polkadot', mockAddress.address, '5GTest')
 
-      expect(result).toBe(expectedFee)
+      expect(result).toStrictEqual(expectedFee)
       expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
       expect(prepareRemoveAccountIndexTransaction).toHaveBeenCalledWith(mockApi, '5GTest')
       expect(getTxFee).toHaveBeenCalledWith(mockApi.tx.balances.transfer, mockAddress.address)
@@ -1129,7 +1072,7 @@ describe('Ledger Client', () => {
 
     it('should handle fee calculation error', async () => {
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({ api: mockApi })
-      vi.mocked(prepareRemoveAccountIndexTransaction).mockResolvedValueOnce(mockApi.tx.balances.transfer)
+      vi.mocked(prepareRemoveAccountIndexTransaction).mockResolvedValueOnce(mockApiTransfer)
       vi.mocked(getTxFee).mockRejectedValueOnce(new Error('Fee calculation failed'))
 
       const result = await ledgerClient.getRemoveAccountIndexFee('polkadot', mockAddress.address, '5GTest')

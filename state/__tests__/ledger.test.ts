@@ -1,8 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BN } from '@polkadot/util'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { mockAddress1 } from '@/lib/__tests__/utils/__mocks__/mockData'
+import { InternalErrorType } from 'config/errors'
 import { AppStatus, ledgerState$ } from '../ledger'
-import { AccountType, AddressStatus, BalanceType } from '../types/ledger'
+import { AccountType } from '../types/ledger'
 
 // Mock dependencies
 vi.mock('../client/ledger', () => ({
@@ -284,12 +286,14 @@ describe('Ledger State', () => {
       name: 'Polkadot',
       rpcEndpoint: 'wss://rpc.polkadot.io',
       token: { symbol: 'DOT', decimals: 10 },
+      bip44Path: "m/44'/354'/0'/0/0",
+      ss58Prefix: 0,
     }
 
     it('should return error app when synchronization fails', async () => {
       const { ledgerClient } = await import('../client/ledger')
       vi.mocked(ledgerClient.synchronizeAccounts).mockResolvedValueOnce({
-        result: null,
+        result: undefined,
       })
 
       const result = await ledgerState$.fetchAndProcessAccountsForApp(mockApp)
@@ -303,11 +307,11 @@ describe('Ledger State', () => {
       const { getApiAndProvider } = await import('@/lib/account')
 
       vi.mocked(ledgerClient.synchronizeAccounts).mockResolvedValueOnce({
-        result: [{ address: '1test', path: "m/44'/354'/0'/0'/0'", publicKey: new Uint8Array() }],
+        result: [{ address: '1test', path: "m/44'/354'/0'/0'/0'", pubKey: '0x123' }],
       })
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({
-        api: null,
-        provider: null,
+        api: undefined,
+        provider: undefined,
       })
 
       const result = await ledgerState$.fetchAndProcessAccountsForApp(mockApp)
@@ -370,7 +374,7 @@ describe('Ledger State', () => {
     const mockAddress = {
       address: '1test',
       path: "m/44'/354'/0'/0'/0'",
-      publicKey: new Uint8Array(),
+      pubKey: '0x123',
       balances: [],
     }
 
@@ -385,8 +389,8 @@ describe('Ledger State', () => {
     it('should handle API connection failure', async () => {
       const { getApiAndProvider } = await import('@/lib/account')
       vi.mocked(getApiAndProvider).mockResolvedValueOnce({
-        api: null,
-        provider: null,
+        api: undefined,
+        provider: undefined,
       })
 
       await ledgerState$.getAccountBalance('polkadot', AccountType.ACCOUNT, mockAddress)
@@ -430,47 +434,11 @@ describe('Ledger State', () => {
   })
 
   describe('migrateAccount', () => {
-    const mockAccount = {
-      address: '1test',
-      path: "m/44'/354'/0'/0'/0'",
-      publicKey: new Uint8Array(),
-      balances: [
-        {
-          type: BalanceType.NATIVE,
-          amount: new BN(1000000000000),
-          status: AddressStatus.CAN_MIGRATE,
-        },
-      ],
-    }
-
     it('should handle migrate account method call', async () => {
-      const _result = await ledgerState$.migrateAccount('polkadot', mockAccount)
+      const _result = await ledgerState$.migrateAccount('polkadot', mockAddress1)
 
       // Method should exist and be callable
       expect(typeof ledgerState$.migrateAccount).toBe('function')
-      // The result may be undefined for invalid cases, which is acceptable
-    })
-  })
-
-  describe('migrateBalance', () => {
-    const mockAccount = {
-      address: '1test',
-      path: "m/44'/354'/0'/0'/0'",
-      publicKey: new Uint8Array(),
-      balances: [
-        {
-          type: BalanceType.NATIVE,
-          amount: new BN(1000000000000),
-          status: AddressStatus.CAN_MIGRATE,
-        },
-      ],
-    }
-
-    it('should handle migrate balance method call', async () => {
-      const _result = await ledgerState$.migrateBalance('polkadot', mockAccount, 0)
-
-      // Method should exist and be callable
-      expect(typeof ledgerState$.migrateBalance).toBe('function')
       // The result may be undefined for invalid cases, which is acceptable
     })
   })
@@ -542,10 +510,12 @@ describe('Ledger State', () => {
       const mockAccount = {
         address: '1multisig',
         path: "m/44'/354'/0'/0'/0'",
-        publicKey: new Uint8Array(),
+        pubKey: '0x123',
         balances: [],
         threshold: 2,
         signatories: ['1signer1', '1signer2'],
+        members: [],
+        pendingMultisigCalls: [],
       }
 
       it('should handle approve multisig call method', async () => {
@@ -556,6 +526,7 @@ describe('Ledger State', () => {
           otherSignatories: ['1signer1', '1signer2'],
           maxWeight: { refTime: new BN(1000000), proofSize: new BN(64000) },
           when: { height: 1000, index: 0 },
+          signer: '1signer1',
         }
         const updateStatus = vi.fn()
 
@@ -581,8 +552,7 @@ describe('Ledger State', () => {
 
     describe('getMigrationTxInfo', () => {
       it('should handle migration tx info retrieval', async () => {
-        const _result = await ledgerState$.getMigrationTxInfo('polkadot', '1test', 0)
-
+        const _result = await ledgerState$.getMigrationTxInfo('polkadot', mockAddress1)
         expect(typeof ledgerState$.getMigrationTxInfo).toBe('function')
         // Result may be undefined for invalid cases, which is acceptable
       })
@@ -613,7 +583,13 @@ describe('Ledger State', () => {
 
     describe('Error handling', () => {
       it('should handle synchronization errors correctly', () => {
-        const mockError = { errorType: 'SYNC_ERROR', description: 'Test sync error' }
+        const mockError = {
+          errorType: InternalErrorType.SYNC_ERROR,
+          description: 'Test sync error',
+          title: 'Sync Error',
+          name: 'SyncError',
+          message: 'Test sync error',
+        }
 
         const shouldStop = ledgerState$.handleError(mockError)
 
@@ -622,7 +598,13 @@ describe('Ledger State', () => {
       })
 
       it('should handle migration errors correctly', () => {
-        const mockError = { errorType: 'MIGRATION_ERROR', description: 'Test migration error' }
+        const mockError = {
+          errorType: InternalErrorType.MIGRATION_ERROR,
+          description: 'Test migration error',
+          title: 'Migration Error',
+          name: 'MigrationError',
+          message: 'Test migration error',
+        }
 
         const shouldStop = ledgerState$.handleError(mockError)
 
@@ -630,7 +612,13 @@ describe('Ledger State', () => {
       })
 
       it('should handle connection errors correctly', () => {
-        const mockError = { errorType: 'CONNECTION_ERROR', description: 'Test connection error' }
+        const mockError = {
+          errorType: InternalErrorType.CONNECTION_ERROR,
+          description: 'Test connection error',
+          title: 'Connection Error',
+          name: 'ConnectionError',
+          message: 'Test connection error',
+        }
 
         const shouldStop = ledgerState$.handleError(mockError)
 

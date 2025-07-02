@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import type { AppId } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { getTransactionStatus } from '@/lib/utils/ui'
-import { type Transaction, TransactionStatus } from '@/state/types/ledger'
+import type { Transaction } from '@/state/types/ledger'
 
 /**
  * TransactionStatusBody
@@ -54,9 +54,7 @@ function TransactionStatusBody({
   return (
     <div className="w-full flex flex-col items-center space-y-4">
       {statusIcon}
-      <span className="text-base font-medium max-w-[80%] text-center">
-        {status === TransactionStatus.IS_LOADING ? 'Please sign the transaction in your Ledger device' : statusMessage}
-      </span>
+      <span className="text-base font-medium max-w-[80%] text-center">{statusMessage}</span>
       {details.length > 0 && renderTransactionDetails()}
     </div>
   )

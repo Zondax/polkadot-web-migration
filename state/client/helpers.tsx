@@ -1,16 +1,14 @@
-import { type AppId, appsConfigs } from 'config/apps'
-import { InternalErrorType } from 'config/errors'
 import type { MultisigInfo } from '@/lib/account'
 import { hasBalance, InternalError, isMultisigAddress } from '@/lib/utils'
+import { type AppId, appsConfigs } from 'config/apps'
+import { InternalErrorType } from 'config/errors'
 import { AccountType, type Address, type AddressBalance, type MultisigAddress } from '../types/ledger'
 
 // Interface for the return value of validateMigrationParams
 export interface ValidateMigrationParamsResult {
-  isValid: true
-  balance: AddressBalance
+  balances: AddressBalance[]
   senderAddress: string
   senderPath: string
-  receiverAddress: string
   appConfig: NonNullable<ReturnType<typeof appsConfigs.get>>
   multisigInfo?: MultisigInfo
   accountType: AccountType
@@ -42,23 +40,19 @@ export const validateMultisigParams = (account: MultisigAddress): { multisigInfo
 }
 
 // Helper function to validate migration parameters
-export const validateMigrationParams = (
-  appId: AppId,
-  account: Address | MultisigAddress,
-  balanceIndex: number
-): ValidateMigrationParamsResult => {
+export const validateMigrationParams = (appId: AppId, account: Address | MultisigAddress): ValidateMigrationParamsResult => {
   const isMultisig = isMultisigAddress(account)
-  const balance = account.balances?.[balanceIndex]
+  const balances = account.balances
 
-  if (!balance) {
-    console.warn(`Balance at index ${balanceIndex} not found for ${isMultisig ? 'multisig' : ''}account ${account.address} in app ${appId}`)
+  if (!balances || balances.length === 0) {
+    console.warn(`Balance not found for ${isMultisig ? 'multisig' : ''}account ${account.address} in app ${appId}`)
     throw new InternalError(InternalErrorType.NO_BALANCE)
   }
 
-  const senderAddress = isMultisig ? balance.transaction?.signatoryAddress : account.address
+  const senderAddress = isMultisig ? balances[0]?.transaction?.signatoryAddress : account.address
   const senderPath = isMultisig ? account.members?.find(member => member.address === senderAddress)?.path : account.path
-  const receiverAddress = balance.transaction?.destinationAddress
-  const hasAvailableBalance = hasBalance([balance])
+  const hasReceiverAddresses = balances.every(balance => balance?.transaction?.destinationAddress)
+  const hasAvailableBalance = balances.every(balance => balance && hasBalance([balance]))
   const appConfig = appsConfigs.get(appId)
   let multisigInfo: MultisigInfo | undefined
 
@@ -68,23 +62,20 @@ export const validateMigrationParams = (
   if (!senderAddress || !senderPath) {
     throw new InternalError(InternalErrorType.NO_SIGNATORY_ADDRESS)
   }
-  if (!receiverAddress) {
+  if (!hasReceiverAddresses) {
     throw new InternalError(InternalErrorType.NO_RECEIVER_ADDRESS)
   }
   if (!hasAvailableBalance) {
-    throw new InternalError(InternalErrorType.NO_TRANSFER_AMOUNT)
+    throw new InternalError(InternalErrorType.NO_BALANCE)
   }
-
   if (isMultisig) {
     multisigInfo = validateMultisigParams(account as MultisigAddress).multisigInfo
   }
 
   return {
-    isValid: true,
-    balance,
+    balances,
     senderAddress,
     senderPath,
-    receiverAddress,
     appConfig,
     multisigInfo,
     accountType: isMultisig ? AccountType.MULTISIG : AccountType.ACCOUNT,

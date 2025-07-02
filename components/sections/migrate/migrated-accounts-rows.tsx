@@ -1,7 +1,7 @@
 'use client'
 
 import type { App } from 'state/ledger'
-import type { Address, MultisigAddress } from 'state/types/ledger'
+import type { MultisigAddress, Transaction } from 'state/types/ledger'
 
 import { CustomTooltip } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
@@ -29,9 +29,9 @@ const MigratedAccountRows = ({ app, multisigAddresses }: AccountRowsProps) => {
     return null
   }
 
-  const renderStatusIcon = (account: Address, balanceIndex: number) => {
-    const txStatus = account.balances?.[balanceIndex].transaction?.status
-    const txStatusMessage = account.balances?.[balanceIndex].transaction?.statusMessage
+  const renderStatusIcon = (transaction: Transaction | undefined) => {
+    const txStatus = transaction?.status
+    const txStatusMessage = transaction?.statusMessage
 
     const { statusIcon, statusMessage } = getTransactionStatus(txStatus, txStatusMessage)
 
@@ -39,8 +39,12 @@ const MigratedAccountRows = ({ app, multisigAddresses }: AccountRowsProps) => {
   }
 
   return accounts.map((account, accountIndex) => {
-    return account.balances?.map((balance, balanceIndex) => (
-      <TableRow key={`${app.id}-${account.address}-${accountIndex}-${balanceIndex}`} data-testid="migrate-accounts-table-row">
+    const balances = account.balances || []
+    if (!account.balances || account.balances.length === 0) {
+      return null
+    }
+    return (
+      <TableRow key={`${app.id}-${account.address}-${accountIndex}`}>
         {/* App Icon */}
         <TableCell className="px-2 hidden sm:table-cell">
           <div className="max-h-8 overflow-hidden [&_svg]:max-h-8 [&_svg]:w-8 flex justify-center items-center">
@@ -69,13 +73,18 @@ const MigratedAccountRows = ({ app, multisigAddresses }: AccountRowsProps) => {
         {/* Signatory Address */}
         {multisigAddresses && (
           <TableCell>
-            <ExplorerLink
-              value={balance.transaction?.signatoryAddress || '-'}
-              appId={app.id as AppId}
-              explorerLinkType={ExplorerItemType.Address}
-              hasCopyButton={Boolean(balance.transaction?.signatoryAddress)}
-              disableTooltip={!balance.transaction?.signatoryAddress}
-            />
+            <div className="flex flex-col gap-1">
+              {balances.map(balance => (
+                <ExplorerLink
+                  key={balance.type}
+                  value={balance.transaction?.signatoryAddress || '-'}
+                  appId={app.id as AppId}
+                  explorerLinkType={ExplorerItemType.Address}
+                  hasCopyButton={Boolean(balance.transaction?.signatoryAddress)}
+                  disableTooltip={!balance.transaction?.signatoryAddress}
+                />
+              ))}
+            </div>
           </TableCell>
         )}
         {/* Threshold */}
@@ -87,26 +96,44 @@ const MigratedAccountRows = ({ app, multisigAddresses }: AccountRowsProps) => {
           </TableCell>
         )}
         {/* Destination Address */}
-        <TableCell>
-          <ExplorerLink
-            value={balance.transaction?.destinationAddress || ''}
-            appId={app.id as AppId}
-            explorerLinkType={ExplorerItemType.Address}
-          />
+        <TableCell className="p-0!">
+          <div className="flex flex-col">
+            {balances.map((balance, balanceIndex) => (
+              <>
+                {balanceIndex !== 0 && <hr className="border-gray-200 my-0" />}
+                <div key={balance.type} className="py-4 px-8">
+                  <ExplorerLink
+                    value={balance.transaction?.destinationAddress || ''}
+                    appId={app.id as AppId}
+                    explorerLinkType={ExplorerItemType.Address}
+                  />
+                </div>
+              </>
+            ))}
+          </div>
         </TableCell>
         {/* Balance */}
-        <TableCell>
-          <BalanceHoverCard balances={[balance]} collections={collections} token={app.token} isMigration />
+        <TableCell className="p-0!">
+          <div className="flex flex-col justify-center min-h-full">
+            {balances.map((balance, balanceIndex) => (
+              <div key={balance.type}>
+                {balanceIndex !== 0 && <hr className="border-gray-200 my-0" />}
+                <div className="my-4 mx-8 h-8 flex items-center">
+                  <BalanceHoverCard balances={[balance]} collections={collections} token={app.token} isMigration />
+                </div>
+              </div>
+            ))}
+          </div>
         </TableCell>
         {/* Status */}
         <TableCell>
           <div className="flex items-center space-x-2">
-            {renderStatusIcon(account, balanceIndex)}
-            {balance.transaction && <TransactionDropdown transaction={balance.transaction} appId={app.id as AppId} />}
+            {renderStatusIcon(account.transaction)}
+            {account.transaction && <TransactionDropdown transaction={account.transaction} appId={app.id as AppId} />}
           </div>
         </TableCell>
       </TableRow>
-    ))
+    )
   })
 }
 
