@@ -4,6 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { InternalErrorType } from '@/config/errors'
 import { prepareTransaction } from '../account'
 import { mockAppConfig as importedMockAppConfig, mockApi, mockMethod, mockNft1, mockNft2 } from './utils/__mocks__/mockData'
+import { TEST_ADDRESSES } from '@/tests/fixtures/addresses'
+
+// Mock address validation to prevent failures during testing
+vi.mock('@polkadot/util-crypto', () => ({
+  decodeAddress: vi.fn().mockReturnValue(new Uint8Array(32)),
+}))
 
 vi.mock('@polkadot-api/merkleize-metadata', () => ({
   merkleizeMetadata: vi.fn(() => ({
@@ -14,8 +20,9 @@ vi.mock('@polkadot-api/merkleize-metadata', () => ({
 
 // Mocks
 const mockNFTs = [{ ...mockNft1 }, { ...mockNft2, isUnique: true }]
-const mockSender = 'sender'
-const mockReceiver = 'receiver'
+// Use valid SS58 addresses for testing
+const mockSender = TEST_ADDRESSES.ALICE
+const mockReceiver = TEST_ADDRESSES.ADDRESS1
 
 // Use imported mockAppConfig
 const mockAppConfig = importedMockAppConfig

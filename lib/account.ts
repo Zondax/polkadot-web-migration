@@ -53,7 +53,82 @@ const getRetryDelay = (attempt: number): number => {
   return Math.min(1000 * 2 ** attempt, 10000) // Max 10 seconds
 }
 
+/**
+ * Validates RPC endpoint security
+ */
+function validateRpcEndpoint(endpoint: string): void {
+  if (!endpoint || typeof endpoint !== 'string') {
+    throw new InternalError(InternalErrorType.INVALID_RPC_ENDPOINT)
+  }
+
+  // Only allow WSS protocol
+  if (!endpoint.startsWith('wss://')) {
+    throw new Error('Only WSS endpoints are allowed')
+  }
+
+  try {
+    const url = new URL(endpoint)
+
+    // Prevent connection to private/localhost IPs
+    const privateIpPatterns = [
+      /^127\./,
+      /^10\./,
+      /^192\.168\./,
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./,
+      /^169\.254\./,
+      /^localhost$/i,
+      /^0\.0\.0\.0$/
+    ]
+
+    if (privateIpPatterns.some(pattern => pattern.test(url.hostname))) {
+      throw new Error('Private IP addresses are not allowed')
+    }
+
+    // Domain allowlist for Polkadot ecosystem
+    const approvedDomains = [
+      'polkadot.io',
+      'parity.io', 
+      'onfinality.io',
+      'dwellir.com',
+      'aca-api.network',
+      'ibp.network',
+      'astar.network',
+      'bifrostnetwork.com',
+      'jelliedowl.net',
+      'pendulumchain.tech'
+    ]
+
+    const isApprovedDomain = approvedDomains.some(domain =>
+      url.hostname === domain || url.hostname.endsWith(`.${domain}`)
+    )
+
+    if (!isApprovedDomain) {
+      throw new Error('Endpoint not in approved list')
+    }
+
+    // Validate allowed ports
+    const allowedPorts = ['443', '9944', '9933', '8080', '']
+    if (url.port && !allowedPorts.includes(url.port)) {
+      throw new Error('Port not in allowed list')
+    }
+
+    // Validate path (should be root or specific WebSocket paths)
+    if (url.pathname !== '/' && !url.pathname.startsWith('/public-ws') && !url.pathname.startsWith('/wss')) {
+      throw new Error('Suspicious URL path detected')
+    }
+
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('Invalid URL')) {
+      throw new Error('Invalid URL format')
+    }
+    throw error
+  }
+}
+
 export async function getApiAndProvider(rpcEndpoint: string): Promise<{ api?: ApiPromise; provider?: WsProvider; error?: string }> {
+  // Security validation first
+  validateRpcEndpoint(rpcEndpoint)
+  
   let retryCount = 0
   let currentProvider: WsProvider | undefined
 
@@ -331,10 +406,47 @@ export async function prepareTransaction(
   nativeAmount?: BN,
   multisigInfo?: MultisigInfo
 ) {
-  // Validate all NFTs
+  // Security validation: Check sender and receiver addresses
+  if (!senderAddress || typeof senderAddress !== 'string') {
+    throw new InternalError(InternalErrorType.INVALID_ADDRESS)
+  }
+  if (!receiverAddress || typeof receiverAddress !== 'string') {
+    throw new InternalError(InternalErrorType.INVALID_ADDRESS)
+  }
+  if (senderAddress === receiverAddress) {
+    throw new Error('Sender and receiver cannot be the same address')
+  }
+
+  // Security validation: Validate address format (basic SS58 check)
+  try {
+    decodeAddress(senderAddress)
+    decodeAddress(receiverAddress)
+  } catch (_error) {
+    throw new InternalError(InternalErrorType.INVALID_ADDRESS)
+  }
+
+  // Security validation: Check for negative or invalid amounts
+  if (nativeAmount !== undefined) {
+    if (nativeAmount.isNeg()) {
+      throw new Error('Transfer amount cannot be negative')
+    }
+    if (nativeAmount.isZero()) {
+      throw new Error('Transfer amount must be greater than zero')
+    }
+    // Check for amounts exceeding safe integer limits
+    if (nativeAmount.gt(new BN(Number.MAX_SAFE_INTEGER))) {
+      throw new Error('Transfer amount exceeds maximum safe value')
+    }
+  }
+
+  // Security validation: Validate NFT data
   for (const item of nfts) {
     if (item.collectionId === undefined || item.itemId === undefined) {
       throw new Error('Invalid item: must provide either amount for native transfer or collectionId and itemId for NFT transfer')
+    }
+    // Check for negative NFT IDs
+    if (Number(item.collectionId) < 0 || Number(item.itemId) < 0) {
+      throw new Error('NFT collection and item IDs must be non-negative')
     }
   }
 
@@ -971,28 +1083,54 @@ export async function getUniquesOwnedByAccount(address: string, apiOrEndpoint: s
  * @returns The HTTP URL to access the same content
  */
 export function ipfsToHttpUrl(ipfsUrl: string): string {
-  // List of public gateways to try
-  const gateways = [
-    'https://ipfs.io/ipfs/',
-    'https://gateway.ipfs.io/ipfs/',
-    'https://gateway.pinata.cloud/ipfs/',
-    'https://cloudflare-ipfs.com/ipfs/',
-  ]
-
-  // Gateway to use (default is the first one)
-  const gateway = gateways[0]
-
-  // Check if the URL is a valid IPFS URL
+  // Security validation: Check for malicious URL patterns
   if (!ipfsUrl || typeof ipfsUrl !== 'string') {
     return ipfsUrl
   }
 
+  // Prevent various attack vectors
+  const maliciousPatterns = [
+    /javascript:/i,
+    /data:/i,
+    /vbscript:/i,
+    /\.\.\/+/,  // Path traversal
+    /@/,        // Credential injection
+    /#.*@/,     // Fragment with credential
+    /\0/,       // Null byte
+    /<script/i, // XSS attempt
+  ]
+
+  if (maliciousPatterns.some(pattern => pattern.test(ipfsUrl))) {
+    throw new Error('Malicious IPFS URL detected')
+  }
+
+  // List of trusted public gateways
+  const trustedGateways = [
+    'https://ipfs.io/ipfs/',
+    'https://gateway.ipfs.io/ipfs/',
+    'https://cloudflare-ipfs.com/ipfs/',
+  ]
+
+  // Gateway to use (default is the first one)
+  const gateway = trustedGateways[0]
+
+  // Validate IPFS hash format (basic check)
+  const validIpfsHash = /^[a-zA-Z0-9]+$/
+
   // Replace the ipfs:// prefix with the gateway
   if (ipfsUrl.startsWith('ipfs://ipfs/')) {
-    return ipfsUrl.replace('ipfs://ipfs/', gateway)
+    const hash = ipfsUrl.replace('ipfs://ipfs/', '')
+    if (!validIpfsHash.test(hash)) {
+      throw new Error('Invalid IPFS hash format')
+    }
+    return gateway + hash
   }
   if (ipfsUrl.startsWith('ipfs://')) {
-    return ipfsUrl.replace('ipfs://', gateway)
+    const hash = ipfsUrl.replace('ipfs://', '')
+    if (!validIpfsHash.test(hash)) {
+      throw new Error('Invalid IPFS hash format')
+    }
+    return gateway + hash
   }
 
   return ipfsUrl
@@ -1005,22 +1143,47 @@ export function ipfsToHttpUrl(ipfsUrl: string): string {
  */
 export async function fetchFromIpfs<T>(ipfsUrl: string): Promise<T | null> {
   try {
-    // Convert IPFS URL to HTTP
+    // Convert IPFS URL to HTTP (includes security validation)
     const httpUrl = ipfsToHttpUrl(ipfsUrl)
 
-    // Make the HTTP request
-    const response = await fetch(httpUrl)
+    // Create timeout promise for security
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Request timeout')), 10000) // 10 second timeout
+    })
+
+    // Make the HTTP request with timeout
+    const response = await Promise.race([
+      fetch(httpUrl),
+      timeoutPromise
+    ])
 
     if (!response.ok) {
       console.error(`Error fetching from IPFS: ${response.status} ${response.statusText}`)
       return null
     }
 
-    // Try to parse the response as JSON
-    const data = await response.json()
+    // Check content type for security
+    const contentType = response.headers.get('content-type')
+    if (contentType && !contentType.includes('application/json') && !contentType.includes('text/')) {
+      console.error('Invalid content type for IPFS metadata')
+      return null
+    }
+
+    // Try to parse the response as JSON with size limit
+    const text = await response.text()
+    if (text.length > 100000) { // 100KB limit
+      console.error('IPFS response too large')
+      return null
+    }
+
+    const data = JSON.parse(text)
     return data as T
   } catch (error) {
-    console.error('Error fetching from IPFS:', error)
+    if (error instanceof Error && error.message === 'Request timeout') {
+      console.error('IPFS fetch timeout')
+    } else {
+      console.error('Error fetching from IPFS:', error)
+    }
     return null
   }
 }

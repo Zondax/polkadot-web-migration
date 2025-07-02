@@ -43,6 +43,8 @@ export enum InternalErrorType {
   GET_WITHDRAW_FEE_ERROR = 'get_withdraw_fee_error',
   INSUFFICIENT_BALANCE = 'insufficient_balance',
   INSUFFICIENT_BALANCE_TO_COVER_FEE = 'insufficient_balance_to_cover_fee',
+  INVALID_ADDRESS = 'invalid_address',
+  INVALID_RPC_ENDPOINT = 'invalid_rpc_endpoint',
   INVALID_STATE_ERROR = 'InvalidStateError',
   LEDGER_UNKNOWN_ERROR = 'ledger_unknown_error',
   LOCKED_DEVICE = 'locked_device',
@@ -291,6 +293,16 @@ export const errorDetails: ErrorDetailsMap = {
     title: 'Insufficient Balance to Cover Fee',
     description: 'Insufficient balance to cover the amount and the transaction fee.',
     content: 'Please ensure you have enough funds to cover the amount and the transaction fee.',
+  },
+  invalid_address: {
+    title: 'Invalid Address',
+    description: 'The provided address is not valid.',
+    content: 'Please ensure the address is a valid Substrate/Polkadot address.',
+  },
+  invalid_rpc_endpoint: {
+    title: 'Invalid RPC Endpoint',
+    description: 'The provided RPC endpoint is not valid or not allowed.',
+    content: 'Please use a valid WSS endpoint from an approved domain.',
   },
   InvalidStateError: {
     title: 'Invalid State Error',
