@@ -13,6 +13,18 @@ Welcome to the Polkadot Migration Assistant documentation. This guide will help 
   - 🔗 **Staking** - View balances, unstake tokens, withdraw funds
   - 👤 **Identity** - Manage and remove on-chain identities
   - 👥 **Multisig** - Handle multi-signature account operations
+- **[Migration Scenarios](./migration-scenarios.md)** - Real-world examples and step-by-step walkthroughs
+- **[Network-Specific Guides](./network-guides.md)** - Detailed information for each supported network
+
+### Support & Reference
+- **[FAQ](./faq.md)** - Frequently asked questions and quick answers
+- **[Troubleshooting](./troubleshooting.md)** - Comprehensive problem-solving guide
+- **[Security & Best Practices](./security-best-practices.md)** - Essential security guidelines
+
+### Technical Documentation
+- **[Technical Architecture](./technical-architecture.md)** - System design and implementation details
+- **[API & Integration](./api-integration.md)** - Developer integration documentation
+- **[Developer Guide](./developer-guide.md)** - Contributing and development guidelines
 
 ## 🚀 Quick Start
 
@@ -67,9 +79,11 @@ The Migration Assistant is designed with security as the top priority:
 - **App not found** - Ensure Polkadot Universal App is installed
 
 ### Getting Help
-- Check the troubleshooting section in each workflow guide
-- Review error messages carefully - they often contain specific guidance
-- Ensure your Ledger firmware is up to date
+- **Start with the [FAQ](./faq.md)** for quick answers to common questions
+- **Use the [Troubleshooting Guide](./troubleshooting.md)** for detailed problem-solving
+- **Review [Security Best Practices](./security-best-practices.md)** for safe usage
+- **Check network-specific information** in the [Network Guides](./network-guides.md)
+- **Review [Migration Scenarios](./migration-scenarios.md)** for examples similar to your situation
 
 ## 🔗 Resources
 
