@@ -78,6 +78,14 @@ export class LedgerService implements ILedgerService {
 
   /**
    * Initializes the Ledger transport
+   *
+   * This method creates a WebUSB transport connection to a Ledger device.
+   * It sets up the transport in the device connection object and registers
+   * a disconnect handler.
+   *
+   * @param onDisconnect - Optional callback function that will be called when the device disconnects
+   * @returns A promise that resolves to the initialized Transport instance
+   * @throws {ResponseError} If the transport initialization fails
    */
   async initializeTransport(onDisconnect?: () => void): Promise<Transport> {
     try {
@@ -110,6 +118,14 @@ export class LedgerService implements ILedgerService {
 
   /**
    * Establishes a connection to the Ledger device
+   *
+   * This method attempts to connect to a Ledger hardware device using WebUSB.
+   * It will initialize the transport if not already available and create a generic
+   * Polkadot app instance to communicate with the device.
+   *
+   * @param onDisconnect - Optional callback function that will be called when the device disconnects
+   * @returns A promise that resolves to a DeviceConnectionProps object containing transport, genericApp, and isAppOpen properties
+   * @throws {ResponseError} If the device is not found or connection fails
    */
   async establishDeviceConnection(onDisconnect?: () => void): Promise<DeviceConnectionProps | undefined> {
     console.debug('[ledgerService] Establishing device connection')
@@ -160,6 +176,11 @@ export class LedgerService implements ILedgerService {
 
   /**
    * Gets an account address from the Ledger device
+   * @param bip44Path - The BIP44 derivation path for the account
+   * @param ss58prefix - The SS58 address format prefix to use
+   * @param showAddrInDevice - Whether to display the address on the Ledger device for verification
+   * @returns A promise that resolves to a GenericeResponseAddress object containing the address
+   * @throws {ResponseError} If transport is not available or app is not open
    */
   async getAccountAddress(bip44Path: string, ss58prefix: number, showAddrInDevice: boolean): Promise<GenericeResponseAddress | undefined> {
     if (!this.deviceConnection?.transport) {

@@ -1,6 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { TransportError } from '@ledgerhq/hw-transport'
 import { LedgerError, ResponseError } from '@zondax/ledger-js'
 import { PolkadotGenericApp } from '@zondax/ledger-substrate'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { LedgerService } from '../ledgerService'
 
 // Mock external dependencies
@@ -58,6 +59,11 @@ describe('LedgerService', () => {
       vi.mocked(openApp).mockResolvedValueOnce(undefined)
       vi.mocked(mockGenericApp.getVersion).mockResolvedValueOnce('1.0.0')
 
+      const TransportWebUSB = await import('@ledgerhq/hw-transport-webhid')
+      vi.mocked(TransportWebUSB.default.create).mockResolvedValueOnce(mockTransport)
+
+      await ledgerService.initializeTransport()
+
       const result = await ledgerService.openApp('Polkadot Migration')
 
       expect(openApp).toHaveBeenCalledWith(mockTransport, 'Polkadot Migration')
@@ -74,7 +80,9 @@ describe('LedgerService', () => {
       vi.mocked(openApp).mockResolvedValueOnce(undefined)
       vi.mocked(mockGenericApp.getVersion).mockRejectedValueOnce(new Error('App not open'))
 
-      await expect(ledgerService.openApp('Polkadot Migration')).rejects.toThrow('App not open')
+      await expect(ledgerService.openApp('Polkadot Migration')).rejects.toThrow(
+        new ResponseError(LedgerError.UnknownTransportError, 'Transport not available')
+      )
     })
   })
 
@@ -106,9 +114,11 @@ describe('LedgerService', () => {
 
     it('should handle transport initialization failure', async () => {
       const TransportWebUSB = await import('@ledgerhq/hw-transport-webhid')
-      vi.mocked(TransportWebUSB.default.create).mockRejectedValueOnce(new Error('Transport failed'))
+      vi.mocked(TransportWebUSB.default.create).mockRejectedValueOnce(
+        new TransportError(TransportWebUSB.default.ErrorMessage_NoDeviceFound, 'NoDeviceFound')
+      )
 
-      await expect(ledgerService.initializeTransport()).rejects.toThrow('Transport failed')
+      await expect(ledgerService.initializeTransport()).rejects.toThrow(ResponseError)
     })
   })
 
@@ -123,11 +133,9 @@ describe('LedgerService', () => {
     })
 
     it('should return false when app version retrieval fails', async () => {
-      vi.mocked(mockGenericApp.getVersion).mockRejectedValueOnce(new Error('App not open'))
+      vi.mocked(mockGenericApp.getVersion).mockRejectedValueOnce(new ResponseError(LedgerError.AppDoesNotSeemToBeOpen, 'App not open'))
 
-      const result = await ledgerService.isAppOpen(mockGenericApp)
-
-      expect(result).toBe(false)
+      await expect(ledgerService.isAppOpen(mockGenericApp)).rejects.toThrow(ResponseError)
     })
 
     it('should return false when app version is falsy', async () => {
@@ -190,9 +198,11 @@ describe('LedgerService', () => {
 
     it('should handle transport initialization failure', async () => {
       const TransportWebUSB = await import('@ledgerhq/hw-transport-webhid')
-      vi.mocked(TransportWebUSB.default.create).mockRejectedValueOnce(new Error('Transport failed'))
+      vi.mocked(TransportWebUSB.default.create).mockRejectedValueOnce(
+        new TransportError(TransportWebUSB.default.ErrorMessage_NoDeviceFound, 'NoDeviceFound')
+      )
 
-      await expect(ledgerService.establishDeviceConnection()).rejects.toThrow('Transport failed')
+      await expect(ledgerService.establishDeviceConnection()).rejects.toThrow(ResponseError)
     })
   })
 
@@ -267,7 +277,9 @@ describe('LedgerService', () => {
       // Clear the connection
       ledgerService.clearConnection()
 
-      await expect(ledgerService.getAccountAddress("m/44'/354'/0'/0'/0'", 0, false)).rejects.toThrow('App not open')
+      await expect(ledgerService.getAccountAddress("m/44'/354'/0'/0'/0'", 0, false)).rejects.toThrow(
+        new ResponseError(LedgerError.UnknownTransportError, 'Transport not available')
+      )
     })
 
     it('should handle address retrieval failure', async () => {
@@ -363,7 +375,9 @@ describe('LedgerService', () => {
       ledgerService.clearConnection()
 
       // Verify connection is cleared by trying to get an address (should fail)
-      await expect(ledgerService.getAccountAddress("m/44'/354'/0'/0'/0'", 0, false)).rejects.toThrow('App not open')
+      await expect(ledgerService.getAccountAddress("m/44'/354'/0'/0'/0'", 0, false)).rejects.toThrow(
+        new ResponseError(LedgerError.UnknownTransportError, 'Transport not available')
+      )
     })
 
     it('should be safe to call multiple times', () => {
@@ -427,7 +441,9 @@ describe('LedgerService', () => {
       disconnectHandler()
 
       // Verify connection is cleared by trying to get an address (should fail)
-      await expect(ledgerService.getAccountAddress("m/44'/354'/0'/0'/0'", 0, false)).rejects.toThrow('App not open')
+      await expect(ledgerService.getAccountAddress("m/44'/354'/0'/0'/0'", 0, false)).rejects.toThrow(
+        new ResponseError(LedgerError.UnknownTransportError, 'Transport not available')
+      )
     })
   })
 

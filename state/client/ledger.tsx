@@ -790,7 +790,7 @@ export const ledgerClient = {
     ledgerService.disconnect()
   },
 
-  abortPendingCalls() {
-    ledgerService.abortPendingCalls()
+  abortPendingCall() {
+    ledgerService.abortPendingCall()
   },
 }

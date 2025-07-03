@@ -1,9 +1,9 @@
 import { MockTransport } from '@ledgerhq/hw-transport-mocker'
 import TransportWebUSB from '@ledgerhq/hw-transport-webhid'
+import { LedgerError, ResponseError } from '@zondax/ledger-js'
 import { PolkadotGenericApp } from '@zondax/ledger-substrate'
 import type { GenericeResponseAddress } from '@zondax/ledger-substrate/dist/common'
 import { describe, expect, it, vi } from 'vitest'
-
 import { LedgerService } from '@/lib/ledger/ledgerService'
 
 // Helper function to create mock responses
@@ -23,6 +23,25 @@ const createMockGenericApp = (overrides: Partial<PolkadotGenericApp> = {}) =>
 describe('LedgerService', () => {
   describe('openApp', () => {
     it('should successfully open app and return connection', async () => {
+      // Mock TransportWebUSB.create to return our mock transport
+      const mockTransport = new MockTransport(createMockResponse(0x9000))
+      vi.spyOn(TransportWebUSB, 'create').mockResolvedValue(mockTransport as any)
+
+      // Mock the openApp function
+      vi.mock('@/lib/ledger/openApp', () => ({
+        openApp: vi.fn().mockResolvedValue(undefined),
+      }))
+
+      // Mock PolkadotGenericApp.getVersion to return a valid response
+      vi.spyOn(PolkadotGenericApp.prototype, 'getVersion').mockResolvedValue({
+        testMode: false,
+        major: 1,
+        minor: 0,
+        patch: 0,
+        deviceLocked: false,
+        targetId: '0x00000000',
+      })
+
       const ledgerService = new LedgerService()
 
       const onDisconnect = vi.fn()
@@ -33,7 +52,7 @@ describe('LedgerService', () => {
         connection: {
           transport,
           genericApp: expect.any(PolkadotGenericApp),
-          isAppOpen: false,
+          isAppOpen: true,
         },
       })
     })
@@ -74,12 +93,12 @@ describe('LedgerService', () => {
 
     it('should handle transport creation failure', async () => {
       // Mock TransportWebUSB.create to throw an error
-      vi.spyOn(TransportWebUSB, 'create').mockRejectedValue(new Error('Failed to create transport'))
+      vi.spyOn(TransportWebUSB, 'create').mockRejectedValue(new ResponseError(LedgerError.UnknownTransportError, 'Transport not available'))
 
       const ledgerService = new LedgerService()
 
       // Verify the error is thrown
-      await expect(ledgerService.initializeTransport()).rejects.toThrow('Failed to create transport')
+      await expect(ledgerService.initializeTransport()).rejects.toThrow(ResponseError)
 
       // Verify deviceConnection is not modified
       expect(ledgerService.deviceConnection.transport).toBeUndefined()

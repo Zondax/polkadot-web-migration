@@ -280,7 +280,7 @@ export const ledgerState$ = observable({
         internalError.errorType === InternalErrorType.APP_DOES_NOT_SEE_TO_BE_OPEN ||
         internalError.errorType === InternalErrorType.APP_NOT_OPEN
       ) {
-        ledgerClient.openApp()
+        await ledgerClient.openApp()
       }
 
       return { connected: false, isAppOpen: false }
@@ -343,7 +343,7 @@ export const ledgerState$ = observable({
   // Stop synchronization without deleting already synchronized accounts
   cancelSynchronization() {
     ledgerState$.apps.isSyncCancelRequested.set(true)
-    ledgerClient.abortPendingCalls()
+    ledgerClient.abortPendingCall()
 
     // Set status to synchronized to indicate that the process was stopped
     ledgerState$.apps.status.set(AppStatus.SYNCHRONIZED)

@@ -1,4 +1,3 @@
-
 import { type LedgerError, ResponseError } from '@zondax/ledger-js'
 import { errorDetails, InternalErrorType, ledgerErrorToInternalErrorMap } from 'config/errors'
 
