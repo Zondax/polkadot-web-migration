@@ -35,8 +35,6 @@ export enum TransactionStatus {
 export interface Transaction extends TransactionDetails {
   status?: TransactionStatus
   statusMessage?: string
-  destinationAddress?: string
-  signatoryAddress?: string // Used in multisig transactions - address of the signatory address that will be used to sign the transaction
   nativeAmount?: BN // Native amount that takes into account the estimated fee
   estimatedFee?: BN
 }
@@ -46,6 +44,14 @@ export interface TransactionDetails {
   blockHash?: string
   blockNumber?: string
   callData?: string // Used in multisig transactions - call data of the transaction
+}
+
+/**
+ * Settings for preparing a blockchain transaction, such as destination and signatory addresses.
+ */
+export interface TransactionSettings {
+  destinationAddress?: string
+  signatoryAddress?: string // Used in multisig transactions - address of the signatory address that will be used to sign the transaction
 }
 
 /**
@@ -70,7 +76,7 @@ export type UpdateMigratedStatusFn = (appId: AppId, accountType: AccountType, ac
 export interface NativeBalance {
   type: BalanceType.NATIVE
   balance: Native
-  transaction?: Transaction
+  transaction?: TransactionSettings
 }
 
 /**
@@ -79,7 +85,7 @@ export interface NativeBalance {
 export interface NftBalance {
   type: BalanceType.UNIQUE | BalanceType.NFT
   balance: Nft[]
-  transaction?: Transaction
+  transaction?: TransactionSettings
 }
 
 /**

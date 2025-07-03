@@ -1,13 +1,13 @@
 import { use$, useObservable } from '@legendapp/state/react'
 import { useCallback, useState } from 'react'
-import { type App, AppStatus, ledgerState$ } from 'state/ledger'
+import { AppStatus, ledgerState$, type App } from 'state/ledger'
 
 import type { AppId } from '@/config/apps'
 import { filterInvalidSyncedApps, filterValidSyncedAppsWithBalances, hasAccountsWithErrors } from '@/lib/utils'
-import { AccountType, type Address, type MultisigAddress, type Transaction } from '@/state/types/ledger'
+import { AccountType, type TransactionSettings, type Address, type MultisigAddress } from '@/state/types/ledger'
 
 export type UpdateTransaction = (
-  transaction: Partial<Transaction>,
+  transaction: Partial<TransactionSettings>,
   appId: string,
   accountIndex: number,
   balanceIndex: number,
@@ -129,7 +129,7 @@ export const useSynchronization = (): UseSynchronizationReturn => {
 
   const updateTransaction = useCallback(
     // Partial transaction update: accepts a partial transaction object and merges it into the current transaction state
-    (partial: Partial<Transaction>, appId: string, accountIndex: number, balanceIndex: number, isMultisig = false) => {
+    (partial: Partial<TransactionSettings>, appId: string, accountIndex: number, balanceIndex: number, isMultisig = false) => {
       const appIndex = apps.findIndex(app => app.id === appId)
       if (appIndex !== -1) {
         const transaction =
