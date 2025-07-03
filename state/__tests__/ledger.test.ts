@@ -28,7 +28,7 @@ vi.mock('../client/ledger', () => ({
     getRemoveProxiesFee: vi.fn(),
     removeAccountIndex: vi.fn(),
     getRemoveAccountIndexFee: vi.fn(),
-    abortPendingCall: vi.fn(),
+    abortCall: vi.fn(),
     checkConnection: vi.fn(),
     openApp: vi.fn(),
   },
@@ -603,7 +603,7 @@ describe('Ledger State', () => {
 
       it('should handle connection errors correctly', async () => {
         const { ledgerClient } = await import('../client/ledger')
-        vi.mocked(ledgerClient.abortPendingCall).mockRejectedValueOnce(new Error('Connection error'))
+        vi.mocked(ledgerClient.abortCall).mockRejectedValueOnce(new Error('Connection error'))
 
         const shouldStop = ledgerState$.handleError(new InternalError(InternalErrorType.CONNECTION_ERROR))
 

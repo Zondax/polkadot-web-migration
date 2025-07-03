@@ -343,7 +343,7 @@ export const ledgerState$ = observable({
   // Stop synchronization without deleting already synchronized accounts
   cancelSynchronization() {
     ledgerState$.apps.isSyncCancelRequested.set(true)
-    ledgerClient.abortPendingCall()
+    ledgerClient.abortCall()
 
     // Set status to synchronized to indicate that the process was stopped
     ledgerState$.apps.status.set(AppStatus.SYNCHRONIZED)

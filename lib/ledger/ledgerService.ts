@@ -25,7 +25,7 @@ export interface ILedgerService {
   clearConnection(): void
   disconnect(): void
   isConnected(): boolean
-  abortPendingCall(): void
+  abortCall(): void
 }
 
 /**
@@ -39,7 +39,7 @@ export class LedgerService implements ILedgerService {
     isAppOpen: false,
   }
 
-  private pendingCall: (reason?: any) => void = () => {}
+  private call: (reason?: any) => void = () => {}
 
   // Handles transport disconnection
   private handleDisconnect = () => {
@@ -49,16 +49,16 @@ export class LedgerService implements ILedgerService {
       isAppOpen: false,
     }
 
-    this.pendingCall()
+    this.call()
     console.debug('[ledgerService] disconnecting')
   }
 
   /**
    * Aborts all pending calls to the Ledger device
    */
-  abortPendingCall(): void {
+  abortCall(): void {
     console.debug('[ledgerService] Aborting all pending calls')
-    this.pendingCall()
+    this.call()
   }
 
   /**
@@ -200,7 +200,7 @@ export class LedgerService implements ILedgerService {
     })
 
     // Store the reject function
-    this.pendingCall = rejectFn
+    this.call = rejectFn
 
     try {
       console.debug(`[ledgerService] Getting address for path: ${bip44Path}`)
@@ -209,7 +209,7 @@ export class LedgerService implements ILedgerService {
       return address
     } finally {
       // Remove the reject function after completion
-      this.pendingCall = () => {}
+      this.call = () => {}
     }
   }
 
