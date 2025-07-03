@@ -1,9 +1,9 @@
-import { observable } from '@legendapp/state'
-import { act, renderHook } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppId } from '@/config/apps'
 import type { App } from '@/state/ledger'
 import type { Address, MultisigAddress } from '@/state/types/ledger'
+import { observable } from '@legendapp/state'
+import { act, renderHook } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock the ledger state
 vi.mock('@/state/ledger', () => {
@@ -11,6 +11,13 @@ vi.mock('@/state/ledger', () => {
 
   return {
     ledgerState$: {
+      device: {
+        connection: {
+          transport: { get: vi.fn() },
+          genericApp: { get: vi.fn() },
+          get: vi.fn(),
+        },
+      },
       apps: {
         apps: mockApps,
         migrationResult: observable({
@@ -18,20 +25,34 @@ vi.mock('@/state/ledger', () => {
           total: 0,
         }),
         currentMigratedItem: observable(undefined),
+        status: { get: vi.fn() },
+        syncProgress: { get: vi.fn() },
+        isSyncCancelRequested: { get: vi.fn() },
+        polkadotApp: { accounts: [] },
       },
-      verifyDestinationAddresses: vi.fn(),
-      migrateSelected: vi.fn(),
-      clearSynchronization: vi.fn(),
+      polkadotAddresses: {
+        polkadot: { get: vi.fn() },
+      },
+      getAccountBalance: vi.fn(),
+      synchronizeAccount: vi.fn(),
       synchronizeAccounts: vi.fn(),
+      cancelSynchronization: vi.fn(),
+      clearSynchronization: vi.fn(),
+    },
+    AppStatus: {
+      LOADING: 'loading',
+      SYNCHRONIZED: 'synchronized',
+      ERROR: 'error',
+      RESCANNING: 'rescanning',
     },
   }
 })
 
 // Import after mock to avoid hoisting issues
 import { ledgerState$ } from '@/state/ledger'
-import { useMigration } from '../hooks/useMigration'
+import { useSynchronization } from '../hooks/useSynchronization'
 
-describe('useMigration hook', () => {
+describe('useSynchronization hook', () => {
   beforeEach(() => {
     // Reset the apps state before each test
     ledgerState$.apps.apps.set([])
@@ -57,7 +78,7 @@ describe('useMigration hook', () => {
       ledgerState$.apps.apps.set([testApp as App])
 
       // Render the hook
-      const { result } = renderHook(() => useMigration())
+      const { result } = renderHook(() => useSynchronization())
 
       // Toggle the account selection
       act(() => {
@@ -95,7 +116,7 @@ describe('useMigration hook', () => {
       ledgerState$.apps.apps.set([testApp as App])
 
       // Render the hook
-      const { result } = renderHook(() => useMigration())
+      const { result } = renderHook(() => useSynchronization())
 
       // Toggle the multisig account selection
       act(() => {
@@ -125,7 +146,7 @@ describe('useMigration hook', () => {
       ledgerState$.apps.apps.set([testApp as App])
 
       // Render the hook
-      const { result } = renderHook(() => useMigration())
+      const { result } = renderHook(() => useSynchronization())
 
       // Set the account selection explicitly to false
       act(() => {
@@ -162,7 +183,7 @@ describe('useMigration hook', () => {
       ledgerState$.apps.apps.set(testApps as App[])
 
       // Render the hook
-      const { result } = renderHook(() => useMigration())
+      const { result } = renderHook(() => useSynchronization())
 
       // Select all accounts
       act(() => {
@@ -193,7 +214,7 @@ describe('useMigration hook', () => {
       ledgerState$.apps.apps.set(testApps as App[])
 
       // Render the hook
-      const { result } = renderHook(() => useMigration())
+      const { result } = renderHook(() => useSynchronization())
 
       // Deselect all accounts
       act(() => {
@@ -225,7 +246,7 @@ describe('useMigration hook', () => {
       ledgerState$.apps.apps.set(testApps as App[])
 
       // Render the hook
-      const { result } = renderHook(() => useMigration())
+      const { result } = renderHook(() => useSynchronization())
 
       // Select all accounts
       act(() => {

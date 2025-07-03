@@ -46,7 +46,7 @@ vi.mock('@/lib/utils', () => ({
   hasAccountsWithErrors: vi.fn(() => false),
 }))
 
-import { ledgerState$, AppStatus } from '@/state/ledger'
+import { AppStatus, ledgerState$ } from '@/state/ledger'
 import { useSynchronization } from '../useSynchronization'
 
 describe('useSynchronization hook', () => {
@@ -200,6 +200,55 @@ describe('useSynchronization hook', () => {
 
       // Should complete without throwing
       expect(result.current.isRescaning).toBe(false)
+    })
+  })
+
+  describe('selection actions', () => {
+    it('should provide toggle account selection function', () => {
+      const { result } = renderHook(() => useSynchronization())
+
+      // Method should exist and be callable
+      expect(typeof result.current.toggleAccountSelection).toBe('function')
+
+      // Test that it doesn't throw with invalid parameters
+      expect(() => {
+        result.current.toggleAccountSelection('nonexistent', 'nonexistent', true)
+      }).not.toThrow()
+    })
+
+    it('should provide toggle all accounts function', () => {
+      const { result } = renderHook(() => useSynchronization())
+
+      // Method should exist and be callable
+      expect(typeof result.current.toggleAllAccounts).toBe('function')
+
+      // Test that it doesn't throw
+      expect(() => {
+        result.current.toggleAllAccounts(true)
+      }).not.toThrow()
+    })
+  })
+
+  describe('toggleAllAccounts', () => {
+    it('should handle apps without accounts gracefully', () => {
+      const mockAppsWithoutAccounts = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          // No accounts or multisigAccounts
+        },
+      ]
+
+      vi.mocked(ledgerState$.apps.apps.get).mockReturnValue(mockAppsWithoutAccounts as any)
+
+      const { result } = renderHook(() => useSynchronization())
+
+      // Should not throw when toggling accounts for apps without accounts
+      expect(() => {
+        act(() => {
+          result.current.toggleAllAccounts(true)
+        })
+      }).not.toThrow()
     })
   })
 })

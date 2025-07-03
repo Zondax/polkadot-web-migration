@@ -1,3 +1,17 @@
+import { CustomTooltip, TooltipBody, type TooltipItem } from '@/components/CustomTooltip'
+import { ExplorerLink } from '@/components/ExplorerLink'
+import type { ToggleAccountSelection, UpdateTransaction } from '@/components/hooks/useSynchronization'
+import { Spinner } from '@/components/icons'
+import { Badge } from '@/components/ui/badge'
+import { Button, type ButtonProps } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { TableCell, TableRow } from '@/components/ui/table'
+import type { AppId, Token } from '@/config/apps'
+import { ExplorerItemType } from '@/config/explorers'
+import { formatBalance, isMultisigAddress as isMultisigAddressFunction } from '@/lib/utils'
+import { canUnstake, hasStakedBalance, isNativeBalance } from '@/lib/utils/balance'
+import { getIdentityItems } from '@/lib/utils/ui'
 import { observer } from '@legendapp/state/react'
 import { BN } from '@polkadot/util'
 import type { CheckedState } from '@radix-ui/react-checkbox'
@@ -21,21 +35,6 @@ import {
 import { useCallback, useState } from 'react'
 import type { Collections } from 'state/ledger'
 import type { Address, AddressBalance, MultisigAddress, MultisigMember } from 'state/types/ledger'
-import { CustomTooltip, TooltipBody, type TooltipItem } from '@/components/CustomTooltip'
-import { ExplorerLink } from '@/components/ExplorerLink'
-import { useMigration } from '@/components/hooks/useMigration'
-import type { UpdateTransaction } from '@/components/hooks/useSynchronization'
-import { Spinner } from '@/components/icons'
-import { Badge } from '@/components/ui/badge'
-import { Button, type ButtonProps } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { TableCell, TableRow } from '@/components/ui/table'
-import type { AppId, Token } from '@/config/apps'
-import { ExplorerItemType } from '@/config/explorers'
-import { formatBalance, isMultisigAddress as isMultisigAddressFunction } from '@/lib/utils'
-import { canUnstake, hasStakedBalance, isNativeBalance } from '@/lib/utils/balance'
-import { getIdentityItems } from '@/lib/utils/ui'
 import { BalanceHoverCard, NativeBalanceHoverCard } from './balance-hover-card'
 import { BalanceType } from './balance-visualizations'
 import DestinationAddressSelect from './destination-address-select'
@@ -58,6 +57,8 @@ interface AccountBalanceRowProps {
   polkadotAddresses: string[]
   updateTransaction: UpdateTransaction
   appId: AppId
+  toggleAccountSelection: ToggleAccountSelection
+  isSelected: boolean
 }
 
 interface Action {
@@ -80,8 +81,9 @@ const SynchronizedAccountRow = ({
   polkadotAddresses,
   updateTransaction,
   appId,
+  toggleAccountSelection,
+  isSelected,
 }: AccountBalanceRowProps) => {
-  const { toggleAccountSelection } = useMigration()
   const [unstakeOpen, setUnstakeOpen] = useState<boolean>(false)
   const [withdrawOpen, setWithdrawOpen] = useState<boolean>(false)
   const [removeIdentityOpen, setRemoveIdentityOpen] = useState<boolean>(false)
@@ -431,7 +433,7 @@ const SynchronizedAccountRow = ({
       {isFirst && (
         <TableCell className="py-2 text-sm" rowSpan={rowSpan}>
           <div className="flex items-center gap-2">
-            <Checkbox checked={account.selected} onCheckedChange={handleCheckboxChange} />
+            <Checkbox checked={isSelected} onCheckedChange={handleCheckboxChange} />
 
             <ExplorerLink
               value={account.address ?? ''}

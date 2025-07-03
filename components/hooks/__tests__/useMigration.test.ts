@@ -88,8 +88,6 @@ describe('useMigration hook', () => {
       expect(typeof result.current.verifyFailedAddresses).toBe('function')
       expect(typeof result.current.migrateSelected).toBe('function')
       expect(typeof result.current.restartSynchronization).toBe('function')
-      expect(typeof result.current.toggleAccountSelection).toBe('function')
-      expect(typeof result.current.toggleAllAccounts).toBe('function')
     })
   })
 
@@ -209,32 +207,6 @@ describe('useMigration hook', () => {
     })
   })
 
-  describe('selection actions', () => {
-    it('should provide toggle account selection function', () => {
-      const { result } = renderHook(() => useMigration())
-
-      // Method should exist and be callable
-      expect(typeof result.current.toggleAccountSelection).toBe('function')
-
-      // Test that it doesn't throw with invalid parameters
-      expect(() => {
-        result.current.toggleAccountSelection('nonexistent', 'nonexistent', true)
-      }).not.toThrow()
-    })
-
-    it('should provide toggle all accounts function', () => {
-      const { result } = renderHook(() => useMigration())
-
-      // Method should exist and be callable
-      expect(typeof result.current.toggleAllAccounts).toBe('function')
-
-      // Test that it doesn't throw
-      expect(() => {
-        result.current.toggleAllAccounts(true)
-      }).not.toThrow()
-    })
-  })
-
   describe('verification status', () => {
     it('should provide verification status properties', () => {
       const { result } = renderHook(() => useMigration())
@@ -287,37 +259,10 @@ describe('useMigration hook', () => {
       const { result, rerender } = renderHook(() => useMigration())
 
       const initialMigrateSelected = result.current.migrateSelected
-      const initialToggleAccountSelection = result.current.toggleAccountSelection
-      const initialToggleAllAccounts = result.current.toggleAllAccounts
 
       rerender()
 
       expect(result.current.migrateSelected).toBe(initialMigrateSelected)
-      expect(result.current.toggleAccountSelection).toBe(initialToggleAccountSelection)
-      expect(result.current.toggleAllAccounts).toBe(initialToggleAllAccounts)
-    })
-  })
-
-  describe('toggleAllAccounts', () => {
-    it('should handle apps without accounts gracefully', () => {
-      const mockAppsWithoutAccounts = [
-        {
-          id: 'polkadot',
-          name: 'Polkadot',
-          // No accounts or multisigAccounts
-        },
-      ]
-
-      vi.mocked(ledgerState$.apps.apps.get).mockReturnValue(mockAppsWithoutAccounts as any)
-
-      const { result } = renderHook(() => useMigration())
-
-      // Should not throw when toggling accounts for apps without accounts
-      expect(() => {
-        act(() => {
-          result.current.toggleAllAccounts(true)
-        })
-      }).not.toThrow()
     })
   })
 })
