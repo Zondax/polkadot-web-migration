@@ -56,7 +56,7 @@ function SynchronizedAccountsTable({
             polkadotAddresses={polkadotAddresses}
             updateTransaction={updateTransaction}
             appId={appId}
-            isSelected={account.selected}
+            isSelected={account.selected ?? false}
             toggleAccountSelection={toggleAccountSelection}
           />
         )
@@ -75,7 +75,7 @@ function SynchronizedAccountsTable({
           polkadotAddresses={polkadotAddresses}
           updateTransaction={updateTransaction}
           appId={appId}
-          isSelected={account.selected}
+          isSelected={account.selected ?? false}
           toggleAccountSelection={toggleAccountSelection}
         />
       ))
