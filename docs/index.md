@@ -3,6 +3,12 @@ title: 'Polkadot Migration App'
 description: 'A user-friendly assistant for migrating to the new Polkadot Universal Ledger App.'
 ---
 
+:::info The following project has been funded by the Web3 Foundation.
+
+<img src={require('./assets/web3grant.png').default} alt="drawing" width="300" />
+
+:::
+
 # Introduction
 
 Launched on July 1, 2024, the new **Polkadot Universal Ledger App** delivers a major upgrade for users managing assets across the Polkadot ecosystem. By consolidating support for multiple Substrate-based chains into a single, secure application, it streamlines asset management across networks such as Kusama, AssetHub, Acala, Ajuna, Bifrost, HydraDX, and many others.
