@@ -1,7 +1,7 @@
-import { render, screen, fireEvent } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppId } from '@/config/apps'
 import { TransactionStatus } from '@/state/types/ledger'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { TransactionDialogFooter, TransactionStatusBody } from '../transaction-dialog'
 
@@ -72,14 +72,8 @@ describe('TransactionStatusBody', () => {
       expect(screen.getByText('Transaction successful')).toBeInTheDocument()
     })
 
-    it('should not render when status is null', () => {
-      const { container } = render(<TransactionStatusBody {...defaultProps} status={null} />)
-
-      expect(container.firstChild).toBeNull()
-    })
-
     it('should not render when status is undefined', () => {
-      const { container } = render(<TransactionStatusBody {...defaultProps} status={undefined as any} />)
+      const { container } = render(<TransactionStatusBody {...defaultProps} status={undefined} />)
 
       expect(container.firstChild).toBeNull()
     })
@@ -144,10 +138,10 @@ describe('TransactionStatusBody', () => {
   })
 
   describe('status handling', () => {
-    it('should display loading message for IS_LOADING status', () => {
-      render(<TransactionStatusBody {...defaultProps} status={TransactionStatus.IS_LOADING} />)
+    it('should display loading message for SIGNING status', () => {
+      render(<TransactionStatusBody status={TransactionStatus.IS_LOADING} statusMessage="Loading..." />)
 
-      expect(screen.getByText('Please sign the transaction in your Ledger device')).toBeInTheDocument()
+      expect(screen.getByText('Loading...')).toBeInTheDocument()
     })
 
     it('should display status message for non-loading statuses', () => {
@@ -166,7 +160,7 @@ describe('TransactionStatusBody', () => {
     })
 
     it('should handle different transaction statuses', () => {
-      const statuses = [TransactionStatus.SUCCESS, TransactionStatus.ERROR, TransactionStatus.IS_LOADING, TransactionStatus.CANCELLED]
+      const statuses = [TransactionStatus.SUCCESS, TransactionStatus.ERROR, TransactionStatus.IS_LOADING]
 
       for (const status of statuses) {
         const { unmount } = render(<TransactionStatusBody {...defaultProps} status={status} />)

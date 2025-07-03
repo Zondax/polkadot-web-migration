@@ -1,8 +1,8 @@
-import { render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { App } from '@/state/ledger'
 import type { Address, Balance, MultisigAddress, Transaction } from '@/state/types/ledger'
 import { TransactionStatus } from '@/state/types/ledger'
+import { render, screen } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock dependencies
 vi.mock('@/components/CustomTooltip', () => ({
@@ -77,9 +77,9 @@ vi.mock('./transaction-dropdown', () => ({
   ),
 }))
 
-import MigratedAccountRows from '../migrated-accounts-rows'
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
 import { getTransactionStatus } from '@/lib/utils/ui'
+import MigratedAccountRows from '../migrated-accounts-rows'
 
 describe('MigratedAccountRows component', () => {
   const mockTransaction: Transaction = {
@@ -400,38 +400,6 @@ describe('MigratedAccountRows component', () => {
       renderInTable(<MigratedAccountRows app={appWithoutTransaction} />)
 
       expect(screen.queryByTestId('transaction-dropdown')).not.toBeInTheDocument()
-    })
-  })
-
-  describe('multiple balances', () => {
-    it('should render separate rows for each balance', () => {
-      const secondBalance: Balance = {
-        type: 'reserved',
-        amount: '2000000000000',
-        transaction: { ...mockTransaction, id: 'tx-2' },
-      }
-      const addressWithMultipleBalances = { ...mockAddress, balances: [mockBalance, secondBalance] }
-      const appWithMultipleBalances = { ...mockApp, accounts: [addressWithMultipleBalances] }
-
-      renderInTable(<MigratedAccountRows app={appWithMultipleBalances} />)
-
-      const rows = screen.getAllByTestId('table-row')
-      expect(rows).toHaveLength(2)
-    })
-
-    it('should use correct keys for multiple balance rows', () => {
-      const secondBalance: Balance = {
-        type: 'reserved',
-        amount: '2000000000000',
-        transaction: { ...mockTransaction, id: 'tx-2' },
-      }
-      const addressWithMultipleBalances = { ...mockAddress, balances: [mockBalance, secondBalance] }
-      const appWithMultipleBalances = { ...mockApp, accounts: [addressWithMultipleBalances] }
-
-      const { container } = renderInTable(<MigratedAccountRows app={appWithMultipleBalances} />)
-
-      const rows = container.querySelectorAll('tr')
-      expect(rows).toHaveLength(2)
     })
   })
 

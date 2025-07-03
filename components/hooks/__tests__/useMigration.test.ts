@@ -47,10 +47,10 @@ vi.mock('@/lib/utils', () => ({
   filterValidSyncedAppsWithBalances: vi.fn(() => []),
 }))
 
+import { addDestinationAddressesFromAccounts, filterSelectedAccountsForMigration, filterValidSyncedAppsWithBalances } from '@/lib/utils'
 import { ledgerState$ } from '@/state/ledger'
 import { use$ } from '@legendapp/state/react'
 import { useMigration } from '../useMigration'
-import { addDestinationAddressesFromAccounts, filterSelectedAccountsForMigration, filterValidSyncedAppsWithBalances } from '@/lib/utils'
 
 describe('useMigration hook', () => {
   beforeEach(() => {

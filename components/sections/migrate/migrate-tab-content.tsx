@@ -32,6 +32,7 @@ export function MigrateTabContent({ onBack }: MigrateTabContentProps) {
     allVerified,
     verifySelectedAppsAddresses,
     migratingItem,
+    getCollectionsByAppId,
   } = useMigration()
   const userDismissedDialog = useRef(false)
 
@@ -175,7 +176,12 @@ export function MigrateTabContent({ onBack }: MigrateTabContentProps) {
       <AddressVerificationDialog open={showVerificationDialog} onClose={() => setShowVerificationDialog(false)} />
 
       {/* Migration Progress Dialog */}
-      <MigrationProgressDialog open={showMigrationProgressDialog} onClose={handleCloseMigrationDialog} migratingItem={migratingItem} />
+      <MigrationProgressDialog
+        open={showMigrationProgressDialog}
+        onClose={handleCloseMigrationDialog}
+        migratingItem={migratingItem}
+        getCollectionsByAppId={getCollectionsByAppId}
+      />
     </div>
   )
 }

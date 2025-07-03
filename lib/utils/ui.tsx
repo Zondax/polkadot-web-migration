@@ -40,6 +40,18 @@ export const getTransactionStatus = (
       statusIcon = <Spinner />
       statusMessage = 'Loading...'
       break
+    case TransactionStatus.PREPARING_TX:
+      statusIcon = <Spinner />
+      statusMessage = 'Preparing transaction...'
+      break
+    case TransactionStatus.SIGNING:
+      statusIcon = <Spinner />
+      statusMessage = 'Please sign the transaction in your Ledger device'
+      break
+    case TransactionStatus.SUBMITTING:
+      statusIcon = <Spinner />
+      statusMessage = 'Submitting transaction...'
+      break
     case TransactionStatus.PENDING:
       statusIcon = <Clock className={`${iconSize} text-muted-foreground`} />
       statusMessage = 'Transaction pending...'

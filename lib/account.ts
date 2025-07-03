@@ -1,6 +1,8 @@
+import { merkleizeMetadata } from '@polkadot-api/merkleize-metadata'
 import { ApiPromise, WsProvider } from '@polkadot/api'
 import type { SubmittableExtrinsic } from '@polkadot/api/types'
 import type { GenericExtrinsicPayload } from '@polkadot/types'
+import type { Option, u128, u32, Vec } from '@polkadot/types-codec'
 import type {
   AccountId32,
   Balance,
@@ -12,15 +14,13 @@ import type {
   StakingLedger,
 } from '@polkadot/types/interfaces'
 import type { ExtrinsicPayloadValue, ISubmittableResult } from '@polkadot/types/types/extrinsic'
-import type { Option, u32, u128, Vec } from '@polkadot/types-codec'
 import { BN, hexToU8a, u8aToBn } from '@polkadot/util'
 import { decodeAddress } from '@polkadot/util-crypto'
-import { merkleizeMetadata } from '@polkadot-api/merkleize-metadata'
 import type { AppConfig, AppId } from 'config/apps'
 import { DEFAULT_ERA_TIME_IN_HOURS, getEraTimeByAppId } from 'config/apps'
 import { defaultWeights, MULTISIG_WEIGHT_BUFFER } from 'config/config'
 import { errorDetails, InternalErrorType } from 'config/errors'
-import { errorAddresses, mockBalances } from 'config/mockData'
+import { errorAddresses, MINIMUM_AMOUNT, mockBalances } from 'config/mockData'
 import { getMultisigInfo } from 'lib/subscan'
 import {
   type AccountIndex,
@@ -33,7 +33,6 @@ import {
   type MultisigAddress,
   type MultisigCall,
   type Native,
-  type Nft,
   type NftsInfo,
   type Registration,
   type Staking,
@@ -246,7 +245,7 @@ export type UpdateTransactionStatus = (status: TransactionStatus, message?: stri
  * @param transfer - The transfer extrinsic.
  * @returns The prepared transaction data for signing.
  */
-interface PreparedTransactionPayload {
+export interface PreparedTransactionPayload {
   transfer: SubmittableExtrinsic<'promise', ISubmittableResult>
   payload: GenericExtrinsicPayload
   metadataHash: Uint8Array
@@ -311,77 +310,108 @@ export type MultisigInfo = {
   address: string
 }
 
+export interface PreparedTransaction extends PreparedTransactionPayload {
+  callData?: string
+  estimatedFee?: BN
+  nativeAmount?: BN
+}
+
 /**
  * Prepare a transaction to transfer assets (NFTs and/or native tokens)
  * @param api - The API instance.
  * @param senderAddress - The sender's address.
  * @param receiverAddress - The receiver's address.
- * @param transferableBalance - Current transferable balance of the sender.
- * @param nfts - Array of NFTs to transfer, each containing collectionId and itemId.
+ * @param balances - Array of balances to transfer.
  * @param appConfig - The app configuration.
- * @param nativeAmount - Optional amount of native tokens to transfer.
+ * @param multisigInfo - Optional multisig information.
  */
 export async function prepareTransaction(
   api: ApiPromise,
   senderAddress: string,
-  receiverAddress: string,
+  balances: AddressBalance[],
   transferableBalance: BN,
-  nfts: Array<Nft>,
   appConfig: AppConfig,
-  nativeAmount?: BN,
   multisigInfo?: MultisigInfo
-) {
-  // Validate all NFTs
-  for (const item of nfts) {
-    if (item.collectionId === undefined || item.itemId === undefined) {
-      throw new Error('Invalid item: must provide either amount for native transfer or collectionId and itemId for NFT transfer')
+): Promise<PreparedTransaction | undefined> {
+  // Collect NFTs and find native balance
+  const nftItems: { collectionId: number | string; itemId: number | string; isUnique?: boolean; receiverAddress?: string }[] = []
+  let nativeTransfer: { amount: BN; receiverAddress: string } | undefined
+  let partialFee: BN | undefined
+
+  for (const balance of balances) {
+    if (balance.type === BalanceType.NFT || balance.type === BalanceType.UNIQUE) {
+      for (const nft of balance.balance) {
+        nftItems.push({
+          collectionId: nft.collectionId,
+          itemId: nft.itemId,
+          isUnique: nft.isUnique,
+          receiverAddress: balance.transaction?.destinationAddress,
+        })
+      }
+    } else if (balance.type === BalanceType.NATIVE && balance.balance.transferable.gt(new BN(0))) {
+      if (!balance.transaction?.destinationAddress) {
+        throw new Error('Invalid item: must provide destinationAddress for native transfer')
+      }
+      nativeTransfer = {
+        amount:
+          process.env.NEXT_PUBLIC_NODE_ENV === 'development' && MINIMUM_AMOUNT ? new BN(MINIMUM_AMOUNT) : balance.balance.transferable,
+        receiverAddress: balance.transaction.destinationAddress,
+      }
     }
   }
 
-  if (!transferableBalance) throw new InternalError(InternalErrorType.INSUFFICIENT_BALANCE)
+  // Validate all NFTs
+  for (const item of nftItems) {
+    if (item.collectionId === undefined || item.itemId === undefined || !item.receiverAddress) {
+      throw new Error('Invalid item: must provide collectionId, itemId and receiverAddress for NFT transfer')
+    }
+  }
 
-  let calls: SubmittableExtrinsic<'promise', ISubmittableResult>[] = nfts.map(item => {
+  // Prepare NFT transfer calls
+  let calls: SubmittableExtrinsic<'promise', ISubmittableResult>[] = nftItems.map(item => {
     return !item.isUnique
-      ? api.tx.nfts.transfer(item.collectionId, item.itemId, receiverAddress)
-      : api.tx.uniques.transfer(item.collectionId, item.itemId, receiverAddress)
+      ? api.tx.nfts.transfer(item.collectionId, item.itemId, item.receiverAddress)
+      : api.tx.uniques.transfer(item.collectionId, item.itemId, item.receiverAddress)
   })
 
-  // Add native amount transfer if provided
-  if (nativeAmount !== undefined) {
+  if (transferableBalance.lte(new BN(0))) {
+    throw new InternalError(InternalErrorType.INSUFFICIENT_BALANCE)
+  }
+
+  // Handle native transfer last
+  if (nativeTransfer !== undefined) {
     // Build the transaction with the provided nativeAmount
-    const tempCalls = [...calls, api.tx.balances.transferKeepAlive(receiverAddress, nativeAmount)]
+    const tempCalls = [...calls, api.tx.balances.transferKeepAlive(nativeTransfer.receiverAddress, nativeTransfer.amount)]
     const tempTransfer = tempCalls.length > 1 ? api.tx.utility.batchAll(tempCalls) : tempCalls[0]
     // Calculate the fee
-    const { partialFee } = await tempTransfer.paymentInfo(senderAddress)
-    const partialFeeBN = new BN(partialFee)
+    const { partialFee: tempPartialFee } = await tempTransfer.paymentInfo(senderAddress)
+    partialFee = new BN(tempPartialFee)
 
     // Send the max amount of native tokens
-    if (nativeAmount.eq(transferableBalance)) {
-      const adjustedAmount = transferableBalance.sub(partialFeeBN)
-
-      if (adjustedAmount.lte(new BN(0))) {
+    if (nativeTransfer.amount.eq(transferableBalance)) {
+      nativeTransfer.amount = transferableBalance.sub(partialFee)
+      if (nativeTransfer.amount.lte(new BN(0))) {
         throw new InternalError(InternalErrorType.INSUFFICIENT_BALANCE)
       }
       // Rebuild the calls with the adjusted amount
-      calls = [...calls, api.tx.balances.transferKeepAlive(receiverAddress, adjustedAmount)]
+      calls = [...calls, api.tx.balances.transferKeepAlive(nativeTransfer.receiverAddress, nativeTransfer.amount)]
     } else {
-      const totalNeeded = partialFeeBN.add(nativeAmount)
+      const totalNeeded = partialFee.add(nativeTransfer.amount)
       if (transferableBalance.lt(totalNeeded)) {
         throw new InternalError(InternalErrorType.INSUFFICIENT_BALANCE_TO_COVER_FEE)
       }
-      calls.push(api.tx.balances.transferKeepAlive(receiverAddress, nativeAmount))
+      calls.push(api.tx.balances.transferKeepAlive(nativeTransfer.receiverAddress, nativeTransfer.amount))
     }
   }
 
   let transfer: SubmittableExtrinsic<'promise', ISubmittableResult> = calls.length > 1 ? api.tx.utility.batchAll(calls) : calls[0]
 
-  if (!nativeAmount) {
-    // No nativeAmount sent, only NFTs or other assets
-    // Calculate the fee and check if the balance is enough
-    const { partialFee } = await transfer.paymentInfo(senderAddress)
-    const partialFeeBN = new BN(partialFee)
-
-    if (transferableBalance.lt(partialFeeBN)) {
+  // No nativeTransfer sent, only NFTs or other assets
+  // Calculate the fee and check if the balance is enough
+  if (nativeTransfer === undefined) {
+    const { partialFee: tempPartialFee } = await transfer.paymentInfo(senderAddress)
+    partialFee = new BN(tempPartialFee)
+    if (transferableBalance.lt(partialFee)) {
       throw new InternalError(InternalErrorType.INSUFFICIENT_BALANCE)
     }
   }
@@ -403,16 +433,21 @@ export async function prepareTransaction(
     return undefined
   }
 
-  return { ...transferInfo, callData }
+  return { ...transferInfo, callData, estimatedFee: partialFee, nativeAmount: nativeTransfer?.amount }
 }
 
-export async function prepareUnstakeTransaction(api: ApiPromise, amount: BN): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>> {
+export async function prepareUnstakeTransaction(
+  api: ApiPromise,
+  amount: BN
+): Promise<SubmittableExtrinsic<'promise', ISubmittableResult> | undefined> {
   const unstakeTx: SubmittableExtrinsic<'promise', ISubmittableResult> = api.tx.staking.unbond(amount)
 
   return unstakeTx
 }
 
-export async function prepareWithdrawTransaction(api: ApiPromise): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>> {
+export async function prepareWithdrawTransaction(
+  api: ApiPromise
+): Promise<SubmittableExtrinsic<'promise', ISubmittableResult> | undefined> {
   const numSlashingSpans = 0
   const withdrawTx = api.tx.staking.withdrawUnbonded(numSlashingSpans) as SubmittableExtrinsic<'promise', ISubmittableResult>
 

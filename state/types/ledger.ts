@@ -1,6 +1,6 @@
 import type { BN } from '@polkadot/util'
 import type { GenericeResponseAddress } from '@zondax/ledger-substrate/dist/common'
-import type { AppId } from 'config/apps'
+import type { AppId, Token } from 'config/apps'
 
 /**
  * Status of an address in the migration process
@@ -14,6 +14,9 @@ export enum AddressStatus {
  * Status of a transaction through its lifecycle
  */
 export enum TransactionStatus {
+  PREPARING_TX = 'preparingTx',
+  SIGNING = 'signing',
+  SUBMITTING = 'submitting',
   IS_LOADING = 'isLoading',
   PENDING = 'pending',
   IN_BLOCK = 'inBlock',
@@ -32,8 +35,8 @@ export enum TransactionStatus {
 export interface Transaction extends TransactionDetails {
   status?: TransactionStatus
   statusMessage?: string
-  destinationAddress?: string
-  signatoryAddress?: string // Used in multisig transactions - address of the signatory address that will be used to sign the transaction
+  nativeAmount?: BN // Native amount that takes into account the estimated fee
+  estimatedFee?: BN
 }
 
 export interface TransactionDetails {
@@ -41,6 +44,14 @@ export interface TransactionDetails {
   blockHash?: string
   blockNumber?: string
   callData?: string // Used in multisig transactions - call data of the transaction
+}
+
+/**
+ * Settings for preparing a blockchain transaction, such as destination and signatory addresses.
+ */
+export interface TransactionSettings {
+  destinationAddress?: string
+  signatoryAddress?: string // Used in multisig transactions - address of the signatory address that will be used to sign the transaction
 }
 
 /**
@@ -57,15 +68,7 @@ export enum AccountType {
   ACCOUNT = 'account',
 }
 
-export type UpdateMigratedStatusFn = (
-  appId: AppId,
-  accountType: AccountType,
-  accountPath: string,
-  balanceType: BalanceType,
-  status: TransactionStatus,
-  message?: string,
-  txDetails?: TransactionDetails
-) => void
+export type UpdateMigratedStatusFn = (appId: AppId, accountType: AccountType, accountAddress: string, txDetails?: Transaction) => void
 
 /**
  * Balance information for an account
@@ -73,7 +76,7 @@ export type UpdateMigratedStatusFn = (
 export interface NativeBalance {
   type: BalanceType.NATIVE
   balance: Native
-  transaction?: Transaction
+  transaction?: TransactionSettings
 }
 
 /**
@@ -82,7 +85,7 @@ export interface NativeBalance {
 export interface NftBalance {
   type: BalanceType.UNIQUE | BalanceType.NFT
   balance: Nft[]
-  transaction?: Transaction
+  transaction?: TransactionSettings
 }
 
 /**
@@ -129,6 +132,7 @@ export interface Address extends GenericeResponseAddress {
   proxy?: AccountProxy
   index?: AccountIndex // base-58 AccountIndex string
   selected?: boolean
+  transaction?: Transaction
 }
 
 export enum VerificationStatus {
@@ -274,6 +278,7 @@ export interface AccountIndex {
 export interface MigratingItem {
   appId: AppId
   appName: string
+  token: Token
   account: Address
   transaction?: Transaction
 }

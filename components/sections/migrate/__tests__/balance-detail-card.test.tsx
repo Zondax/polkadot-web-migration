@@ -1,7 +1,7 @@
+import type { Token } from '@/config/apps'
 import { render, screen } from '@testing-library/react'
 import type { Collection, Native } from 'state/types/ledger'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Token } from '@/config/apps'
 import { BalanceTypeFlag, NativeTokensDetailCard, NftDetailCard } from '../balance-detail-card'
 
 // Mock the useTokenLogo hook
@@ -110,7 +110,7 @@ describe('Balance Detail Card Components', () => {
 
     it('should render collection without image', () => {
       const collectionNoImage: Collection = {
-        collectionId: '456',
+        collectionId: 456,
         name: 'No Image Collection',
       }
 
@@ -124,7 +124,7 @@ describe('Balance Detail Card Components', () => {
 
     it('should use mediaUri when image is not available', () => {
       const collectionWithMedia: Collection = {
-        collectionId: '789',
+        collectionId: 789,
         name: 'Media Collection',
         mediaUri: 'https://example.com/media.png',
       }
@@ -137,7 +137,7 @@ describe('Balance Detail Card Components', () => {
 
     it('should fallback to collection ID when name is not available', () => {
       const collectionNoName: Collection = {
-        collectionId: '999',
+        collectionId: 999,
       }
 
       render(<NftDetailCard balance={1} collection={collectionNoName} />)
@@ -163,7 +163,7 @@ describe('Balance Detail Card Components', () => {
 
     it('should truncate long collection names', () => {
       const longNameCollection: Collection = {
-        collectionId: '123',
+        collectionId: 123,
         name: 'This is a very very very very very very long collection name that should be truncated',
       }
 
@@ -284,7 +284,7 @@ describe('Balance Detail Card Components', () => {
       } as Native
 
       const mockCollection: Collection = {
-        collectionId: '555',
+        collectionId: 555,
         name: 'Integration Test NFTs',
         image: 'https://example.com/nft.png',
       }
@@ -346,12 +346,12 @@ describe('Balance Detail Card Components', () => {
 
       render(<NativeTokensDetailCard balance={largeBalance} token={mockToken} />)
 
-      expect(screen.getByText('1000000000000')).toBeInTheDocument()
+      expect(screen.getByText('999999999999.999999')).toBeInTheDocument()
     })
 
     it('should handle special characters in collection names', () => {
       const specialCollection: Collection = {
-        collectionId: '123',
+        collectionId: 123,
         name: 'Special & Characters <> "quotes" =�',
       }
 

@@ -1,10 +1,10 @@
-import { observable } from '@legendapp/state'
-import { use$ } from '@legendapp/state/react'
-import { useCallback, useEffect } from 'react'
-import { type App, ledgerState$ } from 'state/ledger'
 import type { AppId } from '@/config/apps'
 import { addDestinationAddressesFromAccounts, filterSelectedAccountsForMigration, filterValidSyncedAppsWithBalances } from '@/lib/utils'
 import { type AddressWithVerificationStatus, type MigratingItem, VerificationStatus } from '@/state/types/ledger'
+import { observable } from '@legendapp/state'
+import { use$ } from '@legendapp/state/react'
+import { useCallback, useEffect } from 'react'
+import { type App, type Collections, ledgerState$ } from 'state/ledger'
 
 interface UseMigrationReturn {
   // Computed values
@@ -32,6 +32,9 @@ interface UseMigrationReturn {
   // Selection actions
   toggleAccountSelection: (appId: AppId, accountAddress: string, checked?: boolean) => void
   toggleAllAccounts: (checked: boolean) => void
+
+  // Collections getter
+  getCollectionsByAppId: (appId: AppId) => Collections | undefined
 }
 
 // Create the observable outside of the hook to ensure it persists across renders
@@ -289,6 +292,20 @@ export const useMigration = (): UseMigrationReturn => {
     isVerifying$.set(false)
   }, [])
 
+  /**
+   * Get the collections for a given appId
+   */
+  const getCollectionsByAppId = useCallback(
+    (appId: AppId) => {
+      // Find the app by appId
+      const app = apps.find(app => app.id === appId)
+
+      // If the app has a 'collections' property, return it, otherwise return undefined
+      return app?.collections
+    },
+    [apps]
+  )
+
   return {
     // Computed values
     filteredAppsWithoutErrors: appsWithoutErrors,
@@ -315,5 +332,8 @@ export const useMigration = (): UseMigrationReturn => {
     // Selection actions
     toggleAccountSelection,
     toggleAllAccounts,
+
+    // Collections getter
+    getCollectionsByAppId,
   }
 }
