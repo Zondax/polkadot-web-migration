@@ -6,6 +6,10 @@ import type { GenericeResponseAddress } from '@zondax/ledger-substrate/dist/comm
 import { describe, expect, it, vi } from 'vitest'
 import { LedgerService } from '@/lib/ledger/ledgerService'
 
+// Constants for error handling
+const TRANSPORT_NOT_AVAILABLE_ERROR = new ResponseError(LedgerError.UnknownTransportError, 'Transport not available')
+const POLKADOT_MIGRATION_APP = 'Polkadot Migration'
+
 // Helper function to create mock responses
 const createMockResponse = (statusCode: number) =>
   Buffer.concat([
@@ -47,7 +51,7 @@ describe('LedgerService', () => {
       const onDisconnect = vi.fn()
       const transport = await ledgerService.initializeTransport(onDisconnect)
 
-      const result = await ledgerService.openApp('Polkadot Migration')
+      const result = await ledgerService.openApp(POLKADOT_MIGRATION_APP)
       expect(result).toEqual({
         connection: {
           transport,
@@ -59,7 +63,7 @@ describe('LedgerService', () => {
 
     it('should throw TransportStatusError when transport is undefined', async () => {
       const ledgerService = new LedgerService()
-      await expect(ledgerService.openApp('Polkadot Migration')).rejects.toThrow('Transport not available')
+      await expect(ledgerService.openApp(POLKADOT_MIGRATION_APP)).rejects.toThrow(TRANSPORT_NOT_AVAILABLE_ERROR)
     })
   })
 
@@ -93,7 +97,7 @@ describe('LedgerService', () => {
 
     it('should handle transport creation failure', async () => {
       // Mock TransportWebUSB.create to throw an error
-      vi.spyOn(TransportWebUSB, 'create').mockRejectedValue(new ResponseError(LedgerError.UnknownTransportError, 'Transport not available'))
+      vi.spyOn(TransportWebUSB, 'create').mockRejectedValue(TRANSPORT_NOT_AVAILABLE_ERROR)
 
       const ledgerService = new LedgerService()
 
