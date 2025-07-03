@@ -1,5 +1,5 @@
 import type { AppId } from '@/config/apps'
-import { addDestinationAddressesFromAccounts, filterSelectedAccountsForMigration, filterValidSyncedAppsWithBalances } from '@/lib/utils'
+import { addDestinationAddressesFromAccounts, filterValidSelectedAccountsForMigration } from '@/lib/utils'
 import { type AddressWithVerificationStatus, type MigratingItem, VerificationStatus } from '@/state/types/ledger'
 import { observable } from '@legendapp/state'
 import { use$ } from '@legendapp/state/react'
@@ -8,7 +8,6 @@ import { type App, type Collections, ledgerState$ } from 'state/ledger'
 
 interface UseMigrationReturn {
   // Computed values
-  filteredAppsWithoutErrors: App[]
   appsForMigration: App[]
   migrationResults: {
     success: number
@@ -56,9 +55,9 @@ export const useMigration = (): UseMigrationReturn => {
   const totalMigration = use$(ledgerState$.apps.migrationResult.total)
 
   // Compute derived values from apps
-  const appsWithoutErrors = use$(() => filterValidSyncedAppsWithBalances(apps))
-
-  const appsForMigration = use$(() => filterSelectedAccountsForMigration(appsWithoutErrors))
+  const appsForMigration = use$(() => {
+    return filterValidSelectedAccountsForMigration(apps)
+  })
 
   // Get destination addresses used for each app (only selected accounts)
   const destinationAddressesByApp = use$(() =>
@@ -215,8 +214,7 @@ export const useMigration = (): UseMigrationReturn => {
 
     try {
       // Get the current selected apps
-      const selectedApps = filterSelectedAccountsForMigration(appsForMigration)
-      const selectedAppIds = new Set(selectedApps.map(app => app.id as AppId))
+      const selectedAppIds = new Set(appsForMigration.map(app => app.id as AppId))
 
       // Iterate through each app and verify only addresses from selected apps
       for (const appId of Object.keys(destinationAddressesStatus$.peek())) {
@@ -308,7 +306,6 @@ export const useMigration = (): UseMigrationReturn => {
 
   return {
     // Computed values
-    filteredAppsWithoutErrors: appsWithoutErrors,
     appsForMigration,
     migrationResults: {
       success: successMigration,

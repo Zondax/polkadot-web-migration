@@ -99,16 +99,16 @@ const MigratedAccountRows = ({ app, multisigAddresses }: AccountRowsProps) => {
         <TableCell className="p-0!">
           <div className="flex flex-col">
             {balances.map((balance, balanceIndex) => (
-              <>
+              <div key={balance.type}>
                 {balanceIndex !== 0 && <hr className="border-gray-200 my-0" />}
-                <div key={balance.type} className="py-4 px-8">
+                <div className="py-4 px-8">
                   <ExplorerLink
                     value={balance.transaction?.destinationAddress || ''}
                     appId={app.id as AppId}
                     explorerLinkType={ExplorerItemType.Address}
                   />
                 </div>
-              </>
+              </div>
             ))}
           </div>
         </TableCell>

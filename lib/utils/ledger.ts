@@ -76,19 +76,35 @@ export const filterValidSyncedAppsWithBalances = (apps: App[]): App[] => {
 
 /**
  * Filters apps to only include those that have accounts that can be migrated.
- * This function filters for accounts that are selected and have not yet been migrated.
+ * This function filters for accounts that are selected and have a balance and destination address.
  *
  * @param apps - The apps to filter.
  * @returns Apps with accounts that can be migrated.
  */
-export const filterSelectedAccountsForMigration = (apps: App[]): App[] => {
-  return apps
+export const filterValidSelectedAccountsForMigration = (apps: App[]): App[] => {
+  const filteredApps = apps
     .map(app => ({
       ...app,
-      accounts: app.accounts?.filter(account => account.selected) || [],
-      multisigAccounts: app.multisigAccounts?.filter(account => account.selected) || [],
+      accounts:
+        app.accounts?.filter(
+          account =>
+            account.selected &&
+            (!account.error || account.error?.source === 'migration') &&
+            account.balances &&
+            account.balances.some(balance => hasBalance([balance], true) && balance.transaction?.destinationAddress)
+        ) || [],
+      multisigAccounts:
+        app.multisigAccounts?.filter(
+          account =>
+            account.selected &&
+            (!account.error || account.error?.source === 'migration') &&
+            account.balances &&
+            account.balances.some(balance => hasBalance([balance], true) && balance.transaction?.destinationAddress)
+        ) || [],
     }))
     .filter(app => app.accounts.length > 0 || app.multisigAccounts?.length > 0)
+
+  return filteredApps
 }
 
 /**

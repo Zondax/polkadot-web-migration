@@ -6,7 +6,6 @@ import { useEffect, useRef, useState } from 'react'
 
 import { useMigration } from '@/components/hooks/useMigration'
 import { Button } from '@/components/ui/button'
-import { hasBalance } from '@/lib/utils'
 
 import { AddressVerificationDialog } from './dialogs/address-verification-dialog'
 import { MigrationProgressDialog } from './dialogs/migration-progress-dialog'
@@ -75,28 +74,6 @@ export function MigrateTabContent({ onBack }: MigrateTabContentProps) {
   }
 
   const hasAddressesToVerify = appsForMigration.length > 0
-  // Filter accounts and multisigAccounts that have a balance and destination address (and signatory address if multisig)
-  const validApps = appsForMigration
-    .map(app => {
-      // Filter regular accounts
-      const filteredAccounts = (app.accounts || []).filter(account =>
-        (account.balances || []).some(balance => hasBalance([balance], true) && balance.transaction?.destinationAddress)
-      )
-
-      // Filter multisigAccounts (requires destinationAddress and signatoryAddress)
-      const filteredMultisigAccounts = (app.multisigAccounts || []).filter(account =>
-        (account.balances || []).some(
-          balance => hasBalance([balance], true) && balance.transaction?.destinationAddress && balance.transaction?.signatoryAddress
-        )
-      )
-
-      return {
-        ...app,
-        accounts: filteredAccounts,
-        multisigAccounts: filteredMultisigAccounts,
-      }
-    })
-    .filter(app => app.accounts.length > 0 || app.multisigAccounts?.length > 0)
 
   return (
     <div>
@@ -111,10 +88,12 @@ export function MigrateTabContent({ onBack }: MigrateTabContentProps) {
         )}
       </div>
 
-      {validApps.length > 0 ? (
+      {appsForMigration.length > 0 ? (
         <>
-          {validApps.some(app => app.accounts?.length > 0) && <MigratedAccountsTable apps={validApps} />}
-          {validApps.some(app => app.multisigAccounts?.length > 0) && <MigratedAccountsTable apps={validApps} multisigAddresses />}
+          {appsForMigration.some(app => app.accounts && app.accounts.length > 0) && <MigratedAccountsTable apps={appsForMigration} />}
+          {appsForMigration.some(app => app.multisigAccounts && app.multisigAccounts.length > 0) && (
+            <MigratedAccountsTable apps={appsForMigration} multisigAddresses />
+          )}
         </>
       ) : (
         <div className="border border-gray-200 rounded-lg p-8 text-center">

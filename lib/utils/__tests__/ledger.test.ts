@@ -1,6 +1,4 @@
-import { BN } from '@polkadot/util'
-import axios from 'axios'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { App } from '@/state/ledger'
 import { AppStatus } from '@/state/ledger'
 import {
   type Address,
@@ -11,13 +9,15 @@ import {
   type NativeBalance,
   VerificationStatus,
 } from '@/state/types/ledger'
-import type { App } from '@/state/ledger'
+import { BN } from '@polkadot/util'
+import axios from 'axios'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   addDestinationAddressesFromAccounts,
   filterAccountsForApps,
   filterInvalidSyncedApps,
-  filterSelectedAccountsForMigration,
+  filterValidSelectedAccountsForMigration,
   filterValidSyncedAppsWithBalances,
   getAppLightIcon,
   getAppTotalAccounts,
@@ -241,41 +241,147 @@ describe('ledger utilities', () => {
     })
   })
 
-  describe('filterSelectedAccountsForMigration', () => {
-    it('should filter only selected accounts', () => {
+  describe('filterValidSelectedAccountsForMigration', () => {
+    it('should filter only selected accounts with balances and destination address', () => {
+      const safeMockAddressBalances = mockAddress.balances ? mockAddress.balances : []
+      const safeMockMultisigBalances = mockMultisigAddress.balances ? mockMultisigAddress.balances : []
       const apps: App[] = [
         {
           ...mockApp,
           accounts: [
-            { ...mockAddress, selected: true },
-            { ...mockAddress, selected: false },
+            {
+              ...mockAddress,
+              selected: true,
+              balances: [
+                {
+                  ...safeMockAddressBalances[0],
+                  transaction: { destinationAddress: '5GDest1' },
+                },
+              ],
+            },
+            {
+              ...mockAddress,
+              selected: false,
+              balances: [
+                {
+                  ...safeMockAddressBalances[0],
+                  transaction: { destinationAddress: '5GDest2' },
+                },
+              ],
+            },
+            {
+              ...mockAddress,
+              selected: true,
+              balances: [
+                {
+                  ...safeMockAddressBalances[0],
+                  transaction: undefined, // No destination address
+                },
+              ],
+            },
           ],
           multisigAccounts: [
-            { ...mockMultisigAddress, selected: true },
-            { ...mockMultisigAddress, selected: false },
+            {
+              ...mockMultisigAddress,
+              selected: true,
+              balances: [
+                {
+                  ...safeMockMultisigBalances[0],
+                  transaction: { destinationAddress: '5GDest3' },
+                },
+              ],
+            },
+            {
+              ...mockMultisigAddress,
+              selected: false,
+              balances: [
+                {
+                  ...safeMockMultisigBalances[0],
+                  transaction: { destinationAddress: '5GDest4' },
+                },
+              ],
+            },
+            {
+              ...mockMultisigAddress,
+              selected: true,
+              balances: [
+                {
+                  ...safeMockMultisigBalances[0],
+                  transaction: undefined, // No destination address
+                },
+              ],
+            },
           ],
         },
       ]
 
-      const result = filterSelectedAccountsForMigration(apps)
+      const result = filterValidSelectedAccountsForMigration(apps)
 
       expect(result).toHaveLength(1)
-      expect(result[0].accounts).toHaveLength(1)
-      expect(result[0].multisigAccounts).toHaveLength(1)
-      expect(result[0].accounts[0].selected).toBe(true)
-      expect(result[0].multisigAccounts[0].selected).toBe(true)
+      expect(result[0]?.accounts?.length).toBe(1)
+      expect(result[0]?.multisigAccounts?.length).toBe(1)
+      expect(result[0]?.accounts?.[0]?.selected).toBe(true)
+      const accBalances = result[0]?.accounts?.[0]?.balances ?? []
+      expect(accBalances.length > 0 && accBalances[0]?.transaction?.destinationAddress).toBe('5GDest1')
+      expect(result[0]?.multisigAccounts?.[0]?.selected).toBe(true)
+      const msBalances = result[0]?.multisigAccounts?.[0]?.balances ?? []
+      expect(msBalances.length > 0 && msBalances[0]?.transaction?.destinationAddress).toBe('5GDest3')
     })
 
-    it('should exclude apps with no selected accounts', () => {
+    it('should exclude apps with no selected accounts with balances and destination address', () => {
+      const safeMockAddressBalances = mockAddress.balances ? mockAddress.balances : []
+      const safeMockMultisigBalances = mockMultisigAddress.balances ? mockMultisigAddress.balances : []
       const apps: App[] = [
         {
           ...mockApp,
-          accounts: [{ ...mockAddress, selected: false }],
-          multisigAccounts: [{ ...mockMultisigAddress, selected: false }],
+          accounts: [
+            {
+              ...mockAddress,
+              selected: false,
+              balances: [
+                {
+                  ...safeMockAddressBalances[0],
+                  transaction: { destinationAddress: '5GDest1' },
+                },
+              ],
+            },
+            {
+              ...mockAddress,
+              selected: true,
+              balances: [
+                {
+                  ...safeMockAddressBalances[0],
+                  transaction: undefined, // No destination address
+                },
+              ],
+            },
+          ],
+          multisigAccounts: [
+            {
+              ...mockMultisigAddress,
+              selected: false,
+              balances: [
+                {
+                  ...safeMockMultisigBalances[0],
+                  transaction: { destinationAddress: '5GDest2' },
+                },
+              ],
+            },
+            {
+              ...mockMultisigAddress,
+              selected: true,
+              balances: [
+                {
+                  ...safeMockMultisigBalances[0],
+                  transaction: undefined, // No destination address
+                },
+              ],
+            },
+          ],
         },
       ]
 
-      const result = filterSelectedAccountsForMigration(apps)
+      const result = filterValidSelectedAccountsForMigration(apps)
 
       expect(result).toHaveLength(0)
     })
