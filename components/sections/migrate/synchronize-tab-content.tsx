@@ -1,12 +1,7 @@
 'use client'
 
-import type { CheckedState } from '@radix-ui/react-checkbox'
-import { FolderSync, Info, Loader2, RefreshCw, User, Users, X } from 'lucide-react'
-import { useCallback, useMemo, useState } from 'react'
-import { AppStatus } from 'state/ledger'
 import { CustomTooltip } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
-import { useMigration } from '@/components/hooks/useMigration'
 import { useSynchronization } from '@/components/hooks/useSynchronization'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -14,6 +9,10 @@ import { Progress } from '@/components/ui/progress'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { polkadotAppConfig } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
+import type { CheckedState } from '@radix-ui/react-checkbox'
+import { FolderSync, Info, Loader2, RefreshCw, User, Users, X } from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
+import { AppStatus } from 'state/ledger'
 import AppScanningGrid from './app-scanning-grid'
 import EmptyStateRow from './empty-state-row'
 import SynchronizedApp from './synchronized-app'
@@ -47,11 +46,13 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
     restartSynchronization,
     cancelSynchronization,
     updateTransaction,
+
+    // Selection actions
+    toggleAllAccounts,
+    toggleAccountSelection,
   } = useSynchronization()
 
   const [activeView, setActiveView] = useState<AccountViewType>(AccountViewType.ALL)
-  // Get selection functions from useMigration
-  const { toggleAllAccounts } = useMigration()
 
   const handleMigrate = () => {
     onContinue()
@@ -232,10 +233,21 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
             appsWithoutErrors.map(app => (
               <div key={app.id.toString()} data-testid="synchronized-app-container">
                 {app.accounts && app.accounts.length > 0 && ['all', 'accounts'].includes(activeView) && (
-                  <SynchronizedApp key={app.id.toString()} app={app} updateTransaction={updateTransaction} />
+                  <SynchronizedApp
+                    key={app.id.toString()}
+                    app={app}
+                    updateTransaction={updateTransaction}
+                    toggleAccountSelection={toggleAccountSelection}
+                  />
                 )}
                 {app.multisigAccounts && app.multisigAccounts.length > 0 && ['all', 'multisig'].includes(activeView) && (
-                  <SynchronizedApp key={`${app.id}-multisig`} app={app} isMultisig updateTransaction={updateTransaction} />
+                  <SynchronizedApp
+                    key={`${app.id}-multisig`}
+                    app={app}
+                    isMultisig
+                    updateTransaction={updateTransaction}
+                    toggleAccountSelection={toggleAccountSelection}
+                  />
                 )}
               </div>
             ))
@@ -270,10 +282,23 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
           {appsWithErrors.map(app => (
             <div key={app.id.toString()}>
               {(app.error || (app.accounts && app.accounts.length > 0)) && (
-                <SynchronizedApp key={app.id.toString()} app={app} failedSync updateTransaction={updateTransaction} />
+                <SynchronizedApp
+                  key={app.id.toString()}
+                  app={app}
+                  failedSync
+                  updateTransaction={updateTransaction}
+                  toggleAccountSelection={toggleAccountSelection}
+                />
               )}
               {app.multisigAccounts && app.multisigAccounts.length > 0 && (
-                <SynchronizedApp key={`${app.id}-multisig`} app={app} failedSync isMultisig updateTransaction={updateTransaction} />
+                <SynchronizedApp
+                  key={`${app.id}-multisig`}
+                  app={app}
+                  failedSync
+                  isMultisig
+                  updateTransaction={updateTransaction}
+                  toggleAccountSelection={toggleAccountSelection}
+                />
               )}
             </div>
           ))}

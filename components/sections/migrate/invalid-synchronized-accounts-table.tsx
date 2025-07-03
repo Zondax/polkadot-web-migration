@@ -1,11 +1,10 @@
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import type { AppId, Token } from '@/config/apps'
 import { observer } from '@legendapp/state/react'
 import { motion } from 'framer-motion'
 import { useCallback } from 'react'
 import type { Collections } from 'state/ledger'
 import type { Address, MultisigAddress } from 'state/types/ledger'
-import type { UpdateTransaction } from '@/components/hooks/useSynchronization'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import type { AppId, Token } from '@/config/apps'
 import InvalidSynchronizedAccountRow from './invalid-synchronized-account-row'
 
 interface InvalidSynchronizedAccountsTableProps {
@@ -14,7 +13,6 @@ interface InvalidSynchronizedAccountsTableProps {
   polkadotAddresses: string[]
   collections?: Collections
   appId: AppId
-  updateTransaction: UpdateTransaction
   isMultisig?: boolean
 }
 
@@ -24,7 +22,6 @@ function InvalidSynchronizedAccountsTable({
   polkadotAddresses: _polkadotAddresses,
   collections: _collections,
   appId,
-  updateTransaction: _updateTransaction,
   isMultisig: _isMultisig,
 }: InvalidSynchronizedAccountsTableProps) {
   const renderAccounts = useCallback(() => {

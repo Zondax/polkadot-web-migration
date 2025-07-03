@@ -1,11 +1,11 @@
+import type { ToggleAccountSelection, UpdateTransaction } from '@/components/hooks/useSynchronization'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import type { AppId, Token } from '@/config/apps'
 import { observer } from '@legendapp/state/react'
 import { motion } from 'framer-motion'
 import { useCallback } from 'react'
 import type { Collections } from 'state/ledger'
 import type { Address, AddressBalance, MultisigAddress } from 'state/types/ledger'
-import type { UpdateTransaction } from '@/components/hooks/useSynchronization'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import type { AppId, Token } from '@/config/apps'
 import SynchronizedAccountRow from './synchronized-account-row'
 
 interface SynchronizedAccountsTableProps {
@@ -16,6 +16,7 @@ interface SynchronizedAccountsTableProps {
   appId: AppId
   updateTransaction: UpdateTransaction
   isMultisig?: boolean
+  toggleAccountSelection: ToggleAccountSelection
 }
 
 function SynchronizedAccountsTable({
@@ -26,6 +27,7 @@ function SynchronizedAccountsTable({
   appId,
   updateTransaction,
   isMultisig,
+  toggleAccountSelection,
 }: SynchronizedAccountsTableProps) {
   const renderAccounts = useCallback(() => {
     if (!accounts || accounts.length === 0) {
@@ -54,6 +56,8 @@ function SynchronizedAccountsTable({
             polkadotAddresses={polkadotAddresses}
             updateTransaction={updateTransaction}
             appId={appId}
+            isSelected={account.selected ?? false}
+            toggleAccountSelection={toggleAccountSelection}
           />
         )
       }
@@ -71,10 +75,12 @@ function SynchronizedAccountsTable({
           polkadotAddresses={polkadotAddresses}
           updateTransaction={updateTransaction}
           appId={appId}
+          isSelected={account.selected ?? false}
+          toggleAccountSelection={toggleAccountSelection}
         />
       ))
     })
-  }, [accounts, collections, token, polkadotAddresses, updateTransaction, appId])
+  }, [accounts, collections, token, polkadotAddresses, updateTransaction, appId, toggleAccountSelection])
 
   return (
     <motion.div

@@ -14,6 +14,8 @@ export type UpdateTransaction = (
   isMultisig: boolean
 ) => void
 
+export type ToggleAccountSelection = (appId: AppId, accountAddress: string, checked?: boolean) => void
+
 // Helper function to rescan accounts with errors for a given app and account type
 const rescanAccountsWithErrors = async (accounts: Address[] | MultisigAddress[], accountType: AccountType, appId: AppId) => {
   for (const account of accounts) {
@@ -54,6 +56,10 @@ interface UseSynchronizationReturn {
   restartSynchronization: () => void
   cancelSynchronization: () => void
   updateTransaction: UpdateTransaction
+
+  // Selection actions
+  toggleAccountSelection: ToggleAccountSelection
+  toggleAllAccounts: (checked: boolean) => void
 }
 
 /**
@@ -143,6 +149,56 @@ export const useSynchronization = (): UseSynchronizationReturn => {
     [apps]
   )
 
+  // ---- Account selection functions ----
+
+  /**
+   * Toggle selection state of a specific account
+   */
+  const toggleAccountSelection = useCallback(
+    (appId: AppId, accountAddress: string, checked?: boolean) => {
+      const apps = apps$.get()
+      const appIndex = apps.findIndex(app => app.id === appId)
+
+      const accountIndex = apps[appIndex]?.accounts?.findIndex(account => account.address === accountAddress) ?? -1
+      const multisigAccountIndex = apps[appIndex]?.multisigAccounts?.findIndex(account => account.address === accountAddress) ?? -1
+
+      // Regular account
+      if (accountIndex !== -1 && appIndex !== -1) {
+        const currentValue = apps?.[appIndex]?.accounts?.[accountIndex]?.selected || false
+        apps$[appIndex].accounts[accountIndex].selected.set(checked ?? !currentValue)
+      } else if (multisigAccountIndex !== -1 && appIndex !== -1) {
+        const currentValue = apps?.[appIndex]?.multisigAccounts?.[multisigAccountIndex]?.selected || false
+        apps$[appIndex].multisigAccounts[multisigAccountIndex].selected.set(checked ?? !currentValue)
+      }
+    },
+    [apps$]
+  )
+
+  /**
+   * Set selection state for all accounts
+   */
+  const toggleAllAccounts = useCallback(
+    (checked: boolean) => {
+      const currentApps = apps$.get()
+
+      currentApps.forEach((app, i) => {
+        if (!app.error) {
+          if (app.accounts) {
+            apps$[i].accounts.forEach((_, j) => {
+              apps$[i].accounts[j].selected.set(checked)
+            })
+          }
+          if (app.multisigAccounts) {
+            apps$[i].multisigAccounts.forEach((_, j) => {
+              apps$[i].multisigAccounts[j].selected.set(checked)
+            })
+          }
+        }
+      })
+    },
+    [apps$]
+  )
+
   return {
     // General
     apps,
@@ -166,5 +222,9 @@ export const useSynchronization = (): UseSynchronizationReturn => {
     restartSynchronization,
     cancelSynchronization: ledgerState$.cancelSynchronization,
     updateTransaction,
+
+    // Selection actions
+    toggleAccountSelection,
+    toggleAllAccounts,
   }
 }

@@ -1,15 +1,15 @@
+import { CustomTooltip } from '@/components/CustomTooltip'
+import type { ToggleAccountSelection, UpdateTransaction } from '@/components/hooks/useSynchronization'
+import { useTokenLogo } from '@/components/hooks/useTokenLogo'
+import { isNativeBalance } from '@/lib/utils/balance'
+import { formatBalance } from '@/lib/utils/format'
+import { muifyHtml } from '@/lib/utils/html'
 import { observer, use$ } from '@legendapp/state/react'
 import { BN } from '@polkadot/util'
 import { ChevronDown, Info } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { type App, ledgerState$ } from 'state/ledger'
 import { type Address, BalanceType } from 'state/types/ledger'
-import { CustomTooltip } from '@/components/CustomTooltip'
-import type { UpdateTransaction } from '@/components/hooks/useSynchronization'
-import { useTokenLogo } from '@/components/hooks/useTokenLogo'
-import { isNativeBalance } from '@/lib/utils/balance'
-import { formatBalance } from '@/lib/utils/format'
-import { muifyHtml } from '@/lib/utils/html'
 import { BalanceTypeFlag } from './balance-detail-card'
 import InvalidSynchronizedAccountsTable from './invalid-synchronized-accounts-table'
 import SynchronizedAccountsTable from './synchronized-accounts-table'
@@ -19,11 +19,13 @@ function SynchronizedApp({
   failedSync,
   isMultisig,
   updateTransaction,
+  toggleAccountSelection,
 }: {
   app: App
   failedSync?: boolean
   isMultisig?: boolean
   updateTransaction: UpdateTransaction
+  toggleAccountSelection: ToggleAccountSelection
 }) {
   const name = use$(app.name)
   const id = use$(app.id)
@@ -131,7 +133,6 @@ function SynchronizedApp({
               polkadotAddresses={polkadotAddresses ?? []}
               collections={collections}
               appId={id}
-              updateTransaction={updateTransaction}
               isMultisig={isMultisig}
             />
           ) : (
@@ -143,6 +144,7 @@ function SynchronizedApp({
               appId={id}
               updateTransaction={updateTransaction}
               isMultisig={isMultisig}
+              toggleAccountSelection={toggleAccountSelection}
             />
           )}
         </div>

@@ -29,10 +29,6 @@ interface UseMigrationReturn {
   migrateSelected: () => Promise<void>
   restartSynchronization: () => void
 
-  // Selection actions
-  toggleAccountSelection: (appId: AppId, accountAddress: string, checked?: boolean) => void
-  toggleAllAccounts: (checked: boolean) => void
-
   // Collections getter
   getCollectionsByAppId: (appId: AppId) => Collections | undefined
 }
@@ -117,56 +113,6 @@ export const useMigration = (): UseMigrationReturn => {
       }
     }
   }, [destinationAddressesByApp])
-
-  // ---- Account selection functions ----
-
-  /**
-   * Toggle selection state of a specific account
-   */
-  const toggleAccountSelection = useCallback(
-    (appId: AppId, accountAddress: string, checked?: boolean) => {
-      const apps = apps$.get()
-      const appIndex = apps.findIndex(app => app.id === appId)
-
-      const accountIndex = apps[appIndex]?.accounts?.findIndex(account => account.address === accountAddress) ?? -1
-      const multisigAccountIndex = apps[appIndex]?.multisigAccounts?.findIndex(account => account.address === accountAddress) ?? -1
-
-      // Regular account
-      if (accountIndex !== -1 && appIndex !== -1) {
-        const currentValue = apps?.[appIndex]?.accounts?.[accountIndex]?.selected || false
-        apps$[appIndex].accounts[accountIndex].selected.set(checked ?? !currentValue)
-      } else if (multisigAccountIndex !== -1 && appIndex !== -1) {
-        const currentValue = apps?.[appIndex]?.multisigAccounts?.[multisigAccountIndex]?.selected || false
-        apps$[appIndex].multisigAccounts[multisigAccountIndex].selected.set(checked ?? !currentValue)
-      }
-    },
-    [apps$]
-  )
-
-  /**
-   * Set selection state for all accounts
-   */
-  const toggleAllAccounts = useCallback(
-    (checked: boolean) => {
-      const currentApps = apps$.get()
-
-      currentApps.forEach((app, i) => {
-        if (!app.error) {
-          if (app.accounts) {
-            apps$[i].accounts.forEach((_, j) => {
-              apps$[i].accounts[j].selected.set(checked)
-            })
-          }
-          if (app.multisigAccounts) {
-            apps$[i].multisigAccounts.forEach((_, j) => {
-              apps$[i].multisigAccounts[j].selected.set(checked)
-            })
-          }
-        }
-      })
-    },
-    [apps$]
-  )
 
   // ---- Verification related functions ----
 
@@ -328,10 +274,6 @@ export const useMigration = (): UseMigrationReturn => {
     // Migration actions
     migrateSelected,
     restartSynchronization,
-
-    // Selection actions
-    toggleAccountSelection,
-    toggleAllAccounts,
 
     // Collections getter
     getCollectionsByAppId,
