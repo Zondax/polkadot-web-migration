@@ -85,7 +85,9 @@ export function MigrateTabContent({ onBack }: MigrateTabContentProps) {
 
       {appsForMigration.length > 0 ? (
         <>
-          {appsForMigration.some(app => app.accounts && app.accounts.length > 0) && <MigratedAccountsTable apps={appsForMigration} destinationAddressesByApp={destinationAddressesByApp} />}
+          {appsForMigration.some(app => app.accounts && app.accounts.length > 0) && (
+            <MigratedAccountsTable apps={appsForMigration} destinationAddressesByApp={destinationAddressesByApp} />
+          )}
           {appsForMigration.some(app => app.multisigAccounts && app.multisigAccounts.length > 0) && (
             <MigratedAccountsTable apps={appsForMigration} multisigAddresses destinationAddressesByApp={destinationAddressesByApp} />
           )}
