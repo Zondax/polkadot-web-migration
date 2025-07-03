@@ -43,11 +43,15 @@ vi.mock('@legendapp/state', () => ({
 
 vi.mock('@/lib/utils', () => ({
   addDestinationAddressesFromAccounts: vi.fn(() => ({})),
-  filterSelectedAccountsForMigration: vi.fn(() => []),
+  filterValidSelectedAccountsForMigration: vi.fn(() => []),
   filterValidSyncedAppsWithBalances: vi.fn(() => []),
 }))
 
-import { addDestinationAddressesFromAccounts, filterSelectedAccountsForMigration, filterValidSyncedAppsWithBalances } from '@/lib/utils'
+import {
+  addDestinationAddressesFromAccounts,
+  filterValidSelectedAccountsForMigration,
+  filterValidSyncedAppsWithBalances,
+} from '@/lib/utils'
 import { ledgerState$ } from '@/state/ledger'
 import { use$ } from '@legendapp/state/react'
 import { useMigration } from '../useMigration'
@@ -61,7 +65,7 @@ describe('useMigration hook', () => {
     vi.mocked(ledgerState$.apps.migrationResult.get).mockReturnValue({ success: 0, total: 0 })
     vi.mocked(ledgerState$.apps.currentMigratedItem.get).mockReturnValue(undefined)
     vi.mocked(addDestinationAddressesFromAccounts).mockReturnValue({})
-    vi.mocked(filterSelectedAccountsForMigration).mockReturnValue([])
+    vi.mocked(filterValidSelectedAccountsForMigration).mockReturnValue([])
     vi.mocked(filterValidSyncedAppsWithBalances).mockReturnValue([])
   })
 
@@ -69,7 +73,6 @@ describe('useMigration hook', () => {
     it('should return correct initial state when no apps', () => {
       const { result } = renderHook(() => useMigration())
 
-      expect(result.current.filteredAppsWithoutErrors).toEqual([])
       expect(result.current.appsForMigration).toEqual([])
       expect(result.current.destinationAddressesByApp).toEqual({})
       expect(result.current.migratingItem).toBeDefined()
@@ -113,11 +116,10 @@ describe('useMigration hook', () => {
     it('should handle apps with accounts', () => {
       vi.mocked(ledgerState$.apps.apps.get).mockReturnValue(mockApps)
       vi.mocked(filterValidSyncedAppsWithBalances).mockReturnValue(mockApps)
-      vi.mocked(filterSelectedAccountsForMigration).mockReturnValue(mockApps)
+      vi.mocked(filterValidSelectedAccountsForMigration).mockReturnValue(mockApps)
 
       const { result } = renderHook(() => useMigration())
 
-      expect(result.current.filteredAppsWithoutErrors).toEqual(mockApps)
       expect(result.current.appsForMigration).toEqual(mockApps)
     })
 
@@ -224,7 +226,6 @@ describe('useMigration hook', () => {
 
       const { result } = renderHook(() => useMigration())
 
-      expect(result.current.filteredAppsWithoutErrors).toEqual([])
       expect(result.current.appsForMigration).toEqual([])
     })
 
@@ -250,7 +251,7 @@ describe('useMigration hook', () => {
       const { result } = renderHook(() => useMigration())
 
       // Should handle gracefully without throwing
-      expect(result.current.filteredAppsWithoutErrors).toBeDefined()
+      expect(result.current.appsForMigration).toBeDefined()
     })
   })
 
