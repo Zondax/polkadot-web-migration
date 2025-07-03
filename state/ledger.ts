@@ -184,7 +184,7 @@ function updateMigrationResultCounter(type: MigrationResultKey, increment = 1) {
 const updateMigratedStatus: UpdateMigratedStatusFn = (appId: AppId, accountType, address: string, txDetails) => {
   const apps = ledgerState$.apps.apps.get()
   const appIndex = apps.findIndex(app => app.id === appId)
-  const status = txDetails.status
+  const status = txDetails?.status
 
   if (appIndex !== -1 && status) {
     const app = apps[appIndex]
