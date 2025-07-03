@@ -5,15 +5,18 @@ import type { App } from 'state/ledger'
 
 import { CustomTooltip } from '@/components/CustomTooltip'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import type { AppId } from '@/config/apps'
+import type { AddressWithVerificationStatus } from '@/state/types/ledger'
 import MigratedAccountRows from './migrated-accounts-rows'
 
 interface MigratedAccountsTableProps {
   apps: App[]
   multisigAddresses?: boolean
+  destinationAddressesByApp: Record<AppId, AddressWithVerificationStatus[]>
 }
 
 // It is assumed that the addresses shown here have a balance and are valid to display.
-const MigratedAccountsTable = ({ apps, multisigAddresses }: MigratedAccountsTableProps) => {
+const MigratedAccountsTable = ({ apps, multisigAddresses, destinationAddressesByApp }: MigratedAccountsTableProps) => {
   return (
     <div className="mb-8">
       <h3 className="text-lg font-semibold mb-4">{multisigAddresses ? 'Multisig Addresses' : 'Regular Addresses'}</h3>
@@ -40,7 +43,12 @@ const MigratedAccountsTable = ({ apps, multisigAddresses }: MigratedAccountsTabl
         </TableHeader>
         <TableBody>
           {apps.map((app, index) => (
-            <MigratedAccountRows key={app.id?.toString() || `app-${index}`} app={app} multisigAddresses={multisigAddresses} />
+            <MigratedAccountRows
+              key={app.id?.toString() || `app-${index}`}
+              app={app}
+              multisigAddresses={multisigAddresses}
+              destinationAddressesStatus={destinationAddressesByApp[app.id as AppId] ?? []}
+            />
           ))}
         </TableBody>
       </Table>

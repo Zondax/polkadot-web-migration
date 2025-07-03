@@ -692,6 +692,8 @@ describe('ledger utilities', () => {
   })
 
   describe('addDestinationAddressesFromAccounts', () => {
+    const polkadotAddresses = ['5GAddress1', '5GAddress2']
+
     it('should add unique destination addresses to the map', () => {
       const addressMap = new Map<string, AddressWithVerificationStatus>()
       const accounts = [
@@ -700,17 +702,17 @@ describe('ledger utilities', () => {
           balances: [
             {
               ...mockAddress.balances?.[0],
-              transaction: { destinationAddress: '5GAddress1' },
+              transaction: { destinationAddress: polkadotAddresses[0] },
             },
             {
               ...mockAddress.balances?.[0],
-              transaction: { destinationAddress: '5GAddress2' },
+              transaction: { destinationAddress: polkadotAddresses[1] },
             },
           ] as AddressBalance[],
         },
       ]
 
-      addDestinationAddressesFromAccounts(accounts, addressMap)
+      addDestinationAddressesFromAccounts(accounts, addressMap, polkadotAddresses)
 
       expect(addressMap.size).toBe(2)
       expect(addressMap.get('5GAddress1')).toEqual({
@@ -740,7 +742,7 @@ describe('ledger utilities', () => {
         },
       ]
 
-      addDestinationAddressesFromAccounts(accounts, addressMap)
+      addDestinationAddressesFromAccounts(accounts, addressMap, polkadotAddresses)
 
       expect(addressMap.size).toBe(1)
       expect(addressMap.get('5GAddress1')?.path).toBe('existing/path')
@@ -749,7 +751,7 @@ describe('ledger utilities', () => {
     it('should handle undefined accounts', () => {
       const addressMap = new Map<string, AddressWithVerificationStatus>()
 
-      addDestinationAddressesFromAccounts(undefined, addressMap)
+      addDestinationAddressesFromAccounts(undefined, addressMap, polkadotAddresses)
 
       expect(addressMap.size).toBe(0)
     })
@@ -768,7 +770,7 @@ describe('ledger utilities', () => {
         },
       ]
 
-      addDestinationAddressesFromAccounts(accounts, addressMap)
+      addDestinationAddressesFromAccounts(accounts, addressMap, polkadotAddresses)
 
       expect(addressMap.size).toBe(0)
     })

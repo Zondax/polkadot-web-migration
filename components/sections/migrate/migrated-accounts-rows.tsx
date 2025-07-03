@@ -1,7 +1,7 @@
 'use client'
 
 import type { App } from 'state/ledger'
-import type { MultisigAddress, Transaction } from 'state/types/ledger'
+import { VerificationStatus, type AddressWithVerificationStatus, type MultisigAddress, type Transaction } from 'state/types/ledger'
 
 import { CustomTooltip } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
@@ -11,15 +11,17 @@ import type { AppId } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { muifyHtml } from '@/lib/utils/html'
 import { getTransactionStatus } from '@/lib/utils/ui'
+import { ShieldCheck } from 'lucide-react'
 import { BalanceHoverCard } from './balance-hover-card'
 import TransactionDropdown from './transaction-dropdown'
 
 interface AccountRowsProps {
   app: App
   multisigAddresses?: boolean
+  destinationAddressesStatus: AddressWithVerificationStatus[]
 }
 
-const MigratedAccountRows = ({ app, multisigAddresses }: AccountRowsProps) => {
+const MigratedAccountRows = ({ app, multisigAddresses, destinationAddressesStatus }: AccountRowsProps) => {
   const icon = useTokenLogo(app.id)
   const collections = app.collections
 
@@ -101,12 +103,18 @@ const MigratedAccountRows = ({ app, multisigAddresses }: AccountRowsProps) => {
             {balances.map((balance, balanceIndex) => (
               <div key={balance.type}>
                 {balanceIndex !== 0 && <hr className="border-gray-200 my-0" />}
-                <div className="py-4 px-8">
+                <div className="py-4 px-8 flex items-center gap-1">
                   <ExplorerLink
                     value={balance.transaction?.destinationAddress || ''}
                     appId={app.id as AppId}
                     explorerLinkType={ExplorerItemType.Address}
                   />
+                  {destinationAddressesStatus.find(address => address.address === balance.transaction?.destinationAddress)?.status ===
+                  VerificationStatus.VERIFIED ? (
+                    <CustomTooltip tooltipBody="This address was verified on your device.">
+                      <ShieldCheck className="h-4 w-4 text-green-500" />
+                    </CustomTooltip>
+                  ) : null}
                 </div>
               </div>
             ))}

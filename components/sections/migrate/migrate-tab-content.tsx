@@ -32,6 +32,7 @@ export function MigrateTabContent({ onBack }: MigrateTabContentProps) {
     verifySelectedAppsAddresses,
     migratingItem,
     getCollectionsByAppId,
+    destinationAddressesByApp,
   } = useMigration()
   const userDismissedDialog = useRef(false)
 
@@ -80,19 +81,15 @@ export function MigrateTabContent({ onBack }: MigrateTabContentProps) {
       <div className="mb-6">
         <h2 className="text-2xl font-bold">Migrate Accounts</h2>
         <p className="text-gray-600">Review your accounts and verify addresses before migration.</p>
-        {allVerified && (
-          <div className="mt-2 flex items-center gap-2 text-green-600">
-            <ShieldCheck className="h-5 w-5" />
-            <span>All addresses have been verified successfully</span>
-          </div>
-        )}
       </div>
 
       {appsForMigration.length > 0 ? (
         <>
-          {appsForMigration.some(app => app.accounts && app.accounts.length > 0) && <MigratedAccountsTable apps={appsForMigration} />}
+          {appsForMigration.some(app => app.accounts && app.accounts.length > 0) && (
+            <MigratedAccountsTable apps={appsForMigration} destinationAddressesByApp={destinationAddressesByApp} />
+          )}
           {appsForMigration.some(app => app.multisigAccounts && app.multisigAccounts.length > 0) && (
-            <MigratedAccountsTable apps={appsForMigration} multisigAddresses />
+            <MigratedAccountsTable apps={appsForMigration} multisigAddresses destinationAddressesByApp={destinationAddressesByApp} />
           )}
         </>
       ) : (
