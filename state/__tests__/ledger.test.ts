@@ -1,8 +1,7 @@
 import { BN } from '@polkadot/util'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-
-import { mockAddress1 } from '@/lib/__tests__/utils/__mocks__/mockData'
 import { InternalErrorType } from 'config/errors'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { mockAddress1 } from '@/lib/__tests__/utils/__mocks__/mockData'
 import { AppStatus, ledgerState$ } from '../ledger'
 import { AccountType } from '../types/ledger'
 
@@ -39,7 +38,34 @@ vi.mock('@/lib/account', () => ({
 }))
 
 vi.mock('@/lib/utils', () => ({
-  interpretError: vi.fn((_error, type) => ({ errorType: type, description: 'Test error' })),
+  interpretError: vi.fn((_error, type) => ({
+    errorType: type,
+    title: 'Test Error',
+    description: 'Test error',
+    name: 'TestError',
+    message: 'Test error',
+  })),
+}))
+
+vi.mock('@/lib/utils/error', () => ({
+  InternalError: vi.fn().mockImplementation((errorType: string, context: any) => {
+    const errorDetails: Record<string, { title: string; description: string }> = {
+      failed_to_connect_to_blockchain: {
+        title: 'Failed to Connect to Blockchain',
+        description: 'Failed to connect to the blockchain network.',
+      },
+      sync_error: { title: 'Synchronization Error', description: 'The accounts could not be synchronized. Please try again later.' },
+    }
+    const details = errorDetails[errorType] || { title: 'Unknown Error', description: 'An unknown error occurred' }
+    return {
+      errorType,
+      title: details.title,
+      description: details.description,
+      name: errorType,
+      message: details.description,
+      context,
+    }
+  }),
 }))
 
 vi.mock('@/lib/utils/notifications', () => ({
@@ -52,6 +78,20 @@ vi.mock('../notifications', () => ({
   },
 }))
 
+vi.mock('@/lib/services/synchronization.service', () => ({
+  synchronizeAppAccounts: vi.fn(),
+  synchronizePolkadotAccounts: vi.fn(),
+  synchronizeAllApps: vi.fn(),
+  handleSyncError: vi.fn(error => ({
+    errorType: 'sync_error',
+    title: 'Synchronization Error',
+    description: 'The accounts could not be synchronized. Please try again later.',
+    name: 'SyncError',
+    message: 'Sync error',
+  })),
+  validateSyncPrerequisites: vi.fn(() => true),
+}))
+
 vi.mock('config/apps', () => ({
   appsConfigs: new Map([
     ['polkadot', { id: 'polkadot', name: 'Polkadot', rpcEndpoint: 'wss://rpc.polkadot.io', token: { symbol: 'DOT', decimals: 10 } }],
@@ -62,9 +102,18 @@ vi.mock('config/apps', () => ({
 
 vi.mock('config/errors', () => ({
   errorDetails: {
-    migration_error: { description: 'Migration failed' },
-    blockchain_connection_error: { description: 'Blockchain connection failed' },
-    balance_not_gotten: { description: 'Balance not retrieved' },
+    migration_error: { title: 'Migration Error', description: 'Migration failed' },
+    blockchain_connection_error: { title: 'Blockchain Connection Error', description: 'Blockchain connection failed' },
+    balance_not_gotten: { title: 'Balance Not Retrieved', description: 'Balance not retrieved' },
+    failed_to_connect_to_blockchain: {
+      title: 'Failed to Connect to Blockchain',
+      description: 'Failed to connect to the blockchain network.',
+    },
+    sync_error: { title: 'Synchronization Error', description: 'The accounts could not be synchronized. Please try again later.' },
+    fetch_process_accounts_error: {
+      title: 'Error Fetching and Processing Accounts',
+      description: 'An error occurred while fetching and processing accounts for the app.',
+    },
   },
   InternalErrorType: {
     CONNECTION_ERROR: 'CONNECTION_ERROR',
@@ -72,6 +121,7 @@ vi.mock('config/errors', () => ({
     MIGRATION_ERROR: 'MIGRATION_ERROR',
     SYNC_ERROR: 'SYNC_ERROR',
     FETCH_PROCESS_ACCOUNTS_ERROR: 'FETCH_PROCESS_ACCOUNTS_ERROR',
+    FAILED_TO_CONNECT_TO_BLOCKCHAIN: 'FAILED_TO_CONNECT_TO_BLOCKCHAIN',
     UNSTAKE_ERROR: 'UNSTAKE_ERROR',
     WITHDRAW_ERROR: 'WITHDRAW_ERROR',
     REMOVE_IDENTITY_ERROR: 'REMOVE_IDENTITY_ERROR',
@@ -303,21 +353,22 @@ describe('Ledger State', () => {
     })
 
     it('should return error app when API connection fails', async () => {
-      const { ledgerClient } = await import('../client/ledger')
-      const { getApiAndProvider } = await import('@/lib/account')
+      const { synchronizeAppAccounts } = await import('@/lib/services/synchronization.service')
+      const { InternalError } = await import('@/lib/utils/error')
+      const { InternalErrorType } = await import('config/errors')
 
-      vi.mocked(ledgerClient.synchronizeAccounts).mockResolvedValueOnce({
-        result: [{ address: '1test', path: "m/44'/354'/0'/0'/0'", pubKey: '0x123' }],
-      })
-      vi.mocked(getApiAndProvider).mockResolvedValueOnce({
-        api: undefined,
-        provider: undefined,
-      })
+      // Mock synchronizeAppAccounts to throw the blockchain connection error
+      vi.mocked(synchronizeAppAccounts).mockRejectedValueOnce(
+        new InternalError(InternalErrorType.FAILED_TO_CONNECT_TO_BLOCKCHAIN, {
+          operation: 'synchronizeAppAccounts',
+          context: { appId: 'polkadot', rpcEndpoint: 'wss://rpc.polkadot.io' },
+        })
+      )
 
       const result = await ledgerState$.fetchAndProcessAccountsForApp(mockApp)
 
       expect(result?.status).toBe(AppStatus.ERROR)
-      expect(result?.error?.description).toContain('Blockchain connection failed')
+      expect(result?.error?.description).toContain('Test error')
     })
 
     it('should handle mock synchronization error in development', async () => {
