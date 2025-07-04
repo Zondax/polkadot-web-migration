@@ -31,6 +31,7 @@ export enum InternalErrorType {
   CONNECTION_REFUSED = 'connection_refused',
   CONNECTION_TIMEOUT = 'connection_timeout',
   DEFAULT = 'default',
+  DEVICE_DISCONNECTED = 'device_disconnected',
   DEVICE_NOT_SELECTED = 'device_not_selected',
   DISCONNECTION_ERROR = 'disconnection_error',
   FAILED_TO_CONNECT_TO_BLOCKCHAIN = 'failed_to_connect_to_blockchain',
@@ -234,6 +235,10 @@ export const errorDetails: ErrorDetailsMap = {
   },
   default: {
     title: 'An unknown error happens, please try again.',
+  },
+  device_disconnected: {
+    title: 'Device Disconnected',
+    description: 'The Ledger device has been disconnected.',
   },
   device_not_selected: {
     title: 'There is no a selected device.',
