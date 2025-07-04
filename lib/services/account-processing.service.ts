@@ -1,9 +1,9 @@
-import type { ApiPromise, } from '@polkadot/api'
+import type { ApiPromise } from '@polkadot/api'
 import { BN } from '@polkadot/util'
-import type { AppConfig, } from 'config/apps'
+import type { AppConfig } from 'config/apps'
 import { InternalErrorType } from 'config/errors'
 import { errorApps } from 'config/mockData'
-import { getBalance, getIdentityInfo, getIndexInfo, getMultisigAddresses, getProxyInfo, } from '@/lib/account'
+import { getBalance, getIdentityInfo, getIndexInfo, getMultisigAddresses, getProxyInfo } from '@/lib/account'
 import { convertSS58Format } from '@/lib/utils/address'
 import { hasAddressBalance, hasBalance, hasNegativeBalance, validateReservedBreakdown } from '@/lib/utils/balance'
 import { InternalError } from '@/lib/utils/error'
@@ -79,7 +79,7 @@ function processCollections(
 }
 
 /**
- * Enriches a single account with comprehensive blockchain data.
+ * Fetches and processes complete account information including:
  *
  * @description Fetches and processes complete account information including:
  * - Balance information (native tokens, assets, reserved amounts)
@@ -98,11 +98,11 @@ function processCollections(
  *
  * @example
  * ```typescript
- * const result = await enrichAccountWithBlockchainData(address, api, appConfig, collectionsMap)
+ * const result = await getBlockchainDataForAccount(address, api, appConfig, collectionsMap)
  * console.log(`Account has ${result.account.balances.length} balances`)
  * ```
  */
-async function enrichAccountWithBlockchainData(
+async function getBlockchainDataForAccount(
   address: Address,
   api: ApiPromise,
   appConfig: AppConfig,
@@ -214,7 +214,7 @@ async function enrichAccountWithBlockchainData(
     }
   } catch (error) {
     throw new InternalError(InternalErrorType.SYNC_ERROR, {
-      operation: 'enrichAccountWithBlockchainData',
+      operation: 'getBlockchainDataForAccount',
       context: { address: address.address, appId: appConfig.id, error },
     })
   }
@@ -289,7 +289,7 @@ function processReservedBalanceBreakdown(
 }
 
 /**
- * Enriches multisig accounts with comprehensive blockchain data and member information.
+ * Fetches and processes multisig accounts with comprehensive blockchain data and member information.
  *
  * @description Processes multisig accounts by fetching their balances, identity, proxy info,
  * and updating member information with internal/external status. Also handles signatory
@@ -306,12 +306,12 @@ function processReservedBalanceBreakdown(
  *
  * @example
  * ```typescript
- * await enrichMultisigAccountsWithBlockchainData(
+ * await getBlockchainDataForMultisigAccounts(
  *   multisigMap, foundAddresses, accounts, api, appConfig, collectionsMap
  * )
  * ```
  */
-async function enrichMultisigAccountsWithBlockchainData(
+async function getBlockchainDataForMultisigAccounts(
   multisigAccounts: Map<string, MultisigAddress>,
   foundAccounts: string[],
   accounts: Address[],
@@ -379,7 +379,7 @@ async function enrichMultisigAccountsWithBlockchainData(
     )
   } catch (error) {
     throw new InternalError(InternalErrorType.SYNC_ERROR, {
-      operation: 'enrichMultisigAccountsWithBlockchainData',
+      operation: 'getBlockchainDataForMultisigAccounts',
       context: { appId: appConfig.id, error },
     })
   }
@@ -437,9 +437,7 @@ export async function processAccountsForApp(
     const multisigAccounts: Map<string, MultisigAddress> = new Map()
 
     // Process all addresses in parallel
-    const accountResults = await Promise.all(
-      addresses.map(address => enrichAccountWithBlockchainData(address, api, appConfig, collectionsMap))
-    )
+    const accountResults = await Promise.all(addresses.map(address => getBlockchainDataForAccount(address, api, appConfig, collectionsMap)))
 
     // Collect multisig accounts
     for (const result of accountResults) {
@@ -464,7 +462,7 @@ export async function processAccountsForApp(
     const foundAccounts = accounts.map(account => account.address)
 
     // Process multisig accounts
-    await enrichMultisigAccountsWithBlockchainData(multisigAccounts, foundAccounts, accounts, api, appConfig, collectionsMap)
+    await getBlockchainDataForMultisigAccounts(multisigAccounts, foundAccounts, accounts, api, appConfig, collectionsMap)
 
     // Filter accounts based on balance
     const filteredAccounts = filterAccountsForApps(accounts, filterByBalance)

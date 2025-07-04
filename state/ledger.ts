@@ -4,11 +4,7 @@ import { type AppConfig, type AppId, appsConfigs, polkadotAppConfig } from 'conf
 import { errorDetails, InternalErrorType } from 'config/errors'
 import type { MultisigCallFormData } from '@/components/sections/migrate/dialogs/approve-multisig-call-dialog'
 import type { Token } from '@/config/apps'
-import {
-  getApiAndProvider,
-  getBalance,
-  type UpdateTransactionStatus,
-} from '@/lib/account'
+import { getApiAndProvider, getBalance, type UpdateTransactionStatus } from '@/lib/account'
 import type { DeviceConnectionProps } from '@/lib/ledger/types'
 import {
   handleSyncError,
@@ -19,7 +15,7 @@ import {
 } from '@/lib/services/synchronization.service'
 import { type InternalError, interpretError } from '@/lib/utils'
 import { convertSS58Format, isMultisigAddress } from '@/lib/utils/address'
-import { hasAddressBalance, } from '@/lib/utils/balance'
+import { hasAddressBalance } from '@/lib/utils/balance'
 import { handleErrorNotification } from '@/lib/utils/notifications'
 import { ledgerClient } from './client/ledger'
 import { errorsToStopSync } from './config/ledger'
@@ -468,11 +464,7 @@ export const ledgerState$ = observable({
         },
         // App complete callback - replace loading app with completed app
         completedApp => {
-          const apps = ledgerState$.apps.apps.get()
-          const appIndex = apps.findIndex(app => app.id === completedApp.id)
-          if (appIndex !== -1) {
-            ledgerState$.apps.apps[appIndex].set(completedApp)
-          }
+          updateApp(completedApp.id, completedApp)
         }
       )
 

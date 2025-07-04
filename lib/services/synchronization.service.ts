@@ -1,4 +1,3 @@
-
 import type { AppConfig, AppId } from 'config/apps'
 import { appsConfigs, polkadotAppConfig } from 'config/apps'
 import { maxAddressesToFetch } from 'config/config'
@@ -429,32 +428,16 @@ export async function synchronizeAllApps(
 
         // Notify that app synchronization is complete
         onAppComplete?.(app)
-      } catch (error) {
-        console.debug('Error synchronizing app:', appConfig.id, error)
-
-        let errorApp: App
-        if (error instanceof InternalError) {
-          errorApp = {
-            name: appConfig.name,
-            id: appConfig.id,
-            token: appConfig.token,
-            status: AppStatus.ERROR,
-            error: {
-              source: 'synchronization',
-              description: error.description || 'Synchronization failed',
-            },
-          }
-        } else {
-          errorApp = {
-            name: appConfig.name,
-            id: appConfig.id,
-            token: appConfig.token,
-            status: AppStatus.ERROR,
-            error: {
-              source: 'synchronization',
-              description: 'An unexpected error occurred',
-            },
-          }
+      } catch {
+        const errorApp: App = {
+          name: appConfig.name,
+          id: appConfig.id,
+          token: appConfig.token,
+          status: AppStatus.ERROR,
+          error: {
+            source: 'synchronization',
+            description: 'Failed to synchronize accounts',
+          },
         }
 
         synchronizedApps.push(errorApp)
