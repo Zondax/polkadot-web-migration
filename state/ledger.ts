@@ -260,9 +260,17 @@ export const ledgerState$ = observable({
       // Check if device is connected but app is not open
       if (isDeviceConnected && !isAppOpen) {
         // Try to open the app automatically
-
         console.debug('[ledgerState$] App not open, attempting to open automatically')
         await ledgerClient.openApp()
+
+        // Add notification to indicate the user should open the app
+        notifications$.push({
+          title: 'Polkadot Migration App not open',
+          description:
+            'Please open the Polkadot Migration App on your Ledger device. Once the app is open, click Connect again to continue.',
+          type: 'warning',
+          autoHideDuration: 5000,
+        })
 
         // Check connection again after attempting to open the app
         const checkResult = await ledgerClient.checkConnection()
@@ -276,12 +284,6 @@ export const ledgerState$ = observable({
     } catch (error) {
       const internalError = interpretError(error, InternalErrorType.CONNECTION_ERROR)
       handleErrorNotification(internalError)
-      if (
-        internalError.errorType === InternalErrorType.APP_DOES_NOT_SEE_TO_BE_OPEN ||
-        internalError.errorType === InternalErrorType.APP_NOT_OPEN
-      ) {
-        await ledgerClient.openApp()
-      }
 
       return { connected: false, isAppOpen: false }
     } finally {

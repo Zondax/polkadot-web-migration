@@ -103,7 +103,6 @@ export function interpretLedgerClientError(error: unknown): InternalError {
 
   // Handle @zondax/ledger-js errors
   if (error instanceof ResponseError) {
-    console.debug('[interpretLedgerClientError] is a ResponseError:', error)
     return interpretLedgerJsError(error)
   }
 
@@ -149,8 +148,6 @@ export const withErrorHandling = async <T>(fn: () => Promise<T>, { operation, co
   try {
     return await fn()
   } catch (error: unknown) {
-    console.debug('[withErrorHandling] incoming error:', JSON.stringify(error, null, 2))
-
     const internalError = interpretLedgerClientError(error)
 
     internalError.operation = internalError.operation || operation

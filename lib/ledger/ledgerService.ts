@@ -110,9 +110,7 @@ export class LedgerService implements ILedgerService {
    * Checks if the app is open on the Ledger device
    */
   async isAppOpen(genericApp: PolkadotGenericApp): Promise<boolean> {
-    console.debug('[ledgerService] Checking if app is open')
     const version = await genericApp.getVersion()
-    console.debug('[ledgerService] App version:', version)
     return Boolean(version)
   }
 
@@ -149,8 +147,7 @@ export class LedgerService implements ILedgerService {
           // Continue with isAppOpen as false
         }
       }
-    } catch (error) {
-      console.debug('[ledgerService] Error checking if app is open during connection:', error)
+    } catch {
       // Continue with isAppOpen as false
     }
 

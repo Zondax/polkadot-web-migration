@@ -3,10 +3,11 @@ import type { Transport } from '@zondax/ledger-js'
 import type { PolkadotGenericApp } from '@zondax/ledger-substrate'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { errorDetails, InternalErrorType } from '@/config/errors'
+import { mockAddress1 } from '@/lib/__tests__/utils/__mocks__/mockData'
 import type { DeviceConnectionProps } from '@/lib/ledger/types'
 import { InternalError } from '@/lib/utils/error'
 import { AppStatus, ledgerState$ } from '../ledger'
-import { AccountType, AddressStatus, BalanceType } from '../types/ledger'
+import { AccountType } from '../types/ledger'
 
 // Mock dependencies
 vi.mock('../client/ledger', () => ({
