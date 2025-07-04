@@ -500,33 +500,3 @@ export async function synchronizeAllApps(
 export function validateSyncPrerequisites(connection: any): boolean {
   return Boolean(connection)
 }
-
-/**
- * Handles synchronization errors and converts them to InternalError format.
- *
- * @description Standardizes error handling for synchronization operations by converting
- * various error types to our internal error format for consistent error reporting.
- *
- * @param {unknown} error - The error to handle and convert
- * @returns {InternalError} Standardized internal error object
- *
- * @example
- * ```typescript
- * try {
- *   await synchronizeAllApps()
- * } catch (error) {
- *   const internalError = handleSyncError(error)
- *   showErrorNotification(internalError)
- * }
- * ```
- */
-export function handleSyncError(error: unknown): InternalError {
-  if (error instanceof InternalError) {
-    return error
-  }
-
-  return new InternalError(InternalErrorType.SYNC_ERROR, {
-    operation: 'handleSyncError',
-    context: { error },
-  })
-}

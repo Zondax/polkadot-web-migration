@@ -7,7 +7,6 @@ import type { Token } from '@/config/apps'
 import { getApiAndProvider, getBalance, type UpdateTransactionStatus } from '@/lib/account'
 import type { DeviceConnectionProps } from '@/lib/ledger/types'
 import {
-  handleSyncError,
   synchronizeAllApps,
   synchronizeAppAccounts,
   synchronizePolkadotAccounts,
@@ -333,7 +332,6 @@ export const ledgerState$ = observable({
   handleError(internalError: InternalError): boolean {
     // Check if the error type is in the list of errors that should stop synchronization
     if (errorsToStopSync.includes(internalError.errorType)) {
-      console.debug('[handleSyncError] stopping synchronization')
       ledgerState$.cancelSynchronization()
 
       return true // Indicate that an action should be taken
@@ -487,7 +485,7 @@ export const ledgerState$ = observable({
         throw new Error(result.error || 'Synchronization failed')
       }
     } catch (error) {
-      const internalError = handleSyncError(error)
+      const internalError = interpretError(error, InternalErrorType.SYNC_ERROR)
       ledgerState$.handleError(internalError)
       handleErrorNotification(internalError)
       ledgerState$.apps.error.set('Failed to synchronize accounts')

@@ -82,13 +82,6 @@ vi.mock('@/lib/services/synchronization.service', () => ({
   synchronizeAppAccounts: vi.fn(),
   synchronizePolkadotAccounts: vi.fn(),
   synchronizeAllApps: vi.fn(),
-  handleSyncError: vi.fn(error => ({
-    errorType: 'sync_error',
-    title: 'Synchronization Error',
-    description: 'The accounts could not be synchronized. Please try again later.',
-    name: 'SyncError',
-    message: 'Sync error',
-  })),
   validateSyncPrerequisites: vi.fn(() => true),
 }))
 
