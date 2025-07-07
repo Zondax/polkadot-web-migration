@@ -584,10 +584,22 @@ export const ledgerState$ = observable({
             processCollections(multisigCollections)
           }
 
+          // Registration Info
+          const registration = await getIdentityInfo(multisigAddress.address, api)
+
+          // Proxy Info
+          const proxy = await getProxyInfo(multisigAddress.address, api)
+
+          // Index information
+          const indexInfo = await getIndexInfo(multisigAddress.address, api)
+
           multisigAddress.balances = multisigBalances.map(balance => ({
             ...balance,
             transaction: { ...balance.transaction, signatoryAddress: multisigAddress.members[0].address },
           }))
+          multisigAddress.registration = registration
+          multisigAddress.proxy = proxy
+          multisigAddress.index = indexInfo
           multisigAddress.status = AddressStatus.SYNCHRONIZED
           multisigAddress.error = multisigError
             ? {
