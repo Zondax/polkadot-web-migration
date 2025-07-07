@@ -684,7 +684,9 @@ export async function getTransactionDetails(
   const records = await apiAt.query.system.events()
 
   // Find events related to the specific extrinsic
-  const relatedEvents = (records as EventRecord[]).filter(({ phase }) => phase.isApplyExtrinsic && phase.asApplyExtrinsic.eq(txIndex))
+  const relatedEvents = (records as unknown as EventRecord[]).filter(
+    ({ phase }) => phase.isApplyExtrinsic && phase.asApplyExtrinsic.eq(txIndex)
+  )
 
   let success = false
   let errorInfo: string | undefined
@@ -696,7 +698,7 @@ export async function getTransactionDetails(
       console.debug('Transaction failed!')
       const [dispatchError] = event.data
 
-      const typedDispatchError = dispatchError as DispatchError
+      const typedDispatchError = dispatchError as unknown as DispatchError
       if (typedDispatchError.isModule) {
         // for module errors, we have the section indexed, lookup
         const decoded = apiAt.registry.findMetaError(typedDispatchError.asModule)
@@ -1594,7 +1596,7 @@ export async function prepareAsMultiTx(
   const call = api.createType('Call', callData)
 
   // Create a temporary extrinsic to estimate weight
-  const tempExtrinsic = api.createType('Call', call) as SubmittableExtrinsic<'promise', ISubmittableResult>
+  const tempExtrinsic = api.createType('Call', call) as unknown as SubmittableExtrinsic<'promise', ISubmittableResult>
 
   // Estimate the weight for this asMulti operation
   const estimatedWeight = estimateMultisigWeight(tempExtrinsic, threshold, otherSignatories)
