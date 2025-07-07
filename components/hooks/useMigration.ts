@@ -61,11 +61,13 @@ export const useMigration = (): UseMigrationReturn => {
       // Create a map to track unique addresses with their paths
       const addressMap = new Map<string, AddressWithVerificationStatus>()
 
+      const polkadotAddresses = ledgerState$.polkadotAddresses[app.id as AppId]?.get() ?? []
+
       // Add destination addresses from regular accounts
-      addDestinationAddressesFromAccounts(app.accounts, addressMap)
+      addDestinationAddressesFromAccounts(app.accounts, addressMap, polkadotAddresses)
 
       // Add destination addresses from multisig accounts
-      addDestinationAddressesFromAccounts(app.multisigAccounts, addressMap)
+      addDestinationAddressesFromAccounts(app.multisigAccounts, addressMap, polkadotAddresses)
 
       // Convert the map values to an array
       const uniqueDestinationAddresses = Array.from(addressMap.values())
@@ -170,6 +172,9 @@ export const useMigration = (): UseMigrationReturn => {
         const addresses = destinationAddressesStatus$[appId as AppId].peek() || []
 
         for (let i = 0; i < addresses.length; i++) {
+          if (addresses[i].status === VerificationStatus.VERIFIED) {
+            continue
+          }
           await verifyAddress(appId as AppId, i)
         }
       }

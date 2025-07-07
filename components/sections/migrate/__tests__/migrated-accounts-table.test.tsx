@@ -1,6 +1,6 @@
+import type { App } from '@/state/ledger'
 import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { App } from '@/state/ledger'
 
 // Mock dependencies
 vi.mock('lucide-react', () => ({
@@ -56,9 +56,6 @@ describe('MigratedAccountsTable component', () => {
       token: {
         symbol: 'DOT',
         decimals: 10,
-        name: 'Polkadot',
-        category: 'substrate',
-        chainName: 'Polkadot',
       },
     },
     {
@@ -68,9 +65,6 @@ describe('MigratedAccountsTable component', () => {
       token: {
         symbol: 'KSM',
         decimals: 12,
-        name: 'Kusama',
-        category: 'substrate',
-        chainName: 'Kusama',
       },
     },
   ]
@@ -81,7 +75,7 @@ describe('MigratedAccountsTable component', () => {
 
   describe('basic rendering', () => {
     it('should render table with correct structure', () => {
-      render(<MigratedAccountsTable apps={mockApps} />)
+      render(<MigratedAccountsTable apps={mockApps} destinationAddressesByApp={{}} />)
 
       expect(screen.getByTestId('table')).toBeInTheDocument()
       expect(screen.getByTestId('table-header')).toBeInTheDocument()
@@ -89,28 +83,28 @@ describe('MigratedAccountsTable component', () => {
     })
 
     it('should render correct title for regular addresses', () => {
-      render(<MigratedAccountsTable apps={mockApps} />)
+      render(<MigratedAccountsTable apps={mockApps} destinationAddressesByApp={{}} />)
 
       expect(screen.getByText('Regular Addresses')).toBeInTheDocument()
       expect(screen.queryByText('Multisig Addresses')).not.toBeInTheDocument()
     })
 
     it('should render correct title for multisig addresses', () => {
-      render(<MigratedAccountsTable apps={mockApps} multisigAddresses />)
+      render(<MigratedAccountsTable apps={mockApps} multisigAddresses destinationAddressesByApp={{}} />)
 
       expect(screen.getByText('Multisig Addresses')).toBeInTheDocument()
       expect(screen.queryByText('Regular Addresses')).not.toBeInTheDocument()
     })
 
     it('should apply correct styles to the table', () => {
-      render(<MigratedAccountsTable apps={mockApps} />)
+      render(<MigratedAccountsTable apps={mockApps} destinationAddressesByApp={{}} />)
 
       const table = screen.getByTestId('table')
       expect(table).toHaveClass('shadow-xs border border-gray-200')
     })
 
     it('should wrap table in a container with margin', () => {
-      const { container } = render(<MigratedAccountsTable apps={mockApps} />)
+      const { container } = render(<MigratedAccountsTable apps={mockApps} destinationAddressesByApp={{}} />)
 
       const wrapper = container.firstChild
       expect(wrapper).toHaveClass('mb-8')
@@ -119,7 +113,7 @@ describe('MigratedAccountsTable component', () => {
 
   describe('table headers', () => {
     it('should render correct headers for regular addresses', () => {
-      render(<MigratedAccountsTable apps={mockApps} />)
+      render(<MigratedAccountsTable apps={mockApps} destinationAddressesByApp={{}} />)
 
       const headers = screen.getAllByTestId('table-head')
       const headerTexts = headers.map(h => h.textContent)
@@ -134,7 +128,7 @@ describe('MigratedAccountsTable component', () => {
     })
 
     it('should render correct headers for multisig addresses', () => {
-      render(<MigratedAccountsTable apps={mockApps} multisigAddresses />)
+      render(<MigratedAccountsTable apps={mockApps} multisigAddresses destinationAddressesByApp={{}} />)
 
       const headers = screen.getAllByTestId('table-head')
       const headerTexts = headers.map(h => h.textContent)
@@ -150,7 +144,7 @@ describe('MigratedAccountsTable component', () => {
     })
 
     it('should not render Public Key header for multisig addresses', () => {
-      render(<MigratedAccountsTable apps={mockApps} multisigAddresses />)
+      render(<MigratedAccountsTable apps={mockApps} multisigAddresses destinationAddressesByApp={{}} />)
 
       const headers = screen.getAllByTestId('table-head')
       const headerTexts = headers.map(h => h.textContent)
@@ -159,7 +153,7 @@ describe('MigratedAccountsTable component', () => {
     })
 
     it('should not render Signatory Address and Threshold headers for regular addresses', () => {
-      render(<MigratedAccountsTable apps={mockApps} />)
+      render(<MigratedAccountsTable apps={mockApps} destinationAddressesByApp={{}} />)
 
       const headers = screen.getAllByTestId('table-head')
       const headerTexts = headers.map(h => h.textContent)
@@ -169,7 +163,7 @@ describe('MigratedAccountsTable component', () => {
     })
 
     it('should hide Chain header on small screens', () => {
-      render(<MigratedAccountsTable apps={mockApps} />)
+      render(<MigratedAccountsTable apps={mockApps} destinationAddressesByApp={{}} />)
 
       const headers = screen.getAllByTestId('table-head')
       const chainHeader = headers.find(h => h.textContent === 'Chain')
@@ -180,7 +174,7 @@ describe('MigratedAccountsTable component', () => {
 
   describe('balance header tooltip', () => {
     it('should render info icon with tooltip in balance header', () => {
-      render(<MigratedAccountsTable apps={mockApps} />)
+      render(<MigratedAccountsTable apps={mockApps} destinationAddressesByApp={{}} />)
 
       const infoIcon = screen.getByTestId('info-icon')
       expect(infoIcon).toBeInTheDocument()
@@ -188,7 +182,7 @@ describe('MigratedAccountsTable component', () => {
     })
 
     it('should render tooltip with correct message', () => {
-      render(<MigratedAccountsTable apps={mockApps} />)
+      render(<MigratedAccountsTable apps={mockApps} destinationAddressesByApp={{}} />)
 
       const tooltip = screen.getByTestId('custom-tooltip')
       expect(tooltip).toHaveAttribute(
@@ -198,14 +192,14 @@ describe('MigratedAccountsTable component', () => {
     })
 
     it('should apply correct styles to tooltip', () => {
-      render(<MigratedAccountsTable apps={mockApps} />)
+      render(<MigratedAccountsTable apps={mockApps} destinationAddressesByApp={{}} />)
 
       const tooltip = screen.getByTestId('custom-tooltip')
       expect(tooltip).toHaveClass('normal-case! font-normal')
     })
 
     it('should use flex layout for balance header', () => {
-      render(<MigratedAccountsTable apps={mockApps} />)
+      render(<MigratedAccountsTable apps={mockApps} destinationAddressesByApp={{}} />)
 
       const headers = screen.getAllByTestId('table-head')
       const balanceHeader = headers.find(h => h.textContent?.includes('Balance'))
@@ -216,14 +210,14 @@ describe('MigratedAccountsTable component', () => {
 
   describe('rows rendering', () => {
     it('should render a row for each app', () => {
-      render(<MigratedAccountsTable apps={mockApps} />)
+      render(<MigratedAccountsTable apps={mockApps} destinationAddressesByApp={{}} />)
 
       const rows = screen.getAllByTestId('migrated-account-row')
       expect(rows).toHaveLength(2)
     })
 
     it('should pass correct props to MigratedAccountRows for regular addresses', () => {
-      render(<MigratedAccountsTable apps={mockApps} />)
+      render(<MigratedAccountsTable apps={mockApps} destinationAddressesByApp={{}} />)
 
       const rows = screen.getAllByTestId('migrated-account-row')
       expect(rows[0]).toHaveTextContent('App: Polkadot')
@@ -235,7 +229,7 @@ describe('MigratedAccountsTable component', () => {
     })
 
     it('should pass correct props to MigratedAccountRows for multisig addresses', () => {
-      render(<MigratedAccountsTable apps={mockApps} multisigAddresses />)
+      render(<MigratedAccountsTable apps={mockApps} multisigAddresses destinationAddressesByApp={{}} />)
 
       const rows = screen.getAllByTestId('migrated-account-row')
       expect(rows[0]).toHaveTextContent('Multisig: Yes')
@@ -243,7 +237,7 @@ describe('MigratedAccountsTable component', () => {
     })
 
     it('should use app.id as key for each row', () => {
-      const { rerender } = render(<MigratedAccountsTable apps={mockApps} />)
+      const { rerender } = render(<MigratedAccountsTable apps={mockApps} destinationAddressesByApp={{}} />)
 
       // Add a new app
       const newApps = [
@@ -255,14 +249,11 @@ describe('MigratedAccountsTable component', () => {
           token: {
             symbol: 'WND',
             decimals: 12,
-            name: 'Westend',
-            category: 'substrate',
-            chainName: 'Westend',
           },
         },
       ]
 
-      rerender(<MigratedAccountsTable apps={newApps} />)
+      rerender(<MigratedAccountsTable apps={newApps} destinationAddressesByApp={{}} />)
 
       const rows = screen.getAllByTestId('migrated-account-row')
       expect(rows).toHaveLength(3)
@@ -272,7 +263,7 @@ describe('MigratedAccountsTable component', () => {
 
   describe('edge cases', () => {
     it('should render empty table body when apps array is empty', () => {
-      render(<MigratedAccountsTable apps={[]} />)
+      render(<MigratedAccountsTable apps={[]} destinationAddressesByApp={{}} />)
 
       const tableBody = screen.getByTestId('table-body')
       expect(tableBody).toBeInTheDocument()
@@ -288,14 +279,11 @@ describe('MigratedAccountsTable component', () => {
           token: {
             symbol: 'TEST',
             decimals: 10,
-            name: 'Test',
-            category: 'substrate',
-            chainName: 'Test',
           },
         },
       ]
 
-      render(<MigratedAccountsTable apps={appsWithUndefinedId} />)
+      render(<MigratedAccountsTable apps={appsWithUndefinedId} destinationAddressesByApp={{}} />)
 
       const rows = screen.getAllByTestId('migrated-account-row')
       expect(rows).toHaveLength(1)
@@ -311,14 +299,11 @@ describe('MigratedAccountsTable component', () => {
           token: {
             symbol: 'TEST',
             decimals: 10,
-            name: 'Test',
-            category: 'substrate',
-            chainName: 'Test',
           },
         },
       ]
 
-      render(<MigratedAccountsTable apps={appsWithNumberId} />)
+      render(<MigratedAccountsTable apps={appsWithNumberId} destinationAddressesByApp={{}} />)
 
       const rows = screen.getAllByTestId('migrated-account-row')
       expect(rows).toHaveLength(1)
