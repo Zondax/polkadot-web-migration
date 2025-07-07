@@ -9,6 +9,8 @@ import { hasAddressBalance, hasBalance, hasNegativeBalance, validateReservedBrea
 import { InternalError } from '@/lib/utils/error'
 import { filterAccountsForApps, setDefaultDestinationAddress } from '@/lib/utils/ledger'
 import {
+  type AccountIndex,
+  type AccountProxy,
   type Address,
   type AddressBalance,
   AddressStatus,
@@ -16,6 +18,7 @@ import {
   type Collection,
   type MultisigAddress,
   type Native,
+  type Registration,
 } from '@/state/types/ledger'
 
 export interface ProcessedAccountData {
@@ -228,9 +231,9 @@ async function getBlockchainDataForAccount(
  * Only updates the balance if the breakdown validation passes.
  *
  * @param {AddressBalance[]} balances - Array of account balances
- * @param {any} registration - Identity registration information
- * @param {any} proxy - Proxy configuration data
- * @param {any} indexInfo - Account index information
+ * @param {Registration | undefined} registration - Identity registration information
+ * @param {AccountProxy | undefined} proxy - Proxy configuration data
+ * @param {AccountIndex | undefined} indexInfo - Account index information
  * @param {Array<{callHash: string, deposit: BN}>} multisigDeposits - Multisig call deposits
  * @returns {AddressBalance[]} Updated balances with reserved breakdown details
  *
@@ -243,9 +246,9 @@ async function getBlockchainDataForAccount(
  */
 function processReservedBalanceBreakdown(
   balances: AddressBalance[],
-  registration: any,
-  proxy: any,
-  indexInfo: any,
+  registration: Registration | undefined,
+  proxy: AccountProxy | undefined,
+  indexInfo: AccountIndex | undefined,
   multisigDeposits: { callHash: string; deposit: BN }[]
 ): AddressBalance[] {
   const hasReservedBalance = registration?.deposit || multisigDeposits.length > 0 || proxy?.deposit || indexInfo?.deposit

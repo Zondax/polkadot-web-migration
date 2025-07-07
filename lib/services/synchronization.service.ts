@@ -478,25 +478,3 @@ export async function synchronizeAllApps(
     })
   }
 }
-
-/**
- * Validates that all prerequisites for synchronization are met.
- *
- * @description Checks if the Ledger device connection is available and ready for synchronization.
- * This should be called before starting any synchronization process.
- *
- * @param {any} connection - The Ledger device connection object
- * @returns {boolean} True if synchronization can proceed, false otherwise
- *
- * @example
- * ```typescript
- * if (validateSyncPrerequisites(connection)) {
- *   await synchronizeAllApps()
- * } else {
- *   console.log('Ledger not connected')
- * }
- * ```
- */
-export function validateSyncPrerequisites(connection: any): boolean {
-  return Boolean(connection)
-}

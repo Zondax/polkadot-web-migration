@@ -6,12 +6,7 @@ import type { MultisigCallFormData } from '@/components/sections/migrate/dialogs
 import type { Token } from '@/config/apps'
 import { getApiAndProvider, getBalance, type UpdateTransactionStatus } from '@/lib/account'
 import type { DeviceConnectionProps } from '@/lib/ledger/types'
-import {
-  synchronizeAllApps,
-  synchronizeAppAccounts,
-  synchronizePolkadotAccounts,
-  validateSyncPrerequisites,
-} from '@/lib/services/synchronization.service'
+import { synchronizeAllApps, synchronizeAppAccounts, synchronizePolkadotAccounts } from '@/lib/services/synchronization.service'
 import { type InternalError, interpretError } from '@/lib/utils'
 import { convertSS58Format, isMultisigAddress } from '@/lib/utils/address'
 import { hasAddressBalance } from '@/lib/utils/balance'
@@ -447,9 +442,9 @@ export const ledgerState$ = observable({
 
     try {
       const connection = ledgerState$.device.connection.get()
-      if (!validateSyncPrerequisites(connection)) {
+      if (!connection || !connection.isAppOpen || !connection.transport) {
         ledgerState$.apps.assign({
-          status: undefined,
+          status: AppStatus.ERROR,
           apps: [],
           syncProgress: {
             scanned: 0,

@@ -339,8 +339,8 @@ describe('Ledger State', () => {
     })
 
     it('should return error app when API connection fails', async () => {
-      const { synchronizeAppAccounts } = await import('@/lib/services/synchronization.service')
-      const { InternalError } = await import('@/lib/utils/error')
+      const { ledgerClient } = await import('../client/ledger')
+      const { getApiAndProvider } = await import('@/lib/account')
       const { InternalErrorType } = await import('config/errors')
 
       vi.mocked(ledgerClient.synchronizeAccounts).mockResolvedValueOnce({
