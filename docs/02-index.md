@@ -1,5 +1,5 @@
 ---
-title: 'Polkadot Migration App'
+title: 'Introduction'
 description: 'A user-friendly assistant for migrating to the new Polkadot Universal Ledger App.'
 ---
 
@@ -37,4 +37,4 @@ At launch, Polkadot, Kusama, and all system chains were fully supported, with pa
 
 ## Is the Migration Assistant secure to use?
 
-Yes. The security of all transactions remains on the Ledger device itself. The Migration Assistant only serves as a visual interface—it does not store or handle your private keys. Always **verify every transaction directly on your Ledger device** before confirming. 
+Yes. The security of all transactions remains on the Ledger device itself. The Migration Assistant only serves as a visual interface—it does not store or handle your private keys. Always **verify every transaction directly on your Ledger device** before confirming.

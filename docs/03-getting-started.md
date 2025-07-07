@@ -5,11 +5,13 @@ This guide will walk you through setting up and using the Polkadot Migration Ass
 ## Prerequisites
 
 ### Hardware Requirements
+
 - **Ledger Device** - Nano S Plus, Nano X, or Stax
 - **USB Connection** - Cable to connect Ledger to your computer
 - **Updated Firmware** - Latest firmware installed via Ledger Live
 
 ### Software Requirements
+
 - **Modern Web Browser** - Chrome, Firefox, Edge, or Safari (with WebUSB support)
 - **Ledger Live** - For installing the Polkadot Universal App
 - **Internet Connection** - For blockchain data and transactions
@@ -34,7 +36,7 @@ This guide will walk you through setting up and using the Polkadot Migration Ass
 ## Step 3: Access the Migration Assistant
 
 1. **Open your web browser**
-2. **Navigate to the Migration Assistant** URL
+2. **Navigate to [https://polkadot.zondax.ch](https://polkadot.zondax.ch)** - The official Migration Assistant
 3. **Allow browser permissions** for WebUSB when prompted
 4. **Verify secure connection** - Look for HTTPS lock icon
 
@@ -48,12 +50,14 @@ This guide will walk you through setting up and using the Polkadot Migration Ass
 ### Troubleshooting Connection Issues
 
 **Ledger not detected:**
+
 - Check USB cable connection
 - Try a different USB port
 - Restart your browser
 - Close Ledger Live (it may conflict)
 
 **Browser permissions denied:**
+
 - Refresh the page and try again
 - Check browser settings for USB permissions
 - Try an incognito/private window
@@ -86,16 +90,19 @@ Before starting migration:
 ### Important Considerations
 
 **Staking Accounts:**
+
 - May need to unstake tokens first
 - Unbonding period applies (varies by network)
 - Plan for the time required
 
 **Identity Accounts:**
+
 - On-chain identities may need removal
 - Check for parent/child relationships
 - Consider impact on reputation
 
 **Multisig Accounts:**
+
 - Require coordination with other signers
 - May need multiple approval rounds
 - Plan with your co-signers
@@ -111,6 +118,7 @@ Before starting migration:
 ### Transaction Verification
 
 **Always verify on your Ledger:**
+
 - Transaction type and method
 - Amount being transferred
 - Destination address
@@ -118,6 +126,7 @@ Before starting migration:
 - Any additional parameters
 
 **Never confirm if:**
+
 - Details don't match what you expect
 - Amounts seem incorrect
 - Destination addresses are unfamiliar
@@ -141,16 +150,19 @@ After successful migration:
 ## Common Issues & Solutions
 
 ### Connection Problems
+
 - **Device not found** → Check USB connection and browser permissions
 - **App not ready** → Ensure Polkadot Universal App is open on Ledger
 - **WebUSB not supported** → Try a different browser (Chrome recommended)
 
 ### Migration Errors
+
 - **Insufficient balance** → Ensure enough tokens for fees
 - **Transaction timeout** → Network congestion, try again later
 - **Ledger timeout** → Complete transaction more quickly
 
 ### Account Issues
+
 - **Missing accounts** → Check if using different seed phrase
 - **Zero balances** → Verify network connectivity and data refresh
 - **Wrong derivation** → Ensure using Polkadot Universal App
@@ -158,12 +170,14 @@ After successful migration:
 ## Support & Resources
 
 ### Self-Help
+
 - Review error messages carefully
 - Check browser console for technical details
 - Try refreshing the application
 - Restart browser and reconnect Ledger
 
 ### Further Assistance
+
 - Check official documentation
 - Visit community forums
 - Contact Ledger support for hardware issues
