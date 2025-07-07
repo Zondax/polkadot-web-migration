@@ -1,5 +1,6 @@
 import type Transport from '@ledgerhq/hw-transport'
 import { StatusCodes } from '@ledgerhq/hw-transport'
+import { processErrorResponse } from '@zondax/ledger-js'
 
 /**
  * Opens an app on the Ledger device.
@@ -30,7 +31,7 @@ export async function openApp(transport: Transport, appName: string): Promise<vo
       throw new Error(`Open app command failed with status: ${status}`)
     }
   } catch (e) {
-    console.error('Error opening app:', e)
-    throw e // Re-throw the error for handling by the caller
+    const error = processErrorResponse(e)
+    throw error // Propagate the error to the caller
   }
 }

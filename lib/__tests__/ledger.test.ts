@@ -1,10 +1,14 @@
 import { MockTransport } from '@ledgerhq/hw-transport-mocker'
 import TransportWebUSB from '@ledgerhq/hw-transport-webhid'
+import { LedgerError, ResponseError } from '@zondax/ledger-js'
 import { PolkadotGenericApp } from '@zondax/ledger-substrate'
 import type { GenericeResponseAddress } from '@zondax/ledger-substrate/dist/common'
 import { describe, expect, it, vi } from 'vitest'
-
 import { LedgerService } from '@/lib/ledger/ledgerService'
+
+// Constants for error handling
+const TRANSPORT_NOT_AVAILABLE_ERROR = new ResponseError(LedgerError.UnknownTransportError, 'Transport not available')
+const POLKADOT_MIGRATION_APP = 'Polkadot Migration'
 
 // Helper function to create mock responses
 const createMockResponse = (statusCode: number) =>
@@ -23,22 +27,43 @@ const createMockGenericApp = (overrides: Partial<PolkadotGenericApp> = {}) =>
 describe('LedgerService', () => {
   describe('openApp', () => {
     it('should successfully open app and return connection', async () => {
-      const transport = new MockTransport(createMockResponse(0x9000))
+      // Mock TransportWebUSB.create to return our mock transport
+      const mockTransport = new MockTransport(createMockResponse(0x9000))
+      vi.spyOn(TransportWebUSB, 'create').mockResolvedValue(mockTransport as any)
+
+      // Mock the openApp function
+      vi.mock('@/lib/ledger/openApp', () => ({
+        openApp: vi.fn().mockResolvedValue(undefined),
+      }))
+
+      // Mock PolkadotGenericApp.getVersion to return a valid response
+      vi.spyOn(PolkadotGenericApp.prototype, 'getVersion').mockResolvedValue({
+        testMode: false,
+        major: 1,
+        minor: 0,
+        patch: 0,
+        deviceLocked: false,
+        targetId: '0x00000000',
+      })
+
       const ledgerService = new LedgerService()
 
-      const result = await ledgerService.openApp(transport, 'Polkadot Migration')
+      const onDisconnect = vi.fn()
+      const transport = await ledgerService.initializeTransport(onDisconnect)
+
+      const result = await ledgerService.openApp(POLKADOT_MIGRATION_APP)
       expect(result).toEqual({
         connection: {
           transport,
           genericApp: expect.any(PolkadotGenericApp),
-          isAppOpen: false,
+          isAppOpen: true,
         },
       })
     })
 
     it('should throw TransportStatusError when transport is undefined', async () => {
       const ledgerService = new LedgerService()
-      await expect(ledgerService.openApp(undefined as any, 'Polkadot Migration')).rejects.toThrow('Transport not available')
+      await expect(ledgerService.openApp(POLKADOT_MIGRATION_APP)).rejects.toThrow(TRANSPORT_NOT_AVAILABLE_ERROR)
     })
   })
 
@@ -72,50 +97,60 @@ describe('LedgerService', () => {
 
     it('should handle transport creation failure', async () => {
       // Mock TransportWebUSB.create to throw an error
-      vi.spyOn(TransportWebUSB, 'create').mockRejectedValue(new Error('Failed to create transport'))
+      vi.spyOn(TransportWebUSB, 'create').mockRejectedValue(TRANSPORT_NOT_AVAILABLE_ERROR)
 
       const ledgerService = new LedgerService()
 
       // Verify the error is thrown
-      await expect(ledgerService.initializeTransport()).rejects.toThrow('Failed to create transport')
+      await expect(ledgerService.initializeTransport()).rejects.toThrow(ResponseError)
 
       // Verify deviceConnection is not modified
       expect(ledgerService.deviceConnection.transport).toBeUndefined()
     })
   })
 
-  describe('isAppOpen', () => {
-    it('should return true when app is open and version is returned', async () => {
+  describe('isConnected', () => {
+    it('should return true when transport and genericApp are available', () => {
       const ledgerService = new LedgerService()
-      const genericApp = createMockGenericApp({
-        getVersion: vi.fn().mockResolvedValue('1.0.0'),
-      })
+      const mockTransport = new MockTransport(createMockResponse(0x9000))
+      const mockGenericApp = createMockGenericApp()
 
-      const result = await ledgerService.isAppOpen(genericApp)
-      expect(result).toBe(true)
-      expect(genericApp.getVersion).toHaveBeenCalled()
+      // Set up device connection
+      ledgerService.deviceConnection = {
+        transport: mockTransport,
+        genericApp: mockGenericApp,
+        isAppOpen: true,
+      }
+
+      expect(ledgerService.isConnected()).toBe(true)
     })
 
-    it('should return false when app is not open (getVersion throws)', async () => {
+    it('should return false when transport is missing', () => {
       const ledgerService = new LedgerService()
-      const genericApp = createMockGenericApp({
-        getVersion: vi.fn().mockRejectedValue(new Error('App not open')),
-      })
+      const mockGenericApp = createMockGenericApp()
 
-      const result = await ledgerService.isAppOpen(genericApp)
-      expect(result).toBe(false)
-      expect(genericApp.getVersion).toHaveBeenCalled()
+      // Set up device connection without transport
+      ledgerService.deviceConnection = {
+        transport: undefined,
+        genericApp: mockGenericApp,
+        isAppOpen: true,
+      }
+
+      expect(ledgerService.isConnected()).toBe(false)
     })
 
-    it('should return false when version is undefined', async () => {
+    it('should return false when genericApp is missing', () => {
       const ledgerService = new LedgerService()
-      const genericApp = createMockGenericApp({
-        getVersion: vi.fn().mockResolvedValue(undefined),
-      })
+      const mockTransport = new MockTransport(createMockResponse(0x9000))
 
-      const result = await ledgerService.isAppOpen(genericApp)
-      expect(result).toBe(false)
-      expect(genericApp.getVersion).toHaveBeenCalled()
+      // Set up device connection without genericApp
+      ledgerService.deviceConnection = {
+        transport: mockTransport,
+        genericApp: undefined,
+        isAppOpen: true,
+      }
+
+      expect(ledgerService.isConnected()).toBe(false)
     })
   })
 

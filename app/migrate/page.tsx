@@ -65,6 +65,7 @@ export default function MigratePage() {
       handleTabChange(0)
     }
   }, [isLedgerConnected, isAppOpen, activeTab, handleTabChange])
+
   // Prepare props for each tab component
   const connectProps: TabProps = {
     onContinue: () => goToNextTab(),

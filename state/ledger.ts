@@ -1,3 +1,8 @@
+import { observable } from '@legendapp/state'
+import { BN } from '@polkadot/util'
+import { type AppConfig, type AppId, appsConfigs, polkadotAppConfig } from 'config/apps'
+import { errorDetails, InternalErrorType } from 'config/errors'
+import { errorApps, syncApps } from 'config/mockData'
 import type { MultisigCallFormData } from '@/components/sections/migrate/dialogs/approve-multisig-call-dialog'
 import type { Token } from '@/config/apps'
 import { maxAddressesToFetch } from '@/config/config'
@@ -16,11 +21,6 @@ import { convertSS58Format, isMultisigAddress } from '@/lib/utils/address'
 import { hasAddressBalance, hasBalance, hasNegativeBalance, validateReservedBreakdown } from '@/lib/utils/balance'
 import { filterAccountsForApps, setDefaultDestinationAddress } from '@/lib/utils/ledger'
 import { handleErrorNotification } from '@/lib/utils/notifications'
-import { observable } from '@legendapp/state'
-import { BN } from '@polkadot/util'
-import { type AppConfig, type AppId, appsConfigs, polkadotAppConfig } from 'config/apps'
-import { errorDetails, InternalErrorType } from 'config/errors'
-import { errorApps, syncApps } from 'config/mockData'
 import { ledgerClient } from './client/ledger'
 import { errorsToStopSync } from './config/ledger'
 import { notifications$ } from './notifications'
@@ -248,16 +248,21 @@ export const ledgerState$ = observable({
     ledgerState$.device.error.set(undefined)
 
     try {
-      const response = await ledgerClient.connectDevice()
+      const response = await ledgerClient.connectDevice(ledgerState$.clearConnection)
 
       ledgerState$.device.connection.set(response?.connection)
       ledgerState$.device.error.set(response?.error) // Set error even if not connected
 
       const isDeviceConnected = Boolean(response?.connection && !response?.error)
-      const isAppOpen = Boolean(response?.connection?.isAppOpen)
+      // Use nullish coalescing to handle undefined isAppOpen property
+      const isAppOpen = response?.connection?.isAppOpen ?? false
 
       // Check if device is connected but app is not open
       if (isDeviceConnected && !isAppOpen) {
+        // Try to open the app automatically
+        console.debug('[ledgerState$] App not open, attempting to open automatically')
+        await ledgerClient.openApp()
+
         // Add notification to indicate the user should open the app
         notifications$.push({
           title: 'Polkadot Migration App not open',
@@ -266,6 +271,13 @@ export const ledgerState$ = observable({
           type: 'warning',
           autoHideDuration: 5000,
         })
+
+        // Check connection again after attempting to open the app
+        const checkResult = await ledgerClient.checkConnection()
+        if (checkResult) {
+          // If app is now open, update the connection state
+          return { connected: isDeviceConnected, isAppOpen: true }
+        }
       }
 
       return { connected: isDeviceConnected, isAppOpen }
@@ -276,6 +288,14 @@ export const ledgerState$ = observable({
       return { connected: false, isAppOpen: false }
     } finally {
       ledgerState$.device.isLoading.set(false)
+    }
+  },
+
+  async checkConnection() {
+    try {
+      return await ledgerClient.checkConnection()
+    } catch (_error) {
+      return false
     }
   },
 
@@ -291,12 +311,12 @@ export const ledgerState$ = observable({
 
   // Clear connection data
   clearConnection() {
+    console.debug('[ledgerState$] Clearing connection data')
     ledgerState$.device.assign({
       connection: undefined,
       error: undefined,
       isLoading: false,
     })
-    ledgerState$.clearSynchronization()
   },
 
   // Clear synchronization data
@@ -325,6 +345,7 @@ export const ledgerState$ = observable({
   // Stop synchronization without deleting already synchronized accounts
   cancelSynchronization() {
     ledgerState$.apps.isSyncCancelRequested.set(true)
+    ledgerClient.abortCall()
 
     // Set status to synchronized to indicate that the process was stopped
     ledgerState$.apps.status.set(AppStatus.SYNCHRONIZED)
@@ -754,32 +775,36 @@ export const ledgerState$ = observable({
   },
 
   // Synchronize Accounts
-  async synchronizeAccounts() {
+  async synchronizeAccounts(): Promise<void> {
     ledgerState$.apps.isSyncCancelRequested.set(false)
-    ledgerState$.apps.assign({
-      status: AppStatus.LOADING,
-      apps: [],
-      syncProgress: {
-        scanned: 0,
-        total: 0,
-        percentage: 0,
-      },
-    })
 
     try {
-      const connection = ledgerState$.device.connection.get()
-      if (!connection) {
-        ledgerState$.apps.assign({
-          status: undefined,
-          apps: [],
-          syncProgress: {
-            scanned: 0,
-            total: 0,
-            percentage: 0,
-          },
-        })
-        return
+      const isConnected = await ledgerState$.checkConnection()
+      if (!isConnected) {
+        const result = await ledgerState$.connectLedger()
+        if (!result.connected) {
+          ledgerState$.apps.assign({
+            status: AppStatus.ERROR,
+            apps: [],
+            syncProgress: {
+              scanned: 0,
+              total: 0,
+              percentage: 0,
+            },
+          })
+          return
+        }
       }
+
+      ledgerState$.apps.assign({
+        status: AppStatus.LOADING,
+        apps: [],
+        syncProgress: {
+          scanned: 0,
+          total: 0,
+          percentage: 0,
+        },
+      })
 
       notifications$.push({
         title: 'Synchronizing accounts',
