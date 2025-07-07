@@ -10,7 +10,11 @@ vi.mock('@legendapp/state/react', () => ({
 }))
 
 vi.mock('lucide-react', () => ({
-  AlertCircle: ({ className }: any) => <div data-testid="alert-circle" className={className}>!</div>,
+  AlertCircle: ({ className }: any) => (
+    <div data-testid="alert-circle" className={className}>
+      !
+    </div>
+  ),
   Banknote: () => <div data-testid="banknote">💰</div>,
   BanknoteArrowDown: () => <div data-testid="banknote-arrow-down">💰⬇</div>,
   Check: () => <div data-testid="check">✓</div>,
@@ -23,7 +27,11 @@ vi.mock('lucide-react', () => ({
   Shield: () => <div data-testid="shield">🛡</div>,
   Trash2: () => <div data-testid="trash2">🗑</div>,
   User: () => <div data-testid="user">👤</div>,
-  UserCog: ({ className }: any) => <div data-testid="user-cog" className={className}>👤⚙</div>,
+  UserCog: ({ className }: any) => (
+    <div data-testid="user-cog" className={className}>
+      👤⚙
+    </div>
+  ),
   Users: () => <div data-testid="users">👥</div>,
   X: () => <div data-testid="x">✕</div>,
 }))
@@ -67,14 +75,7 @@ vi.mock('@/components/ui/badge', () => ({
 
 vi.mock('@/components/ui/button', () => ({
   Button: ({ children, onClick, disabled, variant, size }: any) => (
-    <button 
-      type="button" 
-      onClick={onClick} 
-      disabled={disabled}
-      data-testid="button"
-      data-variant={variant}
-      data-size={size}
-    >
+    <button type="button" onClick={onClick} disabled={disabled} data-testid="button" data-variant={variant} data-size={size}>
       {children}
     </button>
   ),
@@ -82,11 +83,11 @@ vi.mock('@/components/ui/button', () => ({
 
 vi.mock('@/components/ui/checkbox', () => ({
   Checkbox: ({ checked, onCheckedChange }: any) => (
-    <input 
-      type="checkbox" 
-      checked={checked} 
+    <input
+      type="checkbox"
+      checked={checked}
       onChange={e => onCheckedChange?.(e.target.checked)}
-      onClick={e => onCheckedChange?.(!checked)}
+      onClick={_e => onCheckedChange?.(!checked)}
       data-testid="checkbox"
     />
   ),
@@ -127,9 +128,8 @@ vi.mock('@/lib/utils/balance', () => ({
 }))
 
 vi.mock('@/lib/utils/ui', () => ({
-  getIdentityItems: (registration: any) => registration?.identity ? [
-    { label: 'Display Name', value: registration.identity.display, icon: 'User' }
-  ] : [],
+  getIdentityItems: (registration: any) =>
+    registration?.identity ? [{ label: 'Display Name', value: registration.identity.display, icon: 'User' }] : [],
 }))
 
 vi.mock('../balance-hover-card', () => ({
@@ -139,10 +139,7 @@ vi.mock('../balance-hover-card', () => ({
 
 vi.mock('../destination-address-select', () => ({
   default: ({ onDestinationChange }: any) => (
-    <div 
-      data-testid="destination-address-select"
-      onClick={() => onDestinationChange?.('new-destination')}
-    >
+    <div data-testid="destination-address-select" onClick={() => onDestinationChange?.('new-destination')}>
       DestinationAddressSelect
     </div>
   ),
@@ -197,7 +194,7 @@ const mockNativeBalance = {
 describe('SynchronizedAccountRow Extended Tests', () => {
   const mockUpdateTransaction = vi.fn()
   const mockToggleAccountSelection = vi.fn()
-  
+
   const defaultProps = {
     account: mockAccount,
     accountIndex: 0,
@@ -221,10 +218,7 @@ describe('SynchronizedAccountRow Extended Tests', () => {
       const proxiedAccount = {
         ...mockAccount,
         proxy: {
-          proxies: [
-            { address: TEST_ADDRESSES.ADDRESS2 },
-            { address: TEST_ADDRESSES.ADDRESS3 },
-          ],
+          proxies: [{ address: TEST_ADDRESSES.ADDRESS2 }, { address: TEST_ADDRESSES.ADDRESS3 }],
           deposit: TEST_AMOUNTS.TEN_DOT.clone(),
         },
       }
@@ -239,7 +233,7 @@ describe('SynchronizedAccountRow Extended Tests', () => {
 
       // Should show proxy action button
       expect(screen.getByText('Proxy')).toBeInTheDocument()
-      
+
       // Should show proxy icon with correct styling
       const proxyIcon = screen.getByTestId('user-cog')
       expect(proxyIcon).toBeInTheDocument()
@@ -250,10 +244,7 @@ describe('SynchronizedAccountRow Extended Tests', () => {
       const proxiedAccount = {
         ...mockAccount,
         proxy: {
-          proxies: [
-            { address: TEST_ADDRESSES.ADDRESS2 },
-            { address: TEST_ADDRESSES.ADDRESS3 },
-          ],
+          proxies: [{ address: TEST_ADDRESSES.ADDRESS2 }, { address: TEST_ADDRESSES.ADDRESS3 }],
           deposit: TEST_AMOUNTS.TEN_DOT.clone(),
         },
       }
@@ -347,9 +338,9 @@ describe('SynchronizedAccountRow Extended Tests', () => {
       const tooltips = screen.getAllByTestId('tooltip')
       const errorTooltip = tooltips.find(tooltip => {
         const tooltipData = tooltip.getAttribute('data-tooltip')
-        return tooltipData && tooltipData.includes('Failed to load account balance')
+        return tooltipData?.includes('Failed to load account balance')
       })
-      
+
       expect(errorTooltip).toBeInTheDocument()
     })
   })
@@ -376,7 +367,7 @@ describe('SynchronizedAccountRow Extended Tests', () => {
 
       // Should show identity icon
       expect(screen.getByTestId('user')).toBeInTheDocument()
-      
+
       // Should show identity action button
       expect(screen.getByText('Identity')).toBeInTheDocument()
     })
@@ -440,13 +431,7 @@ describe('SynchronizedAccountRow Extended Tests', () => {
       const destinationSelect = screen.getByTestId('destination-address-select')
       fireEvent.click(destinationSelect)
 
-      expect(mockUpdateTransaction).toHaveBeenCalledWith(
-        { destinationAddress: 'new-destination' },
-        'polkadot',
-        0,
-        0,
-        false
-      )
+      expect(mockUpdateTransaction).toHaveBeenCalledWith({ destinationAddress: 'new-destination' }, 'polkadot', 0, 0, false)
     })
 
     it('should call toggleAccountSelection when checkbox changes', () => {
@@ -462,11 +447,7 @@ describe('SynchronizedAccountRow Extended Tests', () => {
       const checkbox = screen.getByTestId('checkbox')
       fireEvent.click(checkbox)
 
-      expect(mockToggleAccountSelection).toHaveBeenCalledWith(
-        'polkadot',
-        TEST_ADDRESSES.ALICE,
-        true
-      )
+      expect(mockToggleAccountSelection).toHaveBeenCalledWith('polkadot', TEST_ADDRESSES.ALICE, true)
     })
   })
 
@@ -519,13 +500,7 @@ describe('SynchronizedAccountRow Extended Tests', () => {
       const select = screen.getByTestId('select')
       fireEvent.click(select)
 
-      expect(mockUpdateTransaction).toHaveBeenCalledWith(
-        { signatoryAddress: 'test-address' },
-        'polkadot',
-        0,
-        0,
-        true
-      )
+      expect(mockUpdateTransaction).toHaveBeenCalledWith({ signatoryAddress: 'test-address' }, 'polkadot', 0, 0, true)
     })
   })
 
@@ -534,11 +509,7 @@ describe('SynchronizedAccountRow Extended Tests', () => {
       render(
         <table>
           <tbody>
-            <SynchronizedAccountRow 
-              {...defaultProps} 
-              balance={undefined} 
-              balanceIndex={undefined} 
-            />
+            <SynchronizedAccountRow {...defaultProps} balance={undefined} balanceIndex={undefined} />
           </tbody>
         </table>
       )
@@ -591,20 +562,14 @@ describe('SynchronizedAccountRow Extended Tests', () => {
       render(
         <table>
           <tbody>
-            <SynchronizedAccountRow 
-              {...defaultProps} 
-              account={singleMemberMultisig} 
-              balance={balanceWithSignatory}
-            />
+            <SynchronizedAccountRow {...defaultProps} account={singleMemberMultisig} balance={balanceWithSignatory} />
           </tbody>
         </table>
       )
 
       // Should render signatory address directly (not as select)
       const explorerLinks = screen.getAllByTestId('explorer-link')
-      expect(explorerLinks.some(link => 
-        link.textContent === TEST_ADDRESSES.ADDRESS2
-      )).toBe(true)
+      expect(explorerLinks.some(link => link.textContent === TEST_ADDRESSES.ADDRESS2)).toBe(true)
     })
 
     it('should handle account without proxy when none configured', () => {

@@ -8,7 +8,6 @@ import type { DeviceConnectionProps } from '@/lib/ledger/types'
 import { InternalError } from '@/lib/utils/error'
 import { AppStatus, ledgerState$ } from '../ledger'
 import { AccountType } from '../types/ledger'
-import type { MultisigCallFormData } from '@/components/sections/migrate/dialogs/approve-multisig-call-dialog'
 
 // Mock dependencies
 vi.mock('../client/ledger', () => ({
@@ -51,7 +50,7 @@ vi.mock('@/lib/utils', () => ({
 }))
 
 vi.mock('@/lib/utils/address', () => ({
-  convertSS58Format: vi.fn((address) => address),
+  convertSS58Format: vi.fn(address => address),
   isMultisigAddress: vi.fn(() => false),
 }))
 
@@ -63,7 +62,7 @@ vi.mock('@/lib/utils/balance', () => ({
 }))
 
 vi.mock('@/lib/utils/ledger', () => ({
-  filterAccountsForApps: vi.fn((accounts) => accounts),
+  filterAccountsForApps: vi.fn(accounts => accounts),
   setDefaultDestinationAddress: vi.fn(),
 }))
 
@@ -403,9 +402,13 @@ describe('Ledger State', () => {
     it('should handle missing RPC endpoint', async () => {
       await ledgerState$.getAccountBalance('nonexistent', AccountType.ACCOUNT, mockAddress)
 
-      // The account should be updated with error state
-      // Since we can't easily verify internal state changes, we at least verify no crash occurs
-      expect(true).toBe(true)
+      // Verify account is updated with error state
+      const apps = ledgerState$.apps.apps.get()
+      const app = apps.find(app => app.id === 'nonexistent')
+
+      // Since 'nonexistent' app doesn't exist, updateAccount will log a warning but not crash
+      // We can verify the method completes without throwing an error
+      expect(app).toBeUndefined() // App should not exist
     })
 
     it('should handle API connection failure', async () => {
@@ -415,10 +418,10 @@ describe('Ledger State', () => {
         provider: undefined,
       })
 
-      await ledgerState$.getAccountBalance('polkadot', AccountType.ACCOUNT, mockAddress)
+      // Execute the method - it should not throw an error
+      await expect(ledgerState$.getAccountBalance('polkadot', AccountType.ACCOUNT, mockAddress)).resolves.toBeUndefined()
 
-      // Should handle gracefully without throwing
-      expect(true).toBe(true)
+      // The test passes if the function resolves without throwing
     })
   })
 
@@ -657,7 +660,7 @@ describe('Ledger State', () => {
     it('should handle successful fee estimations', async () => {
       const { ledgerClient } = await import('../client/ledger')
       const mockFee = new BN('1000000000')
-      
+
       vi.mocked(ledgerClient.getUnstakeFee).mockResolvedValueOnce(mockFee)
       vi.mocked(ledgerClient.getWithdrawFee).mockResolvedValueOnce(mockFee)
       vi.mocked(ledgerClient.getRemoveIdentityFee).mockResolvedValueOnce(mockFee)
@@ -689,26 +692,26 @@ describe('Ledger State', () => {
     })
 
     it('should handle polkadot addresses verification - app config not found', async () => {
-      const result = await ledgerState$.verifyDestinationAddresses('nonexistent' as any, '1test', 'm/44\'/354\'/0\'/0\'/0\'')
+      const result = await ledgerState$.verifyDestinationAddresses('nonexistent' as any, '1test', "m/44'/354'/0'/0'/0'")
       expect(result.isVerified).toBe(false)
     })
 
     it('should handle polkadot addresses verification - no polkadot addresses', async () => {
       ledgerState$.polkadotAddresses.polkadot.set([])
-      const result = await ledgerState$.verifyDestinationAddresses('polkadot', '1test', 'm/44\'/354\'/0\'/0\'/0\'')
+      const result = await ledgerState$.verifyDestinationAddresses('polkadot', '1test', "m/44'/354'/0'/0'/0'")
       expect(result.isVerified).toBe(false)
     })
 
     it('should handle polkadot addresses verification - successful case', async () => {
       const { ledgerClient } = await import('../client/ledger')
       ledgerState$.polkadotAddresses.polkadot.set(['1test'])
-      
+
       // Mock successful address verification
       vi.mocked(ledgerClient.getAccountAddress).mockResolvedValueOnce({
         result: { address: '1test' },
       })
-      
-      const result = await ledgerState$.verifyDestinationAddresses('polkadot', '1test', 'm/44\'/354\'/0\'/0\'/0\'')
+
+      const result = await ledgerState$.verifyDestinationAddresses('polkadot', '1test', "m/44'/354'/0'/0'/0'")
       expect(result.isVerified).toBe(true)
     })
   })
@@ -716,12 +719,16 @@ describe('Ledger State', () => {
   describe('State management methods', () => {
     it('should handle clearSynchronization method', () => {
       // Set some state first
-      ledgerState$.apps.apps.set([{
-        id: 'polkadot',
-        name: 'Polkadot',
-        token: { symbol: 'DOT', decimals: 10 },
-        accounts: [{ address: '1test', name: 'Test', path: 'm/44\'/354\'/0\'/0\'/0\'', derivationPath: 0, balance: undefined, status: 'synchronized' }]
-      }])
+      ledgerState$.apps.apps.set([
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          token: { symbol: 'DOT', decimals: 10 },
+          accounts: [
+            { address: '1test', name: 'Test', path: "m/44'/354'/0'/0'/0'", derivationPath: 0, balance: undefined, status: 'synchronized' },
+          ],
+        },
+      ])
       ledgerState$.polkadotAddresses.polkadot.set(['1test'])
 
       // Clear synchronization
@@ -737,7 +744,7 @@ describe('Ledger State', () => {
       ledgerState$.apps.migrationResult.success.set(ledgerState$.apps.migrationResult.success.get() + 1)
       expect(ledgerState$.apps.migrationResult.success.get()).toBe(1)
 
-      // Test migration failure tracking  
+      // Test migration failure tracking
       ledgerState$.apps.migrationResult.fails.set(0)
       ledgerState$.apps.migrationResult.fails.set(ledgerState$.apps.migrationResult.fails.get() + 1)
       expect(ledgerState$.apps.migrationResult.fails.get()).toBe(1)
@@ -755,7 +762,7 @@ describe('Ledger State', () => {
 
     it('should handle handleError method with different error types', () => {
       const mockError = new InternalError(InternalErrorType.CONNECTION_ERROR)
-      
+
       // Test with error that should stop sync
       const result = ledgerState$.handleError(mockError)
       expect(result).toBe(true) // Should stop synchronization
@@ -764,10 +771,10 @@ describe('Ledger State', () => {
 
     it('should handle handleError with non-stopping error', () => {
       const mockError = new InternalError(InternalErrorType.UNKNOWN_ERROR)
-      
+
       // Reset cancel flag first
       ledgerState$.apps.isSyncCancelRequested.set(false)
-      
+
       const result = ledgerState$.handleError(mockError)
       expect(result).toBe(false) // Should not stop synchronization
     })
@@ -786,7 +793,7 @@ describe('Ledger State', () => {
 
     it('should process accounts with collections data', async () => {
       const { ledgerClient } = await import('../client/ledger')
-      
+
       // Test for synchronization error (simpler test that doesn't require complex API mocking)
       vi.mocked(ledgerClient.synchronizeAccounts).mockResolvedValueOnce({
         result: undefined,
@@ -806,40 +813,42 @@ describe('Ledger State', () => {
 
     it('should handle verifyDestinationAddresses error case', async () => {
       const { ledgerClient } = await import('../client/ledger')
-      
+
       // Mock getAccountAddress to throw error
       vi.mocked(ledgerClient.getAccountAddress).mockRejectedValueOnce(new Error('Verification failed'))
-      
+
       ledgerState$.polkadotAddresses.polkadot.set(['1test'])
-      const result = await ledgerState$.verifyDestinationAddresses('polkadot', '1test', 'm/44\'/354\'/0\'/0\'/0\'')
-      
+      const result = await ledgerState$.verifyDestinationAddresses('polkadot', '1test', "m/44'/354'/0'/0'/0'")
+
       expect(result.isVerified).toBe(false)
     })
 
     it('should handle migrateSelected with accounts that have balance and are selected', async () => {
       const { hasAddressBalance } = await import('@/lib/utils/balance')
-      
+
       // Mock hasAddressBalance to return true
       vi.mocked(hasAddressBalance).mockReturnValue(true)
 
       // Set up apps with accounts that have balance and are selected
-      ledgerState$.apps.apps.set([{
-        id: 'polkadot',
-        name: 'Polkadot',
-        token: { symbol: 'DOT', decimals: 10 },
-        accounts: [
-          {
-            address: '1test',
-            name: 'Test',
-            path: "m/44'/354'/0'/0'/0'",
-            derivationPath: 0,
-            balance: undefined,
-            status: 'synchronized',
-            selected: true,
-          }
-        ],
-        multisigAccounts: [],
-      }])
+      ledgerState$.apps.apps.set([
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          token: { symbol: 'DOT', decimals: 10 },
+          accounts: [
+            {
+              address: '1test',
+              name: 'Test',
+              path: "m/44'/354'/0'/0'/0'",
+              derivationPath: 0,
+              balance: undefined,
+              status: 'synchronized',
+              selected: true,
+            },
+          ],
+          multisigAccounts: [],
+        },
+      ])
 
       await ledgerState$.migrateSelected(true)
 
@@ -852,13 +861,13 @@ describe('Ledger State', () => {
     it('should handle connectLedger with app opening logic', async () => {
       const { ledgerClient } = await import('../client/ledger')
       const { notifications$ } = await import('../notifications')
-      
+
       const mockConnection = { isAppOpen: false }
       vi.mocked(ledgerClient.connectDevice).mockResolvedValueOnce({
         connection: mockConnection,
         error: undefined,
       })
-      
+
       // Mock openApp call
       vi.mocked(ledgerClient.openApp).mockResolvedValueOnce()
 
@@ -877,31 +886,33 @@ describe('Ledger State', () => {
 
     it('should handle migrateSelected with successful migration flows', async () => {
       const { hasAddressBalance } = await import('@/lib/utils/balance')
-      
+
       // Mock hasAddressBalance to return true
       vi.mocked(hasAddressBalance).mockReturnValue(true)
 
       // Set up apps with accounts that have balance and are selected
-      ledgerState$.apps.apps.set([{
-        id: 'polkadot',
-        name: 'Polkadot',
-        token: { symbol: 'DOT', decimals: 10 },
-        accounts: [
-          {
-            address: '1test',
-            name: 'Test',
-            path: "m/44'/354'/0'/0'/0'",
-            derivationPath: 0,
-            balance: {
-              total: new BN(1000000000000),
-              transferable: new BN(600000000000),
+      ledgerState$.apps.apps.set([
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          token: { symbol: 'DOT', decimals: 10 },
+          accounts: [
+            {
+              address: '1test',
+              name: 'Test',
+              path: "m/44'/354'/0'/0'/0'",
+              derivationPath: 0,
+              balance: {
+                total: new BN(1000000000000),
+                transferable: new BN(600000000000),
+              },
+              status: 'synchronized',
+              selected: true,
             },
-            status: 'synchronized',
-            selected: true,
-          }
-        ],
-        multisigAccounts: [],
-      }])
+          ],
+          multisigAccounts: [],
+        },
+      ])
 
       await ledgerState$.migrateSelected(true)
 
@@ -912,7 +923,7 @@ describe('Ledger State', () => {
       const { ledgerClient } = await import('../client/ledger')
       const { getApiAndProvider, getBalance } = await import('@/lib/account')
       const { hasBalance, hasNegativeBalance } = await import('@/lib/utils/balance')
-      
+
       const mockApp = {
         id: 'polkadot',
         name: 'Polkadot',
@@ -942,15 +953,23 @@ describe('Ledger State', () => {
 
       // Mock balance response
       vi.mocked(getBalance).mockResolvedValueOnce({
-        balances: [{
-          type: 'native',
-          balance: {
-            total: new BN(1000000000000),
-            transferable: new BN(600000000000),
-            staking: { total: new BN(0), active: new BN(0), unlocking: [] },
-            reserved: { total: new BN(0), proxy: { deposit: new BN(0) }, identity: { deposit: new BN(0) }, index: { deposit: new BN(0) }, multisig: { total: new BN(0), deposits: [] } },
-          }
-        }],
+        balances: [
+          {
+            type: 'native',
+            balance: {
+              total: new BN(1000000000000),
+              transferable: new BN(600000000000),
+              staking: { total: new BN(0), active: new BN(0), unlocking: [] },
+              reserved: {
+                total: new BN(0),
+                proxy: { deposit: new BN(0) },
+                identity: { deposit: new BN(0) },
+                index: { deposit: new BN(0) },
+                multisig: { total: new BN(0), deposits: [] },
+              },
+            },
+          },
+        ],
         collections: { uniques: [], nfts: [] },
         error: undefined,
       })
@@ -965,7 +984,7 @@ describe('Ledger State', () => {
     it('should handle synchronizeAccounts with actual app processing', async () => {
       // Mock device connection
       ledgerState$.device.connection.set({ isAppOpen: true })
-      
+
       // Set up apps to synchronize
       ledgerState$.apps.assign({
         apps: [],
@@ -990,9 +1009,7 @@ describe('Ledger State', () => {
     it('should handle fee estimation with missing RPC endpoint', async () => {
       // Mock app config without RPC endpoint
       vi.doMock('config/apps', () => ({
-        appsConfigs: new Map([
-          ['test', { id: 'test', name: 'Test', token: { symbol: 'TEST', decimals: 10 } }],
-        ]),
+        appsConfigs: new Map([['test', { id: 'test', name: 'Test', token: { symbol: 'TEST', decimals: 10 } }]]),
       }))
 
       const result = await ledgerState$.getUnstakeFee('test' as any, '1test', new BN(1000))

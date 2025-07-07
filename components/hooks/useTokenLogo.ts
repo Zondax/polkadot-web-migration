@@ -10,14 +10,14 @@ import { uiState$ } from 'state/ui'
  */
 export function useTokenLogo(tokenLogoId: string | undefined): string | undefined {
   if (!tokenLogoId) return undefined
-  
+
   const icons = uiState$.icons.get()
-  
+
   // Handle null/undefined icons
   if (!icons) return undefined
-  
+
   // Handle malformed icons data (should be an object)
   if (typeof icons !== 'object') return undefined
-  
+
   return icons[tokenLogoId]
 }

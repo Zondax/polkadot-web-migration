@@ -12,11 +12,11 @@ type NodeEnv = 'development' | 'production' | 'test'
  */
 export function getNodeEnv(): NodeEnv {
   const env = process.env.NEXT_PUBLIC_NODE_ENV?.toLowerCase()
-  
+
   if (env === 'development' || env === 'production' || env === 'test') {
     return env
   }
-  
+
   // Default to production for safety
   console.warn('[env] Invalid NEXT_PUBLIC_NODE_ENV value, defaulting to production:', env)
   return 'production'
@@ -25,34 +25,30 @@ export function getNodeEnv(): NodeEnv {
 /**
  * Safely parses an integer from environment variable with validation
  */
-export function getEnvInteger(
-  key: string, 
-  defaultValue: number, 
-  options?: { min?: number; max?: number }
-): number {
+export function getEnvInteger(key: string, defaultValue: number, options?: { min?: number; max?: number }): number {
   const value = process.env[key]
-  
+
   if (!value) {
     return defaultValue
   }
-  
+
   const parsed = Number.parseInt(value, 10)
-  
+
   if (Number.isNaN(parsed)) {
     console.warn(`[env] Invalid integer value for ${key}, using default:`, value)
     return defaultValue
   }
-  
+
   if (options?.min !== undefined && parsed < options.min) {
     console.warn(`[env] Value for ${key} below minimum (${options.min}), using default:`, parsed)
     return defaultValue
   }
-  
+
   if (options?.max !== undefined && parsed > options.max) {
     console.warn(`[env] Value for ${key} above maximum (${options.max}), using default:`, parsed)
     return defaultValue
   }
-  
+
   return parsed
 }
 
@@ -61,13 +57,16 @@ export function getEnvInteger(
  */
 export function getEnvList(key: string, defaultValue: string[] = []): string[] {
   const value = process.env[key]
-  
+
   if (!value || value.trim() === '') {
     return defaultValue
   }
-  
+
   try {
-    return value.split(',').map(item => item.trim()).filter(item => item.length > 0)
+    return value
+      .split(',')
+      .map(item => item.trim())
+      .filter(item => item.length > 0)
   } catch (error) {
     console.warn(`[env] Failed to parse list from ${key}, using default:`, error)
     return defaultValue
@@ -79,11 +78,11 @@ export function getEnvList(key: string, defaultValue: string[] = []): string[] {
  */
 export function getEnvString(key: string, defaultValue = ''): string {
   const value = process.env[key]
-  
+
   if (value === undefined || value === null) {
     return defaultValue
   }
-  
+
   return value
 }
 

@@ -49,7 +49,7 @@ import { isDevelopment } from './utils/env'
  */
 interface AccountData {
   free: { toString(): string }
-  reserved: { toString(): string }  
+  reserved: { toString(): string }
   frozen: { toString(): string }
 }
 
@@ -392,8 +392,7 @@ export async function prepareTransaction(
         throw new Error('Invalid item: must provide destinationAddress for native transfer')
       }
       nativeTransfer = {
-        amount:
-          isDevelopment() && MINIMUM_AMOUNT ? new BN(MINIMUM_AMOUNT) : balance.balance.transferable,
+        amount: isDevelopment() && MINIMUM_AMOUNT ? new BN(MINIMUM_AMOUNT) : balance.balance.transferable,
         receiverAddress: balance.transaction.destinationAddress,
       }
     }
@@ -685,9 +684,7 @@ export async function getTransactionDetails(
   const records = await apiAt.query.system.events()
 
   // Find events related to the specific extrinsic
-  const relatedEvents = (records as EventRecord[]).filter(
-    ({ phase }) => phase.isApplyExtrinsic && phase.asApplyExtrinsic.eq(txIndex)
-  )
+  const relatedEvents = (records as EventRecord[]).filter(({ phase }) => phase.isApplyExtrinsic && phase.asApplyExtrinsic.eq(txIndex))
 
   let success = false
   let errorInfo: string | undefined
@@ -765,7 +762,9 @@ export async function processCollectionMetadata(metadata: any, collectionId: num
 
     // Verify if metadata has the expected structure
     if (mdPrimitive && typeof mdPrimitive === 'object' && 'data' in mdPrimitive) {
-      const data = mdPrimitive.data as string | { name?: string; image?: string; description?: string; external_url?: string; mediaUri?: string; attributes?: any[] }
+      const data = mdPrimitive.data as
+        | string
+        | { name?: string; image?: string; description?: string; external_url?: string; mediaUri?: string; attributes?: any[] }
 
       // Case 1: Data is a string (possibly an IPFS URI)
       if (typeof data === 'string') {

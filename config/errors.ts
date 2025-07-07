@@ -203,7 +203,8 @@ export const errorDetails: ErrorDetailsMap = {
   approve_multisig_call_error: {
     title: 'Multisig Approval Failed',
     description: 'Unable to approve the multisig transaction.',
-    content: 'This could be due to network issues or insufficient signatures. Please ensure you have the correct permissions and try again.',
+    content:
+      'This could be due to network issues or insufficient signatures. Please ensure you have the correct permissions and try again.',
   },
   balance_not_gotten: {
     title: 'Balance Not Retrieved',
@@ -211,7 +212,8 @@ export const errorDetails: ErrorDetailsMap = {
   },
   blockchain_connection_error: {
     title: 'Blockchain Connection Error',
-    description: 'Unable to connect to the blockchain network. This could be due to network issues or the blockchain node being temporarily unavailable.',
+    description:
+      'Unable to connect to the blockchain network. This could be due to network issues or the blockchain node being temporarily unavailable.',
     content: 'Please check your internet connection and try again later.',
   },
   ClaNotSupported: {
@@ -222,7 +224,8 @@ export const errorDetails: ErrorDetailsMap = {
   connection_error: {
     title: 'Ledger Connection Issue',
     description: 'Unable to establish a connection with your Ledger device.',
-    content: 'Please ensure your Ledger is connected via USB, unlocked, and the Polkadot Migration app is open. You may need to close other applications using the Ledger.',
+    content:
+      'Please ensure your Ledger is connected via USB, unlocked, and the Polkadot Migration app is open. You may need to close other applications using the Ledger.',
   },
   connection_refused: {
     title: 'Network Connection Refused',
@@ -254,18 +257,22 @@ export const errorDetails: ErrorDetailsMap = {
   },
   failed_to_connect_to_blockchain: {
     title: 'Network Connection Issue',
-    description: 'Unable to connect to the blockchain network. This could be due to network issues or the blockchain node being temporarily unavailable.',
-    content: 'Please check your internet connection and try again in a few moments. If the problem persists, the network may be experiencing high traffic.',
+    description:
+      'Unable to connect to the blockchain network. This could be due to network issues or the blockchain node being temporarily unavailable.',
+    content:
+      'Please check your internet connection and try again in a few moments. If the problem persists, the network may be experiencing high traffic.',
   },
   fetch_process_accounts_error: {
     title: 'Account Synchronization Failed',
     description: 'We encountered an issue while retrieving your account information from the blockchain.',
-    content: 'This might be temporary. Please check your Ledger connection and try synchronizing again. If this continues, the blockchain network may be busy.',
+    content:
+      'This might be temporary. Please check your Ledger connection and try synchronizing again. If this continues, the blockchain network may be busy.',
   },
   get_address_error: {
     title: 'Ledger Address Verification Failed',
     description: 'Could not retrieve the account address from your Ledger device.',
-    content: 'Please ensure your Ledger is connected, unlocked, and the Polkadot Migration app is open. You may need to confirm the operation on your device.',
+    content:
+      'Please ensure your Ledger is connected, unlocked, and the Polkadot Migration app is open. You may need to confirm the operation on your device.',
   },
   get_remove_account_index_fee_error: {
     title: 'Account Index Fee Calculation Failed',
@@ -285,16 +292,18 @@ export const errorDetails: ErrorDetailsMap = {
   get_unstake_fee_error: {
     title: 'Unstaking Fee Unavailable',
     description: 'Unable to calculate the fee for unstaking your funds.',
-    content: 'This may be due to network congestion. You can try again or proceed with the unstaking operation (fees will be calculated during the transaction).',
+    content:
+      'This may be due to network congestion. You can try again or proceed with the unstaking operation (fees will be calculated during the transaction).',
   },
   get_withdraw_fee_error: {
     title: 'Withdrawal Fee Calculation Failed',
     description: 'Unable to calculate the fee for withdrawing your staked funds.',
-    content: 'This may be due to network congestion. You can try again or proceed with the withdrawal (fees will be calculated during the transaction).',
+    content:
+      'This may be due to network congestion. You can try again or proceed with the withdrawal (fees will be calculated during the transaction).',
   },
   insufficient_balance: {
     title: 'Insufficient Balance',
-    description: 'You don\'t have enough funds to cover the transaction fee.',
+    description: "You don't have enough funds to cover the transaction fee.",
     content: 'Please ensure you have additional funds in your account to cover transaction fees, or reduce the transfer amount.',
   },
   insufficient_balance_to_cover_fee: {
@@ -310,7 +319,8 @@ export const errorDetails: ErrorDetailsMap = {
   ledger_unknown_error: {
     title: 'Ledger Device Error',
     description: 'An unexpected error occurred while communicating with your Ledger device.',
-    content: 'Please ensure your device is connected, unlocked, and the correct app is open. Try disconnecting and reconnecting your device.',
+    content:
+      'Please ensure your device is connected, unlocked, and the correct app is open. Try disconnecting and reconnecting your device.',
   },
   locked_device: {
     title: 'Device Locked',
@@ -320,7 +330,8 @@ export const errorDetails: ErrorDetailsMap = {
   migration_error: {
     title: 'Migration Failed',
     description: 'The asset migration could not be completed successfully.',
-    content: 'This could be due to network congestion, insufficient balance, or temporary blockchain issues. Please verify your balances and try the migration again.',
+    content:
+      'This could be due to network congestion, insufficient balance, or temporary blockchain issues. Please verify your balances and try the migration again.',
   },
   migration_tx_info_error: {
     title: 'Migration Details Unavailable',
@@ -393,7 +404,8 @@ export const errorDetails: ErrorDetailsMap = {
   sign_tx_error: {
     title: 'Transaction Signing Failed',
     description: 'Unable to sign the transaction with your Ledger device.',
-    content: 'Please ensure your Ledger is connected, unlocked, and the correct app is open. You may need to confirm the transaction on your device.',
+    content:
+      'Please ensure your Ledger is connected, unlocked, and the correct app is open. You may need to confirm the transaction on your device.',
   },
   signatory_already_signed: {
     title: 'Signatory Already Signed',
@@ -451,6 +463,7 @@ export const errorDetails: ErrorDetailsMap = {
   withdraw_error: {
     title: 'Withdrawal Failed',
     description: 'Unable to withdraw your staked funds.',
-    content: 'This may be due to network issues or your funds may still be in the unbonding period. Please check your staking status and try again.',
+    content:
+      'This may be due to network issues or your funds may still be in the unbonding period. Please check your staking status and try again.',
   },
 }

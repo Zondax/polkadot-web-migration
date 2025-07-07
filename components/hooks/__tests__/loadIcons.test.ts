@@ -91,7 +91,7 @@ describe('useLoadIcons hook', () => {
       mockLoadInitialIcons.mockImplementation(undefined as any)
 
       expect(() => renderHook(() => useLoadIcons())).not.toThrow()
-      
+
       // The hook should still return undefined
       const { result } = renderHook(() => useLoadIcons())
       expect(result.current).toBeUndefined()
