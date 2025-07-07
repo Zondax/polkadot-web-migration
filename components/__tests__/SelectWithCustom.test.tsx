@@ -6,7 +6,15 @@ import { SelectWithCustom } from '../SelectWithCustom'
 // Mock the UI components
 vi.mock('@/components/ui/button', () => ({
   Button: ({ children, onClick, disabled, variant, size, className }: any) => (
-    <button onClick={onClick} disabled={disabled} data-variant={variant} data-size={size} className={className} data-testid="button">
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      data-variant={variant}
+      data-size={size}
+      className={className}
+      data-testid="button"
+    >
       {children}
     </button>
   ),
@@ -27,16 +35,18 @@ vi.mock('@/components/ui/input', () => ({
 }))
 
 vi.mock('@/components/ui/select', () => ({
-  Select: ({ children, onValueChange, defaultValue, disabled }: any) => (
+  Select: ({ children, onValueChange, disabled }: any) => (
     <div data-testid="select" data-disabled={disabled}>
-      <div onClick={() => onValueChange?.('test-option-1')}>{children}</div>
+      <button type="button" onClick={() => onValueChange?.('test-option-1')}>
+        {children}
+      </button>
     </div>
   ),
   SelectContent: ({ children }: any) => <div data-testid="select-content">{children}</div>,
   SelectItem: ({ children, value, onClick }: any) => (
-    <div data-testid="select-item" data-value={value} onClick={() => onClick?.(value)}>
+    <button type="button" data-testid="select-item" data-value={value} onClick={() => onClick?.(value)}>
       {children}
-    </div>
+    </button>
   ),
   SelectTrigger: ({ children }: any) => <div data-testid="select-trigger">{children}</div>,
   SelectValue: ({ placeholder }: any) => <div data-testid="select-value">{placeholder}</div>,
@@ -247,7 +257,7 @@ describe('SelectWithCustom', () => {
 
     it('should disable confirm button when input is empty', () => {
       render(
-        <button disabled data-testid="confirm-button">
+        <button type="button" disabled data-testid="confirm-button">
           Confirm
         </button>
       )
@@ -256,7 +266,11 @@ describe('SelectWithCustom', () => {
     })
 
     it('should enable confirm button when input has value', () => {
-      render(<button data-testid="confirm-button">Confirm</button>)
+      render(
+        <button type="button" disabled={false} data-testid="confirm-button">
+          Confirm
+        </button>
+      )
 
       expect(screen.getByTestId('confirm-button')).not.toBeDisabled()
     })
@@ -283,7 +297,7 @@ describe('SelectWithCustom', () => {
 
         return (
           <div>
-            <button onClick={() => setIsAddingCustom(true)} data-testid="add-custom">
+            <button type="button" onClick={() => setIsAddingCustom(true)} data-testid="add-custom">
               Add Custom
             </button>
             {isAddingCustom && <input ref={inputRef} data-testid="custom-input" />}
@@ -366,7 +380,7 @@ describe('SelectWithCustom', () => {
           <div>
             {mode === 'select' && (
               <div data-testid="select-mode">
-                <button onClick={() => setMode('adding')} data-testid="add-custom">
+                <button type="button" onClick={() => setMode('adding')} data-testid="add-custom">
                   Add Custom Value
                 </button>
               </div>
@@ -374,7 +388,7 @@ describe('SelectWithCustom', () => {
             {mode === 'adding' && (
               <div data-testid="adding-mode">
                 <input data-testid="custom-input" />
-                <button onClick={() => setMode('custom')} data-testid="submit">
+                <button type="button" onClick={() => setMode('custom')} data-testid="submit">
                   Submit
                 </button>
               </div>
@@ -382,7 +396,7 @@ describe('SelectWithCustom', () => {
             {mode === 'custom' && (
               <div data-testid="custom-mode">
                 <span>Custom Value</span>
-                <button onClick={() => setMode('select')} data-testid="remove">
+                <button type="button" onClick={() => setMode('select')} data-testid="remove">
                   Remove
                 </button>
               </div>

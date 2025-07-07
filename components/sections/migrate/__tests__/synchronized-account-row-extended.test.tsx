@@ -44,10 +44,10 @@ vi.mock('@/components/CustomTooltip', () => ({
   ),
   TooltipBody: ({ items }: any) => (
     <div data-testid="tooltip-body">
-      {items?.map((item: any, idx: number) => (
-        <div key={idx} data-testid={`tooltip-item-${idx}`}>
+      {items?.map((item: any) => (
+        <button key={`${item.label}-${item.value}`} type="button" data-testid={`tooltip-item-${item.label}-${item.value}`}>
           {item.label}: {typeof item.value === 'string' ? item.value : 'component'}
-        </div>
+        </button>
       ))}
     </div>
   ),
@@ -95,9 +95,9 @@ vi.mock('@/components/ui/checkbox', () => ({
 
 vi.mock('@/components/ui/select', () => ({
   Select: ({ children, value, onValueChange }: any) => (
-    <div data-testid="select" data-value={value} onClick={() => onValueChange?.('test-address')}>
+    <button type="button" data-testid="select" data-value={value} onClick={() => onValueChange?.('test-address')}>
       {children}
-    </div>
+    </button>
   ),
   SelectTrigger: ({ children }: any) => <div data-testid="select-trigger">{children}</div>,
   SelectValue: ({ placeholder }: any) => <span data-testid="select-value">{placeholder}</span>,
@@ -139,9 +139,9 @@ vi.mock('../balance-hover-card', () => ({
 
 vi.mock('../destination-address-select', () => ({
   default: ({ onDestinationChange }: any) => (
-    <div data-testid="destination-address-select" onClick={() => onDestinationChange?.('new-destination')}>
+    <button type="button" data-testid="destination-address-select" onClick={() => onDestinationChange?.('new-destination')}>
       DestinationAddressSelect
-    </div>
+    </button>
   ),
 }))
 

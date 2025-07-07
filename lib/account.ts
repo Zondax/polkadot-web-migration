@@ -1,8 +1,6 @@
-import { merkleizeMetadata } from '@polkadot-api/merkleize-metadata'
 import { ApiPromise, WsProvider } from '@polkadot/api'
 import type { SubmittableExtrinsic } from '@polkadot/api/types'
 import type { GenericExtrinsicPayload } from '@polkadot/types'
-import type { Option, u128, u32, Vec } from '@polkadot/types-codec'
 import type {
   AccountId32,
   Balance,
@@ -14,8 +12,10 @@ import type {
   StakingLedger,
 } from '@polkadot/types/interfaces'
 import type { ExtrinsicPayloadValue, ISubmittableResult } from '@polkadot/types/types/extrinsic'
+import type { Option, u32, u128, Vec } from '@polkadot/types-codec'
 import { BN, hexToU8a, u8aToBn } from '@polkadot/util'
 import { decodeAddress } from '@polkadot/util-crypto'
+import { merkleizeMetadata } from '@polkadot-api/merkleize-metadata'
 import type { AppConfig, AppId } from 'config/apps'
 import { DEFAULT_ERA_TIME_IN_HOURS, getEraTimeByAppId } from 'config/apps'
 import { defaultWeights, MULTISIG_WEIGHT_BUFFER } from 'config/config'
@@ -300,7 +300,7 @@ export async function prepareTransactionPayload(
   transfer: SubmittableExtrinsic<'promise', ISubmittableResult>
 ): Promise<PreparedTransactionPayload | undefined> {
   const nonceResp = await api.query.system.account(senderAddress)
-  const { nonce } = nonceResp.toHuman() as AccountInfo
+  const { nonce } = nonceResp.toHuman() as unknown as AccountInfo
 
   const metadataV15 = await api.call.metadata.metadataAtVersion<Option<OpaqueMetadata>>(15).then(m => {
     if (!m.isNone) {

@@ -1,4 +1,3 @@
-
 import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import BalanceGallery, { type NftBalance } from '../balance-gallery'
