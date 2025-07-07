@@ -444,7 +444,7 @@ export const ledgerState$ = observable({
       const connection = ledgerState$.device.connection.get()
       if (!connection || !connection.isAppOpen || !connection.transport) {
         ledgerState$.apps.assign({
-          status: AppStatus.ERROR,
+          status: undefined,
           apps: [],
           syncProgress: {
             scanned: 0,
@@ -454,6 +454,16 @@ export const ledgerState$ = observable({
         })
         return
       }
+
+      ledgerState$.apps.assign({
+        status: AppStatus.LOADING,
+        apps: [],
+        syncProgress: {
+          scanned: 0,
+          total: 0,
+          percentage: 0,
+        },
+      })
 
       // Use the synchronization service to handle the sync process
       const result = await synchronizeAllApps(
