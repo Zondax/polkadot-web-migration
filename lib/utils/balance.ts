@@ -1,5 +1,6 @@
 import { BN } from '@polkadot/util'
 import { MINIMUM_AMOUNT } from '@/config/mockData'
+import { isDevelopment } from './env'
 import {
   type Address,
   type AddressBalance,
@@ -160,7 +161,7 @@ export function getTransferableAndNfts(
   }
 
   // Use minimum amount for development if needed
-  if (process.env.NEXT_PUBLIC_NODE_ENV === 'development' && MINIMUM_AMOUNT && isNativeBalance(balance)) {
+  if (isDevelopment() && MINIMUM_AMOUNT && isNativeBalance(balance)) {
     nativeAmount = new BN(MINIMUM_AMOUNT)
   }
 
