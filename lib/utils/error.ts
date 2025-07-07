@@ -148,8 +148,6 @@ export const withErrorHandling = async <T>(fn: () => Promise<T>, { operation, co
   try {
     return await fn()
   } catch (error: unknown) {
-    console.debug('[withErrorHandling] error:', JSON.stringify(error, null, 2))
-
     const internalError = interpretLedgerClientError(error)
 
     internalError.operation = internalError.operation || operation

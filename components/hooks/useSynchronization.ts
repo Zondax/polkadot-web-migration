@@ -1,10 +1,10 @@
 import { use$, useObservable } from '@legendapp/state/react'
 import { useCallback, useState } from 'react'
-import { AppStatus, ledgerState$, type App } from 'state/ledger'
+import { type App, AppStatus, ledgerState$ } from 'state/ledger'
 
 import type { AppId } from '@/config/apps'
 import { filterInvalidSyncedApps, filterValidSyncedAppsWithBalances, hasAccountsWithErrors } from '@/lib/utils'
-import { AccountType, type TransactionSettings, type Address, type MultisigAddress } from '@/state/types/ledger'
+import { AccountType, type Address, type MultisigAddress, type TransactionSettings } from '@/state/types/ledger'
 
 export type UpdateTransaction = (
   transaction: Partial<TransactionSettings>,
@@ -149,6 +149,10 @@ export const useSynchronization = (): UseSynchronizationReturn => {
     [apps]
   )
 
+  const cancelSynchronization = useCallback(() => {
+    ledgerState$.cancelSynchronization()
+  }, [])
+
   // ---- Account selection functions ----
 
   /**
@@ -220,7 +224,7 @@ export const useSynchronization = (): UseSynchronizationReturn => {
     // Actions
     rescanFailedAccounts,
     restartSynchronization,
-    cancelSynchronization: ledgerState$.cancelSynchronization,
+    cancelSynchronization,
     updateTransaction,
 
     // Selection actions

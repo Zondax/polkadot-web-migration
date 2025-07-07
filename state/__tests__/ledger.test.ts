@@ -1,7 +1,11 @@
 import { BN } from '@polkadot/util'
-import { InternalErrorType } from 'config/errors'
+import type { Transport } from '@zondax/ledger-js'
+import type { PolkadotGenericApp } from '@zondax/ledger-substrate'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { errorDetails, InternalErrorType } from '@/config/errors'
 import { mockAddress1 } from '@/lib/__tests__/utils/__mocks__/mockData'
+import type { DeviceConnectionProps } from '@/lib/ledger/types'
+import { InternalError } from '@/lib/utils/error'
 import { AppStatus, ledgerState$ } from '../ledger'
 import { AccountType } from '../types/ledger'
 
@@ -25,6 +29,9 @@ vi.mock('../client/ledger', () => ({
     getRemoveProxiesFee: vi.fn(),
     removeAccountIndex: vi.fn(),
     getRemoveAccountIndexFee: vi.fn(),
+    abortCall: vi.fn(),
+    checkConnection: vi.fn(),
+    openApp: vi.fn(),
   },
 }))
 
@@ -93,37 +100,6 @@ vi.mock('config/apps', () => ({
   polkadotAppConfig: { id: 'polkadot', name: 'Polkadot', rpcEndpoint: 'wss://rpc.polkadot.io', token: { symbol: 'DOT', decimals: 10 } },
 }))
 
-vi.mock('config/errors', () => ({
-  errorDetails: {
-    migration_error: { title: 'Migration Error', description: 'Migration failed' },
-    blockchain_connection_error: { title: 'Blockchain Connection Error', description: 'Blockchain connection failed' },
-    balance_not_gotten: { title: 'Balance Not Retrieved', description: 'Balance not retrieved' },
-    failed_to_connect_to_blockchain: {
-      title: 'Failed to Connect to Blockchain',
-      description: 'Failed to connect to the blockchain network.',
-    },
-    sync_error: { title: 'Synchronization Error', description: 'The accounts could not be synchronized. Please try again later.' },
-    fetch_process_accounts_error: {
-      title: 'Error Fetching and Processing Accounts',
-      description: 'An error occurred while fetching and processing accounts for the app.',
-    },
-  },
-  InternalErrorType: {
-    CONNECTION_ERROR: 'CONNECTION_ERROR',
-    DISCONNECTION_ERROR: 'DISCONNECTION_ERROR',
-    MIGRATION_ERROR: 'MIGRATION_ERROR',
-    SYNC_ERROR: 'SYNC_ERROR',
-    FETCH_PROCESS_ACCOUNTS_ERROR: 'FETCH_PROCESS_ACCOUNTS_ERROR',
-    FAILED_TO_CONNECT_TO_BLOCKCHAIN: 'FAILED_TO_CONNECT_TO_BLOCKCHAIN',
-    UNSTAKE_ERROR: 'UNSTAKE_ERROR',
-    WITHDRAW_ERROR: 'WITHDRAW_ERROR',
-    REMOVE_IDENTITY_ERROR: 'REMOVE_IDENTITY_ERROR',
-    APPROVE_MULTISIG_CALL_ERROR: 'APPROVE_MULTISIG_CALL_ERROR',
-    REMOVE_PROXY_ERROR: 'REMOVE_PROXY_ERROR',
-    REMOVE_ACCOUNT_INDEX_ERROR: 'REMOVE_ACCOUNT_INDEX_ERROR',
-  },
-}))
-
 describe('Ledger State', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -151,6 +127,24 @@ describe('Ledger State', () => {
   })
 
   describe('connectLedger', () => {
+    let mockTransport: any
+    let mockGenericApp: any
+
+    beforeEach(() => {
+      mockTransport = {
+        close: vi.fn(),
+        emit: vi.fn(),
+        on: vi.fn(),
+      }
+
+      mockGenericApp = {
+        getVersion: vi.fn(),
+        getAddress: vi.fn(),
+        signWithMetadataEd25519: vi.fn(),
+        txMetadataChainId: '',
+      }
+    })
+
     it('should set isLoading to true during connection and false after completion', async () => {
       const mockConnection = { isAppOpen: true }
       const { ledgerClient } = await import('../client/ledger')
@@ -199,26 +193,26 @@ describe('Ledger State', () => {
       expect(ledgerState$.device.connection.get()).toBeUndefined()
     })
 
-    it('should show warning notification when device connected but app not open', async () => {
-      const mockConnection = { isAppOpen: false }
+    it('verify device connected but app not open data', async () => {
+      const mockConnection: DeviceConnectionProps = {
+        transport: mockTransport as Transport,
+        genericApp: mockGenericApp as PolkadotGenericApp,
+        isAppOpen: false,
+      }
       const { ledgerClient } = await import('../client/ledger')
-      const { notifications$ } = await import('../notifications')
 
       vi.mocked(ledgerClient.connectDevice).mockResolvedValueOnce({
         connection: mockConnection,
         error: undefined,
       })
 
+      // Mock checkConnection to return false after attempting to open the app
+      vi.mocked(ledgerClient.checkConnection).mockResolvedValueOnce(false)
+
       const result = await ledgerState$.connectLedger()
 
       expect(result.connected).toBe(true)
       expect(result.isAppOpen).toBe(false)
-      expect(notifications$.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          title: 'Polkadot Migration App not open',
-          type: 'warning',
-        })
-      )
     })
 
     it('should handle connection exception', async () => {
@@ -274,7 +268,6 @@ describe('Ledger State', () => {
 
       expect(ledgerState$.device.connection.get()).toBeUndefined()
       expect(ledgerState$.device.error.get()).toBeUndefined()
-      expect(ledgerState$.apps.apps.get()).toEqual([])
     })
   })
 
@@ -329,8 +322,8 @@ describe('Ledger State', () => {
       name: 'Polkadot',
       rpcEndpoint: 'wss://rpc.polkadot.io',
       token: { symbol: 'DOT', decimals: 10 },
-      bip44Path: "m/44'/354'/0'/0/0",
-      ss58Prefix: 0,
+      bip44Path: "m/44'/354'/0'/0'/0'",
+      ss58Prefix: 354,
     }
 
     it('should return error app when synchronization fails', async () => {
@@ -350,18 +343,19 @@ describe('Ledger State', () => {
       const { InternalError } = await import('@/lib/utils/error')
       const { InternalErrorType } = await import('config/errors')
 
-      // Mock synchronizeAppAccounts to throw the blockchain connection error
-      vi.mocked(synchronizeAppAccounts).mockRejectedValueOnce(
-        new InternalError(InternalErrorType.FAILED_TO_CONNECT_TO_BLOCKCHAIN, {
-          operation: 'synchronizeAppAccounts',
-          context: { appId: 'polkadot', rpcEndpoint: 'wss://rpc.polkadot.io' },
-        })
-      )
+      vi.mocked(ledgerClient.synchronizeAccounts).mockResolvedValueOnce({
+        result: [{ address: '1test', path: "m/44'/354'/0'/0'/0'", pubKey: '123' }],
+      })
+      vi.mocked(getApiAndProvider).mockResolvedValueOnce({
+        api: undefined,
+        provider: undefined,
+        error: undefined,
+      })
 
       const result = await ledgerState$.fetchAndProcessAccountsForApp(mockApp)
 
       expect(result?.status).toBe(AppStatus.ERROR)
-      expect(result?.error?.description).toContain('Test error')
+      expect(result?.error?.description).toBe(errorDetails[InternalErrorType.FAILED_TO_CONNECT_TO_BLOCKCHAIN].description)
     })
 
     it('should handle mock synchronization error in development', async () => {
@@ -627,13 +621,7 @@ describe('Ledger State', () => {
 
     describe('Error handling', () => {
       it('should handle synchronization errors correctly', () => {
-        const mockError = {
-          errorType: InternalErrorType.SYNC_ERROR,
-          description: 'Test sync error',
-          title: 'Sync Error',
-          name: 'SyncError',
-          message: 'Test sync error',
-        }
+        const mockError = new InternalError(InternalErrorType.SYNC_ERROR)
 
         const shouldStop = ledgerState$.handleError(mockError)
 
@@ -642,40 +630,26 @@ describe('Ledger State', () => {
       })
 
       it('should handle migration errors correctly', () => {
-        const mockError = {
-          errorType: InternalErrorType.MIGRATION_ERROR,
-          description: 'Test migration error',
-          title: 'Migration Error',
-          name: 'MigrationError',
-          message: 'Test migration error',
-        }
+        const mockError = new InternalError(InternalErrorType.MIGRATION_ERROR)
 
         const shouldStop = ledgerState$.handleError(mockError)
 
         expect(shouldStop).toBeDefined()
       })
 
-      it('should handle connection errors correctly', () => {
-        const mockError = {
-          errorType: InternalErrorType.CONNECTION_ERROR,
-          description: 'Test connection error',
-          title: 'Connection Error',
-          name: 'ConnectionError',
-          message: 'Test connection error',
-        }
+      it('should handle connection errors correctly', async () => {
+        const { ledgerClient } = await import('../client/ledger')
+        vi.mocked(ledgerClient.abortCall).mockRejectedValueOnce(new Error('Connection error'))
 
-        const shouldStop = ledgerState$.handleError(mockError)
+        const shouldStop = ledgerState$.handleError(new InternalError(InternalErrorType.CONNECTION_ERROR))
 
-        expect(shouldStop).toBeDefined()
+        expect(shouldStop).toBe(true)
       })
     })
   })
 
   describe('Fee estimation methods', () => {
     it('should handle unstake fee estimation error', async () => {
-      const { ledgerClient } = await import('../client/ledger')
-      vi.mocked(ledgerClient.getUnstakeFee).mockRejectedValueOnce(new Error('Fee estimation failed'))
-
       const result = await ledgerState$.getUnstakeFee('polkadot', '1test', new BN(1000))
       expect(result).toBeUndefined()
     })

@@ -1,5 +1,9 @@
 'use client'
 
+import type { CheckedState } from '@radix-ui/react-checkbox'
+import { FolderSync, Info, Loader2, RefreshCw, User, Users, X } from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
+import { AppStatus } from 'state/ledger'
 import { CustomTooltip } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { useSynchronization } from '@/components/hooks/useSynchronization'
@@ -9,10 +13,6 @@ import { Progress } from '@/components/ui/progress'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { polkadotAppConfig } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
-import type { CheckedState } from '@radix-ui/react-checkbox'
-import { FolderSync, Info, Loader2, RefreshCw, User, Users, X } from 'lucide-react'
-import { useCallback, useMemo, useState } from 'react'
-import { AppStatus } from 'state/ledger'
 import AppScanningGrid from './app-scanning-grid'
 import EmptyStateRow from './empty-state-row'
 import SynchronizedApp from './synchronized-app'
@@ -153,6 +153,58 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
   const isLoading = status === AppStatus.LOADING
   const isSynchronized = status === AppStatus.SYNCHRONIZED
 
+  const renderRestartSynchronizationButton = () => {
+    if (status === AppStatus.LOADING) {
+      return null
+    }
+
+    return (
+      <CustomTooltip tooltipBody="Synchronize Again">
+        <Button
+          onClick={restartSynchronization}
+          variant="outline"
+          className="flex items-center gap-1"
+          disabled={isRescaning}
+          data-testid="retry-synchronize-button"
+        >
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+      </CustomTooltip>
+    )
+  }
+
+  const renderStopSynchronizationButton = () => {
+    if (isLoading) {
+      return (
+        <Button onClick={cancelSynchronization} variant="destructive" className="flex items-center gap-1" disabled={isSyncCancelRequested}>
+          {isSyncCancelRequested ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />} Stop Synchronization
+        </Button>
+      )
+    }
+  }
+
+  const renderMigrateButton = () => {
+    if (isLoading || appsWithoutErrors.length === 0) {
+      return null
+    }
+
+    return (
+      <Button onClick={handleMigrate} disabled={isLoading || appsWithoutErrors.length === 0} variant="purple" data-testid="migrate-button">
+        Migrate
+      </Button>
+    )
+  }
+
+  const renderActionButtons = () => {
+    return (
+      <div className="flex gap-2 self-start">
+        {renderRestartSynchronizationButton()}
+        {renderStopSynchronizationButton()}
+        {renderMigrateButton()}
+      </div>
+    )
+  }
+
   return (
     <div>
       <div className="flex flex-col md:flex-row justify-between items-start gap-6 md:gap-4 mb-6 md:mb-4">
@@ -161,41 +213,7 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
           <p className="text-gray-600">Click Migrate All to start migrating your accounts.</p>
           <div className="md:hidden mt-2">{renderDestinationAddressesInfo()}</div>
         </div>
-        <div className="flex gap-2 self-start">
-          {status !== AppStatus.LOADING && (
-            <CustomTooltip tooltipBody="Synchronize Again">
-              <Button
-                onClick={restartSynchronization}
-                variant="outline"
-                className="flex items-center gap-1"
-                disabled={isRescaning}
-                data-testid="retry-synchronize-button"
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-            </CustomTooltip>
-          )}
-
-          {isLoading ? (
-            <Button
-              onClick={cancelSynchronization}
-              variant="destructive"
-              className="flex items-center gap-1"
-              disabled={isSyncCancelRequested}
-            >
-              {isSyncCancelRequested ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />} Stop Synchronization
-            </Button>
-          ) : (
-            <Button
-              onClick={handleMigrate}
-              disabled={isLoading || appsWithoutErrors.length === 0}
-              variant="purple"
-              data-testid="migrate-button"
-            >
-              Migrate
-            </Button>
-          )}
-        </div>
+        {renderActionButtons()}
       </div>
       <div className="hidden md:block mb-4">{renderDestinationAddressesInfo()}</div>
 

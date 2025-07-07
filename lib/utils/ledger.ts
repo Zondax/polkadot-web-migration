@@ -204,16 +204,22 @@ export function setDefaultDestinationAddress<T extends { balances?: AddressBalan
  * Adds destination addresses from a list of accounts to an address map
  * @param accounts - The accounts to process (can be regular or multisig accounts)
  * @param addressMap - The map to store unique addresses with their paths and status
+ * @param polkadotAddresses - The list of polkadot addresses to check against
  */
 export function addDestinationAddressesFromAccounts(
   accounts: Address[] | MultisigAddress[] | undefined,
-  addressMap: Map<string, AddressWithVerificationStatus>
+  addressMap: Map<string, AddressWithVerificationStatus>,
+  polkadotAddresses: string[]
 ): void {
   if (!accounts) return
   for (const account of accounts) {
     if (account.balances && account.balances.length > 0) {
       for (const balance of account.balances) {
-        if (balance.transaction?.destinationAddress && !addressMap.has(balance.transaction.destinationAddress)) {
+        if (
+          balance.transaction?.destinationAddress &&
+          !addressMap.has(balance.transaction.destinationAddress) &&
+          polkadotAddresses.includes(balance.transaction.destinationAddress)
+        ) {
           addressMap.set(balance.transaction.destinationAddress, {
             address: balance.transaction.destinationAddress,
             path: account.path,
