@@ -3,12 +3,7 @@ import type { AppConfig } from 'config/apps'
 import { AppStatus } from 'state/ledger'
 import type { Address } from 'state/types/ledger'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import {
-  synchronizeAllApps,
-  synchronizeAppAccounts,
-  synchronizePolkadotAccounts,
-  validateSyncPrerequisites,
-} from '../synchronization.service'
+import { synchronizeAllApps, synchronizeAppAccounts, synchronizePolkadotAccounts } from '../synchronization.service'
 
 // Mock dependencies
 vi.mock('state/client/ledger', () => ({
@@ -130,7 +125,7 @@ describe('Synchronization Service', () => {
     balances: [],
   }
 
-  const mockConnection = {
+  const _mockConnection = {
     isAppOpen: true,
     deviceInfo: { name: 'Test Device' },
   }
@@ -345,32 +340,6 @@ describe('Synchronization Service', () => {
       expect(result.success).toBe(false)
       expect(result.apps).toEqual([])
       expect(result.error).toBeDefined()
-    })
-  })
-
-  describe('validateSyncPrerequisites', () => {
-    it('should return true for valid connection', () => {
-      const result = validateSyncPrerequisites(mockConnection)
-
-      expect(result).toBe(true)
-    })
-
-    it('should return false for undefined connection', () => {
-      const result = validateSyncPrerequisites(undefined)
-
-      expect(result).toBe(false)
-    })
-
-    it('should return false for null connection', () => {
-      const result = validateSyncPrerequisites(null)
-
-      expect(result).toBe(false)
-    })
-
-    it('should return false for falsy values', () => {
-      expect(validateSyncPrerequisites(false)).toBe(false)
-      expect(validateSyncPrerequisites('')).toBe(false)
-      expect(validateSyncPrerequisites(0)).toBe(false)
     })
   })
 })

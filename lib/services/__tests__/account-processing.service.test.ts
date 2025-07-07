@@ -1,4 +1,3 @@
-
 import type { AppConfig } from 'config/apps'
 
 import type { Address, MultisigAddress } from 'state/types/ledger'

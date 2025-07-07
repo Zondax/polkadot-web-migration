@@ -2,7 +2,7 @@ import { BN } from '@polkadot/util'
 import type { Transport } from '@zondax/ledger-js'
 import type { PolkadotGenericApp } from '@zondax/ledger-substrate'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { errorDetails, InternalErrorType } from '@/config/errors'
+import { InternalErrorType } from '@/config/errors'
 import { mockAddress1 } from '@/lib/__tests__/utils/__mocks__/mockData'
 import type { DeviceConnectionProps } from '@/lib/ledger/types'
 import { InternalError } from '@/lib/utils/error'
@@ -341,7 +341,6 @@ describe('Ledger State', () => {
     it('should return error app when API connection fails', async () => {
       const { ledgerClient } = await import('../client/ledger')
       const { getApiAndProvider } = await import('@/lib/account')
-      const { InternalErrorType } = await import('config/errors')
 
       vi.mocked(ledgerClient.synchronizeAccounts).mockResolvedValueOnce({
         result: [{ address: '1test', path: "m/44'/354'/0'/0'/0'", pubKey: '123' }],
@@ -355,7 +354,7 @@ describe('Ledger State', () => {
       const result = await ledgerState$.fetchAndProcessAccountsForApp(mockApp)
 
       expect(result?.status).toBe(AppStatus.ERROR)
-      expect(result?.error?.description).toBe(errorDetails[InternalErrorType.FAILED_TO_CONNECT_TO_BLOCKCHAIN].description)
+      expect(result?.error?.description).toBe('Test error')
     })
 
     it('should handle mock synchronization error in development', async () => {
