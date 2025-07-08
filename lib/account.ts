@@ -1,8 +1,6 @@
-import { merkleizeMetadata } from '@polkadot-api/merkleize-metadata'
 import { ApiPromise, WsProvider } from '@polkadot/api'
 import type { SubmittableExtrinsic } from '@polkadot/api/types'
 import type { GenericExtrinsicPayload } from '@polkadot/types'
-import type { Option, u128, u32, Vec } from '@polkadot/types-codec'
 import type {
   AccountId32,
   Balance,
@@ -14,8 +12,10 @@ import type {
   StakingLedger,
 } from '@polkadot/types/interfaces'
 import type { ExtrinsicPayloadValue, ISubmittableResult } from '@polkadot/types/types/extrinsic'
+import type { Option, u32, u128, Vec } from '@polkadot/types-codec'
 import { BN, hexToU8a, u8aToBn } from '@polkadot/util'
 import { decodeAddress } from '@polkadot/util-crypto'
+import { merkleizeMetadata } from '@polkadot-api/merkleize-metadata'
 import type { AppConfig, AppId } from 'config/apps'
 import { DEFAULT_ERA_TIME_IN_HOURS, getEraTimeByAppId } from 'config/apps'
 import { defaultWeights, MULTISIG_WEIGHT_BUFFER } from 'config/config'
@@ -41,6 +41,45 @@ import {
   TransactionStatus,
 } from 'state/types/ledger'
 import { InternalError } from './utils'
+import { isDevelopment } from './utils/env'
+
+/**
+ * AccountData interface for system.account query
+ * Based on @polkadot/types AccountData but with proper typing
+ */
+interface AccountData {
+  free: { toString(): string }
+  reserved: { toString(): string }
+  frozen: { toString(): string }
+}
+
+/**
+ * AccountInfo interface for system.account query result
+ */
+interface AccountInfo {
+  nonce: number | string
+  data: AccountData
+}
+
+/**
+ * Event record interface for system events
+ */
+interface EventRecord {
+  phase: {
+    isApplyExtrinsic: boolean
+    asApplyExtrinsic: { eq: (value: number) => boolean }
+  }
+  event: any // The event itself is complex and varies by event type
+}
+
+/**
+ * DispatchError interface for transaction errors
+ */
+interface DispatchError {
+  isModule: boolean
+  asModule: any // Module-specific error data
+  toString(): string
+}
 
 const HOURS_IN_A_DAY = 24
 
@@ -125,7 +164,7 @@ export async function getBalance(
   const { address: addressString } = address
 
   try {
-    if (process.env.NEXT_PUBLIC_NODE_ENV === 'development') {
+    if (isDevelopment()) {
       if (mockBalances.some(balance => balance.address === addressString)) {
         const totalBalanceBN = new BN(mockBalances.find(balance => balance.address === addressString)?.balance ?? 0)
 
@@ -195,7 +234,7 @@ export async function getNativeBalance(addressString: string, api: ApiPromise, a
 
     // Extract all balance components
     if (balance && 'data' in balance) {
-      const { free, reserved, frozen } = balance.data as any // AccountData is not updated in @polkadot/types
+      const { free, reserved, frozen } = balance.data as AccountData
 
       // According to the official Polkadot documentation:
       // https://wiki.polkadot.network/learn/learn-guides-accounts/#query-account-data-in-polkadot-js
@@ -261,7 +300,7 @@ export async function prepareTransactionPayload(
   transfer: SubmittableExtrinsic<'promise', ISubmittableResult>
 ): Promise<PreparedTransactionPayload | undefined> {
   const nonceResp = await api.query.system.account(senderAddress)
-  const { nonce } = nonceResp.toHuman() as any
+  const { nonce } = nonceResp.toHuman() as unknown as AccountInfo
 
   const metadataV15 = await api.call.metadata.metadataAtVersion<Option<OpaqueMetadata>>(15).then(m => {
     if (!m.isNone) {
@@ -353,8 +392,7 @@ export async function prepareTransaction(
         throw new Error('Invalid item: must provide destinationAddress for native transfer')
       }
       nativeTransfer = {
-        amount:
-          process.env.NEXT_PUBLIC_NODE_ENV === 'development' && MINIMUM_AMOUNT ? new BN(MINIMUM_AMOUNT) : balance.balance.transferable,
+        amount: isDevelopment() && MINIMUM_AMOUNT ? new BN(MINIMUM_AMOUNT) : balance.balance.transferable,
         receiverAddress: balance.transaction.destinationAddress,
       }
     }
@@ -646,15 +684,8 @@ export async function getTransactionDetails(
   const records = await apiAt.query.system.events()
 
   // Find events related to the specific extrinsic
-  const relatedEvents = (records as any).filter(
-    ({
-      phase,
-    }: {
-      phase: {
-        isApplyExtrinsic: any
-        asApplyExtrinsic: { eq: (arg0: any) => any }
-      }
-    }) => phase.isApplyExtrinsic && phase.asApplyExtrinsic.eq(txIndex)
+  const relatedEvents = (records as unknown as EventRecord[]).filter(
+    ({ phase }) => phase.isApplyExtrinsic && phase.asApplyExtrinsic.eq(txIndex)
   )
 
   let success = false
@@ -667,9 +698,10 @@ export async function getTransactionDetails(
       console.debug('Transaction failed!')
       const [dispatchError] = event.data
 
-      if ((dispatchError as any).isModule) {
+      const typedDispatchError = dispatchError as unknown as DispatchError
+      if (typedDispatchError.isModule) {
         // for module errors, we have the section indexed, lookup
-        const decoded = apiAt.registry.findMetaError((dispatchError as any).asModule)
+        const decoded = apiAt.registry.findMetaError(typedDispatchError.asModule)
         errorInfo = `${decoded.section}.${decoded.name}: ${decoded.docs.join(' ')}`
       } else {
         // Other, CannotLookup, BadOrigin, no extra info
@@ -732,7 +764,9 @@ export async function processCollectionMetadata(metadata: any, collectionId: num
 
     // Verify if metadata has the expected structure
     if (mdPrimitive && typeof mdPrimitive === 'object' && 'data' in mdPrimitive) {
-      const data = mdPrimitive.data as any
+      const data = mdPrimitive.data as
+        | string
+        | { name?: string; image?: string; description?: string; external_url?: string; mediaUri?: string; attributes?: any[] }
 
       // Case 1: Data is a string (possibly an IPFS URI)
       if (typeof data === 'string') {
@@ -1476,7 +1510,8 @@ export async function getMultisigAddresses(
     }
 
     return multisigAddresses
-  } catch (_error) {
+  } catch (error) {
+    console.warn('[getMultisigAddresses] Failed to get multisig addresses:', error)
     return undefined
   }
 }
@@ -1561,7 +1596,7 @@ export async function prepareAsMultiTx(
   const call = api.createType('Call', callData)
 
   // Create a temporary extrinsic to estimate weight
-  const tempExtrinsic = api.createType('Call', call) as any
+  const tempExtrinsic = api.createType('Call', call) as unknown as SubmittableExtrinsic<'promise', ISubmittableResult>
 
   // Estimate the weight for this asMulti operation
   const estimatedWeight = estimateMultisigWeight(tempExtrinsic, threshold, otherSignatories)
@@ -1766,7 +1801,8 @@ export function validateCallDataMatchesHash(api: ApiPromise, callData: string, e
     const matches = computedHash.toLowerCase() === expectedCallHash.toLowerCase()
 
     return matches
-  } catch (_error) {
+  } catch (error) {
+    console.warn('[validateCallDataMatchesHash] Failed to validate call data:', error)
     return false
   }
 }

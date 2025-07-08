@@ -45,6 +45,12 @@ export default defineConfig({
 
         // Next.js app directory (routes/layouts)
         'app/**',
+
+        // Test utilities and examples
+        'tests/utils/**',
+        'tests/examples/**',
+        'lib/__tests__/test-utils.ts',
+        'lib/__tests__/**/mockData.ts',
       ],
       thresholds: {
         global: {

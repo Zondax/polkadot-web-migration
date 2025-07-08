@@ -1,21 +1,41 @@
 import type { AppId } from './apps'
+import { getEnvList, getEnvString, getEnvInteger } from '@/lib/utils/env'
 
-export const mockBalances = process.env.NEXT_PUBLIC_MOCK_BALANCES
-  ? process.env.NEXT_PUBLIC_MOCK_BALANCES.split(',').map(pair => {
-      const [address, balanceStr] = pair.split(':')
-      return {
-        address,
-        balance: Number(balanceStr),
-      }
-    })
-  : []
+export const mockBalances = (() => {
+  const mockBalancesStr = getEnvString('NEXT_PUBLIC_MOCK_BALANCES')
+  if (!mockBalancesStr) return []
 
-export const errorAddresses = process.env.NEXT_PUBLIC_ERROR_SYNC_ADDRESSES?.split(',') as string[]
+  try {
+    return mockBalancesStr
+      .split(',')
+      .map(pair => {
+        const [address, balanceStr] = pair.split(':')
+        const balance = Number(balanceStr)
 
-export const syncApps = process.env.NEXT_PUBLIC_SYNC_APPS?.split(',') as AppId[]
+        if (!address || Number.isNaN(balance)) {
+          console.warn('[mockData] Invalid mock balance format, skipping:', pair)
+          return null
+        }
 
-export const errorApps = process.env.NEXT_PUBLIC_ERROR_SYNC_APPS?.split(',') as AppId[]
+        return { address: address.trim(), balance }
+      })
+      .filter(Boolean) as Array<{ address: string; balance: number }>
+  } catch (error) {
+    console.warn('[mockData] Failed to parse NEXT_PUBLIC_MOCK_BALANCES:', error)
+    return []
+  }
+})()
 
-export const MINIMUM_AMOUNT = process.env.NEXT_PUBLIC_NATIVE_TRANSFER_AMOUNT
-  ? Number.parseInt(process.env.NEXT_PUBLIC_NATIVE_TRANSFER_AMOUNT)
-  : undefined
+export const errorAddresses = getEnvList('NEXT_PUBLIC_ERROR_SYNC_ADDRESSES')
+
+export const syncApps = getEnvList('NEXT_PUBLIC_SYNC_APPS') as AppId[]
+
+export const errorApps = getEnvList('NEXT_PUBLIC_ERROR_SYNC_APPS') as AppId[]
+
+export const MINIMUM_AMOUNT = (() => {
+  const amountStr = getEnvString('NEXT_PUBLIC_NATIVE_TRANSFER_AMOUNT')
+  if (!amountStr) return undefined
+
+  const amount = getEnvInteger('NEXT_PUBLIC_NATIVE_TRANSFER_AMOUNT', 0, { min: 0 })
+  return amount > 0 ? amount : undefined
+})()

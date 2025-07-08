@@ -373,8 +373,8 @@ describe('NativeBalanceVisualization component', () => {
   })
 
   describe('edge cases', () => {
-    it.skip('should handle zero total balance', () => {
-      // Skipping due to division by zero in percentage calculation
+    it('should handle zero total balance', () => {
+      // Fixed: Now handles division by zero in percentage calculation
       const mockData = createMockNative({
         total: TEST_AMOUNTS.ZERO,
         transferable: TEST_AMOUNTS.ZERO,
@@ -393,8 +393,8 @@ describe('NativeBalanceVisualization component', () => {
       expect(zeroBalanceTexts.length).toBeGreaterThanOrEqual(3)
     })
 
-    it.skip('should handle missing total balance', () => {
-      // Skipping due to division by zero in percentage calculation
+    it('should handle missing total balance', () => {
+      // Fixed: Now handles division by zero in percentage calculation
       const mockData = createMockNative({
         total: undefined as any,
       })

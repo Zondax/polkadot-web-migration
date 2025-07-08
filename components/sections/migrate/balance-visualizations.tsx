@@ -43,7 +43,7 @@ interface BalanceCardProps {
 }
 
 const BalanceCard = ({ value, total, label, icon, colorScheme, details, hidePercentage, token }: BalanceCardProps) => {
-  const percentage = Number(value.div(total).mul(new BN(100)).toString()).toFixed(2)
+  const percentage = !total || total.isZero() ? '0.00' : Number(value.div(total).mul(new BN(100)).toString()).toFixed(2)
 
   return (
     <Card

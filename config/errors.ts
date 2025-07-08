@@ -201,9 +201,10 @@ export const errorDetails: ErrorDetailsMap = {
     content: 'Please open the correct app on your Ledger device and try again.',
   },
   approve_multisig_call_error: {
-    title: 'Approve Multisig Call Error',
-    description: 'Failed to approve multisig call.',
-    content: 'Please try again later or contact support if the issue persists.',
+    title: 'Multisig Approval Failed',
+    description: 'Unable to approve the multisig transaction.',
+    content:
+      'This could be due to network issues or insufficient signatures. Please ensure you have the correct permissions and try again.',
   },
   balance_not_gotten: {
     title: 'Balance Not Retrieved',
@@ -211,7 +212,8 @@ export const errorDetails: ErrorDetailsMap = {
   },
   blockchain_connection_error: {
     title: 'Blockchain Connection Error',
-    description: 'Failed to connect to the blockchain network.',
+    description:
+      'Unable to connect to the blockchain network. This could be due to network issues or the blockchain node being temporarily unavailable.',
     content: 'Please check your internet connection and try again later.',
   },
   ClaNotSupported: {
@@ -220,13 +222,15 @@ export const errorDetails: ErrorDetailsMap = {
     content: 'Please ensure you have the latest firmware and app installed on your device.',
   },
   connection_error: {
-    title: 'Connection Error',
-    description: 'Could not reach Ledger device. Please ensure Ledger device is on and unlocked.',
+    title: 'Ledger Connection Issue',
+    description: 'Unable to establish a connection with your Ledger device.',
+    content:
+      'Please ensure your Ledger is connected via USB, unlocked, and the Polkadot Migration app is open. You may need to close other applications using the Ledger.',
   },
   connection_refused: {
-    title: 'Connection Refused',
-    description: 'The node endpoint is unreachable.',
-    content: 'Please try again later or contact support if the issue persists.',
+    title: 'Network Connection Refused',
+    description: 'The blockchain network endpoint is currently unreachable.',
+    content: 'This may be a temporary network issue. Please check your internet connection and try again in a few moments.',
   },
   connection_timeout: {
     title: 'Connection Timeout',
@@ -234,63 +238,73 @@ export const errorDetails: ErrorDetailsMap = {
     content: 'Please try again later or contact support if the issue persists.',
   },
   default: {
-    title: 'An unknown error happens, please try again.',
+    title: 'Unexpected Error',
+    description: 'An unknown error occurred while processing your request.',
+    content: 'Please try again in a few moments. If the problem persists, try refreshing the page or contact support.',
   },
   device_disconnected: {
     title: 'Device Disconnected',
     description: 'The Ledger device has been disconnected.',
   },
   device_not_selected: {
-    title: 'There is no a selected device.',
+    title: 'No Device Selected',
+    description: 'Please connect and select your Ledger device to continue.',
+    content: 'Click "Connect Device" to select your Ledger and make sure it is connected via USB and unlocked.',
   },
   disconnection_error: {
     title: 'Disconnection Error',
     description: 'The Ledger device could not be disconnected. Please ensure the device is properly connected and try again.',
   },
   failed_to_connect_to_blockchain: {
-    title: 'Failed to Connect to Blockchain',
-    description: 'Failed to connect to the blockchain network.',
-    content: 'Please check your internet connection and try again later.',
+    title: 'Network Connection Issue',
+    description:
+      'Unable to connect to the blockchain network. This could be due to network issues or the blockchain node being temporarily unavailable.',
+    content:
+      'Please check your internet connection and try again in a few moments. If the problem persists, the network may be experiencing high traffic.',
   },
   fetch_process_accounts_error: {
-    title: 'Error Fetching and Processing Accounts',
-    description: 'An error occurred while fetching and processing accounts for the app.',
-    content: 'Please try again later or contact support if the issue persists.',
+    title: 'Account Synchronization Failed',
+    description: 'We encountered an issue while retrieving your account information from the blockchain.',
+    content:
+      'This might be temporary. Please check your Ledger connection and try synchronizing again. If this continues, the blockchain network may be busy.',
   },
   get_address_error: {
-    title: 'Get Address Error',
-    description: 'Failed to get account address from Ledger device.',
-    content: 'Please ensure the device is connected and try again.',
+    title: 'Ledger Address Verification Failed',
+    description: 'Could not retrieve the account address from your Ledger device.',
+    content:
+      'Please ensure your Ledger is connected, unlocked, and the Polkadot Migration app is open. You may need to confirm the operation on your device.',
   },
   get_remove_account_index_fee_error: {
-    title: 'Get Remove Account Index Fee Error',
-    description: 'Failed to get remove account index fee.',
-    content: 'Please try again later or contact support if the issue persists.',
+    title: 'Account Index Fee Calculation Failed',
+    description: 'Unable to calculate the fee for removing your account index.',
+    content: 'This may be due to network issues. Try again in a moment, or skip this step if you do not have an account index to remove.',
   },
   get_remove_identity_fee_error: {
-    title: 'Get Remove Identity Fee Error',
-    description: 'Failed to get remove identity fee.',
-    content: 'Please try again later or contact support if the issue persists.',
+    title: 'Fee Calculation Failed',
+    description: 'Unable to calculate the fee for removing your on-chain identity.',
+    content: 'This may be a temporary network issue. Please try again in a moment, or skip this operation if not needed.',
   },
   get_remove_proxies_fee_error: {
-    title: 'Get Remove Proxies Fee Error',
-    description: 'Failed to get remove proxies fee.',
-    content: 'Please try again later or contact support if the issue persists.',
+    title: 'Proxy Removal Fee Calculation Failed',
+    description: 'Unable to calculate the fee for removing your proxy accounts.',
+    content: 'This may be temporary. Try again in a moment, or skip this step if you do not have proxy accounts to remove.',
   },
   get_unstake_fee_error: {
-    title: 'Get Unstake Fee Error',
-    description: 'Failed to get unstake fee.',
-    content: 'Please try again later or contact support if the issue persists.',
+    title: 'Unstaking Fee Unavailable',
+    description: 'Unable to calculate the fee for unstaking your funds.',
+    content:
+      'This may be due to network congestion. You can try again or proceed with the unstaking operation (fees will be calculated during the transaction).',
   },
   get_withdraw_fee_error: {
-    title: 'Get Withdraw Fee Error',
-    description: 'Failed to get withdraw fee.',
-    content: 'Please try again later or contact support if the issue persists.',
+    title: 'Withdrawal Fee Calculation Failed',
+    description: 'Unable to calculate the fee for withdrawing your staked funds.',
+    content:
+      'This may be due to network congestion. You can try again or proceed with the withdrawal (fees will be calculated during the transaction).',
   },
   insufficient_balance: {
     title: 'Insufficient Balance',
-    description: 'Insufficient balance to cover the transaction fee.',
-    content: 'Please ensure you have enough funds to cover both the transfer amount and transaction fee.',
+    description: "You don't have enough funds to cover the transaction fee.",
+    content: 'Please ensure you have additional funds in your account to cover transaction fees, or reduce the transfer amount.',
   },
   insufficient_balance_to_cover_fee: {
     title: 'Insufficient Balance to Cover Fee',
@@ -303,21 +317,26 @@ export const errorDetails: ErrorDetailsMap = {
     content: 'Please ensure your device is in a valid state and try again.',
   },
   ledger_unknown_error: {
-    title: 'Ledger unknown error',
-    description: 'An unknown error happens, please try again.',
+    title: 'Ledger Device Error',
+    description: 'An unexpected error occurred while communicating with your Ledger device.',
+    content:
+      'Please ensure your device is connected, unlocked, and the correct app is open. Try disconnecting and reconnecting your device.',
   },
   locked_device: {
-    title: 'The device is locked.',
+    title: 'Device Locked',
+    description: 'Your Ledger device needs to be unlocked to continue.',
+    content: 'Please enter your PIN on your Ledger device to unlock it, then try again.',
   },
   migration_error: {
-    title: 'Migration Error',
-    description: 'Failed to migrate found of an account.',
-    content: 'Please try again later or contact support if the issue persists.',
+    title: 'Migration Failed',
+    description: 'The asset migration could not be completed successfully.',
+    content:
+      'This could be due to network congestion, insufficient balance, or temporary blockchain issues. Please verify your balances and try the migration again.',
   },
   migration_tx_info_error: {
-    title: 'Migration Transaction Info Error',
-    description: 'Failed to get migration transaction info.',
-    content: 'Please try again later or contact support if the issue persists.',
+    title: 'Migration Details Unavailable',
+    description: 'Unable to retrieve information about your migration transaction.',
+    content: 'This may be a temporary network issue. Please refresh the page or try again in a few moments.',
   },
   no_balance: {
     title: 'No Balance',
@@ -363,29 +382,30 @@ export const errorDetails: ErrorDetailsMap = {
     description: 'There is no amount to transfer.',
   },
   prepare_tx_error: {
-    title: 'Prepare Transaction Error',
-    description: 'Failed to prepare transaction.',
-    content: 'Please try again later or contact support if the issue persists.',
+    title: 'Transaction Preparation Failed',
+    description: 'Unable to prepare your transaction for submission.',
+    content: 'This could be due to network issues or invalid transaction parameters. Please check your inputs and try again.',
   },
   remove_account_index_error: {
-    title: 'Remove Account Index Error',
-    description: 'Failed to remove account index.',
-    content: 'Please try again later or contact support if the issue persists.',
+    title: 'Account Index Removal Failed',
+    description: 'Unable to remove your account index from the blockchain.',
+    content: 'This may be due to network issues or the account index may not exist. Verify the account index and try again.',
   },
   remove_identity_error: {
-    title: 'Remove Identity Error',
-    description: 'Failed to remove identity.',
-    content: 'Please try again later or contact support if the issue persists.',
+    title: 'Identity Removal Failed',
+    description: 'Unable to remove your on-chain identity.',
+    content: 'This may be due to network issues or you may not have an identity to remove. Check your account and try again.',
   },
   remove_proxy_error: {
-    title: 'Remove Proxy Error',
-    description: 'Failed to remove proxy.',
-    content: 'Please try again later or contact support if the issue persists.',
+    title: 'Proxy Removal Failed',
+    description: 'Unable to remove your proxy account.',
+    content: 'This may be due to network issues or the proxy account may not exist. Verify the proxy configuration and try again.',
   },
   sign_tx_error: {
-    title: 'Sign Transaction Error',
-    description: 'Failed to sign transaction.',
-    content: 'Please try again later or contact support if the issue persists.',
+    title: 'Transaction Signing Failed',
+    description: 'Unable to sign the transaction with your Ledger device.',
+    content:
+      'Please ensure your Ledger is connected, unlocked, and the correct app is open. You may need to confirm the transaction on your device.',
   },
   signatory_already_signed: {
     title: 'Signatory Already Signed',
@@ -393,17 +413,18 @@ export const errorDetails: ErrorDetailsMap = {
     content: 'Please ensure the signatory has not signed the call.',
   },
   sync_error: {
-    title: 'Synchronization Error',
-    description: 'The accounts could not be synchronized. Please try again later.',
+    title: 'Account Synchronization Failed',
+    description: 'Unable to synchronize your account data with the blockchain.',
+    content: 'This may be due to network issues or high blockchain traffic. Please check your connection and try again in a few moments.',
   },
   transaction_rejected: {
     title: 'Transaction Rejected',
     description: 'The transaction was rejected by the user.',
   },
   transport_error: {
-    title: 'Transport Error',
-    description: 'Failed to initialize transport.',
-    content: 'Please try again later or contact support if the issue persists.',
+    title: 'Device Communication Failed',
+    description: 'Unable to establish communication with your Ledger device.',
+    content: 'Please ensure your device is connected via USB, try a different USB port, or restart your browser and try again.',
   },
   TransportInterfaceNotAvailable: {
     title: 'Transport Interface Not Available',
@@ -430,18 +451,19 @@ export const errorDetails: ErrorDetailsMap = {
     description: 'An unexpected error occurred',
   },
   unstake_error: {
-    title: 'Unstake Error',
-    description: 'Failed to unstake balance.',
-    content: 'Please try again later or contact support if the issue persists.',
+    title: 'Unstaking Failed',
+    description: 'Unable to unstake your funds from the network.',
+    content: 'This may be due to network issues or bonding period requirements. Please verify your staking status and try again.',
   },
   validate_call_data_matches_hash_error: {
-    title: 'Validate Call Data Matches Hash Error',
-    description: 'Failed to validate call data matches hash.',
-    content: 'Please try again later or contact support if the issue persists.',
+    title: 'Transaction Validation Failed',
+    description: 'The transaction data could not be validated.',
+    content: 'This may indicate a data integrity issue. Please refresh the page and try creating the transaction again.',
   },
   withdraw_error: {
-    title: 'Withdraw Error',
-    description: 'Failed to withdraw balance.',
-    content: 'Please try again later or contact support if the issue persists.',
+    title: 'Withdrawal Failed',
+    description: 'Unable to withdraw your staked funds.',
+    content:
+      'This may be due to network issues or your funds may still be in the unbonding period. Please check your staking status and try again.',
   },
 }

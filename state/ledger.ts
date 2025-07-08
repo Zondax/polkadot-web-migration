@@ -21,6 +21,7 @@ import { convertSS58Format, isMultisigAddress } from '@/lib/utils/address'
 import { hasAddressBalance, hasBalance, hasNegativeBalance, validateReservedBreakdown } from '@/lib/utils/balance'
 import { filterAccountsForApps, setDefaultDestinationAddress } from '@/lib/utils/ledger'
 import { handleErrorNotification } from '@/lib/utils/notifications'
+import { isDevelopment } from '@/lib/utils/env'
 import { ledgerClient } from './client/ledger'
 import { errorsToStopSync } from './config/ledger'
 import { notifications$ } from './notifications'
@@ -294,7 +295,8 @@ export const ledgerState$ = observable({
   async checkConnection() {
     try {
       return await ledgerClient.checkConnection()
-    } catch (_error) {
+    } catch (error) {
+      console.warn('[ledgerState$] Connection check failed:', error)
       return false
     }
   },
@@ -373,7 +375,7 @@ export const ledgerState$ = observable({
   // Fetch and Process Accounts for a Single App
   async fetchAndProcessAccountsForApp(app: AppConfig, filterByBalance = true): Promise<App | undefined> {
     try {
-      if (process.env.NEXT_PUBLIC_NODE_ENV === 'development' && errorApps && errorApps?.includes(app.id)) {
+      if (isDevelopment() && errorApps && errorApps?.includes(app.id)) {
         throw new Error('Mock synchronization error')
       }
 
@@ -837,7 +839,7 @@ export const ledgerState$ = observable({
       let appsToSync: (AppConfig | undefined)[] = Array.from(appsConfigs.values())
 
       // If in development environment, use apps specified in environment variable
-      if (process.env.NEXT_PUBLIC_NODE_ENV === 'development' && syncApps && syncApps.length > 0) {
+      if (isDevelopment() && syncApps && syncApps.length > 0) {
         try {
           appsToSync = syncApps.map(appId => appsConfigs.get(appId as AppId))
         } catch (error) {
@@ -1027,7 +1029,8 @@ export const ledgerState$ = observable({
       const response = await ledgerClient.getAccountAddress(polkadotConfig.bip44Path, addressIndex, appConfig.ss58Prefix)
 
       return { isVerified: response.result?.address === address }
-    } catch (_error) {
+    } catch (error) {
+      console.warn('[ledgerState$] Address verification failed:', error)
       return { isVerified: false }
     }
   },
@@ -1146,7 +1149,8 @@ export const ledgerState$ = observable({
     try {
       const txInfo = await ledgerClient.getMigrationTxInfo(appId, account)
       return txInfo
-    } catch (_error) {
+    } catch (error) {
+      console.warn('[ledgerState$] Failed to get migration transaction info:', error)
       return undefined
     }
   },
@@ -1176,7 +1180,8 @@ export const ledgerState$ = observable({
     try {
       const estimatedFee = await ledgerClient.getUnstakeFee(appId, address, amount)
       return estimatedFee
-    } catch (_error) {
+    } catch (error) {
+      console.warn('[ledgerState$] Failed to get unstake fee:', error)
       return undefined
     }
   },
@@ -1205,7 +1210,8 @@ export const ledgerState$ = observable({
 
     try {
       return await ledgerClient.getWithdrawFee(appId, address)
-    } catch (_error) {
+    } catch (error) {
+      console.warn('[ledgerState$] Failed to get withdraw fee:', error)
       return undefined
     }
   },
@@ -1222,7 +1228,8 @@ export const ledgerState$ = observable({
   async getRemoveIdentityFee(appId: AppId, address: string): Promise<BN | undefined> {
     try {
       return await ledgerClient.getRemoveIdentityFee(appId, address)
-    } catch (_error) {
+    } catch (error) {
+      console.warn('[ledgerState$] Failed to get remove identity fee:', error)
       return undefined
     }
   },
@@ -1257,7 +1264,8 @@ export const ledgerState$ = observable({
   async getRemoveProxiesFee(appId: AppId, address: string): Promise<BN | undefined> {
     try {
       return await ledgerClient.getRemoveProxiesFee(appId, address)
-    } catch (_error) {
+    } catch (error) {
+      console.warn('[ledgerState$] Failed to get remove proxies fee:', error)
       return undefined
     }
   },
@@ -1274,7 +1282,8 @@ export const ledgerState$ = observable({
   async getRemoveAccountIndexFee(appId: AppId, address: string, accountIndex: string): Promise<BN | undefined> {
     try {
       return await ledgerClient.getRemoveAccountIndexFee(appId, address, accountIndex)
-    } catch (_error) {
+    } catch (error) {
+      console.warn('[ledgerState$] Failed to get remove account index fee:', error)
       return undefined
     }
   },

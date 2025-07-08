@@ -77,6 +77,11 @@ describe('CopyButton component', () => {
 
       expect(mockCopyContent).toHaveBeenCalledWith(testValue)
       expect(mockCopyContent).toHaveBeenCalledTimes(1)
+
+      // Clean up pending timers
+      act(() => {
+        vi.runAllTimers()
+      })
     })
 
     it('should show check icon after clicking', () => {
@@ -90,6 +95,11 @@ describe('CopyButton component', () => {
 
       expect(screen.getByTestId('check-icon')).toBeInTheDocument()
       expect(screen.queryByTestId('copy-icon')).not.toBeInTheDocument()
+
+      // Clean up pending timers
+      act(() => {
+        vi.runAllTimers()
+      })
     })
 
     it('should revert to copy icon after 2 seconds', () => {
@@ -125,6 +135,11 @@ describe('CopyButton component', () => {
 
       // The preventDefault is called internally by the handler
       expect(mockCopyContent).toHaveBeenCalled()
+
+      // Clean up pending timers
+      act(() => {
+        vi.runAllTimers()
+      })
     })
   })
 
@@ -139,6 +154,11 @@ describe('CopyButton component', () => {
       })
 
       expect(mockCopyContent).toHaveBeenCalledWith('')
+
+      // Clean up pending timers
+      act(() => {
+        vi.runAllTimers()
+      })
     })
 
     it('should handle long strings', () => {
@@ -152,6 +172,11 @@ describe('CopyButton component', () => {
       })
 
       expect(mockCopyContent).toHaveBeenCalledWith(longValue)
+
+      // Clean up pending timers
+      act(() => {
+        vi.runAllTimers()
+      })
     })
 
     it('should handle special characters', () => {
@@ -165,6 +190,11 @@ describe('CopyButton component', () => {
       })
 
       expect(mockCopyContent).toHaveBeenCalledWith(specialValue)
+
+      // Clean up pending timers
+      act(() => {
+        vi.runAllTimers()
+      })
     })
 
     it('should handle unicode content', () => {
@@ -178,6 +208,11 @@ describe('CopyButton component', () => {
       })
 
       expect(mockCopyContent).toHaveBeenCalledWith(unicodeValue)
+
+      // Clean up pending timers
+      act(() => {
+        vi.runAllTimers()
+      })
     })
   })
 
