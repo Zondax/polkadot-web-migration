@@ -1,3 +1,8 @@
+---
+title: 'Polkadot Migration Assistant'
+sidebar_position: 1
+---
+
 # Polkadot Migration Assistant Documentation
 
 Welcome to the Polkadot Migration Assistant documentation. This guide will help you understand and use the migration tool to safely transition from legacy Ledger apps to the new Polkadot Universal Ledger App.
@@ -5,10 +10,12 @@ Welcome to the Polkadot Migration Assistant documentation. This guide will help 
 ## 📚 Documentation Overview
 
 ### Getting Started
+
 - **[Introduction](./introduction.md)** - Overview, purpose, and security information
 - **[Getting Started](./getting-started.md)** - Setup and initial usage instructions
 
 ### User Guides
+
 - **[User Workflows](./user-workflows.md)** - Detailed guides for core features:
   - 🔗 **Staking** - View balances, unstake tokens, withdraw funds
   - 👤 **Identity** - Manage and remove on-chain identities
@@ -17,11 +24,13 @@ Welcome to the Polkadot Migration Assistant documentation. This guide will help 
 - **[Network-Specific Guides](./network-guides.md)** - Detailed information for each supported network
 
 ### Support & Reference
+
 - **[FAQ](./faq.md)** - Frequently asked questions and quick answers
 - **[Troubleshooting](./troubleshooting.md)** - Comprehensive problem-solving guide
 - **[Security & Best Practices](./security-best-practices.md)** - Essential security guidelines
 
 ### Technical Documentation
+
 - **[Technical Architecture](./technical-architecture.md)** - System design and implementation details
 - **[API & Integration](./api-integration.md)** - Developer integration documentation
 - **[Developer Guide](./developer-guide.md)** - Contributing and development guidelines
@@ -36,6 +45,7 @@ Welcome to the Polkadot Migration Assistant documentation. This guide will help 
 ## 🔐 Security First
 
 The Migration Assistant is designed with security as the top priority:
+
 - **No private key access** - Your keys never leave the Ledger device
 - **Transaction verification** - Always verify details on your Ledger screen
 - **Open source** - Code is publicly auditable
@@ -44,12 +54,14 @@ The Migration Assistant is designed with security as the top priority:
 ## 🛠️ Features
 
 ### Core Migration Features
+
 - **Automatic account detection** - Finds accounts across legacy apps
 - **Asset inventory** - Shows all tokens, NFTs, and staked assets
 - **Guided migration** - Step-by-step process with clear instructions
 - **Progress tracking** - Visual feedback on migration status
 
 ### Advanced Operations
+
 - **Staking management** - Unstake and withdraw bonded tokens
 - **Identity operations** - Remove on-chain identities safely
 - **Multisig coordination** - Handle multi-signature account migrations
@@ -58,12 +70,14 @@ The Migration Assistant is designed with security as the top priority:
 ## 📋 Supported Networks
 
 ### Fully Supported (Launch)
+
 - Polkadot
 - Kusama
 - AssetHub (Polkadot & Kusama)
 - People Chain
 
 ### Progressive Rollout
+
 - Acala
 - Astar
 - Bifrost
@@ -74,11 +88,13 @@ The Migration Assistant is designed with security as the top priority:
 ## 🆘 Support
 
 ### Common Issues
+
 - **Ledger not detected** - Check USB connection and browser permissions
 - **Transaction fails** - Verify sufficient balance for fees
 - **App not found** - Ensure Polkadot Universal App is installed
 
 ### Getting Help
+
 - **Start with the [FAQ](./faq.md)** for quick answers to common questions
 - **Use the [Troubleshooting Guide](./troubleshooting.md)** for detailed problem-solving
 - **Review [Security Best Practices](./security-best-practices.md)** for safe usage
