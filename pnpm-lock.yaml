@@ -45,8 +45,8 @@ importers:
         specifier: ^16.3.1
         version: 16.3.1
       '@polkadot/types-codec':
-        specifier: ^16.3.1
-        version: 16.3.1
+        specifier: ^16.4.1
+        version: 16.4.1
       '@polkadot/util':
         specifier: ^13.5.3
         version: 13.5.3
@@ -899,6 +899,10 @@ packages:
 
   '@polkadot/types-codec@16.3.1':
     resolution: {integrity: sha512-8W58lfRB6jbgrmaWTqEqPKp04c88J4+gtG8sCt8HG9et5c5qXwY/tkabX8vAyCXrZYsUjfMVErLdCzg6B9uBog==}
+    engines: {node: '>=18'}
+
+  '@polkadot/types-codec@16.4.1':
+    resolution: {integrity: sha512-ADUlH4++X4Qk29KFE3wmAn6cUDzjSoIuTfaC3ClsYmYEKOEEJAgjIaUfa6CVg+PFyt4fWQ4r3PbFFDQSbYBcjg==}
     engines: {node: '>=18'}
 
   '@polkadot/types-create@16.3.1':
@@ -3756,6 +3760,12 @@ snapshots:
       tslib: 2.8.1
 
   '@polkadot/types-codec@16.3.1':
+    dependencies:
+      '@polkadot/util': 13.5.3
+      '@polkadot/x-bigint': 13.5.3
+      tslib: 2.8.1
+
+  '@polkadot/types-codec@16.4.1':
     dependencies:
       '@polkadot/util': 13.5.3
       '@polkadot/x-bigint': 13.5.3
