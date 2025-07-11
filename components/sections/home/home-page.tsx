@@ -35,10 +35,12 @@ export function HomePage({
         >
           <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold mb-6 tracking-tighter">
             {words.map((word, wordIndex) => (
-              <span key={`word-${word}`} className="inline-block mr-4 last:mr-0">
+              // biome-ignore lint/suspicious/noArrayIndexKey: word content makes index stable
+              <span key={`word-${word}-${wordIndex}`} className="inline-block mr-4 last:mr-0">
                 {word.split('').map((letter, letterIndex) => (
                   <motion.span
-                    key={`letter-${word}-${letter}`}
+                    // biome-ignore lint/suspicious/noArrayIndexKey: letter content makes index stable
+                    key={`letter-${word}-${wordIndex}-${letter}-${letterIndex}`}
                     initial={{ y: 100, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{
