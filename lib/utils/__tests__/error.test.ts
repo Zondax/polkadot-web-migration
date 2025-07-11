@@ -48,8 +48,7 @@ describe('error utilities', () => {
 
   describe('interpretLedgerJsError', () => {
     it('should interpret ResponseError correctly', () => {
-      const responseError = new ResponseError('Test error')
-      responseError.returnCode = 0x6982 // Assuming this maps to a known error
+      const responseError = new ResponseError(0x6982, 'Test error')
 
       const result = interpretLedgerJsError(responseError)
 
@@ -68,8 +67,7 @@ describe('error utilities', () => {
     })
 
     it('should interpret ResponseError', () => {
-      const responseError = new ResponseError('Test error')
-      responseError.returnCode = 0x6982
+      const responseError = new ResponseError(0x6982, 'Test error')
 
       const result = interpretLedgerClientError(responseError)
 
@@ -235,8 +233,7 @@ describe('error utilities', () => {
     })
 
     it('should handle ResponseError', async () => {
-      const responseError = new ResponseError('Ledger error')
-      responseError.returnCode = 0x6982
+      const responseError = new ResponseError(0x6982, 'Ledger error')
       const mockFn = vi.fn().mockRejectedValue(responseError)
 
       await expect(

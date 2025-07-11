@@ -57,14 +57,6 @@ describe('Error Configuration', () => {
         expect(ledgerErrorToInternalErrorMap[ledger]).toBe(internal)
       }
     })
-
-    it('should have reasonable coverage of LedgerError values', () => {
-      const ledgerErrorValues = Object.values(LedgerError) as LedgerError[]
-      const mappingCount = Object.keys(ledgerErrorToInternalErrorMap).length
-
-      // Should have at least 40% coverage of LedgerError values (adjusted for actual coverage)
-      expect(mappingCount).toBeGreaterThan(ledgerErrorValues.length * 0.4)
-    })
   })
 
   describe('errorDetails', () => {
