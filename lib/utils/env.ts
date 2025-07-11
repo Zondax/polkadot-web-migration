@@ -25,27 +25,30 @@ export function getNodeEnv(): NodeEnv {
 /**
  * Safely parses an integer from environment variable with validation
  */
-export function getEnvInteger(key: string, defaultValue: number, options?: { min?: number; max?: number }): number {
-  const value = process.env[key]
-
+export function getIntegerFromEnv(
+  envKey: string,
+  value: string | undefined,
+  defaultValue?: number,
+  options?: { min?: number; max?: number }
+): number | undefined {
   if (!value) {
-    return defaultValue
+    return defaultValue ?? undefined
   }
 
   const parsed = Number.parseInt(value, 10)
 
   if (Number.isNaN(parsed)) {
-    console.warn(`[env] Invalid integer value for ${key}, using default:`, value)
+    console.warn(`[env] Invalid integer value for ${envKey}, using default:`, value)
     return defaultValue
   }
 
   if (options?.min !== undefined && parsed < options.min) {
-    console.warn(`[env] Value for ${key} below minimum (${options.min}), using default:`, parsed)
+    console.warn(`[env] Value for ${envKey} below minimum (${options.min}), using default:`, parsed)
     return defaultValue
   }
 
   if (options?.max !== undefined && parsed > options.max) {
-    console.warn(`[env] Value for ${key} above maximum (${options.max}), using default:`, parsed)
+    console.warn(`[env] Value for ${envKey} above maximum (${options.max}), using default:`, parsed)
     return defaultValue
   }
 
@@ -55,11 +58,9 @@ export function getEnvInteger(key: string, defaultValue: number, options?: { min
 /**
  * Safely parses a comma-separated list from environment variable
  */
-export function getEnvList(key: string, defaultValue: string[] = []): string[] {
-  const value = process.env[key]
-
+export function getListFromEnv(envKey: string, value: string | undefined, defaultValue: string[] = []): string[] {
   if (!value || value.trim() === '') {
-    return defaultValue
+    return defaultValue ?? []
   }
 
   try {
@@ -68,22 +69,9 @@ export function getEnvList(key: string, defaultValue: string[] = []): string[] {
       .map(item => item.trim())
       .filter(item => item.length > 0)
   } catch (error) {
-    console.warn(`[env] Failed to parse list from ${key}, using default:`, error)
+    console.warn(`[env] Failed to parse list from ${envKey}, using default:`, error)
     return defaultValue
   }
-}
-
-/**
- * Safely gets a string environment variable with validation
- */
-export function getEnvString(key: string, defaultValue = ''): string {
-  const value = process.env[key]
-
-  if (value === undefined || value === null) {
-    return defaultValue
-  }
-
-  return value
 }
 
 /**
