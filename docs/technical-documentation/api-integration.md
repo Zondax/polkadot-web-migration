@@ -407,7 +407,6 @@ class LedgerManager {
     
     // Get app version to verify connection
     const version = await this.polkadotApp.getVersion();
-    console.log('Connected to Ledger Polkadot app:', version);
   }
 
   async disconnect(): Promise<void> {
