@@ -1,6 +1,6 @@
-import { Collection, Nft } from 'state/types/ledger'
+import type { Collection, Native, Nft } from 'state/types/ledger'
 
-import { Token } from '@/config/apps'
+import type { Token } from '@/config/apps'
 
 import { NativeTokensDetailCard, NftDetailCard } from './balance-detail-card'
 
@@ -9,23 +9,20 @@ export interface NftBalance {
   collection: Collection
 }
 
-export interface NativeBalance {
-  balance: number
-  token: Token
-}
-
 interface BalanceGalleryProps {
   nfts?: NftBalance[]
   uniques?: NftBalance[]
-  nativeBalance?: NativeBalance
+  native?: Native
+  token: Token
+  isMigration?: boolean
 }
 
-const BalanceGallery = ({ nfts, uniques, nativeBalance }: BalanceGalleryProps) => {
+const BalanceGallery = ({ nfts, uniques, native, token, isMigration }: BalanceGalleryProps) => {
   return (
     <div className="flex flex-col gap-3 p-2 max-h-[400px] overflow-y-auto w-full sm:w-auto sm:min-w-[300px]">
-      {nativeBalance && (
+      {native && (
         <div>
-          <NativeTokensDetailCard balance={nativeBalance.balance} token={nativeBalance.token} />
+          <NativeTokensDetailCard balance={native} token={token} isMigration={isMigration} />
         </div>
       )}
       {uniques?.map(unique => (

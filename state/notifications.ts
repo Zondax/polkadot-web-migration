@@ -1,6 +1,6 @@
 import { observable } from '@legendapp/state'
 
-import { Notification } from './types/notifications'
+import type { Notification } from './types/notifications'
 
 /**
  * Notification Management System
@@ -77,7 +77,7 @@ export const notifications$ = observable({
     return notifications$.history.get()?.filter(n => n?.type === type) ?? []
   },
 
-  getRecentHistory(limit: number = 10) {
+  getRecentHistory(limit = 10) {
     const history = notifications$.history.get()
     if (!history?.length) return []
 

@@ -1,3 +1,5 @@
+import { cn } from '@/lib/utils/styles'
+
 export function UsersIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -11,7 +13,10 @@ export function UsersIcon(props: React.SVGProps<SVGSVGElement>) {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
+      aria-labelledby="users-icon-title"
+      role="img"
     >
+      <title id="users-icon-title">Users</title>
       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
       <circle cx="9" cy="7" r="4" />
       <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
@@ -33,7 +38,10 @@ export function SettingsIcon(props: React.SVGProps<SVGSVGElement>) {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
+      aria-labelledby="settings-icon-title"
+      role="img"
     >
+      <title id="settings-icon-title">Settings</title>
       <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
       <circle cx="12" cy="12" r="3" />
     </svg>
@@ -53,17 +61,28 @@ export function SearchIcon(props: React.SVGProps<SVGSVGElement>) {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
+      aria-labelledby="search-icon-title"
+      role="img"
     >
+      <title id="search-icon-title">Search</title>
       <circle cx="11" cy="11" r="8" />
       <path d="m21 21-4.3-4.3" />
     </svg>
   )
 }
 
-export function Spinner() {
+export function Spinner({ className }: { className?: string }) {
   return (
     <div className="flex items-center justify-center h-full">
-      <svg className="animate-spin h-5 w-5 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <svg
+        className={cn('animate-spin h-5 w-5 text-gray-700', className)}
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        aria-labelledby="spinner-title"
+        role="img"
+      >
+        <title id="spinner-title">Loading...</title>
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
         <path
           className="opacity-75"
@@ -77,7 +96,17 @@ export function Spinner() {
 
 export function Logo() {
   return (
-    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" className="text-gray-100" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      width="32"
+      height="32"
+      viewBox="0 0 32 32"
+      fill="none"
+      className="text-gray-100"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-labelledby="logo-title"
+      role="img"
+    >
+      <title id="logo-title">Application Logo</title>
       <rect width="100%" height="100%" rx="16" fill="currentColor" />
       <path
         fillRule="evenodd"
@@ -92,7 +121,7 @@ export function Logo() {
 export function VercelLogo(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} aria-label="Vercel logomark" height="64" role="img" viewBox="0 0 74 64">
-      <path d="M37.5896 0.25L74.5396 64.25H0.639648L37.5896 0.25Z" fill="currentColor"></path>
+      <path d="M37.5896 0.25L74.5396 64.25H0.639648L37.5896 0.25Z" fill="currentColor" />
     </svg>
   )
 }

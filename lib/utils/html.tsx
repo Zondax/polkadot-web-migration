@@ -1,4 +1,4 @@
-import HTMLReactParser, { DOMNode, domToReact, HTMLReactParserOptions } from 'html-react-parser'
+import HTMLReactParser, { type DOMNode, domToReact, type HTMLReactParserOptions } from 'html-react-parser'
 import DOMPurify from 'isomorphic-dompurify'
 
 /**

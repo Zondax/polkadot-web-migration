@@ -1,7 +1,0 @@
-.cache
-.next
-package.json
-public
-dist
-playwright-report
-pnpm-lock.yaml

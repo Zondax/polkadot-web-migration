@@ -1,29 +1,109 @@
-import appsConfigData from './appsConfig.json'
+import type { ExplorerId } from './explorers'
 
+// Import the JSON data directly
+const appsConfigData: AppConfigJSON[] = require('./appsConfig.json')
+
+export const DEFAULT_ERA_TIME_IN_HOURS = 24
+
+/**
+ * Token configuration
+ */
 export interface Token {
+  /**
+   * Token symbol (e.g., "DOT", "KSM")
+   */
   symbol: string
+  /**
+   * Token decimal places
+   */
   decimals: number
+  /**
+   * Optional custom logo ID, defaults to app ID
+   */
   logoId?: string
 }
 
-// Extract app IDs dynamically from the JSON data
-export type AppId = (typeof appsConfigData)[number]['id'] | 'polkadot'
+/**
+ * Explorer configuration in app config
+ */
+export interface AppExplorerConfig {
+  /**
+   * Explorer identifier
+   */
+  id: ExplorerId
+  /**
+   * Custom base URL (overrides the default)
+   */
+  baseUrl?: string
+  /**
+   * Network identifier used in URL templates
+   */
+  network?: string
+}
 
-export interface AppConfig {
-  id: AppId
+/**
+ * JSON structure of app config
+ */
+interface AppConfigJSON {
+  id: string
   name: string
-  cla: number
   bip44Path: string
   ss58Prefix: number
   rpcEndpoint?: string
   token: Token
+  explorer?: AppExplorerConfig
+  eraTimeInHours?: number
 }
 
-// Polkadot app config
+/**
+ * Available app IDs
+ */
+export type AppId = (typeof appsConfigData)[number]['id'] | 'polkadot'
+
+/**
+ * App/chain configuration interface
+ */
+export interface AppConfig {
+  /**
+   * Unique identifier for the app/chain
+   */
+  id: AppId
+  /**
+   * Display name
+   */
+  name: string
+  /**
+   * BIP44 derivation path
+   */
+  bip44Path: string
+  /**
+   * SS58 address format prefix
+   */
+  ss58Prefix: number
+  /**
+   * RPC endpoint for the chain
+   */
+  rpcEndpoint?: string
+  /**
+   * Token configuration
+   */
+  token: Token
+  /**
+   * Explorer configuration
+   */
+  explorer?: AppExplorerConfig
+  /**
+   * Era time in hours
+   */
+  eraTimeInHours?: number
+}
+
+/**
+ * Polkadot app config
+ */
 export const polkadotAppConfig: AppConfig = {
   name: 'Polkadot',
-  id: 'polkadot' as AppId,
-  cla: 144, // 0x90
+  id: 'polkadot',
   bip44Path: "m/44'/354'/0'/0'/0'", // 354 = 0x80000162
   ss58Prefix: 0,
   rpcEndpoint: 'wss://rpc.polkadot.io',
@@ -32,46 +112,86 @@ export const polkadotAppConfig: AppConfig = {
     decimals: 10,
     logoId: 'polkadot',
   },
+  explorer: {
+    id: 'subscan',
+    network: 'polkadot',
+  },
+  eraTimeInHours: 24,
 }
 
 /**
- * Load app configurations from JSON data
- * @returns A Map with app configurations indexed by AppId
+ * Typed app configurations
  */
-export function loadAppConfigs(): Map<AppId, AppConfig> {
-  const appsConfigs = new Map<AppId, AppConfig>()
+export const apps: AppConfig[] = [
+  ...appsConfigData.map(app => ({
+    ...app,
+    id: app.id as AppId,
+    // Add token field for compatibility
+    token: {
+      symbol: app.token.symbol,
+      decimals: app.token.decimals,
+      logoId: app.token.logoId || app.id,
+    },
+  })),
+  polkadotAppConfig,
+]
 
-  // Convert JSON data to AppConfig objects and add to the map
-  appsConfigData.forEach(config => {
-    appsConfigs.set(config.id as AppId, {
-      ...config,
-      id: config.id as AppId,
-      // Add token field for compatibility
-      token: {
-        symbol: config.token.symbol,
-        decimals: config.token.decimals,
-        logoId: config.token.logoId || config.id,
-      },
-    })
-  })
+/**
+ * For compatibility with existing code - Map of app configs
+ */
+export const appsConfigs = new Map<AppId, AppConfig>(apps.map(app => [app.id, app]))
 
-  return appsConfigs
-}
-
-// Create the Map with app configs
-export const appsConfigs = loadAppConfigs()
-
-// Helper object to help with type inference
+/**
+ * For compatibility with existing code - Object of app configs
+ */
 export const appsConfigsObj = Object.fromEntries(appsConfigs)
 
-// Helper function to get BIP44 path for a chain
+/**
+ * Get an app configuration by ID
+ * @param id App ID
+ * @returns App configuration or undefined if not found
+ */
+export function getAppConfig(id: AppId): AppConfig | undefined {
+  return apps.find(app => app.id === id)
+}
+
+/**
+ * Get the display name of a chain by ID
+ * @param id Chain ID
+ * @returns Chain display name or the ID if not found
+ */
+export function getChainName(id: AppId): string {
+  const app = getAppConfig(id)
+  return app?.name || id
+}
+
+/**
+ * Get the RPC endpoint for a chain
+ * @param id Chain ID
+ * @returns RPC endpoint or undefined if not available
+ */
+export function getRpcEndpoint(id: AppId): string | undefined {
+  const app = getAppConfig(id)
+  return app?.rpcEndpoint
+}
+
+/**
+ * Helper function to get BIP44 path for a chain (compatibility)
+ */
 export const getChainPath = (appId: AppId): string | undefined => {
   const appConfig = appsConfigs.get(appId)
   return appConfig ? appConfig.bip44Path : undefined
 }
 
-// Helper function to get SS58 prefix for a chain
+/**
+ * Helper function to get SS58 prefix for a chain (compatibility)
+ */
 export const getChainPrefix = (appId: AppId): number | undefined => {
   const appConfig = appsConfigs.get(appId)
   return appConfig ? appConfig.ss58Prefix : undefined
+}
+
+export const getEraTimeByAppId = (appId: AppId): number | undefined => {
+  const appConfig = appsConfigs.get(appId)
+  return appConfig ? appConfig.eraTimeInHours : DEFAULT_ERA_TIME_IN_HOURS
 }

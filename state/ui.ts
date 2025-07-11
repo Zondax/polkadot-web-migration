@@ -1,9 +1,9 @@
 import { observable } from '@legendapp/state'
-import { AppConfig, AppId, appsConfigs } from 'config/apps'
+import { type AppConfig, type AppId, appsConfigs } from 'config/apps'
 
 import { getAppLightIcon } from '@/lib/utils'
 
-import { AppIcons } from './ledger'
+import type { AppIcons } from './ledger'
 
 interface UIState {
   icons: Partial<{ [key in AppId]: any }>

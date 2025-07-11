@@ -17,7 +17,7 @@ export default function ProblemSection() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-6">
             <AlertTriangle className="w-8 h-8 text-red-500" />
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-pink-600">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6 bg-clip-text text-transparent bg-linear-to-r from-purple-700 to-pink-600">
             The Problem
           </h2>
         </motion.div>

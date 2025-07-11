@@ -1,9 +1,11 @@
 'use client'
 
+import { motion } from 'framer-motion'
+import { Info } from 'lucide-react'
+import Link from 'next/link'
 import { useCallback } from 'react'
-
-import { Button } from '@/components/ui/button'
 import { useConnection } from '@/components/hooks/useConnection'
+import { Button } from '@/components/ui/button'
 
 interface ConnectTabContentProps {
   onContinue: () => void
@@ -13,42 +15,113 @@ export function ConnectTabContent({ onContinue }: ConnectTabContentProps) {
   const { isLedgerConnected, isAppOpen, connectDevice } = useConnection()
 
   const handleConnect = useCallback(async () => {
-    const connected = await connectDevice()
-    if (connected) {
-      onContinue()
+    try {
+      const connected = await connectDevice()
+      if (connected) {
+        onContinue()
+      }
+    } catch (error) {
+      console.error('Failed to connect device:', error)
     }
   }, [connectDevice, onContinue])
 
+  // Step data for the grid
+  const steps = [
+    {
+      title: 'Connect your Ledger device',
+      description: 'Ensure your Ledger device is properly connected to your computer via USB.',
+      highlight: isLedgerConnected,
+    },
+    {
+      title: 'Enter your PIN code',
+      description: 'Unlock your Ledger device by entering your PIN code on the device itself.',
+      highlight: isLedgerConnected,
+    },
+    {
+      title: 'Open the Migration App',
+      description: 'Navigate to and open the Polkadot Migration App on your Ledger device.',
+      highlight: isAppOpen,
+      warning: isLedgerConnected && !isAppOpen,
+    },
+    {
+      title: 'Click Connect',
+      description: 'Once the previous steps are completed, click the "Connect" button below to proceed.',
+      highlight: false,
+    },
+  ]
+
   return (
-    <div className="flex flex-col items-center justify-center h-full py-12">
-      <h2 className="text-2xl font-bold mb-8">Connect Your Ledger Device</h2>
-      <div className="max-w-md text-center">
-        <p className="mb-6">To begin the migration process, please follow these steps:</p>
-        <ol className="text-center space-y-3">
-          <li className="flex items-center justify-center">
-            <span className={`mr-3 font-medium ${isLedgerConnected ? 'text-purple-400' : ''}`}>1.</span>
-            <span className={isLedgerConnected ? 'text-purple-400' : ''}>Connect your Ledger device to your computer</span>
-          </li>
-          <li className="flex items-center justify-center">
-            <span className={`mr-3 font-medium ${isLedgerConnected ? 'text-purple-400' : ''}`}>2.</span>
-            <span className={isLedgerConnected ? 'text-purple-400' : ''}>Enter your PIN code on the device</span>
-          </li>
-          <li className="flex items-center justify-center">
-            <span className={`mr-3 font-medium ${isLedgerConnected && !isAppOpen ? 'text-rose-400' : isAppOpen ? 'text-purple-400' : ''}`}>
-              3.
-            </span>
-            <span className={isLedgerConnected && !isAppOpen ? 'text-rose-400' : isAppOpen ? 'text-purple-400' : ''}>
-              Open the Migration App on your Ledger
-            </span>
-          </li>
-          <li className="flex items-center justify-center">
-            <span className="mr-3 font-medium">4.</span>
-            <span>Click the Connect button below</span>
-          </li>
-        </ol>
+    <div className="flex flex-col items-center justify-center h-full py-12 w-full">
+      <h2 className="text-3xl font-bold mb-3 text-center">Connect Your Device</h2>
+      <p className="text-gray-700 mb-8 text-center max-w-xl">
+        Follow these steps to securely connect your hardware device and prepare
+        <br />
+        for account migration.
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 w-full max-w-3xl">
+        {steps.map((step, idx) => (
+          <motion.div
+            key={step.title}
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.1 * (idx + 1) }}
+            className={`bg-white p-6 rounded-xl shadow-md border border-purple-100 text-left flex flex-col h-full transition-colors ${
+              step.highlight ? 'border-polkadot-green bg-polkadot-green/10' : step.warning ? 'border-rose-400 bg-rose-50' : ''
+            }`}
+          >
+            <div className={'flex items-center mb-3'} data-testid={`connect-step-${idx + 1}`}>
+              <span
+                className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-lg mr-3 ${
+                  step.highlight
+                    ? 'bg-polkadot-green/20 text-polkadot-green'
+                    : step.warning
+                      ? 'bg-rose-100 text-rose-400'
+                      : 'bg-purple-100 text-purple-600'
+                }`}
+                data-testid={`connect-step-${idx + 1}-icon`}
+              >
+                {idx + 1}
+              </span>
+              <span className="text-lg font-semibold text-gray-800">{step.title}</span>
+            </div>
+            <p className="text-gray-600 text-sm">{step.description}</p>
+          </motion.div>
+        ))}
       </div>
-      <Button className="mt-10 bg-gray-900 hover:bg-gray-800 text-white px-6 py-2 rounded-md" onClick={handleConnect}>
-        Connect Ledger
+      <div className="w-full max-w-3xl mb-8">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8, delay: 0.5 }}
+          className="flex items-start bg-blue-50 border border-blue-200 rounded-lg p-4"
+        >
+          <Info className="w-5 h-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" />
+          <div className="text-sm text-blue-900">
+            <span className="font-semibold">Polkadot Migration App Not Installed?</span>
+            <span className="ml-1">
+              If you don't have the Polkadot Migration App on your Ledger device, you can install it via{' '}
+              <Link
+                href="https://www.ledger.com/ledger-live"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline text-blue-700 hover:text-blue-900"
+              >
+                Ledger Live
+              </Link>
+              .
+            </span>
+          </div>
+        </motion.div>
+      </div>
+      <Button
+        className="mt-2 px-8 py-3 rounded-md text-lg font-semibold bg-[#7916F3] hover:bg-[#6B46C1] text-white shadow-lg"
+        onClick={handleConnect}
+        size="lg"
+        data-testid="connect-ledger-button"
+      >
+        <span className="flex items-center gap-2">Connect</span>
       </Button>
     </div>
   )

@@ -2,406 +2,273 @@
   {
     "id": "acala",
     "name": "Acala",
-    "cla": 155,
     "bip44Path": "m/44'/787'/0'/0'/0'",
     "ss58Prefix": 10,
     "rpcEndpoint": "wss://acala-rpc.aca-api.network",
     "token": {
       "symbol": "ACA",
       "decimals": 12
-    }
+    },
+    "explorer": {
+      "id": "subscan",
+      "network": "acala"
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "ajuna",
     "name": "Ajuna",
-    "cla": 179,
     "bip44Path": "m/44'/354'/0'/0'/0'",
     "ss58Prefix": 1328,
     "rpcEndpoint": "wss://ajuna.ibp.network",
     "token": {
       "symbol": "AJUN",
       "decimals": 12
-    }
-  },
-  {
-    "id": "alephzero",
-    "name": "AlephZero",
-    "cla": 164,
-    "bip44Path": "m/44'/643'/0'/0'/0'",
-    "ss58Prefix": 42,
-    "token": {
-      "symbol": "AZERO",
-      "decimals": 12
-    }
+    },
+    "explorer": {
+      "id": "subscan",
+      "network": "ajuna"
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "astar",
     "name": "Astar",
-    "cla": 169,
     "bip44Path": "m/44'/810'/0'/0'/0'",
     "ss58Prefix": 5,
     "rpcEndpoint": "wss://rpc.astar.network",
     "token": {
       "symbol": "ASTR",
       "decimals": 18
-    }
+    },
+    "explorer": {
+      "id": "subscan",
+      "network": "astar"
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "bifrost",
     "name": "Bifrost",
-    "cla": 161,
     "bip44Path": "m/44'/788'/0'/0'/0'",
     "ss58Prefix": 6,
+    "rpcEndpoint": "wss://public-01.mainnet.bifrostnetwork.com/wss",
     "token": {
       "symbol": "BNC",
       "decimals": 12
-    }
-  },
-  {
-    "id": "bifrostkusama",
-    "name": "BifrostKusama",
-    "cla": 174,
-    "bip44Path": "m/44'/788'/0'/0'/0'",
-    "ss58Prefix": 6,
-    "token": {
-      "symbol": "BNC",
-      "decimals": 12
-    }
-  },
-  {
-    "id": "bittensor",
-    "name": "Bittensor",
-    "cla": 180,
-    "bip44Path": "m/44'/1005'/0'/0'/0'",
-    "ss58Prefix": 42,
-    "token": {
-      "symbol": "TAO",
-      "decimals": 9
-    }
+    },
+    "explorer": {
+      "id": "subscan",
+      "network": "bifrost"
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "centrifuge",
     "name": "Centrifuge",
-    "cla": 147,
     "bip44Path": "m/44'/747'/0'/0'/0'",
     "ss58Prefix": 36,
+    "rpcEndpoint": "wss://centrifuge-parachain.api.onfinality.io/public-ws",
     "token": {
       "symbol": "CFG",
       "decimals": 18
-    }
-  },
-  {
-    "id": "composable",
-    "name": "Composable",
-    "cla": 168,
-    "bip44Path": "m/44'/354'/0'/0'/0'",
-    "ss58Prefix": 49,
-    "token": {
-      "symbol": "LAYR",
-      "decimals": 12
-    }
+    },
+    "explorer": {
+      "id": "subscan",
+      "network": "bifrost"
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "darwinia",
     "name": "Darwinia",
-    "cla": 178,
     "bip44Path": "m/44'/354'/0'/0'/0'",
     "ss58Prefix": 18,
     "rpcEndpoint": "wss://darwinia-rpc.dwellir.com",
     "token": {
       "symbol": "RING",
       "decimals": 9
-    }
-  },
-  {
-    "id": "dock",
-    "name": "Dock",
-    "cla": 146,
-    "bip44Path": "m/44'/594'/0'/0'/0'",
-    "ss58Prefix": 22,
-    "token": {
-      "symbol": "DOCK",
-      "decimals": 6
-    }
+    },
+    "explorer": {
+      "id": "subscan",
+      "network": "darwinia"
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "edgeware",
     "name": "Edgeware",
-    "cla": 148,
     "bip44Path": "m/44'/523'/0'/0'/0'",
     "ss58Prefix": 7,
+    "rpcEndpoint": "wss://edgeware-rpc1.jelliedowl.net",
     "token": {
       "symbol": "EDG",
       "decimals": 18
-    }
-  },
-  {
-    "id": "enjin",
-    "name": "Enjin",
-    "cla": 185,
-    "bip44Path": "m/44'/1155'/0'/0'/0'",
-    "ss58Prefix": 2135,
-    "rpcEndpoint": "wss://enjin-matrix-rpc-1.dwellir.com",
-    "token": {
-      "symbol": "ENJ",
-      "decimals": 18
-    }
-  },
-  {
-    "id": "entropy",
-    "name": "Entropy",
-    "cla": 189,
-    "bip44Path": "m/44'/1312'/0'/0'/0'",
-    "ss58Prefix": 42,
-    "token": {
-      "symbol": "ENT",
-      "decimals": 12
-    }
-  },
-  {
-    "id": "genshiro",
-    "name": "Genshiro",
-    "cla": 158,
-    "bip44Path": "m/44'/2242269180'/0'/0'/0'",
-    "ss58Prefix": 67,
-    "token": {
-      "symbol": "GENS",
-      "decimals": 9
-    }
+    },
+    "explorer": {
+      "id": "edgeware-edgscan",
+      "network": ""
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "hydradx",
     "name": "HydraDX",
-    "cla": 171,
     "bip44Path": "m/44'/354'/0'/0'/0'",
     "ss58Prefix": 63,
     "rpcEndpoint": "wss://hydradx-rpc.dwellir.com",
     "token": {
       "symbol": "HDX",
       "decimals": 12
-    }
-  },
-  {
-    "id": "interlay",
-    "name": "Interlay",
-    "cla": 165,
-    "bip44Path": "m/44'/354'/0'/0'/0'",
-    "ss58Prefix": 2032,
-    "token": {
-      "symbol": "INTR",
-      "decimals": 10
-    }
-  },
-  {
-    "id": "joystream",
-    "name": "Joystream",
-    "cla": 184,
-    "bip44Path": "m/44'/537'/0'/0'/0'",
-    "ss58Prefix": 126,
-    "token": {
-      "symbol": "JOY",
-      "decimals": 10
-    }
+    },
+    "explorer": {
+      "id": "hydradx-subscan",
+      "network": ""
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "karura",
     "name": "Karura",
-    "cla": 154,
     "bip44Path": "m/44'/686'/0'/0'/0'",
     "ss58Prefix": 8,
     "rpcEndpoint": "wss://karura-rpc-0.aca-api.network",
     "token": {
       "symbol": "KAR",
       "decimals": 12
-    }
+    },
+    "explorer": {
+      "id": "subscan",
+      "network": "karura"
+    },
+    "eraTimeInHours": 6
   },
   {
     "id": "khala",
     "name": "Khala",
-    "cla": 177,
     "bip44Path": "m/44'/434'/0'/0'/0'",
     "ss58Prefix": 30,
     "token": {
       "symbol": "KHA",
       "decimals": 12
-    }
+    },
+    "explorer": {
+      "id": "subscan",
+      "network": "khala"
+    },
+    "eraTimeInHours": 6
   },
   {
     "id": "kusama",
     "name": "Kusama",
-    "cla": 153,
     "bip44Path": "m/44'/434'/0'/0'/0'",
     "ss58Prefix": 2,
     "rpcEndpoint": "wss://kusama-rpc.polkadot.io",
     "token": {
       "symbol": "KSM",
       "decimals": 12
-    }
+    },
+    "explorer": {
+      "id": "subscan",
+      "network": "kusama"
+    },
+    "eraTimeInHours": 6
   },
   {
-    "id": "matrixchain",
-    "name": "Matrixchain",
-    "cla": 186,
-    "bip44Path": "m/44'/1155'/0'/0'/0'",
-    "ss58Prefix": 1110,
+    "id": "people-kusama",
+    "name": "People Kusama",
+    "bip44Path": "m/44'/434'/0'/0'/0'",
+    "ss58Prefix": 2,
+    "rpcEndpoint": "wss://people-kusama.api.onfinality.io/public-ws",
     "token": {
-      "symbol": "MATRIX",
-      "decimals": 18
-    }
+      "symbol": "KSM",
+      "decimals": 12,
+      "logoId": "kusama"
+    },
+    "explorer": {
+      "id": "subscan",
+      "network": "kusama"
+    },
+    "eraTimeInHours": 6
   },
   {
     "id": "nodle",
     "name": "Nodle",
-    "cla": 152,
     "bip44Path": "m/44'/1003'/0'/0'/0'",
     "ss58Prefix": 37,
     "rpcEndpoint": "wss://nodle-rpc.dwellir.com",
     "token": {
       "symbol": "NODL",
       "decimals": 11
-    }
-  },
-  {
-    "id": "origintrail",
-    "name": "OriginTrail",
-    "cla": 170,
-    "bip44Path": "m/44'/354'/0'/0'/0'",
-    "ss58Prefix": 101,
-    "token": {
-      "symbol": "TRAC",
-      "decimals": 18
-    }
+    },
+    "explorer": {
+      "id": "subscan",
+      "network": "nodle"
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "parallel",
     "name": "Parallel",
-    "cla": 166,
     "bip44Path": "m/44'/354'/0'/0'/0'",
     "ss58Prefix": 172,
     "token": {
       "symbol": "PARA",
       "decimals": 12
-    }
-  },
-  {
-    "id": "peer",
-    "name": "Peer",
-    "cla": 157,
-    "bip44Path": "m/44'/718'/0'/0'/0'",
-    "ss58Prefix": 42,
-    "token": {
-      "symbol": "PEER",
-      "decimals": 10
-    }
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "pendulum",
     "name": "Pendulum",
-    "cla": 182,
     "bip44Path": "m/44'/354'/0'/0'/0'",
     "ss58Prefix": 56,
     "rpcEndpoint": "wss://rpc-pendulum.prd.pendulumchain.tech",
     "token": {
       "symbol": "PEN",
       "decimals": 12
-    }
+    },
+    "explorer": {
+      "id": "subscan",
+      "network": "pendulum"
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "phala",
     "name": "Phala",
-    "cla": 175,
     "bip44Path": "m/44'/354'/0'/0'/0'",
     "ss58Prefix": 30,
     "rpcEndpoint": "wss://phala-rpc.dwellir.com",
     "token": {
       "symbol": "PHA",
       "decimals": 12
-    }
-  },
-  {
-    "id": "picasso",
-    "name": "Picasso",
-    "cla": 167,
-    "bip44Path": "m/44'/434'/0'/0'/0'",
-    "ss58Prefix": 49,
-    "rpcEndpoint": "wss://rpc.composablenodes.tech",
-    "token": {
-      "symbol": "PICA",
-      "decimals": 12
-    }
+    },
+    "explorer": {
+      "id": "subscan",
+      "network": "pendulum"
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "polkadex",
     "name": "Polkadex",
-    "cla": 160,
     "bip44Path": "m/44'/799'/0'/0'/0'",
     "ss58Prefix": 88,
-    "rpcEndpoint": "wss://polkadex-parachain.public.curie.radiumblock.co/ws",
+    "rpcEndpoint": "wss://polkadex.api.onfinality.io/public-ws",
     "token": {
       "symbol": "PDEX",
       "decimals": 12
-    }
-  },
-  {
-    "id": "polymesh",
-    "name": "Polymesh",
-    "cla": 145,
-    "bip44Path": "m/44'/595'/0'/0'/0'",
-    "ss58Prefix": 12,
-    "token": {
-      "symbol": "POLYX",
-      "decimals": 6
-    }
-  },
-  {
-    "id": "quartz",
-    "name": "Quartz",
-    "cla": 187,
-    "bip44Path": "m/44'/631'/0'/0'/0'",
-    "ss58Prefix": 255,
-    "token": {
-      "symbol": "QTZ",
-      "decimals": 18
-    }
-  },
-  {
-    "id": "reef",
-    "name": "Reef",
-    "cla": 162,
-    "bip44Path": "m/44'/819'/0'/0'/0'",
-    "ss58Prefix": 42,
-    "token": {
-      "symbol": "REEF",
-      "decimals": 18
-    }
-  },
-  {
-    "id": "sora",
-    "name": "Sora",
-    "cla": 159,
-    "bip44Path": "m/44'/617'/0'/0'/0'",
-    "ss58Prefix": 69,
-    "rpcEndpoint": "wss://ws.parachain-collator-3.pc3.sora2.soramitsu.co.jp",
-    "token": {
-      "symbol": "XOR",
-      "decimals": 18
-    }
-  },
-  {
-    "id": "stafi",
-    "name": "Stafi",
-    "cla": 172,
-    "bip44Path": "m/44'/907'/0'/0'/0'",
-    "ss58Prefix": 20,
-    "token": {
-      "symbol": "FIS",
-      "decimals": 12
-    }
+    },
+    "explorer": {
+      "id": "polkadex-subscan",
+      "network": ""
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "kusama-asset-hub",
     "name": "Kusama Asset Hub",
-    "cla": 151,
     "bip44Path": "m/44'/434'/0'/0'/0'",
     "ss58Prefix": 2,
     "rpcEndpoint": "wss://asset-hub-kusama-rpc.dwellir.com",
@@ -409,62 +276,42 @@
       "symbol": "KSM",
       "decimals": 12,
       "logoId": "kusama"
-    }
-  },
-  {
-    "id": "ternoa",
-    "name": "Ternoa",
-    "cla": 181,
-    "bip44Path": "m/44'/995'/0'/0'/0'",
-    "ss58Prefix": 42,
-    "token": {
-      "symbol": "CAPS",
-      "decimals": 18
-    }
+    },
+    "explorer": {
+      "id": "subscan",
+      "network": "assethub-kusama"
+    },
+    "eraTimeInHours": 6
   },
   {
     "id": "unique",
     "name": "Unique",
-    "cla": 173,
     "bip44Path": "m/44'/661'/0'/0'/0'",
     "ss58Prefix": 7391,
     "token": {
       "symbol": "UNQ",
       "decimals": 18
-    }
-  },
-  {
-    "id": "vtb",
-    "name": "VTB",
-    "cla": 156,
-    "bip44Path": "m/44'/694'/0'/0'/0'",
-    "ss58Prefix": 42,
-    "token": {
-      "symbol": "VTB",
-      "decimals": 12
-    }
+    },
+    "explorer": {
+      "id": "subscan",
+      "network": "unique"
+    },
+    "eraTimeInHours": 24
   },
   {
     "id": "xxnetwork",
     "name": "XXNetwork",
-    "cla": 163,
     "bip44Path": "m/44'/1955'/0'/0'/0'",
     "ss58Prefix": 55,
     "rpcEndpoint": "wss://xxnetwork-rpc.dwellir.com",
     "token": {
       "symbol": "XX",
       "decimals": 9
-    }
-  },
-  {
-    "id": "zeitgeist",
-    "name": "Zeitgeist",
-    "cla": 183,
-    "bip44Path": "m/44'/354'/0'/0'/0'",
-    "ss58Prefix": 73,
-    "token": {
-      "symbol": "ZTG",
-      "decimals": 10
-    }
+    },
+    "explorer": {
+      "id": "xxnetwork-explorer",
+      "network": ""
+    },
+    "eraTimeInHours": 24
   }
 ]

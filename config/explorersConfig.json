@@ -1,0 +1,26 @@
+[
+  {
+    "id": "subscan",
+    "name": "Subscan",
+    "baseUrl": "https://{network}.subscan.io",
+    "txPath": "/extrinsic/{value}",
+    "addressPath": "/account/{value}",
+    "blockPath": "/block/{value}"
+  },
+  {
+    "id": "edgeware-edgscan",
+    "name": "Edgscan (Edgeware)",
+    "baseUrl": "https://edgscan.ink",
+    "txPath": "/#/extrinsics/{value}",
+    "addressPath": "/#/accounts/{value}",
+    "blockPath": "/#/blocks/{value}"
+  },
+  {
+    "id": "xxnetwork-explorer",
+    "name": "XX Network Explorer",
+    "baseUrl": "https://explorer.xx.network",
+    "txPath": "/extrinsics/{value}",
+    "addressPath": "/accounts/{value}",
+    "blockPath": "/blocks/{value}"
+  }
+]

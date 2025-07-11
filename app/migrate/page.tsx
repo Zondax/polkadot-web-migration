@@ -1,18 +1,19 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { migrationTabs } from 'config/ui'
 import { motion, useAnimation } from 'framer-motion'
 import { Check } from 'lucide-react'
-
+import { useEffect, useState } from 'react'
 // Import section components
 import { useLoadIcons } from '@/components/hooks/loadIcons'
 import { useConnection } from '@/components/hooks/useConnection'
 import { useTabs } from '@/components/hooks/useTabs'
 import { GradientBackground } from '@/components/sections/migrate/background'
 import { Header } from '@/components/sections/migrate/header'
-import Snackbar from '@/components/sections/migrate/snackbar'
+import Notifications from '@/components/sections/migrate/notifications'
 import { Tabs } from '@/components/Tabs'
+
+type TabProps = { onContinue: () => void } | { onBack: () => void }
 
 export default function MigratePage() {
   const controls = useAnimation()
@@ -64,16 +65,17 @@ export default function MigratePage() {
       handleTabChange(0)
     }
   }, [isLedgerConnected, isAppOpen, activeTab, handleTabChange])
+
   // Prepare props for each tab component
-  const connectProps = {
+  const connectProps: TabProps = {
     onContinue: () => goToNextTab(),
   }
 
-  const synchronizeProps = {
+  const synchronizeProps: TabProps = {
     onContinue: () => goToNextTab(),
   }
 
-  const migrateProps = {
+  const migrateProps: TabProps = {
     onBack: () => goToPreviousTab(),
   }
 
@@ -81,7 +83,7 @@ export default function MigratePage() {
   const getActiveComponent = () => {
     const TabComponent = tabsWithStatus[activeTab].component
 
-    let props
+    let props: TabProps
     switch (activeTab) {
       case 0:
         props = connectProps
@@ -93,7 +95,9 @@ export default function MigratePage() {
         props = migrateProps
         break
       default:
-        props = {}
+        // Fallback: use connectProps (or could throw an error)
+        props = connectProps
+        break
     }
 
     return <TabComponent {...props} />
@@ -113,7 +117,7 @@ export default function MigratePage() {
           animate={controls}
           className="bg-white/90 backdrop-blur-md rounded-xl border border-white/20 shadow-xl p-0 mb-8"
         >
-          <div className="bg-gradient-to-r from-[#F8F9FC]/90 to-white/90 rounded-xl border-b border-[#DCE2E9] px-4 py-3">
+          <div className="bg-linear-to-r from-[#F8F9FC]/90 to-white/90 rounded-xl border-b border-[#DCE2E9] px-4 py-3">
             {/* Tabs */}
             <Tabs tabs={tabsWithStatus} activeTab={activeTab} onTabChange={handleTabChange} />
 
@@ -125,7 +129,7 @@ export default function MigratePage() {
         </motion.div>
       </div>
 
-      <Snackbar />
+      <Notifications />
     </div>
   )
 }

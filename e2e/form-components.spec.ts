@@ -123,7 +123,7 @@ test.describe('Form Components', () => {
         // Check for success message (adjust selector as needed)
         const successMessage = page.getByText(/success|submitted|saved/i)
         await expect(successMessage).toBeVisible({ timeout: 5000 })
-      } catch (error) {
+      } catch (_error) {
         // If there's no API call or it fails, we'll skip this check
         console.log('Form submission API call not detected or failed')
       }

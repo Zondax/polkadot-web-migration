@@ -1,10 +1,17 @@
-import { ApiPromise } from '@polkadot/api'
+import { InternalErrorType } from '@/config/errors'
+import type { ApiPromise } from '@polkadot/api'
+import { BN } from '@polkadot/util'
+import { type AddressBalance, BalanceType } from 'state/types/ledger'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-
-import { errorDetails } from '@/config/errors'
-
 import { prepareTransaction } from '../account'
-import { mockAppConfig as importedMockAppConfig, mockApi, mockMethod, mockNft1, mockNft2 } from './utils/__mocks__/mockData'
+import {
+  mockAppConfig as importedMockAppConfig,
+  mockApi,
+  mockFreeNativeBalance,
+  mockMethod,
+  mockNft1,
+  mockNft2,
+} from './utils/__mocks__/mockData'
 
 vi.mock('@polkadot-api/merkleize-metadata', () => ({
   merkleizeMetadata: vi.fn(() => ({
@@ -12,11 +19,6 @@ vi.mock('@polkadot-api/merkleize-metadata', () => ({
     getProofForExtrinsicPayload: () => new Uint8Array([1, 2, 3]),
   })),
 }))
-
-// Mocks
-const mockNFTs = [{ ...mockNft1 }, { ...mockNft2, isUnique: true }]
-const mockSender = 'sender'
-const mockReceiver = 'receiver'
 
 // Use imported mockAppConfig
 const mockAppConfig = importedMockAppConfig
@@ -46,18 +48,35 @@ describe('prepareTransaction', () => {
     api.tx.balances.transferKeepAlive.mockReturnValue({
       method: mockMethod,
       toString: () => 'nativeTransfer:100',
-      paymentInfo: vi.fn().mockResolvedValue({ partialFee: { toString: () => '10' } }),
+      paymentInfo: vi.fn().mockResolvedValue({ partialFee: new BN(10) }),
     })
     api.tx.utility.batchAll.mockReturnValue({
       method: mockMethod,
       toString: () => 'batch:nftTransfer,uniqueTransfer,nativeTransfer:100',
-      paymentInfo: vi.fn().mockResolvedValue({ partialFee: { toString: () => '10' } }),
+      paymentInfo: vi.fn().mockResolvedValue({ partialFee: new BN(10) }),
     })
     api.tx.nfts.transfer.mockReturnValue({ method: mockMethod, toString: () => 'nftTransfer', paymentInfo: vi.fn() })
     api.tx.uniques.transfer.mockReturnValue({ method: mockMethod, toString: () => 'uniqueTransfer', paymentInfo: vi.fn() })
-    await expect(
-      prepareTransaction(api as unknown as ApiPromise, mockSender, mockReceiver, 105, mockNFTs, mockAppConfig, 100)
-    ).rejects.toThrow(errorDetails.insufficient_balance_to_cover_fee.description)
+    const balances: AddressBalance[] = [
+      {
+        type: BalanceType.NATIVE,
+        balance: { ...mockFreeNativeBalance, transferable: new BN(100) },
+        transaction: { destinationAddress: 'receiver' },
+      },
+      {
+        type: BalanceType.NFT,
+        balance: [mockNft1],
+        transaction: { destinationAddress: 'receiver' },
+      },
+      {
+        type: BalanceType.UNIQUE,
+        balance: [{ ...mockNft2, isUnique: true }],
+        transaction: { destinationAddress: 'receiver' },
+      },
+    ]
+    await expect(prepareTransaction(api as unknown as ApiPromise, 'sender', balances, new BN(105), mockAppConfig)).rejects.toThrow(
+      InternalErrorType.INSUFFICIENT_BALANCE_TO_COVER_FEE
+    )
   })
 
   it('throws if not enough balance for fee (NFTs only)', async () => {
@@ -68,10 +87,22 @@ describe('prepareTransaction', () => {
     api.tx.utility.batchAll.mockReturnValue({
       method: mockMethod,
       toString: () => 'batch:nftTransfer,uniqueTransfer',
-      paymentInfo: vi.fn().mockResolvedValue({ partialFee: { toString: () => '10' } }),
+      paymentInfo: vi.fn().mockResolvedValue({ partialFee: new BN(10) }),
     })
-    await expect(prepareTransaction(api as unknown as ApiPromise, mockSender, mockReceiver, 5, mockNFTs, mockAppConfig)).rejects.toThrow(
-      errorDetails.insufficient_balance.description
+    const balances: AddressBalance[] = [
+      {
+        type: BalanceType.NFT,
+        balance: [mockNft1],
+        transaction: { destinationAddress: 'receiver' },
+      },
+      {
+        type: BalanceType.UNIQUE,
+        balance: [{ ...mockNft2, isUnique: true }],
+        transaction: { destinationAddress: 'receiver' },
+      },
+    ]
+    await expect(prepareTransaction(api as unknown as ApiPromise, 'sender', balances, new BN(5), mockAppConfig)).rejects.toThrow(
+      InternalErrorType.INSUFFICIENT_BALANCE
     )
   })
 
@@ -81,16 +112,33 @@ describe('prepareTransaction', () => {
     api.tx.balances.transferKeepAlive.mockReturnValue({
       method: mockMethod,
       toString: () => 'nativeTransfer:10',
-      paymentInfo: vi.fn().mockResolvedValue({ partialFee: { toString: () => '10' } }),
+      paymentInfo: vi.fn().mockResolvedValue({ partialFee: new BN(10) }),
     })
     api.tx.utility.batchAll.mockReturnValue({
       method: mockMethod,
       toString: () => 'batch:nftTransfer,uniqueTransfer,nativeTransfer:10',
-      paymentInfo: vi.fn().mockResolvedValue({ partialFee: { toString: () => '10' } }),
+      paymentInfo: vi.fn().mockResolvedValue({ partialFee: new BN(10) }),
     })
-    await expect(
-      prepareTransaction(api as unknown as ApiPromise, mockSender, mockReceiver, 10, mockNFTs, mockAppConfig, 10)
-    ).rejects.toThrow(errorDetails.insufficient_balance.description)
+    const balances: AddressBalance[] = [
+      {
+        type: BalanceType.NATIVE,
+        balance: { ...mockFreeNativeBalance, transferable: new BN(10) },
+        transaction: { destinationAddress: 'receiver' },
+      },
+      {
+        type: BalanceType.NFT,
+        balance: [mockNft1],
+        transaction: { destinationAddress: 'receiver' },
+      },
+      {
+        type: BalanceType.UNIQUE,
+        balance: [{ ...mockNft2, isUnique: true }],
+        transaction: { destinationAddress: 'receiver' },
+      },
+    ]
+    await expect(prepareTransaction(api as unknown as ApiPromise, 'sender', balances, new BN(10), mockAppConfig)).rejects.toThrow(
+      InternalErrorType.INSUFFICIENT_BALANCE
+    )
   })
 
   it('returns payload if enough balance for amount + fee (specific native amount to transfer)', async () => {
@@ -99,14 +147,31 @@ describe('prepareTransaction', () => {
     api.tx.balances.transferKeepAlive.mockReturnValue({
       method: mockMethod,
       toString: () => 'nativeTransfer:100',
-      paymentInfo: vi.fn().mockResolvedValue({ partialFee: { toString: () => '10' } }),
+      paymentInfo: vi.fn().mockResolvedValue({ partialFee: new BN(10) }),
     })
     api.tx.utility.batchAll.mockReturnValue({
       method: mockMethod,
       toString: () => 'batch:nftTransfer,uniqueTransfer,nativeTransfer:100',
-      paymentInfo: vi.fn().mockResolvedValue({ partialFee: { toString: () => '10' } }),
+      paymentInfo: vi.fn().mockResolvedValue({ partialFee: new BN(10) }),
     })
-    const result = await prepareTransaction(api as unknown as ApiPromise, mockSender, mockReceiver, 200, mockNFTs, mockAppConfig, 100)
+    const balances: AddressBalance[] = [
+      {
+        type: BalanceType.NATIVE,
+        balance: { ...mockFreeNativeBalance, transferable: new BN(100) },
+        transaction: { destinationAddress: 'receiver' },
+      },
+      {
+        type: BalanceType.NFT,
+        balance: [mockNft1],
+        transaction: { destinationAddress: 'receiver' },
+      },
+      {
+        type: BalanceType.UNIQUE,
+        balance: [{ ...mockNft2, isUnique: true }],
+        transaction: { destinationAddress: 'receiver' },
+      },
+    ]
+    const result = await prepareTransaction(api as unknown as ApiPromise, 'sender', balances, new BN(200), mockAppConfig)
     expect(result).toBeDefined()
   })
 
@@ -118,9 +183,21 @@ describe('prepareTransaction', () => {
     api.tx.utility.batchAll.mockReturnValue({
       method: mockMethod,
       toString: () => 'batch:nftTransfer,uniqueTransfer',
-      paymentInfo: vi.fn().mockResolvedValue({ partialFee: { toString: () => '10' } }),
+      paymentInfo: vi.fn().mockResolvedValue({ partialFee: new BN(10) }),
     })
-    const result = await prepareTransaction(api as unknown as ApiPromise, mockSender, mockReceiver, 100, mockNFTs, mockAppConfig)
+    const balances: AddressBalance[] = [
+      {
+        type: BalanceType.NFT,
+        balance: [mockNft1],
+        transaction: { destinationAddress: 'receiver' },
+      },
+      {
+        type: BalanceType.UNIQUE,
+        balance: [{ ...mockNft2, isUnique: true }],
+        transaction: { destinationAddress: 'receiver' },
+      },
+    ]
+    const result = await prepareTransaction(api as unknown as ApiPromise, 'sender', balances, new BN(100), mockAppConfig)
     expect(result).toBeDefined()
   })
 
@@ -130,14 +207,31 @@ describe('prepareTransaction', () => {
     api.tx.balances.transferKeepAlive.mockReturnValue({
       method: mockMethod,
       toString: () => 'nativeTransfer:110',
-      paymentInfo: vi.fn().mockResolvedValue({ partialFee: { toString: () => '10' } }),
+      paymentInfo: vi.fn().mockResolvedValue({ partialFee: 10 }),
     })
     api.tx.utility.batchAll.mockReturnValue({
       method: mockMethod,
       toString: () => 'batch:nftTransfer,uniqueTransfer,nativeTransfer:110',
-      paymentInfo: vi.fn().mockResolvedValue({ partialFee: { toString: () => '10' } }),
+      paymentInfo: vi.fn().mockResolvedValue({ partialFee: 10 }),
     })
-    const result = await prepareTransaction(api as unknown as ApiPromise, mockSender, mockReceiver, 110, mockNFTs, mockAppConfig, 110)
+    const balances: AddressBalance[] = [
+      {
+        type: BalanceType.NATIVE,
+        balance: { ...mockFreeNativeBalance, transferable: new BN(110) },
+        transaction: { destinationAddress: 'receiver' },
+      },
+      {
+        type: BalanceType.NFT,
+        balance: [mockNft1],
+        transaction: { destinationAddress: 'receiver' },
+      },
+      {
+        type: BalanceType.UNIQUE,
+        balance: [{ ...mockNft2, isUnique: true }],
+        transaction: { destinationAddress: 'receiver' },
+      },
+    ]
+    const result = await prepareTransaction(api as unknown as ApiPromise, 'sender', balances, new BN(110), mockAppConfig)
     expect(result).toBeDefined()
   })
 })
