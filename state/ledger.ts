@@ -19,9 +19,8 @@ import type { DeviceConnectionProps } from '@/lib/ledger/types'
 import { type InternalError, interpretError } from '@/lib/utils'
 import { convertSS58Format, isMultisigAddress } from '@/lib/utils/address'
 import { hasAddressBalance, hasBalance, hasNegativeBalance, validateReservedBreakdown } from '@/lib/utils/balance'
-import { filterAccountsForApps, setDefaultDestinationAddress } from '@/lib/utils/ledger'
-import { handleErrorNotification } from '@/lib/utils/notifications'
 import { isDevelopment } from '@/lib/utils/env'
+import { filterAccountsForApps, setDefaultDestinationAddress } from '@/lib/utils/ledger'
 import { ledgerClient } from './client/ledger'
 import { errorsToStopSync } from './config/ledger'
 import { notifications$ } from './notifications'
@@ -178,6 +177,16 @@ function updateMigrationResultCounter(type: MigrationResultKey, increment = 1) {
   ledgerState$.apps.migrationResult.set({
     ...currentMigrationResult,
     [type]: (currentMigrationResult[type] || 0) + increment,
+  })
+}
+
+// Handle Error Notification
+function handleErrorNotification(internalError: InternalError): void {
+  notifications$.push({
+    title: internalError.title,
+    description: internalError.description ?? '',
+    type: 'error',
+    autoHideDuration: 5000,
   })
 }
 

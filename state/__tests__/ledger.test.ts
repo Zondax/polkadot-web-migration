@@ -66,9 +66,7 @@ vi.mock('@/lib/utils/ledger', () => ({
   setDefaultDestinationAddress: vi.fn(),
 }))
 
-vi.mock('@/lib/utils/notifications', () => ({
-  handleErrorNotification: vi.fn(),
-}))
+// handleErrorNotification is now internal to ledger state
 
 vi.mock('../notifications', () => ({
   notifications$: {
@@ -201,7 +199,7 @@ describe('Ledger State', () => {
 
     it('should handle connection exception', async () => {
       const { ledgerClient } = await import('../client/ledger')
-      const { handleErrorNotification } = await import('@/lib/utils/notifications')
+      const { notifications$ } = await import('../notifications')
 
       vi.mocked(ledgerClient.connectDevice).mockRejectedValueOnce(new Error('Connection failed'))
 
@@ -209,7 +207,12 @@ describe('Ledger State', () => {
 
       expect(result.connected).toBe(false)
       expect(result.isAppOpen).toBe(false)
-      expect(handleErrorNotification).toHaveBeenCalled()
+      expect(notifications$.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'error',
+          autoHideDuration: 5000,
+        })
+      )
     })
   })
 
@@ -231,14 +234,19 @@ describe('Ledger State', () => {
 
     it('should handle disconnect error', async () => {
       const { ledgerClient } = await import('../client/ledger')
-      const { handleErrorNotification } = await import('@/lib/utils/notifications')
+      const { notifications$ } = await import('../notifications')
 
       vi.mocked(ledgerClient.disconnect).mockImplementationOnce(() => {
         throw new Error('Disconnect failed')
       })
 
       ledgerState$.disconnectLedger()
-      expect(handleErrorNotification).toHaveBeenCalled()
+      expect(notifications$.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'error',
+          autoHideDuration: 5000,
+        })
+      )
     })
   })
 
