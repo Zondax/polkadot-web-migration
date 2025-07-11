@@ -17,8 +17,7 @@ Git >= 2.30.0
 VS Code with extensions:
 - TypeScript and JavaScript Language Features
 - Tailwind CSS IntelliSense
-- Prettier - Code formatter
-- ESLint
+- Biome
 ```
 
 #### Project Setup

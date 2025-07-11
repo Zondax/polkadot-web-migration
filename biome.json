@@ -13,7 +13,6 @@
       "!**/.next",
       "!**/.turbo",
       "!**/.vscode",
-      "!**/.qodo",
       "!**/package.json",
       "!**/public",
       "!**/dist",
