@@ -1,16 +1,26 @@
+import { getIntegerFromEnv } from '@/lib/utils/env'
+
 /**
  * @constant truncateMaxCharacters
  * @description Maximum characters for truncation.
  */
 export const truncateMaxCharacters = 16
 
-import { getEnvInteger } from '@/lib/utils/env'
+export const DEFAULT_MAX_ADDRESSES_TO_FETCH = 10
 
 /**
  * @constant maxAddressesToFetch
  * @description Maximum number of addresses to fetch from each app of the Ledger device. Can be set via NEXT_PUBLIC_MAX_ADDRESSES_TO_FETCH environment variable.
  */
-export const maxAddressesToFetch = getEnvInteger('NEXT_PUBLIC_MAX_ADDRESSES_TO_FETCH', 10, { min: 1, max: 100 })
+export const maxAddressesToFetch = (() => {
+  const amountStr = process.env.NEXT_PUBLIC_MAX_ADDRESSES_TO_FETCH
+  if (!amountStr) return DEFAULT_MAX_ADDRESSES_TO_FETCH
+
+  return (
+    getIntegerFromEnv('NEXT_PUBLIC_MAX_ADDRESSES_TO_FETCH', amountStr, DEFAULT_MAX_ADDRESSES_TO_FETCH, { min: 1, max: 100 }) ??
+    DEFAULT_MAX_ADDRESSES_TO_FETCH
+  )
+})()
 
 /**
  * @constant defaultDecimals
