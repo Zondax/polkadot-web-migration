@@ -8,31 +8,3 @@ updates:
       prefix: 'deps'
     open-pull-requests-limit: 5
     target-branch: 'dev'
-
-  - package-ecosystem: 'npm'
-    directory: '/apps/web'
-    schedule:
-      interval: 'daily'
-    commit-message:
-      prefix: 'deps'
-    open-pull-requests-limit: 5
-    target-branch: 'dev'
-
-  - package-ecosystem: 'npm'
-    directory: '/apps/expo'
-    schedule:
-      interval: 'weekly'
-    commit-message:
-      prefix: 'deps'
-    open-pull-requests-limit: 5
-    target-branch: 'dev'
-
-  - package-ecosystem: 'gomod'
-    directory: '/'
-    schedule:
-      interval: 'daily'
-    commit-message:
-      prefix: 'chore'
-      prefix-development: 'chore'
-      include: 'scope'
-    target-branch: dev

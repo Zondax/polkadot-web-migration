@@ -3,6 +3,7 @@
 import { observer } from '@legendapp/state/react'
 import { User as UserIcon } from 'lucide-react'
 
+import { useConnection } from '@/components/hooks/useConnection'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -12,7 +13,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useConnection } from '@/components/hooks/useConnection'
 
 function User() {
   const { connectDevice, disconnectDevice, isLedgerConnected } = useConnection()

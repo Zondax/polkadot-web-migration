@@ -1,8 +1,8 @@
 'use client'
 
+import { motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
 
 import { Button } from '@/components/ui/button'
 
@@ -35,10 +35,12 @@ export function HomePage({
         >
           <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold mb-6 tracking-tighter">
             {words.map((word, wordIndex) => (
-              <span key={wordIndex} className="inline-block mr-4 last:mr-0">
+              // biome-ignore lint/suspicious/noArrayIndexKey: word content makes index stable
+              <span key={`word-${word}-${wordIndex}`} className="inline-block mr-4 last:mr-0">
                 {word.split('').map((letter, letterIndex) => (
                   <motion.span
-                    key={`${wordIndex}-${letterIndex}`}
+                    // biome-ignore lint/suspicious/noArrayIndexKey: letter content makes index stable
+                    key={`letter-${word}-${wordIndex}-${letter}-${letterIndex}`}
                     initial={{ y: 100, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{
@@ -48,7 +50,7 @@ export function HomePage({
                       damping: 25,
                     }}
                     className="inline-block text-transparent bg-clip-text 
-                    bg-gradient-to-r from-white to-white/80"
+                    bg-linear-to-r from-white to-white/80"
                   >
                     {letter}
                   </motion.span>
@@ -78,7 +80,7 @@ export function HomePage({
             }}
             className="mb-6"
           >
-            <div className="inline-block px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
+            <div className="inline-block px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-xs border border-white/20">
               <span className="text-sm text-white/80 italic ">Beta: This project is still in development</span>
             </div>
           </motion.div>
@@ -117,7 +119,7 @@ export function HomePage({
                 <Button
                   variant="ghost"
                   className="rounded-[1.15rem] px-8 py-6 text-lg font-semibold backdrop-blur-md 
-                          bg-white/95 hover:bg-white/100 
+                          bg-white/95 hover:bg-white 
                           border border-white/20 hover:shadow-md
                           group-hover:-translate-y-0.5 transition-all duration-300"
                   style={{ color: '#FF2670' }}

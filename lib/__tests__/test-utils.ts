@@ -1,9 +1,9 @@
-import { ReactElement } from 'react'
-import { render, RenderOptions } from '@testing-library/react'
+import { type RenderOptions, render } from '@testing-library/react'
+import type { ReactElement } from 'react'
 import { vi } from 'vitest'
 
 // Mock for window.matchMedia
-export function setupMatchMedia(matches: boolean = true) {
+export function setupMatchMedia(matches = true) {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
     value: vi.fn().mockImplementation(query => ({
@@ -42,7 +42,7 @@ export function setupResizeObserver() {
 }
 
 // Mock for fetch
-export function setupFetchMock(response: any = {}, status: number = 200) {
+export function setupFetchMock(response: any = {}, status = 200) {
   global.fetch = vi.fn().mockResolvedValue({
     json: vi.fn().mockResolvedValue(response),
     text: vi.fn().mockResolvedValue(JSON.stringify(response)),

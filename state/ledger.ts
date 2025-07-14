@@ -1,20 +1,43 @@
 import { observable } from '@legendapp/state'
-import { AppConfig, AppId, appsConfigs, polkadotAppConfig } from 'config/apps'
-import { ErrorDetails, errorDetails, InternalErrors, LedgerErrors } from 'config/errors'
+import { BN } from '@polkadot/util'
+import { type AppConfig, type AppId, appsConfigs, polkadotAppConfig } from 'config/apps'
+import { errorDetails, InternalErrorType } from 'config/errors'
 import { errorApps, syncApps } from 'config/mockData'
-
-import { Token } from '@/config/apps'
+import type { MultisigCallFormData } from '@/components/sections/migrate/dialogs/approve-multisig-call-dialog'
+import type { Token } from '@/config/apps'
 import { maxAddressesToFetch } from '@/config/config'
-import { getApiAndProvider, getBalance } from '@/lib/account'
-import { convertSS58Format } from '@/lib/utils/address'
-import { mapLedgerError } from '@/lib/utils/error'
-import { hasBalance } from '@/lib/utils/ledger'
-
-import { LedgerClientError } from './client/base'
+import {
+  getApiAndProvider,
+  getBalance,
+  getIdentityInfo,
+  getIndexInfo,
+  getMultisigAddresses,
+  getProxyInfo,
+  type UpdateTransactionStatus,
+} from '@/lib/account'
+import type { DeviceConnectionProps } from '@/lib/ledger/types'
+import { type InternalError, interpretError } from '@/lib/utils'
+import { convertSS58Format, isMultisigAddress } from '@/lib/utils/address'
+import { hasAddressBalance, hasBalance, hasNegativeBalance, validateReservedBreakdown } from '@/lib/utils/balance'
+import { isDevelopment } from '@/lib/utils/env'
+import { filterAccountsForApps, setDefaultDestinationAddress } from '@/lib/utils/ledger'
 import { ledgerClient } from './client/ledger'
+import { errorsToStopSync } from './config/ledger'
 import { notifications$ } from './notifications'
-import { Address, AddressStatus, Collection, DeviceConnectionProps, TransactionStatus, UpdateMigratedStatusFn } from './types/ledger'
-import { Notification } from './types/notifications'
+import {
+  AccountType,
+  type Address,
+  type AddressBalance,
+  AddressStatus,
+  BalanceType,
+  type Collection,
+  type MigratingItem,
+  type MultisigAddress,
+  type Native,
+  TransactionStatus,
+  type UpdateMigratedStatusFn,
+} from './types/ledger'
+import type { Notification } from './types/notifications'
 
 export enum AppStatus {
   MIGRATED = 'migrated',
@@ -37,6 +60,7 @@ export interface App {
   name: string
   id: AppId
   accounts?: Address[]
+  multisigAccounts?: MultisigAddress[]
   collections?: Collections
   token: Token
   status?: AppStatus
@@ -59,10 +83,16 @@ interface LedgerState {
     polkadotApp: App
     status?: AppStatus
     error?: string
-    syncProgress: number
+    syncProgress: {
+      scanned: number
+      total: number
+      percentage: number
+    }
+    isSyncCancelRequested: boolean
     migrationResult: {
       [key in MigrationResultKey]: number
     }
+    currentMigratedItem?: MigratingItem
   }
   polkadotAddresses: Partial<Record<AppId, string[]>>
 }
@@ -78,12 +108,18 @@ const initialLedgerState: LedgerState = {
     polkadotApp: polkadotAppConfig,
     status: undefined,
     error: undefined,
-    syncProgress: 0,
+    syncProgress: {
+      scanned: 0,
+      total: 0,
+      percentage: 0,
+    },
+    isSyncCancelRequested: false,
     migrationResult: {
       success: 0,
       fails: 0,
       total: 0,
     },
+    currentMigratedItem: undefined,
   },
   polkadotAddresses: {},
 }
@@ -102,18 +138,27 @@ function updateApp(appId: AppId, update: Partial<App>) {
 }
 
 // Update Account
-function updateAccount(appId: AppId, address: string, update: Partial<Address>) {
+function updateAccount(appId: AppId, accountType: AccountType, address: string, update: Partial<Address>) {
   const apps = ledgerState$.apps.apps.get()
   const appIndex = apps.findIndex(app => app.id === appId)
 
   if (appIndex !== -1) {
-    const accounts = apps[appIndex]?.accounts ? [...apps[appIndex].accounts] : []
+    const app = apps[appIndex]
+    const singleAccounts = app?.accounts ? [...app.accounts] : []
+    const multisigAccounts = app?.multisigAccounts ? [...app.multisigAccounts] : []
+
+    const accounts = accountType === AccountType.MULTISIG ? multisigAccounts : singleAccounts
+
     const accountIndex = accounts.findIndex(account => account.address === address)
 
-    if (accountIndex !== -1) {
+    if (accountIndex !== -1 && accounts[accountIndex]) {
       const updatedAccount = { ...accounts[accountIndex], ...update }
       accounts[accountIndex] = updatedAccount
-      ledgerState$.apps.apps[appIndex].accounts.set(accounts)
+      if (accountType === AccountType.MULTISIG) {
+        ledgerState$.apps.apps[appIndex].multisigAccounts.set(accounts as MultisigAddress[])
+      } else {
+        ledgerState$.apps.apps[appIndex].accounts.set(accounts as Address[])
+      }
     } else {
       console.warn(`Account with address ${address} not found in app ${appId} for UI update.`)
     }
@@ -123,36 +168,69 @@ function updateAccount(appId: AppId, address: string, update: Partial<Address>) 
 }
 
 // Update Migration Result Counter
-function updateMigrationResultCounter(type: MigrationResultKey, increment: number = 1) {
-  const currentMigrationResult = ledgerState$.apps.migrationResult.get() || { success: 0, fails: 0, total: 0 }
+function updateMigrationResultCounter(type: MigrationResultKey, increment = 1) {
+  const currentMigrationResult = ledgerState$.apps.migrationResult.get() || {
+    success: 0,
+    fails: 0,
+    total: 0,
+  }
   ledgerState$.apps.migrationResult.set({
     ...currentMigrationResult,
     [type]: (currentMigrationResult[type] || 0) + increment,
   })
 }
 
+// Handle Error Notification
+function handleErrorNotification(internalError: InternalError): void {
+  notifications$.push({
+    title: internalError.title,
+    description: internalError.description ?? '',
+    type: 'error',
+    autoHideDuration: 5000,
+  })
+}
+
 // Update Migrated Status
-const updateMigratedStatus: UpdateMigratedStatusFn = (appId: AppId, accountPath: string, status, message, txDetails) => {
+const updateMigratedStatus: UpdateMigratedStatusFn = (appId: AppId, accountType, address: string, txDetails) => {
   const apps = ledgerState$.apps.apps.get()
   const appIndex = apps.findIndex(app => app.id === appId)
+  const status = txDetails?.status
 
-  if (appIndex !== -1) {
-    const accounts = apps[appIndex]?.accounts ? [...apps[appIndex].accounts] : []
+  if (appIndex !== -1 && status) {
+    const app = apps[appIndex]
+    const singleAccounts = app?.accounts ? [...app.accounts] : []
+    const multisigAccounts = app?.multisigAccounts ? [...app.multisigAccounts] : []
 
-    const accountIndex = accounts.findIndex(account => account.path === accountPath)
+    const accounts = accountType === AccountType.MULTISIG ? multisigAccounts : singleAccounts
+
+    const accountIndex = accounts.findIndex(account => account.address === address)
 
     if (accountIndex !== -1 && accounts[accountIndex]) {
       // Update the account's transaction details
       accounts[accountIndex] = {
         ...accounts[accountIndex],
         transaction: {
-          status: status,
-          statusMessage: message,
-          hash: txDetails?.txHash,
-          blockHash: txDetails?.blockHash,
-          blockNumber: txDetails?.blockNumber,
+          ...txDetails,
         },
-        isLoading: status === TransactionStatus.PENDING || status === TransactionStatus.IN_BLOCK || status === TransactionStatus.FINALIZED,
+      }
+      const currentItem = ledgerState$.apps.currentMigratedItem.get()
+      const isCurrentMigratedItem = currentItem?.appId === appId && currentItem?.account.address === address
+      const isLoadingOrSigning = [TransactionStatus.IS_LOADING, TransactionStatus.PREPARING_TX, TransactionStatus.SIGNING].includes(status)
+
+      if (isLoadingOrSigning) {
+        ledgerState$.apps.currentMigratedItem.set({
+          appId,
+          appName: app.name || app.id,
+          token: app.token,
+          account: accounts[accountIndex],
+          transaction: {
+            ...txDetails,
+          },
+        })
+        // Only clear if this is the currently migrating item
+      } else if (isCurrentMigratedItem) {
+        // Clear for other statuses (SUCCESS, FAILED, ERROR)
+        ledgerState$.apps.currentMigratedItem.set(undefined)
       }
 
       // If the transaction is successful, mark as migrated
@@ -163,22 +241,13 @@ const updateMigratedStatus: UpdateMigratedStatusFn = (appId: AppId, accountPath:
         updateMigrationResultCounter('fails')
       }
 
-      ledgerState$.apps.apps[appIndex].accounts.set(accounts)
+      if (accountType === AccountType.MULTISIG) {
+        ledgerState$.apps.apps[appIndex].multisigAccounts.set(accounts as MultisigAddress[])
+      } else {
+        ledgerState$.apps.apps[appIndex].accounts.set(accounts as Address[])
+      }
     }
   }
-}
-
-function handleLedgerError(error: LedgerClientError, defaultError: InternalErrors | LedgerErrors): ErrorDetails {
-  const errorDetail = mapLedgerError(error, defaultError)
-
-  notifications$.push({
-    title: errorDetail.title,
-    description: errorDetail.description ?? '',
-    type: 'error',
-    autoHideDuration: 5000,
-  })
-
-  return errorDetail
 }
 
 export const ledgerState$ = observable({
@@ -189,32 +258,55 @@ export const ledgerState$ = observable({
     ledgerState$.device.error.set(undefined)
 
     try {
-      const response = await ledgerClient.connectDevice()
+      const response = await ledgerClient.connectDevice(ledgerState$.clearConnection)
 
       ledgerState$.device.connection.set(response?.connection)
       ledgerState$.device.error.set(response?.error) // Set error even if not connected
 
       const isDeviceConnected = Boolean(response?.connection && !response?.error)
-      const isAppOpen = Boolean(response?.connection?.isAppOpen)
+      // Use nullish coalescing to handle undefined isAppOpen property
+      const isAppOpen = response?.connection?.isAppOpen ?? false
 
       // Check if device is connected but app is not open
       if (isDeviceConnected && !isAppOpen) {
+        // Try to open the app automatically
+        console.debug('[ledgerState$] App not open, attempting to open automatically')
+        await ledgerClient.openApp()
+
         // Add notification to indicate the user should open the app
         notifications$.push({
-          title: 'App not open',
-          description: 'Please open the Polkadot Migration app on your Ledger device and click Connect again',
+          title: 'Polkadot Migration App not open',
+          description:
+            'Please open the Polkadot Migration App on your Ledger device. Once the app is open, click Connect again to continue.',
           type: 'warning',
           autoHideDuration: 5000,
         })
+
+        // Check connection again after attempting to open the app
+        const checkResult = await ledgerClient.checkConnection()
+        if (checkResult) {
+          // If app is now open, update the connection state
+          return { connected: isDeviceConnected, isAppOpen: true }
+        }
       }
 
       return { connected: isDeviceConnected, isAppOpen }
     } catch (error) {
-      handleLedgerError(error as LedgerClientError, InternalErrors.CONNECTION_ERROR)
+      const internalError = interpretError(error, InternalErrorType.CONNECTION_ERROR)
+      handleErrorNotification(internalError)
 
       return { connected: false, isAppOpen: false }
     } finally {
       ledgerState$.device.isLoading.set(false)
+    }
+  },
+
+  async checkConnection() {
+    try {
+      return await ledgerClient.checkConnection()
+    } catch (error) {
+      console.warn('[ledgerState$] Connection check failed:', error)
+      return false
     }
   },
 
@@ -223,18 +315,19 @@ export const ledgerState$ = observable({
       ledgerClient.disconnect()
       ledgerState$.clearConnection()
     } catch (error) {
-      handleLedgerError(error as LedgerClientError, InternalErrors.DISCONNECTION_ERROR)
+      const internalError = interpretError(error, InternalErrorType.DISCONNECTION_ERROR)
+      handleErrorNotification(internalError)
     }
   },
 
   // Clear connection data
   clearConnection() {
+    console.debug('[ledgerState$] Clearing connection data')
     ledgerState$.device.assign({
       connection: undefined,
       error: undefined,
       isLoading: false,
     })
-    ledgerState$.clearSynchronization()
   },
 
   // Clear synchronization data
@@ -244,20 +337,54 @@ export const ledgerState$ = observable({
       polkadotApp: polkadotAppConfig,
       status: undefined,
       error: undefined,
-      syncProgress: 0,
+      syncProgress: {
+        scanned: 0,
+        total: 0,
+        percentage: 0,
+      },
+      isSyncCancelRequested: false,
       migrationResult: {
         success: 0,
         fails: 0,
         total: 0,
       },
+      currentMigratedItem: undefined,
     })
     ledgerState$.polkadotAddresses.set({})
   },
 
+  // Stop synchronization without deleting already synchronized accounts
+  cancelSynchronization() {
+    ledgerState$.apps.isSyncCancelRequested.set(true)
+    ledgerClient.abortCall()
+
+    // Set status to synchronized to indicate that the process was stopped
+    ledgerState$.apps.status.set(AppStatus.SYNCHRONIZED)
+
+    notifications$.push({
+      title: 'Synchronization Stopped',
+      description: 'The synchronization process has been stopped. You can continue with the accounts that were already synchronized.',
+      type: 'info',
+      autoHideDuration: 5000,
+    })
+  },
+
+  // Determine if an error should stop synchronization and handle accordingly
+  handleError(internalError: InternalError): boolean {
+    // Check if the error type is in the list of errors that should stop synchronization
+    if (errorsToStopSync.includes(internalError.errorType)) {
+      console.debug('[handleSyncError] stopping synchronization')
+      ledgerState$.cancelSynchronization()
+
+      return true // Indicate that an action should be taken
+    }
+    return false // Indicate that no action should be taken
+  },
+
   // Fetch and Process Accounts for a Single App
-  async fetchAndProcessAccountsForApp(app: AppConfig, filterByBalance: boolean = true): Promise<App | undefined> {
+  async fetchAndProcessAccountsForApp(app: AppConfig, filterByBalance = true): Promise<App | undefined> {
     try {
-      if (process.env.NEXT_PUBLIC_NODE_ENV === 'development' && errorApps && errorApps?.includes(app.id)) {
+      if (isDevelopment() && errorApps && errorApps?.includes(app.id)) {
         throw new Error('Mock synchronization error')
       }
 
@@ -278,9 +405,9 @@ export const ledgerState$ = observable({
 
       const polkadotAccounts = ledgerState$.apps.polkadotApp.get().accounts || []
 
-      const { api, provider, error } = await getApiAndProvider(app.rpcEndpoint)
+      const { api, provider } = await getApiAndProvider(app.rpcEndpoint)
 
-      if (error || !api) {
+      if (!api) {
         return {
           name: app.name,
           id: app.id,
@@ -299,13 +426,60 @@ export const ledgerState$ = observable({
         nfts: new Map<number, Collection>(),
       }
 
+      const multisigAccounts: Map<string, MultisigAddress> = new Map()
+
+      const processCollections = (collections: { uniques: Collection[]; nfts: Collection[] }) => {
+        // Process uniques collections
+        if (collections.uniques && collections.uniques.length > 0) {
+          for (const collection of collections.uniques) {
+            if (collection.collectionId) {
+              collectionsMap.uniques.set(collection.collectionId, collection)
+            }
+          }
+        }
+
+        // Process nfts collections
+        if (collections.nfts && collections.nfts.length > 0) {
+          for (const collection of collections.nfts) {
+            if (collection.collectionId) {
+              collectionsMap.nfts.set(collection.collectionId, collection)
+            }
+          }
+        }
+      }
+
       const accounts: Address[] = await Promise.all(
         response.result.map(async address => {
-          const { balance, collections, error } = await getBalance(address, api)
+          let addressHasNegativeBalance = false
+          const balances: AddressBalance[] = []
+
+          // Balance Info
+          const { balances: balancesResponse, collections, error } = await getBalance(address, api, app.id)
+          for (const balance of balancesResponse) {
+            if (hasNegativeBalance([balance])) {
+              addressHasNegativeBalance = true
+              break
+            }
+            if (hasBalance([balance])) {
+              balances.push(balance)
+            }
+          }
+          if (addressHasNegativeBalance) {
+            return {
+              ...address,
+              balances,
+              error: {
+                source: 'balance_fetch',
+                description: 'The synchronized balance is not valid',
+              },
+              isLoading: false,
+            }
+          }
+
           if (error) {
             return {
               ...address,
-              balance,
+              balances,
               error: {
                 source: 'balance_fetch',
                 description: 'Failed to fetch balance',
@@ -314,36 +488,151 @@ export const ledgerState$ = observable({
             }
           }
           if (collections) {
-            // Process uniques collections
-            if (collections.uniques && collections.uniques.length > 0) {
-              collections.uniques.forEach(collection => {
-                if (collection.collectionId) {
-                  collectionsMap.uniques.set(collection.collectionId, collection)
-                }
-              })
-            }
+            processCollections(collections)
+          }
 
-            // Process nfts collections
-            if (collections.nfts && collections.nfts.length > 0) {
-              collections.nfts.forEach(collection => {
-                if (collection.collectionId) {
-                  collectionsMap.nfts.set(collection.collectionId, collection)
+          // Registration Info
+          const registration = await getIdentityInfo(address.address, api)
+
+          // Proxy Info
+          const proxy = await getProxyInfo(address.address, api)
+
+          // Index information
+          const indexInfo = await getIndexInfo(address.address, api)
+
+          // Multisig Addresses
+          let memberMultisigAddresses: string[] | undefined
+          const multisigDeposits: { callHash: string; deposit: BN }[] = []
+          if (app.explorer?.id === 'subscan') {
+            // a subscan endpoint is used to get the multisig addresses
+            const multisigAddresses = await getMultisigAddresses(address.address, address.path, app.explorer.network || app.id, api)
+            memberMultisigAddresses = multisigAddresses?.map(multisigAddress => multisigAddress.address)
+
+            if (memberMultisigAddresses && multisigAddresses) {
+              for (const multisigAddress of multisigAddresses) {
+                multisigAccounts.set(multisigAddress.address, multisigAddress)
+
+                // Collect deposits from pending multisig calls where this address is the depositor
+                if (multisigAddress.pendingMultisigCalls) {
+                  for (const call of multisigAddress.pendingMultisigCalls) {
+                    if (call.depositor === address.address) {
+                      multisigDeposits.push({
+                        callHash: call.callHash,
+                        deposit: call.deposit,
+                      })
+                    }
+                  }
                 }
-              })
+              }
+            }
+          }
+
+          const hasReservedBalance = registration?.deposit || multisigDeposits.length > 0 || proxy?.deposit || indexInfo?.deposit
+          const nativeBalanceIndex = balances.findIndex(balance => balance.type === BalanceType.NATIVE)
+          if (hasReservedBalance && nativeBalanceIndex !== -1) {
+            const nativeBalance = balances[nativeBalanceIndex].balance as Native
+            const identityDeposit = registration?.deposit ?? new BN(0)
+            const multisigDeposit =
+              multisigDeposits.length > 0 ? multisigDeposits.reduce((sum, deposit) => sum.add(deposit.deposit), new BN(0)) : new BN(0)
+            const proxyDeposit = proxy?.deposit ?? new BN(0)
+            const indexDeposit = indexInfo?.deposit ?? new BN(0)
+
+            const isBreakdownValid = validateReservedBreakdown(
+              identityDeposit,
+              multisigDeposit,
+              proxyDeposit,
+              indexDeposit,
+              nativeBalance.reserved.total
+            )
+
+            if (isBreakdownValid) {
+              balances[nativeBalanceIndex].balance = {
+                ...nativeBalance,
+                reserved: {
+                  ...nativeBalance.reserved,
+                  identity: identityDeposit.gtn(0) ? { deposit: identityDeposit } : undefined,
+                  multisig: multisigDeposit.gtn(0)
+                    ? { total: multisigDeposit, deposits: multisigDeposits.map(d => ({ ...d, deposit: d.deposit })) }
+                    : undefined,
+                  proxy: proxyDeposit.gtn(0) ? { deposit: proxyDeposit } : undefined,
+                  index: indexDeposit.gtn(0) ? { deposit: indexDeposit } : undefined,
+                },
+              }
+            } else {
+              console.debug('We could not load the breakdown details.')
             }
           }
 
           return {
             ...address,
-            balance,
+            balances,
+            registration,
+            memberMultisigAddresses,
+            proxy,
+            index: indexInfo,
             status: AddressStatus.SYNCHRONIZED,
             error: undefined,
             isLoading: false,
+            selected: true,
           }
         })
       )
 
-      const filteredAccounts = accounts.filter(account => !filterByBalance || hasBalance(account) || account.error)
+      // Get info related to multisig accounts if they exist
+      const foundAccounts = accounts.map(account => account.address)
+
+      // Obtener el balance de cada multisigAccount dentro del map
+      await Promise.all(
+        Array.from(multisigAccounts.values()).map(async multisigAddress => {
+          const {
+            balances: multisigBalancesResponse,
+            collections: multisigCollections,
+            error: multisigError,
+          } = await getBalance(multisigAddress, api, app.id)
+          const multisigBalances = multisigBalancesResponse.filter(balance => hasBalance([balance]))
+
+          if (multisigCollections) {
+            processCollections(multisigCollections)
+          }
+
+          // Registration Info
+          const registration = await getIdentityInfo(multisigAddress.address, api)
+
+          // Proxy Info
+          const proxy = await getProxyInfo(multisigAddress.address, api)
+
+          // Index information
+          const indexInfo = await getIndexInfo(multisigAddress.address, api)
+
+          multisigAddress.balances = multisigBalances.map(balance => ({
+            ...balance,
+            transaction: { ...balance.transaction, signatoryAddress: multisigAddress.members[0].address },
+          }))
+          multisigAddress.registration = registration
+          multisigAddress.proxy = proxy
+          multisigAddress.index = indexInfo
+          multisigAddress.status = AddressStatus.SYNCHRONIZED
+          multisigAddress.error = multisigError
+            ? {
+                source: 'balance_fetch',
+                description: 'Failed to fetch balance',
+              }
+            : undefined
+          multisigAddress.isLoading = false
+          multisigAddress.selected = true
+          multisigAddress.members = multisigAddress.members.map(member => {
+            if (foundAccounts.includes(member.address)) {
+              return { ...member, internal: true, path: accounts.find(account => account.address === member.address)?.path }
+            }
+            return member
+          })
+          multisigAccounts.set(multisigAddress.address, multisigAddress)
+        })
+      )
+
+      const filteredAccounts = filterAccountsForApps(accounts, filterByBalance)
+
+      const filteredMultisigAccounts = filterAccountsForApps(Array.from(multisigAccounts.values()), filterByBalance)
 
       // Only set the app if there are accounts after filtering
       if (filteredAccounts.length > 0) {
@@ -361,25 +650,38 @@ export const ledgerState$ = observable({
           id: app.id,
           token: app.token,
           status: AppStatus.SYNCHRONIZED,
-          accounts: filteredAccounts.map(account => ({
-            ...account,
-            destinationAddress: polkadotAddresses[0],
-          })),
+          accounts: filteredAccounts.map(account => setDefaultDestinationAddress(account, polkadotAddresses[0])),
           collections: collectionsMap,
+          multisigAccounts: filteredMultisigAccounts.map(account => setDefaultDestinationAddress(account, polkadotAddresses[0])),
         }
-      } else {
-        notifications$.push({
-          title: `No funds found`,
-          description: `No accounts with balance to migrate for ${app.id.charAt(0).toUpperCase() + app.id.slice(1)}`,
-          appId: app.id,
-          type: 'info',
-          autoHideDuration: 5000,
-        })
       }
 
-      return undefined // No accounts after filtering
+      if (ledgerState$.apps.isSyncCancelRequested.get()) {
+        return undefined
+      }
+
+      notifications$.push({
+        title: 'No accounts to migrate',
+        description: `We could not find any accounts with a balance to migrate for ${app.id.charAt(0).toUpperCase() + app.id.slice(1)}.`,
+        appId: app.id,
+        type: 'info',
+        autoHideDuration: 5000,
+      })
+
+      // No accounts after filtering
+      return {
+        name: app.name,
+        id: app.id,
+        token: app.token,
+        status: AppStatus.SYNCHRONIZED,
+        accounts: [],
+      }
     } catch (error) {
       console.debug('Error fetching and processing accounts for app:', app.id)
+      const internalError = interpretError(error, InternalErrorType.FETCH_PROCESS_ACCOUNTS_ERROR)
+      ledgerState$.handleError(internalError)
+      handleErrorNotification(internalError)
+
       return {
         name: app.name,
         id: app.id,
@@ -387,7 +689,7 @@ export const ledgerState$ = observable({
         status: AppStatus.ERROR,
         error: {
           source: 'synchronization',
-          description: error instanceof Error ? error.message : 'Error fetching and processing accounts for app.',
+          description: internalError.description ?? 'An unexpected error occurred',
         },
       }
     }
@@ -396,7 +698,6 @@ export const ledgerState$ = observable({
   // Synchronize Single Account
   async synchronizeAccount(appId: AppId) {
     updateApp(appId, { status: AppStatus.RESCANNING, error: undefined })
-
     const appConfig = appsConfigs.get(appId)
     if (!appConfig) {
       console.error(`App with id ${appId} not found.`)
@@ -404,11 +705,13 @@ export const ledgerState$ = observable({
     }
 
     try {
+      updateApp(appId, { status: AppStatus.LOADING, error: undefined })
+
       const app = await ledgerState$.fetchAndProcessAccountsForApp(appConfig)
       if (app) {
         updateApp(appId, app)
       }
-    } catch (error) {
+    } catch (_error) {
       updateApp(appId, {
         status: AppStatus.ERROR,
         error: {
@@ -426,8 +729,8 @@ export const ledgerState$ = observable({
       const response = await ledgerClient.synchronizeAccounts(app)
 
       const noAccountsNotification: Omit<Notification, 'id' | 'createdAt'> = {
-        title: `No migration source`,
-        description: `No Polkadot accounts available to migrate from`,
+        title: 'No Polkadot accounts found',
+        description: 'There are no Polkadot accounts available to migrate from on your Ledger device.',
         appId: app.id,
         type: 'info',
         autoHideDuration: 5000,
@@ -445,9 +748,9 @@ export const ledgerState$ = observable({
 
       const accounts = response.result
 
-      const { api, provider, error } = await getApiAndProvider(app.rpcEndpoint)
+      const { api, provider } = await getApiAndProvider(app.rpcEndpoint)
 
-      if (error || !api) {
+      if (!api) {
         return {
           name: app.name,
           id: app.id,
@@ -481,6 +784,10 @@ export const ledgerState$ = observable({
     } catch (error) {
       const app = polkadotAppConfig
       console.debug('Error fetching and processing accounts for app:', app.id)
+      const internalError = interpretError(error, InternalErrorType.FETCH_PROCESS_ACCOUNTS_ERROR)
+      ledgerState$.handleError(internalError)
+      handleErrorNotification(internalError)
+
       return {
         name: app.name,
         id: app.id,
@@ -491,23 +798,40 @@ export const ledgerState$ = observable({
   },
 
   // Synchronize Accounts
-  async synchronizeAccounts() {
-    ledgerState$.apps.assign({ status: AppStatus.LOADING, apps: [], syncProgress: 0 })
+  async synchronizeAccounts(): Promise<void> {
+    ledgerState$.apps.isSyncCancelRequested.set(false)
 
     try {
-      const connection = ledgerState$.device.connection.get()
-      if (!connection) {
-        ledgerState$.apps.assign({
-          status: undefined,
-          apps: [],
-          syncProgress: 0,
-        })
-        return
+      const isConnected = await ledgerState$.checkConnection()
+      if (!isConnected) {
+        const result = await ledgerState$.connectLedger()
+        if (!result.connected) {
+          ledgerState$.apps.assign({
+            status: AppStatus.ERROR,
+            apps: [],
+            syncProgress: {
+              scanned: 0,
+              total: 0,
+              percentage: 0,
+            },
+          })
+          return
+        }
       }
 
+      ledgerState$.apps.assign({
+        status: AppStatus.LOADING,
+        apps: [],
+        syncProgress: {
+          scanned: 0,
+          total: 0,
+          percentage: 0,
+        },
+      })
+
       notifications$.push({
-        title: `Synchronizing accounts`,
-        description: `The first ${maxAddressesToFetch} accounts will be synchronized for each blockchain.`,
+        title: 'Synchronizing accounts',
+        description: `We are synchronizing the first ${maxAddressesToFetch} accounts for each blockchain. Please wait while we gather your account information.`,
         type: 'info',
         autoHideDuration: 5000,
       })
@@ -524,7 +848,7 @@ export const ledgerState$ = observable({
       let appsToSync: (AppConfig | undefined)[] = Array.from(appsConfigs.values())
 
       // If in development environment, use apps specified in environment variable
-      if (process.env.NEXT_PUBLIC_NODE_ENV === 'development' && syncApps && syncApps.length > 0) {
+      if (isDevelopment() && syncApps && syncApps.length > 0) {
         try {
           appsToSync = syncApps.map(appId => appsConfigs.get(appId as AppId))
         } catch (error) {
@@ -533,41 +857,69 @@ export const ledgerState$ = observable({
         }
       }
 
-      appsToSync = appsToSync.filter(appConfig => appConfig && appConfig.rpcEndpoint) as AppConfig[]
+      appsToSync = appsToSync.filter(appConfig => appConfig?.rpcEndpoint) as AppConfig[]
       const totalApps = appsToSync.length
       let syncedApps = 0
 
+      ledgerState$.apps.syncProgress.set({
+        scanned: syncedApps,
+        total: totalApps,
+        percentage: 0,
+      })
+
       // request and save the accounts of each app synchronously
       for (const appConfig of appsToSync) {
+        // Check if cancellation is requested
+        if (ledgerState$.apps.isSyncCancelRequested.get()) {
+          return undefined
+        }
+
         if (appConfig) {
+          ledgerState$.apps.apps.push({
+            id: appConfig.id,
+            name: appConfig.name,
+            token: appConfig.token,
+            status: AppStatus.LOADING,
+            error: undefined,
+          })
+
           // Comment it later
           const app = await ledgerState$.fetchAndProcessAccountsForApp(appConfig)
           if (app) {
-            ledgerState$.apps.apps.push(app)
+            updateApp(appConfig.id, app)
           }
         }
 
         // Update sync progress
         syncedApps++
         const progress = Math.round((syncedApps / totalApps) * 100)
-        ledgerState$.apps.syncProgress.set(progress)
+        ledgerState$.apps.syncProgress.scanned.set(syncedApps)
+        ledgerState$.apps.syncProgress.percentage.set(progress)
       }
 
+      // Reset cancel flag when synchronization completes successfully
+      ledgerState$.apps.isSyncCancelRequested.set(false)
       ledgerState$.apps.status.set(AppStatus.SYNCHRONIZED)
     } catch (error) {
-      handleLedgerError(error as LedgerClientError, InternalErrors.SYNC_ERROR)
+      const internalError = interpretError(error, InternalErrorType.SYNC_ERROR)
+      handleErrorNotification(internalError)
       ledgerState$.apps.error.set('Failed to synchronize accounts')
+    } finally {
+      // Ensure we reset the cancel flag even if there was an error
+      if (ledgerState$.apps.isSyncCancelRequested.get()) {
+        ledgerState$.apps.isSyncCancelRequested.set(false)
+      }
     }
   },
 
   // Synchronize Balance
-  async getAccountBalance(appId: AppId, address: Address) {
-    updateAccount(appId, address.address, { isLoading: true })
+  async getAccountBalance(appId: AppId, accountType: AccountType, address: Address) {
+    updateAccount(appId, accountType, address.address, { isLoading: true })
     const rpcEndpoint = appsConfigs.get(appId)?.rpcEndpoint
 
     if (!rpcEndpoint) {
       console.error('RPC endpoint not found for app:', appId)
-      updateAccount(appId, address.address, {
+      updateAccount(appId, accountType, address.address, {
         isLoading: false,
         error: {
           source: 'balance_fetch',
@@ -577,10 +929,10 @@ export const ledgerState$ = observable({
       return
     }
 
-    const { api, provider, error } = await getApiAndProvider(rpcEndpoint)
+    const { api, provider } = await getApiAndProvider(rpcEndpoint)
 
-    if (error || !api) {
-      updateAccount(appId, address.address, {
+    if (!api) {
+      updateAccount(appId, accountType, address.address, {
         isLoading: false,
         error: {
           source: 'balance_fetch',
@@ -591,11 +943,11 @@ export const ledgerState$ = observable({
     }
 
     try {
-      const { balance, collections, error } = await getBalance(address, api)
+      const { balances, collections, error } = await getBalance(address, api, appId)
       if (!error) {
-        updateAccount(appId, address.address, {
+        updateAccount(appId, accountType, address.address, {
           ...address,
-          balance,
+          balances,
           status: AddressStatus.SYNCHRONIZED,
           error: undefined,
           isLoading: false,
@@ -615,22 +967,22 @@ export const ledgerState$ = observable({
             uniques: new Map(existingCollections.uniques),
             nfts: new Map(existingCollections.nfts),
           }
-          collections.uniques.forEach(collection => {
+          for (const collection of collections.uniques) {
             if (collection.collectionId) {
               updatedCollections.uniques.set(collection.collectionId, collection)
             }
-          })
-          collections.nfts.forEach(collection => {
+          }
+          for (const collection of collections.nfts) {
             if (collection.collectionId) {
               updatedCollections.nfts.set(collection.collectionId, collection)
             }
-          })
+          }
           updateApp(appId, {
             collections: updatedCollections,
           })
         }
       } else {
-        updateAccount(appId, address.address, {
+        updateAccount(appId, accountType, address.address, {
           isLoading: false,
           error: {
             source: 'balance_fetch',
@@ -647,104 +999,107 @@ export const ledgerState$ = observable({
     }
   },
 
-  async verifyDestinationAddresses(appId: AppId, address: string, path: string): Promise<{ isVerfied: boolean }> {
+  async verifyDestinationAddresses(
+    appId: AppId,
+    address: string,
+    _path: string
+  ): Promise<{
+    isVerified: boolean
+  }> {
     const appConfig = appsConfigs.get(appId)
     if (!appConfig) {
       console.error(`App with id ${appId} not found.`)
-      return { isVerfied: false }
+      return { isVerified: false }
     }
 
     // Find the index of the address in the polkadotAddresses array
     const polkadotAddresses = ledgerState$.polkadotAddresses[appId].get()
     if (!polkadotAddresses || polkadotAddresses.length === 0) {
       console.error(`No Polkadot addresses found for app ${appId}.`)
-      return { isVerfied: false }
+      return { isVerified: false }
     }
 
     // Find the index of the address in the polkadotAddresses array
     const addressIndex = polkadotAddresses.findIndex(addr => addr === address)
     if (addressIndex === -1) {
       console.error(`Address ${address} not found in Polkadot addresses for app ${appId}.`)
-      return { isVerfied: false }
+      return { isVerified: false }
     }
 
     const polkadotConfig = polkadotAppConfig
     try {
+      notifications$.push({
+        title: 'Verify address on Ledger',
+        description:
+          'Please review and confirm the address on your Ledger device. This step is required to ensure your funds are sent to the correct destination.',
+        type: 'info',
+        autoHideDuration: 7000,
+      })
       const response = await ledgerClient.getAccountAddress(polkadotConfig.bip44Path, addressIndex, appConfig.ss58Prefix)
 
-      return { isVerfied: response.result?.address === address }
+      return { isVerified: response.result?.address === address }
     } catch (error) {
-      return { isVerfied: false }
+      console.warn('[ledgerState$] Address verification failed:', error)
+      return { isVerified: false }
     }
   },
 
   // Migrate Single Account
-  async migrateAccount(appId: AppId, accountIndex: number): Promise<{ txPromise: Promise<void> | undefined } | undefined> {
-    const apps = ledgerState$.apps.apps.get()
-    const app = apps.find(app => app.id === appId)
-    const account = app?.accounts?.[accountIndex]
+  async migrateAccount(appId: AppId, account: Address | MultisigAddress): Promise<{ txPromises: Promise<void>[] | undefined } | undefined> {
+    console.debug(`Starting migration for account ${account.address} in app ${appId}`)
 
-    console.debug(`Starting migration for account at index ${accountIndex} in app ${appId}`)
     if (!account) {
-      console.warn(`Account at index ${accountIndex} not found in app ${appId} for migration.`)
       return undefined
     }
 
-    updateAccount(appId, account.address, {
-      isLoading: true,
-      error: undefined,
-    })
+    const isMultisig = isMultisigAddress(account)
+    const accountType = isMultisig ? AccountType.MULTISIG : AccountType.ACCOUNT
 
-    updateMigrationResultCounter('total')
+    // Check if account has balances to migrate
+    if (account.balances && account.balances.length > 0) {
+      updateMigratedStatus(appId, accountType, account.address, { status: TransactionStatus.IS_LOADING })
 
-    try {
-      const response = await ledgerClient.migrateAccount(appId, account, updateMigratedStatus)
+      updateMigrationResultCounter('total')
 
-      if (!response?.txPromise) {
-        updateAccount(appId, account.address, {
-          error: {
-            source: 'migration',
-            description: InternalErrors.MIGRATION_ERROR,
-          },
-          isLoading: false,
+      try {
+        const response = await ledgerClient.migrateAccount(appId, account, updateMigratedStatus)
+
+        if (!response?.txPromise) {
+          updateMigratedStatus(appId, accountType, account.address, {
+            status: TransactionStatus.ERROR,
+            statusMessage: errorDetails.migration_error.description,
+          })
+
+          // Increment fails counter
+          updateMigrationResultCounter('fails')
+
+          console.debug(`Balance migration for account ${account.address} in app ${appId} failed:`, InternalErrorType.MIGRATION_ERROR)
+          return undefined
+        }
+
+        // The transaction has been signed and sent, but has not yet been finalized
+        updateMigratedStatus(appId, accountType, account.address, { status: TransactionStatus.PENDING })
+
+        console.debug(`Balance migration for account ${account.address} in app ${appId} transaction submitted`)
+
+        // Return the transaction promise
+        return { txPromises: [response.txPromise] }
+      } catch (error) {
+        const internalError = interpretError(error, InternalErrorType.MIGRATION_ERROR)
+        updateMigratedStatus(appId, accountType, account.address, {
+          status: TransactionStatus.ERROR,
+          statusMessage: internalError.description,
         })
-        console.debug(`Account at path ${account.path} in app ${appId} migration failed:`, InternalErrors.MIGRATION_ERROR)
 
         // Increment fails counter
         updateMigrationResultCounter('fails')
         return undefined
       }
-
-      // The transaction has been signed and sent, but has not yet been finalized
-      // Update the state to reflect that we are no longer in the signing phase
-      updateAccount(appId, account.address, {
-        transaction: {
-          status: TransactionStatus.PENDING,
-        },
-        isLoading: false,
-      })
-
-      console.debug(`Account at index ${accountIndex} in app ${appId} transaction submitted`)
-
-      // Return the transaction promise
-      return { txPromise: response.txPromise }
-    } catch (error) {
-      updateAccount(appId, account.address, {
-        error: {
-          source: 'migration',
-          description: (error as LedgerClientError).message || 'Failed to migrate account',
-        },
-        isLoading: false,
-      })
-
-      // Increment fails counter
-      updateMigrationResultCounter('fails')
-      return undefined
     }
   },
 
-  // Migrate All Accounts
-  async migrateAll() {
+  // Migrate selected accounts
+  async migrateSelected(selectedOnly = true) {
     // Reset migration result
     ledgerState$.apps.migrationResult.set({ success: 0, fails: 0, total: 0 })
 
@@ -756,13 +1111,12 @@ export const ledgerState$ = observable({
 
       // Process apps to start their transactions
       for (const app of apps) {
-        if (!app.accounts || app.accounts.length === 0) continue
+        if ((!app.accounts || app.accounts.length === 0) && (!app.multisigAccounts || app.multisigAccounts.length === 0)) continue
 
         // Get accounts that need migration
-        const accountsToMigrate = app.accounts
-          .map((account, index) => ({ account, index }))
+        const accountsToMigrate: (Address | MultisigAddress)[] = [...(app.accounts || []), ...(app.multisigAccounts || [])]
           // Skip accounts that are already migrated or have no balance
-          .filter(({ account }) => account.status !== 'migrated' && hasBalance(account))
+          .filter(account => account.status !== 'migrated' && hasAddressBalance(account) && (!selectedOnly || account.selected))
 
         if (accountsToMigrate.length === 0) continue
 
@@ -770,10 +1124,10 @@ export const ledgerState$ = observable({
         updateApp(app.id, { status: AppStatus.LOADING })
 
         // Start transactions for each account in the app
-        for (const { index } of accountsToMigrate) {
-          const migrationResult = await ledgerState$.migrateAccount(app.id, index)
-          if (migrationResult) {
-            allTransactionPromises.push(migrationResult.txPromise)
+        for (const account of accountsToMigrate) {
+          const migrationResult = await ledgerState$.migrateAccount(app.id, account)
+          if (migrationResult?.txPromises) {
+            allTransactionPromises.push(...migrationResult.txPromises)
           }
         }
 
@@ -789,8 +1143,157 @@ export const ledgerState$ = observable({
         await Promise.all(validPromises)
       }
     } catch (error) {
-      handleLedgerError(error as LedgerClientError, InternalErrors.MIGRATION_ERROR)
+      const internalError = interpretError(error, InternalErrorType.MIGRATION_ERROR)
+      handleErrorNotification(internalError)
       ledgerState$.apps.error.set('Failed to complete migration')
+    }
+  },
+
+  async getMigrationTxInfo(appId: AppId, account: Address) {
+    const appConfig = appsConfigs.get(appId)
+    if (!appConfig) {
+      console.error(`App with id ${appId} not found.`)
+      return
+    }
+    try {
+      const txInfo = await ledgerClient.getMigrationTxInfo(appId, account)
+      return txInfo
+    } catch (error) {
+      console.warn('[ledgerState$] Failed to get migration transaction info:', error)
+      return undefined
+    }
+  },
+
+  async unstakeBalance(appId: AppId, address: string, path: string, amount: BN, updateTxStatus: UpdateTransactionStatus) {
+    const appConfig = appsConfigs.get(appId)
+    if (!appConfig) {
+      console.error(`App with id ${appId} not found.`)
+      return
+    }
+
+    try {
+      await ledgerClient.unstakeBalance(appId, address, path, amount, updateTxStatus)
+    } catch (error) {
+      const internalError = interpretError(error, InternalErrorType.UNSTAKE_ERROR)
+      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+    }
+  },
+
+  async getUnstakeFee(appId: AppId, address: string, amount: BN): Promise<BN | undefined> {
+    const appConfig = appsConfigs.get(appId)
+    if (!appConfig) {
+      console.error(`App with id ${appId} not found.`)
+      return
+    }
+
+    try {
+      const estimatedFee = await ledgerClient.getUnstakeFee(appId, address, amount)
+      return estimatedFee
+    } catch (error) {
+      console.warn('[ledgerState$] Failed to get unstake fee:', error)
+      return undefined
+    }
+  },
+
+  async withdrawBalance(appId: AppId, address: string, path: string, updateTxStatus: UpdateTransactionStatus) {
+    const appConfig = appsConfigs.get(appId)
+    if (!appConfig) {
+      console.error(`App with id ${appId} not found.`)
+      return
+    }
+
+    try {
+      await ledgerClient.withdrawBalance(appId, address, path, updateTxStatus)
+    } catch (error) {
+      const internalError = interpretError(error, InternalErrorType.WITHDRAW_ERROR)
+      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+    }
+  },
+
+  async getWithdrawFee(appId: AppId, address: string): Promise<BN | undefined> {
+    const appConfig = appsConfigs.get(appId)
+    if (!appConfig) {
+      console.error(`App with id ${appId} not found.`)
+      return
+    }
+
+    try {
+      return await ledgerClient.getWithdrawFee(appId, address)
+    } catch (error) {
+      console.warn('[ledgerState$] Failed to get withdraw fee:', error)
+      return undefined
+    }
+  },
+
+  async removeIdentity(appId: AppId, address: string, path: string, updateTxStatus: UpdateTransactionStatus) {
+    try {
+      await ledgerClient.removeIdentity(appId, address, path, updateTxStatus)
+    } catch (error) {
+      const internalError = interpretError(error, InternalErrorType.REMOVE_IDENTITY_ERROR)
+      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+    }
+  },
+
+  async getRemoveIdentityFee(appId: AppId, address: string): Promise<BN | undefined> {
+    try {
+      return await ledgerClient.getRemoveIdentityFee(appId, address)
+    } catch (error) {
+      console.warn('[ledgerState$] Failed to get remove identity fee:', error)
+      return undefined
+    }
+  },
+
+  async approveMultisigCall(
+    appId: AppId,
+    account: MultisigAddress,
+    formBody: MultisigCallFormData,
+    updateTxStatus: UpdateTransactionStatus
+  ) {
+    try {
+      if (formBody.isFinalApprovalWithCall) {
+        await ledgerClient.signAsMultiTx(appId, account, formBody.callHash, formBody.callData, formBody.signer, updateTxStatus)
+      } else {
+        await ledgerClient.signApproveAsMultiTx(appId, account, formBody.callHash, formBody.signer, updateTxStatus)
+      }
+    } catch (error) {
+      const internalError = interpretError(error, InternalErrorType.APPROVE_MULTISIG_CALL_ERROR)
+      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+    }
+  },
+
+  async removeProxies(appId: AppId, address: string, path: string, updateTxStatus: UpdateTransactionStatus) {
+    try {
+      await ledgerClient.removeProxies(appId, address, path, updateTxStatus)
+    } catch (error) {
+      const internalError = interpretError(error, InternalErrorType.REMOVE_PROXY_ERROR)
+      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+    }
+  },
+
+  async getRemoveProxiesFee(appId: AppId, address: string): Promise<BN | undefined> {
+    try {
+      return await ledgerClient.getRemoveProxiesFee(appId, address)
+    } catch (error) {
+      console.warn('[ledgerState$] Failed to get remove proxies fee:', error)
+      return undefined
+    }
+  },
+
+  async removeAccountIndex(appId: AppId, address: string, accountIndex: string, path: string, updateTxStatus: UpdateTransactionStatus) {
+    try {
+      await ledgerClient.removeAccountIndex(appId, address, accountIndex, path, updateTxStatus)
+    } catch (error) {
+      const internalError = interpretError(error, InternalErrorType.REMOVE_ACCOUNT_INDEX_ERROR)
+      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+    }
+  },
+
+  async getRemoveAccountIndexFee(appId: AppId, address: string, accountIndex: string): Promise<BN | undefined> {
+    try {
+      return await ledgerClient.getRemoveAccountIndexFee(appId, address, accountIndex)
+    } catch (error) {
+      console.warn('[ledgerState$] Failed to get remove account index fee:', error)
+      return undefined
     }
   },
 })

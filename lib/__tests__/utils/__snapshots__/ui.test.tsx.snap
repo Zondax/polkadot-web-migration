@@ -1,0 +1,65 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`getTransactionStatus > applies correct icon size 1`] = `
+<CheckCircle
+  className="h-8 w-8 text-green-500"
+/>
+`;
+
+exports[`getTransactionStatus > returns AlertCircle for ERROR 1`] = `
+<AlertCircle
+  className="h-4 w-4 text-red-500"
+/>
+`;
+
+exports[`getTransactionStatus > returns AlertCircle for WARNING 1`] = `
+<AlertCircle
+  className="h-4 w-4 text-yellow-500"
+/>
+`;
+
+exports[`getTransactionStatus > returns CheckCircle for SUCCESS 1`] = `
+<CheckCircle
+  className="h-4 w-4 text-green-500"
+/>
+`;
+
+exports[`getTransactionStatus > returns Clock and message for PENDING 1`] = `
+<Clock
+  className="h-4 w-4 text-muted-foreground"
+/>
+`;
+
+exports[`getTransactionStatus > returns Clock for COMPLETED 1`] = `
+<Clock
+  className="h-4 w-4 text-muted-foreground"
+/>
+`;
+
+exports[`getTransactionStatus > returns Clock for FINALIZED 1`] = `
+<Clock
+  className="h-4 w-4 text-muted-foreground"
+/>
+`;
+
+exports[`getTransactionStatus > returns Clock for IN_BLOCK 1`] = `
+<Clock
+  className="h-4 w-4 text-muted-foreground"
+/>
+`;
+
+exports[`getTransactionStatus > returns Spinner and message for IS_LOADING 1`] = `<Spinner />`;
+
+exports[`getTransactionStatus > returns XCircle for FAILED 1`] = `
+<XCircle
+  className="h-4 w-4 text-red-500"
+/>
+`;
+
+exports[`getTransactionStatus > returns default for undefined status 1`] = `
+<span
+  className="px-2 py-1 text-xs rounded-full bg-polkadot-lime text-black border border-storm-200"
+>
+  Ready to migrate
+</span>
+`;

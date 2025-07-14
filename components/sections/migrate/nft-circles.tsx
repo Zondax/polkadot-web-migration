@@ -1,4 +1,4 @@
-import { Collection } from 'state/types/ledger'
+import type { Collection } from 'state/types/ledger'
 
 interface NftCirclesProps {
   collections: Collection[]
@@ -19,6 +19,7 @@ const NftCircles = ({ collections, maxDisplay = 3 }: NftCirclesProps) => {
             className="h-6 w-6 rounded-full border-2 border-background bg-muted flex items-center justify-center overflow-hidden"
           >
             {imageUrl ? (
+              // biome-ignore lint/performance/noImgElement: NFT images are external URLs
               <img src={imageUrl} alt={`NFT ${collection.collectionId}`} className="h-full w-full object-cover" />
             ) : (
               <span className="text-xs">NFT</span>

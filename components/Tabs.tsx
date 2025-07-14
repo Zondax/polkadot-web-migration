@@ -15,7 +15,7 @@ interface TabsProps<T = string> {
 }
 
 export function Tabs<T = string>({ activeTab, tabs, onTabChange }: TabsProps<T>) {
-  const ActiveComponent = tabs[activeTab]?.component
+  const _ActiveComponent = tabs[activeTab]?.component
 
   return (
     <div>
@@ -26,7 +26,9 @@ export function Tabs<T = string>({ activeTab, tabs, onTabChange }: TabsProps<T>)
 
           return (
             <button
-              key={index}
+              data-testid={`tab-${tab.label.toLowerCase().replace(' ', '-')}`}
+              key={typeof tab.value === 'string' || typeof tab.value === 'number' ? tab.value : tab.label}
+              type="button"
               onClick={() => !isDisabled && onTabChange(index)}
               className={`px-6 py-3 text-sm font-medium transition-colors flex items-center gap-2 ${
                 isActive ? 'bg-white text-gray-900' : 'text-gray-500 hover:text-gray-700'

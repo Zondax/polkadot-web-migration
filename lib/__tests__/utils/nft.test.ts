@@ -1,4 +1,4 @@
-import { Collection, Nft } from 'state/types/ledger'
+import type { Collection, Nft } from 'state/types/ledger'
 import { describe, expect, it } from 'vitest'
 
 import { createNftBalances, groupNftsByCollection } from '../../utils/nft'
@@ -71,7 +71,7 @@ describe('groupNftsByCollection', () => {
     const result = groupNftsByCollection(mockNfts)
 
     // All keys should be numbers
-    expect(Object.keys(result).every(key => !isNaN(Number(key)))).toBe(true)
+    expect(Object.keys(result).every(key => !Number.isNaN(Number(key)))).toBe(true)
 
     // Collection 1 (string '1' converted to number 1)
     expect(result[1]).toBeDefined()

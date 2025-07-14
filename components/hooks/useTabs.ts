@@ -1,12 +1,12 @@
 import { useCallback, useState } from 'react'
 
-import { TabItem } from '../Tabs'
+import type { TabItem } from '../Tabs'
 
 interface UseTabsProps<T extends string> {
   tabs: TabItem<T>[]
 }
 
-interface UseTabsReturn<T extends string> {
+interface UseTabsReturn<_T extends string> {
   activeTab: number
   handleTabChange: (tabIndex: number) => void
   goToNextTab: () => void

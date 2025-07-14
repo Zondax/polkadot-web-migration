@@ -1,5 +1,7 @@
 // Re-export all utilities for backwards compatibility
 export * from './address'
+export * from './balance'
+export * from './browser'
 export * from './clipboard'
 export * from './error'
 export * from './format'

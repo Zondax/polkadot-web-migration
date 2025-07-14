@@ -43,9 +43,9 @@ describe('UI State', () => {
       expect(Object.keys(icons).length).toBeGreaterThan(0)
 
       // Each icon should have the test data
-      Object.values(icons).forEach(iconData => {
+      for (const iconData of Object.values(icons)) {
         expect(iconData).toBe('test-icon-data')
-      })
+      }
     })
 
     it('should not add icons if there is an error', async () => {

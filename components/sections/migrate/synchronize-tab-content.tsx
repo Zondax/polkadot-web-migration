@@ -1,21 +1,30 @@
 'use client'
 
-import { observable } from '@legendapp/state'
-import { Info, RefreshCw } from 'lucide-react'
+import type { CheckedState } from '@radix-ui/react-checkbox'
+import { FolderSync, Info, Loader2, RefreshCw, User, Users, X } from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
 import { AppStatus } from 'state/ledger'
-
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { SimpleTooltip, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { AddressLink } from '@/components/AddressLink'
+import { CustomTooltip } from '@/components/CustomTooltip'
+import { ExplorerLink } from '@/components/ExplorerLink'
 import { useSynchronization } from '@/components/hooks/useSynchronization'
-
-import AppRow from './app-row'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Progress } from '@/components/ui/progress'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { polkadotAppConfig } from '@/config/apps'
+import { ExplorerItemType } from '@/config/explorers'
+import AppScanningGrid from './app-scanning-grid'
+import EmptyStateRow from './empty-state-row'
+import SynchronizedApp from './synchronized-app'
 
 interface SynchronizeTabContentProps {
   onContinue: () => void
+}
+
+enum AccountViewType {
+  ALL = 'all',
+  ACCOUNTS = 'accounts',
+  MULTISIG = 'multisig',
 }
 
 export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps) {
@@ -24,6 +33,7 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
     status,
     syncProgress,
     isRescaning,
+    isSyncCancelRequested,
 
     // Computed values
     hasAccountsWithErrors: accountsWithErrors,
@@ -34,46 +44,71 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
     // Actions
     rescanFailedAccounts,
     restartSynchronization,
+    cancelSynchronization,
+    updateTransaction,
+
+    // Selection actions
+    toggleAllAccounts,
+    toggleAccountSelection,
   } = useSynchronization()
+
+  const [activeView, setActiveView] = useState<AccountViewType>(AccountViewType.ALL)
 
   const handleMigrate = () => {
     onContinue()
   }
+
+  // Check if all apps are selected
+  const areAllAppsSelected = useMemo(() => {
+    if (appsWithoutErrors.length === 0) return false
+
+    const allAccountsSelected = appsWithoutErrors.every(app => app.accounts?.every(account => account.selected))
+    const allMultisigAccountsSelected = appsWithoutErrors.every(app => app.multisigAccounts?.every(account => account.selected))
+    return allAccountsSelected && allMultisigAccountsSelected
+  }, [appsWithoutErrors])
+
+  // Handle "Select All" checkbox change
+  const handleSelectAllChange = useCallback(
+    (checked: CheckedState) => {
+      toggleAllAccounts(checked === true)
+    },
+    [toggleAllAccounts]
+  )
 
   const renderDestinationAddressesInfo = () => {
     if (polkadotAddresses.length === 0) {
       return null
     }
     return (
-      <div className="flex flex-col sm:flex-row items-start sm:items-center text-sm text-gray-600 gap-2 p-3 border border-polkadot-cyan rounded-md bg-polkadot-cyan bg-opacity-10">
-        <Info className="h-5 w-5 sm:h-8 sm:w-8 text-polkadot-cyan flex-shrink-0" />
+      <div className="flex flex-col sm:flex-row items-start sm:items-center text-sm text-gray-600 gap-2 p-3 border border-polkadot-cyan bg-polkadot-cyan-light rounded-lg">
+        <Info className="h-5 w-5 sm:h-8 sm:w-8 text-polkadot-cyan shrink-0" />
         <span>
-          <TooltipProvider>
-            <Tooltip delayDuration={0}>
-              <TooltipTrigger asChild>
-                <span className="font-semibold cursor-help">Destination addresses</span>
-              </TooltipTrigger>
-              <TooltipContent
-                side="bottom"
-                align="center"
-                className={cn('min-w-[250px] z-[100] break-words whitespace-normal')}
-                sideOffset={5}
-              >
-                <div className="max-w-xs">
-                  <ul className="space-y-1">
-                    {polkadotAddresses.slice(0, 5).map((address, index) => (
-                      <li key={index} className="flex items-center gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold">Polkadot {index + 1}:</span>
-                          <AddressLink value={address} disableTooltip className="break-all" hasCopyButton />
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>{' '}
+          <CustomTooltip
+            tooltipBody={
+              <div className="max-w-xs">
+                <ul className="space-y-1">
+                  {polkadotAddresses.slice(0, 5).map((address, index) => (
+                    <li key={address} className="flex items-center gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">Polkadot {index + 1}:</span>
+                        <ExplorerLink
+                          value={address}
+                          appId={polkadotAppConfig.id}
+                          explorerLinkType={ExplorerItemType.Address}
+                          disableTooltip
+                          className="break-all"
+                          hasCopyButton
+                        />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            }
+            className="min-w-[250px]"
+          >
+            <span className="font-semibold cursor-help">Destination addresses</span>
+          </CustomTooltip>{' '}
           come from the Polkadot HD path. These addresses are shown with different encodings based on each network&apos;s unique prefix, so
           the same key looks different depending on the network. You will have to verify all addresses before migration for security
           reasons.
@@ -82,69 +117,174 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
     )
   }
 
+  // Account/Multisig Filters
+  const renderFilters = () => {
+    const numberIcon = (number: number) => {
+      return <span className="ml-1 px-2 py-1 text-xs bg-primary/10 text-primary rounded-full font-medium">{number}</span>
+    }
+    return (
+      <div className="mb-4">
+        <ToggleGroup
+          type="single"
+          value={activeView}
+          onValueChange={(value: AccountViewType) => {
+            if (value) setActiveView(value)
+          }}
+          className="justify-start"
+          data-testid="filters-toggle-group"
+        >
+          <ToggleGroupItem value={AccountViewType.ALL}>All</ToggleGroupItem>
+          <ToggleGroupItem value={AccountViewType.ACCOUNTS}>
+            <User className="h-4 w-4" />
+            <span>My Accounts</span>
+            {appsWithoutErrors.length > 0 && numberIcon(appsWithoutErrors.reduce((total, app) => total + (app.accounts?.length || 0), 0))}
+          </ToggleGroupItem>
+          <ToggleGroupItem value={AccountViewType.MULTISIG}>
+            <Users className="h-4 w-4" />
+            <span>Multisig Accounts</span>
+            {appsWithoutErrors.length > 0 &&
+              numberIcon(appsWithoutErrors.reduce((total, app) => total + (app.multisigAccounts?.length || 0), 0))}
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </div>
+    )
+  }
+
   const isLoading = status === AppStatus.LOADING
   const isSynchronized = status === AppStatus.SYNCHRONIZED
 
+  const renderRestartSynchronizationButton = () => {
+    if (status === AppStatus.LOADING) {
+      return null
+    }
+
+    return (
+      <CustomTooltip tooltipBody="Synchronize Again">
+        <Button
+          onClick={restartSynchronization}
+          variant="outline"
+          className="flex items-center gap-1"
+          disabled={isRescaning}
+          data-testid="retry-synchronize-button"
+        >
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+      </CustomTooltip>
+    )
+  }
+
+  const renderStopSynchronizationButton = () => {
+    if (isLoading) {
+      return (
+        <Button onClick={cancelSynchronization} variant="destructive" className="flex items-center gap-1" disabled={isSyncCancelRequested}>
+          {isSyncCancelRequested ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />} Stop Synchronization
+        </Button>
+      )
+    }
+  }
+
+  const renderMigrateButton = () => {
+    if (isLoading || appsWithoutErrors.length === 0) {
+      return null
+    }
+
+    return (
+      <Button onClick={handleMigrate} disabled={isLoading || appsWithoutErrors.length === 0} variant="purple" data-testid="migrate-button">
+        Migrate
+      </Button>
+    )
+  }
+
+  const renderActionButtons = () => {
+    return (
+      <div className="flex gap-2 self-start">
+        {renderRestartSynchronizationButton()}
+        {renderStopSynchronizationButton()}
+        {renderMigrateButton()}
+      </div>
+    )
+  }
+
   return (
     <div>
-      <div className="flex flex-col md:flex-row justify-between items-start gap-6 md:gap-4 mb-6 md:mb-4 ">
+      <div className="flex flex-col md:flex-row justify-between items-start gap-6 md:gap-4 mb-6 md:mb-4">
         <div className="w-full md:w-auto">
           <h2 className="text-2xl font-bold">Synchronized Accounts</h2>
           <p className="text-gray-600">Click Migrate All to start migrating your accounts.</p>
           <div className="md:hidden mt-2">{renderDestinationAddressesInfo()}</div>
         </div>
-        <div className="flex gap-2 self-start">
-          {status !== AppStatus.LOADING && (
-            <SimpleTooltip tooltipText="Synchronize Again">
-              <Button onClick={restartSynchronization} variant="outline" className="flex items-center gap-1" disabled={isRescaning}>
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-            </SimpleTooltip>
-          )}
-          <Button onClick={handleMigrate} disabled={isLoading || appsWithoutErrors.length === 0} variant="purple">
-            {isLoading ? 'Synchronizing...' : 'Migrate All'}
-          </Button>
-        </div>
+        {renderActionButtons()}
       </div>
       <div className="hidden md:block mb-4">{renderDestinationAddressesInfo()}</div>
 
+      {/* Show apps scanning status */}
       {isLoading && (
-        <div className="space-y-2 mb-8">
+        <div className="space-y-2 mb-4">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Synchronizing apps</span>
-            <span className="text-sm text-gray-600">{syncProgress}%</span>
+            <span className="text-sm text-gray-600" data-testid="">
+              Synchronizing apps {syncProgress.total > 0 && `(${syncProgress.scanned} / ${syncProgress.total})`}
+            </span>
+            <span className="text-sm text-gray-600">{syncProgress.percentage}%</span>
           </div>
-          <Progress value={syncProgress} />
+          <Progress value={syncProgress.percentage} data-testid="app-sync-progress-bar" />
+          <div className="pt-2">
+            <AppScanningGrid />
+          </div>
         </div>
       )}
 
-      <Table className="shadow-sm border border-gray-200">
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[50px]"></TableHead>
-            <TableHead className="hidden w-[50px] sm:table-cell"></TableHead>
-            <TableHead className="w-[25%]">Chain</TableHead>
-            <TableHead className="w-[25%]">Addresses</TableHead>
-            <TableHead className="w-[25%]">Total Balance</TableHead>
-            <TableHead className="w-[100px]"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {isSynchronized && appsWithoutErrors.length ? (
-            appsWithoutErrors.map(app => <AppRow key={app.id.toString()} app={observable(app)} />)
-          ) : (
-            <TableRow>
-              <TableCell colSpan={6} className="text-center text-muted-foreground p-4">
-                {isSynchronized ? 'No accounts to migrate' : 'No synchronized accounts'}
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+      {!isLoading && isSynchronized && appsWithoutErrors.length > 0 && (
+        <div className="flex items-center mb-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <div className="flex items-center">
+            <Checkbox id="select-all-checkbox" checked={areAllAppsSelected} onCheckedChange={handleSelectAllChange} />
+            <label htmlFor="select-all-checkbox" className="ml-2 text-sm font-medium cursor-pointer">
+              Select All Accounts
+            </label>
+          </div>
+        </div>
+      )}
 
-      {accountsWithErrors && (
+      {!isLoading && (
         <>
-          <div className="flex justify-between items-center mb-6 mt-6">
+          {renderFilters()}
+          {isSynchronized && appsWithoutErrors.length ? (
+            appsWithoutErrors.map(app => (
+              <div key={app.id.toString()} data-testid="synchronized-app-container">
+                {app.accounts && app.accounts.length > 0 && ['all', 'accounts'].includes(activeView) && (
+                  <SynchronizedApp
+                    key={app.id.toString()}
+                    app={app}
+                    updateTransaction={updateTransaction}
+                    toggleAccountSelection={toggleAccountSelection}
+                  />
+                )}
+                {app.multisigAccounts && app.multisigAccounts.length > 0 && ['all', 'multisig'].includes(activeView) && (
+                  <SynchronizedApp
+                    key={`${app.id}-multisig`}
+                    app={app}
+                    isMultisig
+                    updateTransaction={updateTransaction}
+                    toggleAccountSelection={toggleAccountSelection}
+                  />
+                )}
+              </div>
+            ))
+          ) : (
+            <EmptyStateRow
+              label={
+                isSynchronized
+                  ? 'There are no accounts available for migration. Please make sure your Ledger device contains accounts with a balance to migrate.'
+                  : 'No accounts with funds have been synchronized yet.'
+              }
+              icon={<FolderSync className="h-8 w-8 text-gray-300" />}
+            />
+          )}
+        </>
+      )}
+
+      {isSynchronized && accountsWithErrors && (
+        <div data-testid="failed-synchronization-container">
+          <div className="flex justify-between items-start gap-2 mb-6 mt-6">
             <div>
               <h2 className="text-2xl font-bold">Failed Synchronization</h2>
               <p className="text-gray-600">
@@ -155,27 +295,32 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
               {isRescaning ? 'Loading...' : 'Rescan'}
             </Button>
           </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[50px]"> </TableHead>
-                <TableHead className="hidden w-[100px] sm:table-cell">
-                  <span className="sr-only">Image</span>
-                </TableHead>
-                <TableHead className="w-[25%]">Name</TableHead>
-                <TableHead className="w-[25%]">Addresses</TableHead>
-                <TableHead className="w-[25%]"></TableHead>
-                <TableHead className="w-[100px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {/* Filter and show only apps with error accounts */}
-              {appsWithErrors.map(app => (
-                <AppRow key={app.id.toString()} app={observable(app)} failedSync />
-              ))}
-            </TableBody>
-          </Table>
-        </>
+          {/* Filter and show only apps with error accounts */}
+
+          {appsWithErrors.map(app => (
+            <div key={app.id.toString()}>
+              {(app.error || (app.accounts && app.accounts.length > 0)) && (
+                <SynchronizedApp
+                  key={app.id.toString()}
+                  app={app}
+                  failedSync
+                  updateTransaction={updateTransaction}
+                  toggleAccountSelection={toggleAccountSelection}
+                />
+              )}
+              {app.multisigAccounts && app.multisigAccounts.length > 0 && (
+                <SynchronizedApp
+                  key={`${app.id}-multisig`}
+                  app={app}
+                  failedSync
+                  isMultisig
+                  updateTransaction={updateTransaction}
+                  toggleAccountSelection={toggleAccountSelection}
+                />
+              )}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )

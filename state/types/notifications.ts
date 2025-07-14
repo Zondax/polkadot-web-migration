@@ -1,4 +1,4 @@
-import { AppId } from 'config/apps'
+import type { AppId } from 'config/apps'
 
 /**
  * Notification Type Definition

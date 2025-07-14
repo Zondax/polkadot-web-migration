@@ -41,8 +41,7 @@ Built by Zondax to simplify the complex process of adopting the consolidated Uni
   - Substrate Protocol Support
 
 - **Development Tools**
-  - ESLint for code linting
-  - Prettier for code formatting
+  - Biome for code formatting and linting
   - Vitest for testing
   - Playwright for E2E testing
 
@@ -129,9 +128,9 @@ The application will be available at `http://localhost:3000`.
 - `pnpm test:e2e:install` - Install Playwright browsers
 - `pnpm test:e2e:report` - Show Playwright test report
 - `pnpm test:e2e:sharding` - Run E2E tests with sharding configuration
-- `pnpm lint` - Run ESLint
-- `pnpm lint:fix` - Fix ESLint issues
-- `pnpm format` - Format code with Prettier and sort package.json
+- `pnpm lint` - Run Biome linter
+- `pnpm lint:fix` - Fix issues with Biome
+- `pnpm format` - Format code with Biome and sort package.json
 - `pnpm format:check` - Check code formatting
 - `pnpm deps:update` - Update dependencies
 - `pnpm env:init` - Initialize environment variables
@@ -168,11 +167,11 @@ This project provides a flexible configuration system for adding custom blockcha
 
 1. Add your chain logo to the `public/logos/chains` directory (the image filename must match the chain `id` you'll use in the configuration)
 2. Add chain configuration in the `config/appsConfig.json` file with the following structure:
+
    ```json
    {
      "id": "your-chain-id",
      "name": "Your Chain Name",
-     "cla": 123,
      "bip44Path": "m/44'/123'/0'/0'/0'",
      "ss58Prefix": 42,
      "rpcEndpoint": "wss://rpc.yourchain.network",
@@ -180,6 +179,10 @@ This project provides a flexible configuration system for adding custom blockcha
        "symbol": "SYMBOL",
        "decimals": 12,
        "logoId": "token-icon-id"
+     },
+     "explorer": {
+       "id": "your-explorer-id",
+       "network": "your-network-name"
      }
    }
    ```
@@ -188,7 +191,6 @@ Each chain configuration contains these key parameters:
 
 - `id`: Unique identifier for the chain (must match the logo filename in the chains directory)
 - `name`: Display name of the chain
-- `cla`: Chain-specific class identifier
 - `bip44Path`: The HD derivation path for the chain
 - `ss58Prefix`: The SS58 address format prefix
 - `rpcEndpoint`: WebSocket endpoint for connecting to the chain
@@ -196,8 +198,53 @@ Each chain configuration contains these key parameters:
   - `symbol`: The currency symbol
   - `decimals`: Number of decimal places for the currency
   - `logoId`: (Optional) Used when the token's icon is different from the chain's icon (e.g., Asset Hubs)
+- `explorer`: An object containing the explorer information:
+  - `id`: The explorer ID you defined in `explorersConfig.json`
+  - `network`: The network name to substitute in the explorer's `baseUrl` (e.g., `polkadot`, `kusama`)
 
 For detailed examples of how to structure your chain configuration, refer to the existing entries in the appsConfig.json file.
+
+## Adding New Explorers
+
+This project allows you to easily add or customize blockchain explorers for use throughout the application:
+
+1. Add your explorer configuration to the `config/explorersConfig.json` file with the following structure:
+
+   ```json
+   {
+     "id": "your-explorer-id",
+     "name": "Your Explorer Name",
+     "baseUrl": "https://{network}.your-explorer.com",
+     "txPath": "/tx/{value}",
+     "addressPath": "/account/{value}",
+     "blockPath": "/block/{value}"
+   }
+   ```
+
+Each explorer configuration contains these key parameters:
+
+- `id`: Unique identifier for the explorer (referenced in chain configs)
+- `name`: Display name of the explorer
+- `baseUrl`: Base URL for the explorer, use `{network}` as a placeholder for the network name (e.g., `polkadot`, `kusama`)
+- `txPath`: Path template for transaction details, use `{value}` as a placeholder for the transaction hash
+- `addressPath`: Path template for account details, use `{value}` as a placeholder for the account address
+- `blockPath`: Path template for block details, use `{value}` as a placeholder for the block hash or number
+
+To associate an explorer with a chain, add or update the `explorer` field in the corresponding entry in `config/appsConfig.json`:
+
+```json
+{
+  "id": "your-chain-id",
+  ...
+  "explorer": {
+    "id": "your-explorer-id",
+    "network": "your-network-name"
+  }
+}
+```
+
+- `id`: The explorer ID you defined in `explorersConfig.json`
+- `network`: The network name to substitute in the explorer's `baseUrl` (e.g., `polkadot`, `kusama`)
 
 ## License
 
@@ -227,4 +274,4 @@ By default, this will map port 3000 from the container to port 3000 on your loca
 PORT=4000 pnpm start:docker
 ```
 
-This will map port 4000 on your machine to port 3000 in the container. Then access the app at http://localhost:4000
+This will map port 4000 on your machine to port 3000 in the container. Then access the app at <http://localhost:4000>

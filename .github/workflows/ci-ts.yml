@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   ts-checks:
-    uses: zondax/_workflows/.github/workflows/_checks-ts.yaml@v1.0.0
+    uses: zondax/_workflows/.github/workflows/_checks-ts.yaml@main
     with:
       package_manager: pnpm
 
@@ -27,5 +27,10 @@ jobs:
 
   playwright-tests:
     needs: [ts-checks, logo-size-check]
-    uses: ./.github/workflows/playwright.yml
-    secrets: inherit
+    uses: zondax/_workflows/.github/workflows/_checks-playwright.yaml@main
+    secrets: 
+      env_local: |
+        # Project-specific variables
+        PROJECT="polkadot-migration"
+        NAMESPACE="polkadot"
+

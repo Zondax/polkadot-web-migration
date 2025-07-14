@@ -39,3 +39,12 @@ next-env.d.ts
 test-results/
 playwright-report/
 .qodo
+biome-report.json
+/playwright-report
+/coverage
+TODO.md
+
+
+# vitest
+/html/
+/playwright-report

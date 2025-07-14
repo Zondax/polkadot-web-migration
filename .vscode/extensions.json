@@ -1,11 +1,10 @@
 {
   "recommendations": [
-    // Code formatting & linting
-    "dbaeumer.vscode-eslint", // ESLint integration
-    "esbenp.prettier-vscode", // Prettier code formatting
-
     // Bun support
     "oven.bun-vscode",
+
+    // Biome
+    "biomejs.biome",
 
     // Frontend development
     "bradlc.vscode-tailwindcss", // Tailwind CSS IntelliSense

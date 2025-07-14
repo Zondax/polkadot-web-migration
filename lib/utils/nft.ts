@@ -1,6 +1,6 @@
-import { Collection, Nft } from 'state/types/ledger'
+import type { Collection, Nft } from 'state/types/ledger'
 
-import { NftBalance } from '@/components/sections/migrate/balance-gallery'
+import type { NftBalance } from '@/components/sections/migrate/balance-gallery'
 
 /**
  * Groups NFTs by their collection ID.
@@ -44,14 +44,14 @@ export const createNftBalances = (items: Nft[], collectionsArray: Collection[]):
   const itemsByCollection = groupNftsByCollection(items)
 
   // Create NftBalance objects for each collection
-  Object.entries(itemsByCollection).forEach(([collectionId, collectionItems]) => {
+  for (const [collectionId, collectionItems] of Object.entries(itemsByCollection)) {
     const collection = collectionsArray.find(c => c.collectionId === Number(collectionId)) || { collectionId: Number(collectionId) }
 
     nftBalances.push({
       items: collectionItems,
       collection: collection,
     })
-  })
+  }
 
   return nftBalances
 }

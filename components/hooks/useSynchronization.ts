@@ -1,25 +1,65 @@
-import { useCallback, useState } from 'react'
 import { use$, useObservable } from '@legendapp/state/react'
-import { App, AppStatus, ledgerState$ } from 'state/ledger'
+import { useCallback, useState } from 'react'
+import { type App, AppStatus, ledgerState$ } from 'state/ledger'
 
-import { filterAppsWithErrors, filterAppsWithoutErrors, hasAccountsWithErrors } from '@/lib/utils'
+import type { AppId } from '@/config/apps'
+import { filterInvalidSyncedApps, filterValidSyncedAppsWithBalances, hasAccountsWithErrors } from '@/lib/utils'
+import { AccountType, type Address, type MultisigAddress, type TransactionSettings } from '@/state/types/ledger'
+
+export type UpdateTransaction = (
+  transaction: Partial<TransactionSettings>,
+  appId: string,
+  accountIndex: number,
+  balanceIndex: number,
+  isMultisig: boolean
+) => void
+
+export type ToggleAccountSelection = (appId: AppId, accountAddress: string, checked?: boolean) => void
+
+// Helper function to rescan accounts with errors for a given app and account type
+const rescanAccountsWithErrors = async (accounts: Address[] | MultisigAddress[], accountType: AccountType, appId: AppId) => {
+  for (const account of accounts) {
+    // Check for cancellation before each account
+    if (ledgerState$.apps.isSyncCancelRequested.get()) {
+      return
+    }
+    if (account.error && appId) {
+      await ledgerState$.getAccountBalance(appId, accountType, account)
+    }
+  }
+}
 
 interface UseSynchronizationReturn {
+  // General
+  apps: App[]
+
   // State
   status: AppStatus | undefined
-  syncProgress: number
+  syncProgress: {
+    scanned: number
+    total: number
+    percentage: number
+  }
   isLedgerConnected: boolean
   isRescaning: boolean
+  isSyncCancelRequested: boolean
 
   // Computed values
   hasAccountsWithErrors: boolean
   filteredAppsWithoutErrors: App[]
   filteredAppsWithErrors: App[]
   polkadotAddresses: string[]
+  hasMultisigAccounts: boolean
 
   // Actions
   rescanFailedAccounts: () => Promise<void>
   restartSynchronization: () => void
+  cancelSynchronization: () => void
+  updateTransaction: UpdateTransaction
+
+  // Selection actions
+  toggleAccountSelection: ToggleAccountSelection
+  toggleAllAccounts: (checked: boolean) => void
 }
 
 /**
@@ -29,6 +69,7 @@ export const useSynchronization = (): UseSynchronizationReturn => {
   const apps$ = ledgerState$.apps.apps
   const status = use$(ledgerState$.apps.status)
   const syncProgress = use$(ledgerState$.apps.syncProgress)
+  const isSyncCancelRequested = use$(ledgerState$.apps.isSyncCancelRequested)
   const [isRescaning, setIsRescaning] = useState<boolean>(false)
 
   // Check if Ledger is connected
@@ -39,8 +80,12 @@ export const useSynchronization = (): UseSynchronizationReturn => {
 
   // Compute derived values from apps
   const accountsWithErrors = use$(() => hasAccountsWithErrors(apps))
-  const appsWithoutErrors = use$(() => filterAppsWithoutErrors(apps))
-  const appsWithErrors = use$(() => filterAppsWithErrors(apps))
+  const appsWithoutErrors = use$(() => filterValidSyncedAppsWithBalances(apps))
+  const appsWithErrors = use$(() => filterInvalidSyncedApps(apps))
+
+  const hasMultisigAccounts = apps.some(
+    app => app.status === AppStatus.SYNCHRONIZED && app.multisigAccounts && app.multisigAccounts.length > 0
+  )
 
   // Extract Polkadot addresses
   const polkadotAddresses$ = useObservable(() => {
@@ -57,23 +102,25 @@ export const useSynchronization = (): UseSynchronizationReturn => {
 
     try {
       // Get the latest filtered apps with errors
-      const appsToRescan = filterAppsWithErrors(apps$.get())
+      const appsToRescan = filterInvalidSyncedApps(apps$.get())
 
       for (const app of appsToRescan) {
+        // Check if cancellation is requested
+        if (ledgerState$.apps.isSyncCancelRequested.get()) {
+          return
+        }
+
         // Skip apps without a valid ID
         if (!app.id) continue
 
         if (app.status === AppStatus.ERROR) {
           // Rescan the entire app if it has an error status
           await ledgerState$.synchronizeAccount(app.id)
-        } else if (app.accounts) {
-          // Otherwise just rescan individual accounts with errors
-          for (const account of app.accounts) {
-            if (account.error && app.id) {
-              await ledgerState$.getAccountBalance(app.id, account)
-            }
-          }
+          continue
         }
+
+        await rescanAccountsWithErrors(app.accounts ?? [], AccountType.ACCOUNT, app.id)
+        await rescanAccountsWithErrors(app.multisigAccounts ?? [], AccountType.MULTISIG, app.id)
       }
     } finally {
       setIsRescaning(false)
@@ -86,21 +133,102 @@ export const useSynchronization = (): UseSynchronizationReturn => {
     ledgerState$.synchronizeAccounts()
   }, [])
 
+  const updateTransaction = useCallback(
+    // Partial transaction update: accepts a partial transaction object and merges it into the current transaction state
+    (partial: Partial<TransactionSettings>, appId: string, accountIndex: number, balanceIndex: number, isMultisig = false) => {
+      const appIndex = apps.findIndex(app => app.id === appId)
+      if (appIndex !== -1) {
+        const transaction =
+          ledgerState$.apps.apps[appIndex][isMultisig ? 'multisigAccounts' : 'accounts'][accountIndex].balances[balanceIndex].transaction
+        transaction.set({
+          ...transaction.get(),
+          ...partial,
+        })
+      }
+    },
+    [apps]
+  )
+
+  const cancelSynchronization = useCallback(() => {
+    ledgerState$.cancelSynchronization()
+  }, [])
+
+  // ---- Account selection functions ----
+
+  /**
+   * Toggle selection state of a specific account
+   */
+  const toggleAccountSelection = useCallback(
+    (appId: AppId, accountAddress: string, checked?: boolean) => {
+      const apps = apps$.get()
+      const appIndex = apps.findIndex(app => app.id === appId)
+
+      const accountIndex = apps[appIndex]?.accounts?.findIndex(account => account.address === accountAddress) ?? -1
+      const multisigAccountIndex = apps[appIndex]?.multisigAccounts?.findIndex(account => account.address === accountAddress) ?? -1
+
+      // Regular account
+      if (accountIndex !== -1 && appIndex !== -1) {
+        const currentValue = apps?.[appIndex]?.accounts?.[accountIndex]?.selected || false
+        apps$[appIndex].accounts[accountIndex].selected.set(checked ?? !currentValue)
+      } else if (multisigAccountIndex !== -1 && appIndex !== -1) {
+        const currentValue = apps?.[appIndex]?.multisigAccounts?.[multisigAccountIndex]?.selected || false
+        apps$[appIndex].multisigAccounts[multisigAccountIndex].selected.set(checked ?? !currentValue)
+      }
+    },
+    [apps$]
+  )
+
+  /**
+   * Set selection state for all accounts
+   */
+  const toggleAllAccounts = useCallback(
+    (checked: boolean) => {
+      const currentApps = apps$.get()
+
+      currentApps.forEach((app, i) => {
+        if (!app.error) {
+          if (app.accounts) {
+            apps$[i].accounts.forEach((_, j) => {
+              apps$[i].accounts[j].selected.set(checked)
+            })
+          }
+          if (app.multisigAccounts) {
+            apps$[i].multisigAccounts.forEach((_, j) => {
+              apps$[i].multisigAccounts[j].selected.set(checked)
+            })
+          }
+        }
+      })
+    },
+    [apps$]
+  )
+
   return {
+    // General
+    apps,
+
     // State
     status,
     syncProgress,
     isLedgerConnected,
     isRescaning,
+    isSyncCancelRequested,
 
     // Computed values
     hasAccountsWithErrors: accountsWithErrors,
     filteredAppsWithoutErrors: appsWithoutErrors,
     filteredAppsWithErrors: appsWithErrors,
     polkadotAddresses: polkadotAddresses,
+    hasMultisigAccounts,
 
     // Actions
     rescanFailedAccounts,
     restartSynchronization,
+    cancelSynchronization,
+    updateTransaction,
+
+    // Selection actions
+    toggleAccountSelection,
+    toggleAllAccounts,
   }
 }

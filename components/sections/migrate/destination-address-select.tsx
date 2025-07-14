@@ -1,53 +1,66 @@
-import { useMemo } from 'react'
-import { Observable } from '@legendapp/state'
 import { observer } from '@legendapp/state/react'
-import { Address, AddressStatus } from 'state/types/ledger'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { AddressBalance } from 'state/types/ledger'
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { AddressLink } from '@/components/AddressLink'
+import { ExplorerLink } from '@/components/ExplorerLink'
+import { SelectWithCustom } from '@/components/SelectWithCustom'
+import type { AppId } from '@/config/apps'
+import { ExplorerItemType } from '@/config/explorers'
+import { hasBalance } from '@/lib/utils'
 
 interface DestinationAddressSelectProps {
-  account: Observable<Address>
+  appId: AppId
+  balance: AddressBalance
   index: number
   polkadotAddresses: string[] | undefined
   onDestinationChange: (value: string, index: number) => void
 }
 
-function DestinationAddressSelect({ account, index, polkadotAddresses, onDestinationChange }: DestinationAddressSelectProps) {
-  const isDisabled = useMemo(() => {
-    return (
-      (account.balance.native.get() === undefined &&
-        (account.balance.nfts.get() === undefined || account.balance.nfts.get()?.length === 0) &&
-        (account.balance.uniques.get() === undefined || account.balance.uniques.get()?.length === 0)) ||
-      account.status.get() === AddressStatus.MIGRATED ||
-      !polkadotAddresses ||
-      polkadotAddresses.length === 0
-    )
-  }, [account, polkadotAddresses])
+function DestinationAddressSelect({ appId, balance, index, polkadotAddresses, onDestinationChange }: DestinationAddressSelectProps) {
+  const [destinationAddress, setDestinationAddress] = useState(balance.transaction?.destinationAddress)
 
-  return (
-    <Select value={account.destinationAddress.get() || ''} onValueChange={value => onDestinationChange(value, index)} disabled={isDisabled}>
-      <SelectTrigger className="w-full">
-        <SelectValue>
-          <AddressLink
-            value={account.destinationAddress.get() || ''}
-            tooltipText={account.destinationAddress.get() || ''}
-            className="break-all"
+  useEffect(() => {
+    setDestinationAddress(balance.transaction?.destinationAddress)
+  }, [balance])
+
+  const isDisabled = useMemo(() => {
+    return !hasBalance([balance]) || !polkadotAddresses || polkadotAddresses.length === 0
+  }, [balance, polkadotAddresses])
+
+  const renderOption = useCallback(
+    (option: { value: string; label: string }, index: number) => {
+      return (
+        <div className="flex items-center gap-2">
+          <span className="font-semibold">Polkadot {index + 1}:</span>
+          <ExplorerLink
+            value={option.value}
+            appId={appId as AppId}
+            explorerLinkType={ExplorerItemType.Address}
+            disableTooltip
             hasCopyButton={false}
           />
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        {polkadotAddresses?.map((polkadotAddress, addrIndex) => (
-          <SelectItem key={addrIndex} value={polkadotAddress}>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold">Polkadot {addrIndex + 1}:</span>
-              <AddressLink value={polkadotAddress} disableTooltip className="break-all" hasCopyButton={false} />
-            </div>
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+        </div>
+      )
+    },
+    [appId]
+  )
+
+  return (
+    <SelectWithCustom
+      options={
+        polkadotAddresses?.map(address => ({
+          value: address,
+          label: address,
+        })) ?? []
+      }
+      placeholder="Select a Polkadot address..."
+      customPlaceholder="Enter custom Polkadot address"
+      onValueChange={value => onDestinationChange(value, index)}
+      renderOption={renderOption}
+      selectedValue={destinationAddress}
+      defaultValue={destinationAddress ?? polkadotAddresses?.[0]}
+      disabled={isDisabled}
+    />
   )
 }
 
