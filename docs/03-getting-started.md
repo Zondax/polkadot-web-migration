@@ -6,7 +6,7 @@ This guide will walk you through setting up and using the Polkadot Migration Ass
 
 ### Hardware Requirements
 
-- **Ledger Device** - Nano S Plus, Nano X, or Stax
+- **Ledger Device** - Nano S, Nano S Plus, Nano X, or Stax
 - **USB Connection** - Cable to connect Ledger to your computer
 - **Updated Firmware** - Latest firmware installed via Ledger Live
 
