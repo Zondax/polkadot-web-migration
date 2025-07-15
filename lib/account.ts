@@ -1410,13 +1410,22 @@ export async function getMultisigAddresses(
   network: string,
   api: ApiPromise
 ): Promise<MultisigAddress[] | undefined> {
+  console.debug(`[getMultisigAddresses] Starting multisig detection for address ${address} on network ${network}`)
+  
   try {
     const multisigInfo = await getMultisigInfo(address, network)
 
     // If no multisig info is available, return undefined
     if (!multisigInfo) {
+      console.debug(`[getMultisigAddresses] No multisig info found for address ${address}`)
       return undefined
     }
+
+    console.debug(`[getMultisigAddresses] Found multisig info for address ${address}:`, {
+      hasThreshold: !!multisigInfo.threshold,
+      hasMultiAccountMember: !!multisigInfo.multi_account_member?.length,
+      multiAccountCount: multisigInfo.multi_account?.length || 0
+    })
 
     const multisigAddresses: MultisigAddress[] = []
 
@@ -1439,30 +1448,55 @@ export async function getMultisigAddresses(
 
     // Case 2: Address is part of other multisig accounts
     if (multisigInfo.multi_account && multisigInfo.multi_account.length > 0) {
+      console.debug(`[getMultisigAddresses] Processing ${multisigInfo.multi_account.length} multisig accounts for address ${address}`)
+      
       // Process each multisig account the address is part of
       for (const account of multisigInfo.multi_account) {
-        try {
-          // Get member info for this specific multisig address
-          const memberInfo = await getMultisigInfo(account.address, network)
-          if (memberInfo?.multi_account_member) {
-            multisigAddresses.push({
-              address: account.address,
-              path: '', // Not available for external multisig accounts
-              pubKey: '', // Not available for external multisig accounts
-              threshold: memberInfo.threshold || multisigInfo.threshold,
-              members: memberInfo.multi_account_member.map(member => ({
-                address: member.address,
-                internal: member.address === address,
-                path: member.address === address ? path : undefined,
-              })),
-              memberMultisigAddresses: memberInfo.multi_account?.map(account => account.address),
-              pendingMultisigCalls: [],
-            })
+        let retryCount = 0
+        const maxRetries = 2
+        
+        while (retryCount <= maxRetries) {
+          try {
+            console.debug(`[getMultisigAddresses] Fetching member info for multisig account ${account.address} (attempt ${retryCount + 1})`)
+            
+            // Get member info for this specific multisig address
+            const memberInfo = await getMultisigInfo(account.address, network)
+            if (memberInfo?.multi_account_member) {
+              console.debug(`[getMultisigAddresses] Successfully fetched member info for multisig account ${account.address}`)
+              
+              multisigAddresses.push({
+                address: account.address,
+                path: '', // Not available for external multisig accounts
+                pubKey: '', // Not available for external multisig accounts
+                threshold: memberInfo.threshold || multisigInfo.threshold,
+                members: memberInfo.multi_account_member.map(member => ({
+                  address: member.address,
+                  internal: member.address === address,
+                  path: member.address === address ? path : undefined,
+                })),
+                memberMultisigAddresses: memberInfo.multi_account?.map(account => account.address),
+                pendingMultisigCalls: [],
+              })
+              break // Success, exit retry loop
+            } else {
+              console.warn(`[getMultisigAddresses] No member info found for multisig account ${account.address}`)
+              break // No member info, don't retry
+            }
+          } catch (err) {
+            retryCount++
+            if (retryCount > maxRetries) {
+              console.error(`[getMultisigAddresses] Failed to fetch member info for multisig account ${account.address} after ${maxRetries + 1} attempts:`, err)
+              // Continue processing other multisig accounts instead of failing completely
+            } else {
+              console.warn(`[getMultisigAddresses] Attempt ${retryCount} failed for multisig account ${account.address}, retrying...`)
+              // Wait a bit before retrying (exponential backoff)
+              await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 100))
+            }
           }
-        } catch (err) {
-          console.error(`Error fetching member info for multisig account ${account.address}:`, err)
         }
       }
+      
+      console.debug(`[getMultisigAddresses] Successfully processed ${multisigAddresses.length} out of ${multisigInfo.multi_account.length} multisig accounts`)
     }
 
     // If no multisig addresses were found, return undefined
@@ -1513,6 +1547,8 @@ export async function getMultisigAddresses(
   } catch (error) {
     console.warn('[getMultisigAddresses] Failed to get multisig addresses:', error)
     return undefined
+  } finally {
+    console.debug(`[getMultisigAddresses] Completed multisig detection for address ${address}`)
   }
 }
 
