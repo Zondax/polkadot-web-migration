@@ -178,10 +178,8 @@ After successful migration:
 
 ### Further Assistance
 
-- Check official documentation
-- Visit community forums
 - Contact Ledger support for hardware issues
-- Report bugs through official channels
+- Report bugs through Github Repository https://docs.zondax.ch/polkadot-migration-app
 
 ---
 
