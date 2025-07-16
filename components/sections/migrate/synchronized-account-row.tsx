@@ -19,7 +19,7 @@ import {
   UserCog,
   Users,
 } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { Collections } from 'state/ledger'
 import type { Address, AddressBalance, MultisigAddress, MultisigMember } from 'state/types/ledger'
 import { CustomTooltip, TooltipBody, type TooltipItem } from '@/components/CustomTooltip'
@@ -232,11 +232,28 @@ const SynchronizedAccountRow = ({
     })
   }
 
+  // Determine if multisig account is not ready to migrate
+  const isMultisigNotReadyToMigrate = isMultisigAddress && hasMultisigPending && !hasRemainingInternalSigners
+
+  // Deselect and disable checkbox if multisig is not ready to migrate
+  const effectiveIsSelected = isMultisigNotReadyToMigrate ? false : isSelected
+  const isCheckboxDisabled = isMultisigNotReadyToMigrate
+
+  useEffect(() => {
+    if (isMultisigNotReadyToMigrate) {
+      toggleAccountSelection(appId, account.address, false)
+    }
+  }, [isMultisigNotReadyToMigrate, toggleAccountSelection, appId, account.address])
+
   const handleCheckboxChange = useCallback(
     (checked: CheckedState) => {
+      // Don't allow selection if multisig is not ready to migrate
+      if (isMultisigNotReadyToMigrate) {
+        return
+      }
       toggleAccountSelection(appId, account.address, checked === true)
     },
-    [toggleAccountSelection, appId, account.address]
+    [toggleAccountSelection, appId, account.address, isMultisigNotReadyToMigrate]
   )
 
   if (isMultisigAddress && internalMultisigMembers.length === 0) {
@@ -505,7 +522,7 @@ const SynchronizedAccountRow = ({
       {isFirst && (
         <TableCell className="py-2 text-sm" rowSpan={rowSpan}>
           <div className="flex items-center gap-2">
-            <Checkbox checked={isSelected} onCheckedChange={handleCheckboxChange} />
+            <Checkbox checked={effectiveIsSelected} onCheckedChange={handleCheckboxChange} disabled={isCheckboxDisabled} />
 
             <ExplorerLink
               value={account.address ?? ''}
