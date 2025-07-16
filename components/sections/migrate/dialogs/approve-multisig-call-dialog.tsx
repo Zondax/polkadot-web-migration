@@ -16,7 +16,7 @@ import Switch from '@/components/ui/switch'
 import { type AppId, getChainName, type Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { formatBalance } from '@/lib/utils/format'
-import { callDataValidationMessages, getAvailableSigners, validateCallData } from '@/lib/utils/multisig'
+import { callDataValidationMessages, getRemainingInternalSigners, validateCallData } from '@/lib/utils/multisig'
 import { ledgerState$ } from '@/state/ledger'
 import { DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
@@ -299,7 +299,7 @@ function ApproveMultisigCallDialogInner({ open, setOpen, token, appId, account }
     resolver: zodResolver(multisigCallFormSchema),
     defaultValues: {
       callHash: pendingCalls[0]?.callHash ?? '',
-      signer: getAvailableSigners(pendingCalls[0], account.members)[0]?.address ?? undefined,
+      signer: getRemainingInternalSigners(pendingCalls[0], account.members)[0]?.address ?? undefined,
       isFinalApprovalWithCall: pendingCalls[0].signatories.length === account.threshold,
       callData: '',
     },
@@ -319,7 +319,7 @@ function ApproveMultisigCallDialogInner({ open, setOpen, token, appId, account }
 
   const availableSigners = useMemo(() => {
     if (isAllApproved) return account.members
-    return selectedCall ? getAvailableSigners(selectedCall, account.members) : []
+    return selectedCall ? getRemainingInternalSigners(selectedCall, account.members) : []
   }, [isAllApproved, account.members, selectedCall])
 
   // State for call data validation (moved to parent)

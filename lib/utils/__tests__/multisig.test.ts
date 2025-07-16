@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { validateCallData, getAvailableSigners, callDataValidationMessages } from '../multisig'
 import type { MultisigCall, MultisigMember } from '@/state/types/ledger'
+import { callDataValidationMessages, getRemainingInternalSigners, validateCallData } from '../multisig'
 
 // Mock the ledger client
 vi.mock('@/state/client/ledger', () => ({
@@ -129,7 +129,7 @@ describe('Multisig Utilities', () => {
     })
   })
 
-  describe('getAvailableSigners', () => {
+  describe('getRemainingInternalSigners', () => {
     const createMultisigMember = (address: string, internal: boolean): MultisigMember => ({
       address,
       internal,
@@ -156,7 +156,7 @@ describe('Multisig Utilities', () => {
 
       const pendingCall = createMultisigCall(['alice'])
 
-      const result = getAvailableSigners(pendingCall, members)
+      const result = getRemainingInternalSigners(pendingCall, members)
 
       expect(result).toEqual([createMultisigMember('bob', true), createMultisigMember('dave', true)])
     })
@@ -170,7 +170,7 @@ describe('Multisig Utilities', () => {
 
       const pendingCall = createMultisigCall(['alice', 'bob'])
 
-      const result = getAvailableSigners(pendingCall, members)
+      const result = getRemainingInternalSigners(pendingCall, members)
 
       expect(result).toEqual([])
     })
@@ -185,7 +185,7 @@ describe('Multisig Utilities', () => {
 
       const pendingCall = createMultisigCall([])
 
-      const result = getAvailableSigners(pendingCall, members)
+      const result = getRemainingInternalSigners(pendingCall, members)
 
       expect(result).toEqual([createMultisigMember('alice', true), createMultisigMember('bob', true), createMultisigMember('dave', true)])
     })
@@ -194,7 +194,7 @@ describe('Multisig Utilities', () => {
       const members: MultisigMember[] = []
       const pendingCall = createMultisigCall(['alice'])
 
-      const result = getAvailableSigners(pendingCall, members)
+      const result = getRemainingInternalSigners(pendingCall, members)
 
       expect(result).toEqual([])
     })
@@ -213,7 +213,7 @@ describe('Multisig Utilities', () => {
         approvals: [],
       }
 
-      const result = getAvailableSigners(pendingCall, members)
+      const result = getRemainingInternalSigners(pendingCall, members)
 
       expect(result).toEqual([createMultisigMember('alice', true), createMultisigMember('bob', true)])
     })
@@ -227,7 +227,7 @@ describe('Multisig Utilities', () => {
 
       const pendingCall = createMultisigCall([])
 
-      const result = getAvailableSigners(pendingCall, members)
+      const result = getRemainingInternalSigners(pendingCall, members)
 
       expect(result).toEqual([createMultisigMember('alice', true), createMultisigMember('charlie', true)])
     })
@@ -241,7 +241,7 @@ describe('Multisig Utilities', () => {
 
       const pendingCall = createMultisigCall(['alice'])
 
-      const result = getAvailableSigners(pendingCall, members)
+      const result = getRemainingInternalSigners(pendingCall, members)
 
       expect(result).toEqual([createMultisigMember('alice123', true), createMultisigMember('bob', true)])
     })
@@ -255,7 +255,7 @@ describe('Multisig Utilities', () => {
 
       const pendingCall = createMultisigCall(['alice'])
 
-      const result = getAvailableSigners(pendingCall, members)
+      const result = getRemainingInternalSigners(pendingCall, members)
 
       expect(result).toEqual([createMultisigMember('Alice', true), createMultisigMember('bob', true)])
     })

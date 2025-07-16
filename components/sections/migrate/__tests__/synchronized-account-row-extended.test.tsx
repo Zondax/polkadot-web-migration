@@ -1,4 +1,4 @@
-import type { BN } from '@polkadot/util'
+import { BN } from '@polkadot/util'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { TEST_ADDRESSES } from '@/tests/fixtures/addresses'
@@ -401,13 +401,41 @@ describe('SynchronizedAccountRow Extended Tests', () => {
         ...mockAccount,
         isMultisig: true,
         members: [{ address: TEST_ADDRESSES.ADDRESS2, internal: true }],
-        pendingMultisigCalls: [{ id: 'call1' }, { id: 'call2' }],
+        pendingMultisigCalls: [
+          {
+            id: 'call1',
+            callHash: '0x1234567890abcdef',
+            signatories: [TEST_ADDRESSES.ADDRESS2],
+            depositor: TEST_ADDRESSES.ADDRESS2,
+          },
+          {
+            id: 'call2',
+            callHash: '0xabcdef1234567890',
+            signatories: [TEST_ADDRESSES.ADDRESS2],
+            depositor: TEST_ADDRESSES.ADDRESS2,
+          },
+        ],
+      }
+
+      const multisigBalance = {
+        type: 'native',
+        balance: {
+          total: new BN(1000),
+          transferable: new BN(800),
+          reserved: { total: new BN(100) },
+          staking: { total: new BN(100), active: new BN(100), unlocking: [] },
+        },
+        canUnstake: false,
+        transaction: {
+          destinationAddress: TEST_ADDRESSES.ADDRESS1,
+          signatoryAddress: TEST_ADDRESSES.ADDRESS2,
+        },
       }
 
       render(
         <table>
           <tbody>
-            <SynchronizedAccountRow {...defaultProps} account={multisigWithCalls} />
+            <SynchronizedAccountRow {...defaultProps} account={multisigWithCalls} balance={multisigBalance} />
           </tbody>
         </table>
       )
@@ -459,7 +487,7 @@ describe('SynchronizedAccountRow Extended Tests', () => {
         members: [
           { address: TEST_ADDRESSES.ADDRESS2, internal: true },
           { address: TEST_ADDRESSES.ADDRESS3, internal: true },
-          { address: TEST_ADDRESSES.BOB, internal: false },
+          { address: TEST_ADDRESSES.ADDRESS4, internal: false },
         ],
         pendingMultisigCalls: [],
       }

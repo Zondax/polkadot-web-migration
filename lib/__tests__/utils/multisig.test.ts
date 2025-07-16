@@ -2,7 +2,12 @@ import { beforeEach, describe, expect, it, type MockedFunction, vi } from 'vites
 
 import type { AppId } from '@/config/apps'
 import type { MultisigCall, MultisigMember } from '@/state/types/ledger'
-import { type CallDataValidationResult, callDataValidationMessages, getAvailableSigners, validateCallData } from '../../utils/multisig'
+import {
+  type CallDataValidationResult,
+  callDataValidationMessages,
+  getRemainingInternalSigners,
+  validateCallData,
+} from '../../utils/multisig'
 
 // Mock the ledgerClient module
 vi.mock('@/state/client/ledger', () => ({
@@ -380,7 +385,7 @@ describe('validateCallData', () => {
   })
 })
 
-describe('getAvailableSigners', () => {
+describe('getRemainingInternalSigners', () => {
   const mockMembers: MultisigMember[] = [
     { address: '0x1', internal: true },
     { address: '0x2', internal: true },
@@ -396,7 +401,7 @@ describe('getAvailableSigners', () => {
   }
 
   it('should return only internal members who have not signed', () => {
-    const result = getAvailableSigners(mockPendingCall, mockMembers)
+    const result = getRemainingInternalSigners(mockPendingCall, mockMembers)
 
     expect(result).toHaveLength(2)
     expect(result).toEqual([
@@ -411,7 +416,7 @@ describe('getAvailableSigners', () => {
       signatories: ['0x1', '0x2', '0x4'],
     }
 
-    const result = getAvailableSigners(allSignedCall, mockMembers)
+    const result = getRemainingInternalSigners(allSignedCall, mockMembers)
 
     expect(result).toHaveLength(0)
     expect(result).toEqual([])
@@ -423,7 +428,7 @@ describe('getAvailableSigners', () => {
       signatories: [],
     }
 
-    const result = getAvailableSigners(noSignaturesCall, mockMembers)
+    const result = getRemainingInternalSigners(noSignaturesCall, mockMembers)
 
     expect(result).toHaveLength(3)
     expect(result).toEqual([
@@ -434,7 +439,7 @@ describe('getAvailableSigners', () => {
   })
 
   it('should handle empty members array', () => {
-    const result = getAvailableSigners(mockPendingCall, [])
+    const result = getRemainingInternalSigners(mockPendingCall, [])
 
     expect(result).toHaveLength(0)
     expect(result).toEqual([])
@@ -447,7 +452,7 @@ describe('getAvailableSigners', () => {
       { address: '0x3', internal: false, path: 'm/44/0/2' },
     ]
 
-    const result = getAvailableSigners(mockPendingCall, membersWithPath)
+    const result = getRemainingInternalSigners(mockPendingCall, membersWithPath)
 
     expect(result).toHaveLength(1)
     expect(result).toEqual([{ address: '0x2', internal: true, path: 'm/44/0/1' }])
@@ -464,7 +469,7 @@ describe('getAvailableSigners', () => {
       signatories: ['0x1', '0X2'], // Different case
     }
 
-    const result = getAvailableSigners(caseSensitiveCall, caseSensitiveMembers)
+    const result = getRemainingInternalSigners(caseSensitiveCall, caseSensitiveMembers)
 
     expect(result).toHaveLength(0)
     expect(result).toEqual([])
