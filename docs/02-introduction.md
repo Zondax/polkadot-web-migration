@@ -1,6 +1,7 @@
 ---
 title: 'Introduction'
 description: 'A user-friendly assistant for migrating to the new Polkadot Universal Ledger App.'
+sidebar_position: 2
 ---
 
 :::info The following project has been funded by the Web3 Foundation.

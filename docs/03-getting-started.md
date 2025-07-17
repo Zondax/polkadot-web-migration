@@ -1,3 +1,8 @@
+---
+title: 'Getting Started'
+sidebar_position: 3
+---
+
 # Getting Started
 
 This guide will walk you through setting up and using the Polkadot Migration Assistant for the first time.
