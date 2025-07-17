@@ -183,10 +183,8 @@ After successful migration:
 
 ### Further Assistance
 
-- Check official documentation
-- Visit community forums
 - Contact Ledger support for hardware issues
-- Report bugs through official channels
+- Report bugs through Github Repository [https://github.com/Zondax/polkadot-web-migration](https://github.com/Zondax/polkadot-web-migration)
 
 ---
 
