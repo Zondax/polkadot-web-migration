@@ -1,43 +1,28 @@
 import { observable } from '@legendapp/state'
-import { BN } from '@polkadot/util'
-import { type AppConfig, type AppId, appsConfigs, polkadotAppConfig } from 'config/apps'
+import type { BN } from '@polkadot/util'
+import { type AppId, appsConfigs, polkadotAppConfig } from 'config/apps'
 import { errorDetails, InternalErrorType } from 'config/errors'
-import { errorApps, syncApps } from 'config/mockData'
 import type { MultisigCallFormData } from '@/components/sections/migrate/dialogs/approve-multisig-call-dialog'
 import type { Token } from '@/config/apps'
-import { maxAddressesToFetch } from '@/config/config'
-import {
-  getApiAndProvider,
-  getBalance,
-  getIdentityInfo,
-  getIndexInfo,
-  getMultisigAddresses,
-  getProxyInfo,
-  type UpdateTransactionStatus,
-} from '@/lib/account'
+import { getApiAndProvider, getBalance, type UpdateTransactionStatus } from '@/lib/account'
 import type { DeviceConnectionProps } from '@/lib/ledger/types'
+import { synchronizeAllApps, synchronizeAppAccounts } from '@/lib/services/synchronization.service'
 import { type InternalError, interpretError } from '@/lib/utils'
-import { convertSS58Format, isMultisigAddress } from '@/lib/utils/address'
-import { hasAddressBalance, hasBalance, hasNegativeBalance, validateReservedBreakdown } from '@/lib/utils/balance'
-import { isDevelopment } from '@/lib/utils/env'
-import { filterAccountsForApps, setDefaultDestinationAddress } from '@/lib/utils/ledger'
+import { isMultisigAddress } from '@/lib/utils/address'
+import { hasAddressBalance } from '@/lib/utils/balance'
 import { ledgerClient } from './client/ledger'
 import { errorsToStopSync } from './config/ledger'
 import { notifications$ } from './notifications'
 import {
   AccountType,
   type Address,
-  type AddressBalance,
   AddressStatus,
-  BalanceType,
   type Collection,
   type MigratingItem,
   type MultisigAddress,
-  type Native,
   TransactionStatus,
   type UpdateMigratedStatusFn,
 } from './types/ledger'
-import type { Notification } from './types/notifications'
 
 export enum AppStatus {
   MIGRATED = 'migrated',
@@ -381,320 +366,6 @@ export const ledgerState$ = observable({
     return false // Indicate that no action should be taken
   },
 
-  // Fetch and Process Accounts for a Single App
-  async fetchAndProcessAccountsForApp(app: AppConfig, filterByBalance = true): Promise<App | undefined> {
-    try {
-      if (isDevelopment() && errorApps && errorApps?.includes(app.id)) {
-        throw new Error('Mock synchronization error')
-      }
-
-      const response = await ledgerClient.synchronizeAccounts(app)
-
-      if (!response.result || !app.rpcEndpoint) {
-        return {
-          name: app.name,
-          id: app.id,
-          token: app.token,
-          status: AppStatus.ERROR,
-          error: {
-            source: 'synchronization',
-            description: 'Failed to synchronize accounts',
-          },
-        }
-      }
-
-      const polkadotAccounts = ledgerState$.apps.polkadotApp.get().accounts || []
-
-      const { api, provider } = await getApiAndProvider(app.rpcEndpoint)
-
-      if (!api) {
-        return {
-          name: app.name,
-          id: app.id,
-          token: app.token,
-          status: AppStatus.ERROR,
-          error: {
-            source: 'synchronization',
-            description: errorDetails.blockchain_connection_error.description ?? '',
-          },
-        }
-      }
-
-      // Store collections for this address if they exist
-      const collectionsMap = {
-        uniques: new Map<number, Collection>(),
-        nfts: new Map<number, Collection>(),
-      }
-
-      const multisigAccounts: Map<string, MultisigAddress> = new Map()
-
-      const processCollections = (collections: { uniques: Collection[]; nfts: Collection[] }) => {
-        // Process uniques collections
-        if (collections.uniques && collections.uniques.length > 0) {
-          for (const collection of collections.uniques) {
-            if (collection.collectionId) {
-              collectionsMap.uniques.set(collection.collectionId, collection)
-            }
-          }
-        }
-
-        // Process nfts collections
-        if (collections.nfts && collections.nfts.length > 0) {
-          for (const collection of collections.nfts) {
-            if (collection.collectionId) {
-              collectionsMap.nfts.set(collection.collectionId, collection)
-            }
-          }
-        }
-      }
-
-      const accounts: Address[] = await Promise.all(
-        response.result.map(async address => {
-          let addressHasNegativeBalance = false
-          const balances: AddressBalance[] = []
-
-          // Balance Info
-          const { balances: balancesResponse, collections, error } = await getBalance(address, api, app.id)
-          for (const balance of balancesResponse) {
-            if (hasNegativeBalance([balance])) {
-              addressHasNegativeBalance = true
-              break
-            }
-            if (hasBalance([balance])) {
-              balances.push(balance)
-            }
-          }
-          if (addressHasNegativeBalance) {
-            return {
-              ...address,
-              balances,
-              error: {
-                source: 'balance_fetch',
-                description: 'The synchronized balance is not valid',
-              },
-              isLoading: false,
-            }
-          }
-
-          if (error) {
-            return {
-              ...address,
-              balances,
-              error: {
-                source: 'balance_fetch',
-                description: 'Failed to fetch balance',
-              },
-              isLoading: false,
-            }
-          }
-          if (collections) {
-            processCollections(collections)
-          }
-
-          // Registration Info
-          const registration = await getIdentityInfo(address.address, api)
-
-          // Proxy Info
-          const proxy = await getProxyInfo(address.address, api)
-
-          // Index information
-          const indexInfo = await getIndexInfo(address.address, api)
-
-          // Multisig Addresses
-          let memberMultisigAddresses: string[] | undefined
-          const multisigDeposits: { callHash: string; deposit: BN }[] = []
-          if (app.explorer?.id === 'subscan') {
-            // a subscan endpoint is used to get the multisig addresses
-            const multisigAddresses = await getMultisigAddresses(address.address, address.path, app.explorer.network || app.id, api)
-            memberMultisigAddresses = multisigAddresses?.map(multisigAddress => multisigAddress.address)
-
-            if (memberMultisigAddresses && multisigAddresses) {
-              for (const multisigAddress of multisigAddresses) {
-                multisigAccounts.set(multisigAddress.address, multisigAddress)
-
-                // Collect deposits from pending multisig calls where this address is the depositor
-                if (multisigAddress.pendingMultisigCalls) {
-                  for (const call of multisigAddress.pendingMultisigCalls) {
-                    if (call.depositor === address.address) {
-                      multisigDeposits.push({
-                        callHash: call.callHash,
-                        deposit: call.deposit,
-                      })
-                    }
-                  }
-                }
-              }
-            }
-          }
-
-          const hasReservedBalance = registration?.deposit || multisigDeposits.length > 0 || proxy?.deposit || indexInfo?.deposit
-          const nativeBalanceIndex = balances.findIndex(balance => balance.type === BalanceType.NATIVE)
-          if (hasReservedBalance && nativeBalanceIndex !== -1) {
-            const nativeBalance = balances[nativeBalanceIndex].balance as Native
-            const identityDeposit = registration?.deposit ?? new BN(0)
-            const multisigDeposit =
-              multisigDeposits.length > 0 ? multisigDeposits.reduce((sum, deposit) => sum.add(deposit.deposit), new BN(0)) : new BN(0)
-            const proxyDeposit = proxy?.deposit ?? new BN(0)
-            const indexDeposit = indexInfo?.deposit ?? new BN(0)
-
-            const isBreakdownValid = validateReservedBreakdown(
-              identityDeposit,
-              multisigDeposit,
-              proxyDeposit,
-              indexDeposit,
-              nativeBalance.reserved.total
-            )
-
-            if (isBreakdownValid) {
-              balances[nativeBalanceIndex].balance = {
-                ...nativeBalance,
-                reserved: {
-                  ...nativeBalance.reserved,
-                  identity: identityDeposit.gtn(0) ? { deposit: identityDeposit } : undefined,
-                  multisig: multisigDeposit.gtn(0)
-                    ? { total: multisigDeposit, deposits: multisigDeposits.map(d => ({ ...d, deposit: d.deposit })) }
-                    : undefined,
-                  proxy: proxyDeposit.gtn(0) ? { deposit: proxyDeposit } : undefined,
-                  index: indexDeposit.gtn(0) ? { deposit: indexDeposit } : undefined,
-                },
-              }
-            } else {
-              console.debug('We could not load the breakdown details.')
-            }
-          }
-
-          return {
-            ...address,
-            balances,
-            registration,
-            memberMultisigAddresses,
-            proxy,
-            index: indexInfo,
-            status: AddressStatus.SYNCHRONIZED,
-            error: undefined,
-            isLoading: false,
-            selected: true,
-          }
-        })
-      )
-
-      // Get info related to multisig accounts if they exist
-      const foundAccounts = accounts.map(account => account.address)
-
-      // Obtener el balance de cada multisigAccount dentro del map
-      await Promise.all(
-        Array.from(multisigAccounts.values()).map(async multisigAddress => {
-          const {
-            balances: multisigBalancesResponse,
-            collections: multisigCollections,
-            error: multisigError,
-          } = await getBalance(multisigAddress, api, app.id)
-          const multisigBalances = multisigBalancesResponse.filter(balance => hasBalance([balance]))
-
-          if (multisigCollections) {
-            processCollections(multisigCollections)
-          }
-
-          // Registration Info
-          const registration = await getIdentityInfo(multisigAddress.address, api)
-
-          // Proxy Info
-          const proxy = await getProxyInfo(multisigAddress.address, api)
-
-          // Index information
-          const indexInfo = await getIndexInfo(multisigAddress.address, api)
-
-          multisigAddress.balances = multisigBalances.map(balance => ({
-            ...balance,
-            transaction: { ...balance.transaction, signatoryAddress: multisigAddress.members[0].address },
-          }))
-          multisigAddress.registration = registration
-          multisigAddress.proxy = proxy
-          multisigAddress.index = indexInfo
-          multisigAddress.status = AddressStatus.SYNCHRONIZED
-          multisigAddress.error = multisigError
-            ? {
-                source: 'balance_fetch',
-                description: 'Failed to fetch balance',
-              }
-            : undefined
-          multisigAddress.isLoading = false
-          multisigAddress.selected = true
-          multisigAddress.members = multisigAddress.members.map(member => {
-            if (foundAccounts.includes(member.address)) {
-              return { ...member, internal: true, path: accounts.find(account => account.address === member.address)?.path }
-            }
-            return member
-          })
-          multisigAccounts.set(multisigAddress.address, multisigAddress)
-        })
-      )
-
-      const filteredAccounts = filterAccountsForApps(accounts, filterByBalance)
-
-      const filteredMultisigAccounts = filterAccountsForApps(Array.from(multisigAccounts.values()), filterByBalance)
-
-      // Only set the app if there are accounts after filtering
-      if (filteredAccounts.length > 0) {
-        const polkadotAddresses = polkadotAccounts.map(account => convertSS58Format(account.address, app.ss58Prefix || 0))
-        ledgerState$.polkadotAddresses[app.id].set(polkadotAddresses)
-
-        if (api) {
-          await api.disconnect()
-        } else if (provider) {
-          await provider.disconnect()
-        }
-
-        return {
-          name: app.name,
-          id: app.id,
-          token: app.token,
-          status: AppStatus.SYNCHRONIZED,
-          accounts: filteredAccounts.map(account => setDefaultDestinationAddress(account, polkadotAddresses[0])),
-          collections: collectionsMap,
-          multisigAccounts: filteredMultisigAccounts.map(account => setDefaultDestinationAddress(account, polkadotAddresses[0])),
-        }
-      }
-
-      if (ledgerState$.apps.isSyncCancelRequested.get()) {
-        return undefined
-      }
-
-      notifications$.push({
-        title: 'No accounts to migrate',
-        description: `We could not find any accounts with a balance to migrate for ${app.id.charAt(0).toUpperCase() + app.id.slice(1)}.`,
-        appId: app.id,
-        type: 'info',
-        autoHideDuration: 5000,
-      })
-
-      // No accounts after filtering
-      return {
-        name: app.name,
-        id: app.id,
-        token: app.token,
-        status: AppStatus.SYNCHRONIZED,
-        accounts: [],
-      }
-    } catch (error) {
-      console.debug('Error fetching and processing accounts for app:', app.id)
-      const internalError = interpretError(error, InternalErrorType.FETCH_PROCESS_ACCOUNTS_ERROR)
-      ledgerState$.handleError(internalError)
-      handleErrorNotification(internalError)
-
-      return {
-        name: app.name,
-        id: app.id,
-        token: app.token,
-        status: AppStatus.ERROR,
-        error: {
-          source: 'synchronization',
-          description: internalError.description ?? 'An unexpected error occurred',
-        },
-      }
-    }
-  },
-
   // Synchronize Single Account
   async synchronizeAccount(appId: AppId) {
     updateApp(appId, { status: AppStatus.RESCANNING, error: undefined })
@@ -707,9 +378,13 @@ export const ledgerState$ = observable({
     try {
       updateApp(appId, { status: AppStatus.LOADING, error: undefined })
 
-      const app = await ledgerState$.fetchAndProcessAccountsForApp(appConfig)
+      const polkadotAccounts = ledgerState$.apps.polkadotApp.get().accounts || []
+      const polkadotAddresses = polkadotAccounts.map(account => account.address)
+
+      const { app, polkadotAddressesForApp } = await synchronizeAppAccounts(appConfig, polkadotAddresses)
       if (app) {
         updateApp(appId, app)
+        ledgerState$.polkadotAddresses[appId].set(polkadotAddressesForApp)
       }
     } catch (_error) {
       updateApp(appId, {
@@ -719,81 +394,6 @@ export const ledgerState$ = observable({
           description: 'Failed to synchronize accounts',
         },
       })
-    }
-  },
-
-  // Fetch and Process Accounts for a Single App
-  async fetchAndProcessPolkadotAccounts(): Promise<App | undefined> {
-    try {
-      const app = polkadotAppConfig
-      const response = await ledgerClient.synchronizeAccounts(app)
-
-      const noAccountsNotification: Omit<Notification, 'id' | 'createdAt'> = {
-        title: 'No Polkadot accounts found',
-        description: 'There are no Polkadot accounts available to migrate from on your Ledger device.',
-        appId: app.id,
-        type: 'info',
-        autoHideDuration: 5000,
-      }
-
-      if (!response.result || !app.rpcEndpoint) {
-        notifications$.push(noAccountsNotification)
-        return {
-          name: app.name,
-          id: app.id,
-          token: app.token,
-          status: AppStatus.ERROR,
-        }
-      }
-
-      const accounts = response.result
-
-      const { api, provider } = await getApiAndProvider(app.rpcEndpoint)
-
-      if (!api) {
-        return {
-          name: app.name,
-          id: app.id,
-          token: app.token,
-          status: AppStatus.ERROR,
-          error: {
-            source: 'synchronization',
-            description: errorDetails.blockchain_connection_error.description ?? '',
-          },
-        }
-      }
-
-      if (api) {
-        await api.disconnect()
-      } else if (provider) {
-        await provider.disconnect()
-      }
-
-      // Only add a notification if there are no accounts after filtering
-      if (accounts.length === 0) {
-        notifications$.push(noAccountsNotification)
-      }
-
-      return {
-        name: app.name,
-        id: app.id,
-        token: app.token,
-        status: AppStatus.SYNCHRONIZED,
-        accounts,
-      }
-    } catch (error) {
-      const app = polkadotAppConfig
-      console.debug('Error fetching and processing accounts for app:', app.id)
-      const internalError = interpretError(error, InternalErrorType.FETCH_PROCESS_ACCOUNTS_ERROR)
-      ledgerState$.handleError(internalError)
-      handleErrorNotification(internalError)
-
-      return {
-        name: app.name,
-        id: app.id,
-        token: app.token,
-        status: AppStatus.ERROR,
-      }
     }
   },
 
@@ -829,77 +429,49 @@ export const ledgerState$ = observable({
         },
       })
 
-      notifications$.push({
-        title: 'Synchronizing accounts',
-        description: `We are synchronizing the first ${maxAddressesToFetch} accounts for each blockchain. Please wait while we gather your account information.`,
-        type: 'info',
-        autoHideDuration: 5000,
-      })
-
-      const polkadotApp = await ledgerState$.fetchAndProcessPolkadotAccounts()
-      if (polkadotApp) {
-        ledgerState$.apps.polkadotApp.set({
-          ...polkadotApp,
-          status: AppStatus.SYNCHRONIZED,
-        })
-      }
-
-      // Get the total number of apps to synchronize
-      let appsToSync: (AppConfig | undefined)[] = Array.from(appsConfigs.values())
-
-      // If in development environment, use apps specified in environment variable
-      if (isDevelopment() && syncApps && syncApps.length > 0) {
-        try {
-          appsToSync = syncApps.map(appId => appsConfigs.get(appId as AppId))
-        } catch (error) {
-          console.error('Error parsing NEXT_PUBLIC_SYNC_APPS environment variable:', error)
-          return
+      // Use the synchronization service to handle the sync process
+      const result = await synchronizeAllApps(
+        // Progress callback
+        progress => {
+          ledgerState$.apps.syncProgress.set(progress)
+        },
+        // Cancel callback
+        () => ledgerState$.apps.isSyncCancelRequested.get(),
+        // App start callback - add app with loading status
+        loadingApp => {
+          ledgerState$.apps.apps.push(loadingApp)
+        },
+        // App complete callback - replace loading app with completed app
+        completedApp => {
+          updateApp(completedApp.id, completedApp)
         }
-      }
+      )
 
-      appsToSync = appsToSync.filter(appConfig => appConfig?.rpcEndpoint) as AppConfig[]
-      const totalApps = appsToSync.length
-      let syncedApps = 0
-
-      ledgerState$.apps.syncProgress.set({
-        scanned: syncedApps,
-        total: totalApps,
-        percentage: 0,
-      })
-
-      // request and save the accounts of each app synchronously
-      for (const appConfig of appsToSync) {
-        // Check if cancellation is requested
-        if (ledgerState$.apps.isSyncCancelRequested.get()) {
-          return undefined
-        }
-
-        if (appConfig) {
-          ledgerState$.apps.apps.push({
-            id: appConfig.id,
-            name: appConfig.name,
-            token: appConfig.token,
-            status: AppStatus.LOADING,
-            error: undefined,
+      if (result.success) {
+        // Set the polkadot app
+        if (result.polkadotApp) {
+          ledgerState$.apps.polkadotApp.set({
+            ...result.polkadotApp,
+            status: AppStatus.SYNCHRONIZED,
           })
+        }
 
-          // Comment it later
-          const app = await ledgerState$.fetchAndProcessAccountsForApp(appConfig)
-          if (app) {
-            updateApp(appConfig.id, app)
+        // Set the synchronized apps
+        ledgerState$.apps.apps.set(result.apps)
+
+        // Set the polkadot addresses for each app
+        if (result.polkadotAddressesForApp) {
+          for (const [appId, addresses] of Object.entries(result.polkadotAddressesForApp)) {
+            ledgerState$.polkadotAddresses[appId].set(addresses)
           }
         }
 
-        // Update sync progress
-        syncedApps++
-        const progress = Math.round((syncedApps / totalApps) * 100)
-        ledgerState$.apps.syncProgress.scanned.set(syncedApps)
-        ledgerState$.apps.syncProgress.percentage.set(progress)
+        // Reset cancel flag when synchronization completes successfully
+        ledgerState$.apps.isSyncCancelRequested.set(false)
+        ledgerState$.apps.status.set(AppStatus.SYNCHRONIZED)
+      } else {
+        throw new Error(result.error || 'Synchronization failed')
       }
-
-      // Reset cancel flag when synchronization completes successfully
-      ledgerState$.apps.isSyncCancelRequested.set(false)
-      ledgerState$.apps.status.set(AppStatus.SYNCHRONIZED)
     } catch (error) {
       const internalError = interpretError(error, InternalErrorType.SYNC_ERROR)
       handleErrorNotification(internalError)

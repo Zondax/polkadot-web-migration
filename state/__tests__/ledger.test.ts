@@ -2,7 +2,7 @@ import { BN } from '@polkadot/util'
 import type { Transport } from '@zondax/ledger-js'
 import type { PolkadotGenericApp } from '@zondax/ledger-substrate'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { errorDetails, InternalErrorType } from '@/config/errors'
+import { InternalErrorType } from '@/config/errors'
 import { mockAddress1 } from '@/lib/__tests__/utils/__mocks__/mockData'
 import type { DeviceConnectionProps } from '@/lib/ledger/types'
 import { InternalError } from '@/lib/utils/error'
@@ -305,66 +305,6 @@ describe('Ledger State', () => {
       })
 
       expect(ledgerState$.apps.migrationResult.get().fails).toBe(1)
-    })
-  })
-
-  describe('fetchAndProcessAccountsForApp', () => {
-    const mockApp = {
-      id: 'polkadot',
-      name: 'Polkadot',
-      rpcEndpoint: 'wss://rpc.polkadot.io',
-      token: { symbol: 'DOT', decimals: 10 },
-      bip44Path: "m/44'/354'/0'/0'/0'",
-      ss58Prefix: 354,
-    }
-
-    it('should return error app when synchronization fails', async () => {
-      const { ledgerClient } = await import('../client/ledger')
-      vi.mocked(ledgerClient.synchronizeAccounts).mockResolvedValueOnce({
-        result: undefined,
-      })
-
-      const result = await ledgerState$.fetchAndProcessAccountsForApp(mockApp)
-
-      expect(result?.status).toBe(AppStatus.ERROR)
-      expect(result?.error?.source).toBe('synchronization')
-    })
-
-    it('should return error app when API connection fails', async () => {
-      const { ledgerClient } = await import('../client/ledger')
-      const { getApiAndProvider } = await import('@/lib/account')
-
-      vi.mocked(ledgerClient.synchronizeAccounts).mockResolvedValueOnce({
-        result: [{ address: '1test', path: "m/44'/354'/0'/0'/0'", pubKey: '123' }],
-      })
-      vi.mocked(getApiAndProvider).mockResolvedValueOnce({
-        api: undefined,
-        provider: undefined,
-        error: undefined,
-      })
-
-      const result = await ledgerState$.fetchAndProcessAccountsForApp(mockApp)
-
-      expect(result?.status).toBe(AppStatus.ERROR)
-      expect(result?.error?.description).toBe(errorDetails[InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR].description)
-    })
-
-    it('should handle mock synchronization error in development', async () => {
-      const originalEnv = process.env.NEXT_PUBLIC_NODE_ENV
-      process.env.NEXT_PUBLIC_NODE_ENV = 'development'
-
-      // Mock errorApps to include the test app
-      vi.doMock('config/mockData', () => ({
-        errorApps: ['polkadot'],
-        syncApps: [],
-      }))
-
-      const result = await ledgerState$.fetchAndProcessAccountsForApp(mockApp)
-
-      expect(result?.status).toBe(AppStatus.ERROR)
-      expect(result?.error?.source).toBe('synchronization')
-
-      process.env.NEXT_PUBLIC_NODE_ENV = originalEnv
     })
   })
 
@@ -789,30 +729,6 @@ describe('Ledger State', () => {
   })
 
   describe('Advanced account processing', () => {
-    const mockApp = {
-      id: 'polkadot',
-      name: 'Polkadot',
-      rpcEndpoint: 'wss://rpc.polkadot.io',
-      token: { symbol: 'DOT', decimals: 10 },
-      bip44Path: "m/44'/354'/0'/0'/0'",
-      ss58Prefix: 354,
-      explorer: { id: 'subscan', network: 'polkadot' },
-    }
-
-    it('should process accounts with collections data', async () => {
-      const { ledgerClient } = await import('../client/ledger')
-
-      // Test for synchronization error (simpler test that doesn't require complex API mocking)
-      vi.mocked(ledgerClient.synchronizeAccounts).mockResolvedValueOnce({
-        result: undefined,
-      })
-
-      const result = await ledgerState$.fetchAndProcessAccountsForApp(mockApp)
-
-      expect(result?.status).toBe('error')
-      expect(ledgerClient.synchronizeAccounts).toHaveBeenCalled()
-    })
-
     it('should handle basic method calls for coverage', async () => {
       // Test some basic method calls to increase coverage without complex mocking
       await ledgerState$.synchronizeAccount('polkadot')
@@ -925,68 +841,6 @@ describe('Ledger State', () => {
       await ledgerState$.migrateSelected(true)
 
       expect(hasAddressBalance).toHaveBeenCalled()
-    })
-
-    it('should handle fetchAndProcessAccountsForApp with successful processing', async () => {
-      const { ledgerClient } = await import('../client/ledger')
-      const { getApiAndProvider, getBalance } = await import('@/lib/account')
-      const { hasBalance, hasNegativeBalance } = await import('@/lib/utils/balance')
-
-      const mockApp = {
-        id: 'polkadot',
-        name: 'Polkadot',
-        rpcEndpoint: 'wss://rpc.polkadot.io',
-        token: { symbol: 'DOT', decimals: 10 },
-        bip44Path: "m/44'/354'/0'/0'/0'",
-        ss58Prefix: 354,
-      }
-
-      // Mock successful synchronization
-      vi.mocked(ledgerClient.synchronizeAccounts).mockResolvedValueOnce({
-        result: [{ address: '1test', path: "m/44'/354'/0'/0'/0'", pubKey: '123' }],
-      })
-
-      // Mock API connection
-      const mockApi = { query: { system: { account: vi.fn() } }, disconnect: vi.fn() }
-      const mockProvider = { disconnect: vi.fn() }
-      vi.mocked(getApiAndProvider).mockResolvedValueOnce({
-        api: mockApi,
-        provider: mockProvider,
-        error: undefined,
-      })
-
-      // Mock balance utilities
-      vi.mocked(hasNegativeBalance).mockReturnValue(false)
-      vi.mocked(hasBalance).mockReturnValue(true)
-
-      // Mock balance response
-      vi.mocked(getBalance).mockResolvedValueOnce({
-        balances: [
-          {
-            type: 'native',
-            balance: {
-              total: new BN(1000000000000),
-              transferable: new BN(600000000000),
-              staking: { total: new BN(0), active: new BN(0), unlocking: [] },
-              reserved: {
-                total: new BN(0),
-                proxy: { deposit: new BN(0) },
-                identity: { deposit: new BN(0) },
-                index: { deposit: new BN(0) },
-                multisig: { total: new BN(0), deposits: [] },
-              },
-            },
-          },
-        ],
-        collections: { uniques: [], nfts: [] },
-        error: undefined,
-      })
-
-      const result = await ledgerState$.fetchAndProcessAccountsForApp(mockApp, false)
-
-      expect(result?.status).toBe('synchronized')
-      expect(hasBalance).toHaveBeenCalled()
-      expect(hasNegativeBalance).toHaveBeenCalled()
     })
 
     it('should handle synchronizeAccounts with actual app processing', async () => {

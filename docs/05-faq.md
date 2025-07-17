@@ -1,3 +1,8 @@
+---
+title: 'Frequently Asked Questions (FAQ)'
+sidebar_position: 5
+---
+
 # Frequently Asked Questions (FAQ)
 
 ## 🔍 General Questions
@@ -14,28 +19,11 @@ Legacy Polkadot and parachain Ledger apps are no longer maintained and use incom
 
 Yes. The Migration Assistant never has access to your private keys, which remain secure on your Ledger device. All transactions require explicit approval on your Ledger hardware wallet. The tool only provides a user interface for blockchain operations.
 
-### What networks are supported?
-
-**Fully Supported:**
-- Polkadot Relay Chain
-- Kusama Relay Chain  
-- AssetHub (Polkadot & Kusama)
-- People Chain (Polkadot & Kusama)
-
-**Progressive Rollout:**
-- Acala, Astar, Bifrost, HydraDX, and other major parachains
-
-**Planned:**
-- Additional parachains are being added regularly
-
 ### How long does migration take?
 
 **Simple accounts:** 5-10 minutes  
 **Staking accounts:** 7-28 days (due to unbonding periods)  
-**Complex accounts:** Days to weeks (depending on positions)  
 **Multisig accounts:** Hours to days (depending on coordination)
-
----
 
 ## 🔌 Connection & Setup
 
@@ -45,14 +33,13 @@ Yes. The Migration Assistant never has access to your private keys, which remain
 1. **USB Connection:** Use a data cable (not charge-only) and try different ports
 2. **Browser Permissions:** Grant WebUSB permissions when prompted
 3. **Ledger Live:** Close Ledger Live completely - it can interfere with browser connections
-4. **Device State:** Ensure Ledger is unlocked and Polkadot Universal app is open
-5. **Browser Compatibility:** Use Chrome, Firefox, or Edge (Safari doesn't support WebUSB)
+4. **Device State:** Ensure Ledger is unlocked and Polkadot Migration app is open
+5. **Browser Compatibility:** Use Chrome (Safari doesn't support WebUSB)
 
 ### Which browsers are supported?
 
 **✅ Supported:**
-- Chrome (version 61+)
-- Microsoft Edge (version 79+)
+- Chrome
 - Firefox (version 94+ with webusb enabled)
 - Opera (version 48+)
 
@@ -61,21 +48,12 @@ Yes. The Migration Assistant never has access to your private keys, which remain
 - Internet Explorer
 - Mobile browsers
 
-### How do I enable WebUSB in Firefox?
-
-1. Type `about:config` in the address bar
-2. Search for `dom.webusb.enabled`
-3. Set the value to `true`
-4. Restart Firefox
-
 ### Do I need to install any software?
 
 No additional software installation is required. The Migration Assistant runs entirely in your web browser. You only need:
 - Updated Ledger Live (for installing the Universal app)
 - Modern web browser with WebUSB support
-- Polkadot Universal app installed on your Ledger
-
----
+- Polkadot Migration app installed on your Ledger
 
 ## 💰 Account Discovery & Balances
 
@@ -96,7 +74,7 @@ No additional software installation is required. The Migration Assistant runs en
 ### Some of my accounts are missing. What should I do?
 
 **Account discovery process:**
-1. The tool scans the first 10-20 account indices by default
+1. The tool scans the first 10 account indices by default
 2. Accounts created with higher indices may not appear initially
 3. Different legacy apps may have used different derivation paths
 
@@ -136,83 +114,6 @@ No additional software installation is required. The Migration Assistant runs en
 2. Wait for unbonding period
 3. Day X+1: Withdraw unbonded tokens
 4. Complete migration
-
-### Can I migrate while keeping my tokens staked?
-
-**Currently:** No direct staking migration is supported. You must:
-1. Unbond your tokens
-2. Wait for the unbonding period
-3. Withdraw and migrate
-4. Re-stake using the Universal app
-
-**Alternative:** Consider liquid staking solutions that may allow easier migration.
-
-### Will I lose staking rewards during migration?
-
-**During unbonding:** Yes, unbonded tokens don't earn rewards  
-**Timeline impact:** Plan migration timing around reward cycles  
-**Minimization strategies:**
-- Partial unbonding to maintain some staking rewards
-- Coordinate timing with era boundaries
-- Consider opportunity cost vs. migration benefits
-
-### What happens to my validator nominations?
-
-**During migration:**
-- Nominations are automatically removed when you unbond
-- Validator relationships are not preserved
-- You'll need to re-nominate after migration
-
-**Best practices:**
-- Note your current validator choices
-- Research validator performance during waiting period
-- Consider updating nominations when re-staking
-
-### Can I migrate my controller/stash relationship?
-
-The Universal app uses simplified account management:
-- Controller/stash relationships are not directly migrated
-- You'll use a single account for staking operations
-- Re-configure staking setup after migration
-
----
-
-## 👤 Identity Migration
-
-### Will my identity transfer automatically?
-
-**Most cases:** Yes, identities automatically migrate to People Chain  
-**Complex cases:** May require manual verification  
-**What transfers:**
-- Display name and personal information
-- Judgements from registrars
-- Sub-identity relationships
-- Deposit amounts
-
-### What happens to my identity judgements?
-
-**Preservation:** Judgements are typically preserved during migration  
-**Verification needed:** Some registrars may need to re-verify  
-**Contact registrars:** If judgements don't appear, contact the relevant registrars
-
-### Should I remove my identity to recover deposits?
-
-**Consider carefully:**
-- **Pros:** Recover locked deposits (can be significant)
-- **Cons:** Lose verification status and reputation
-- **Requirements:** Can only remove identity if no parent exists
-
-**Recommendation:** Only remove if deposit recovery is critical, as re-verification takes time and effort.
-
-### How do sub-identities work after migration?
-
-**Sub-identity migration:**
-- Sub-identities migrate with their parent
-- Relationships are preserved
-- Individual management still possible
-- Deposits remain with original accounts
-
----
 
 ## 👥 Multisig Migration
 
@@ -255,8 +156,6 @@ The Universal app uses simplified account management:
 **Existing calls:** Complete or cancel existing calls before migration  
 **Migration timing:** Don't start migration with pending operations  
 **Best practice:** Clean slate approach - resolve all pending business first
-
----
 
 ## 🔧 Technical Issues
 
@@ -310,50 +209,6 @@ The Universal app uses simplified account management:
 
 **This is why verification on Ledger is critical.**
 
----
-
-## 💸 Fees & Costs
-
-### How much does migration cost?
-
-**Typical fees by network:**
-- **Polkadot:** ~0.01-0.02 DOT per transaction
-- **Kusama:** ~0.01 KSM per transaction
-- **AssetHub:** ~0.01 DOT/KSM per transaction
-- **Parachains:** Varies by network
-
-**Complex migrations:** May require multiple transactions, increasing total fees.
-
-### Why are the fees higher than expected?
-
-**Factors affecting fees:**
-1. **Network congestion:** Higher demand = higher fees
-2. **Transaction complexity:** Complex operations cost more
-3. **Batch operations:** Multiple operations in one transaction
-4. **Cross-chain operations:** May involve bridge fees
-
-### Can I reduce migration fees?
-
-**Strategies:**
-- **Timing:** Migrate during low-congestion periods
-- **Batching:** Combine multiple operations when possible
-- **Prioritization:** Migrate high-value accounts first
-- **Network choice:** Some networks have lower fees
-
-### What happens if I don't have enough tokens for fees?
-
-**Prevention:**
-- Always check fee estimates before starting
-- Keep extra tokens for unexpected fees
-- Consider existential deposit requirements
-
-**If you're short:**
-- Transfer additional tokens to cover fees
-- Reduce migration amount to cover costs
-- Use a different account with sufficient balance
-
----
-
 ## 🚨 Emergency Situations
 
 ### I lost connection during migration. Are my funds safe?
@@ -390,42 +245,6 @@ The Universal app uses simplified account management:
 
 **Important:** Never share your seed phrase or private keys with anyone.
 
----
-
-## 🔮 Future & Updates
-
-### Will new features be added to the Migration Assistant?
-
-Yes, the Migration Assistant is actively developed with new features regularly added:
-- Additional parachain support
-- Enhanced DeFi position migration
-- Improved user experience features
-- Better error handling and recovery
-
-### What happens after I migrate? Do I need to do anything else?
-
-**Post-migration:**
-1. **Update bookmarks** - Remove old app shortcuts
-2. **Test functionality** - Verify all operations work
-3. **Update services** - Change addresses in applications you use
-4. **Backup management** - Update your backup documentation
-
-### How do I stay informed about Migration Assistant updates?
-
-**Information sources:**
-- Official announcements and documentation
-- GitHub repository for technical updates
-- Community forums and channels
-- Newsletter or notification systems (if available)
-
-### Will the old Ledger apps stop working?
-
-**Current status:** Legacy apps still function but are no longer maintained  
-**Future:** May become incompatible with network upgrades  
-**Recommendation:** Migrate sooner rather than later for long-term compatibility
-
----
-
 ## 📞 Getting Additional Help
 
 ### Where can I find more detailed information?
@@ -460,7 +279,3 @@ Yes, the Migration Assistant is actively developed with new features regularly a
 - Participate in testing new features
 
 **Community contributions make the tool better for everyone.**
-
----
-
-*This FAQ is regularly updated based on user questions and feedback. If you don't find your question here, check the other documentation sections or reach out through official support channels.*
