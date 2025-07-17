@@ -1,3 +1,8 @@
+---
+title: 'Getting Started'
+sidebar_position: 3
+---
+
 # Getting Started
 
 This guide will walk you through setting up and using the Polkadot Migration Assistant for the first time.
@@ -178,10 +183,8 @@ After successful migration:
 
 ### Further Assistance
 
-- Check official documentation
-- Visit community forums
 - Contact Ledger support for hardware issues
-- Report bugs through official channels
+- Report bugs through Github Repository [https://github.com/Zondax/polkadot-web-migration](https://github.com/Zondax/polkadot-web-migration)
 
 ---
 
