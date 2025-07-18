@@ -64,7 +64,30 @@ export async function validateCallData(appId: AppId, callDataValue: string, call
  * @param members - The list of all multisig members
  * @returns MultisigMember[] - Members who are internal and have not yet signed the call
  */
-export const getAvailableSigners = (pendingCall: MultisigCall, members: MultisigMember[]): MultisigMember[] => {
+export const getRemainingInternalSigners = (pendingCall: MultisigCall, members: MultisigMember[]): MultisigMember[] => {
   const existingApprovals = pendingCall.signatories
   return members.filter(member => !existingApprovals?.includes(member.address) && member.internal)
+}
+
+/**
+ * Returns the list of internal multisig members who have not yet approved the given pending call.
+ *
+ * @param pendingCall - The multisig call for which to check approvals
+ * @param members - The list of all multisig members
+ * @returns MultisigMember[] - Members who are internal and have not yet signed the call
+ */
+export const getRemainingSigners = (pendingCall: MultisigCall, members: MultisigMember[]): MultisigMember[] => {
+  const existingApprovals = pendingCall.signatories
+  return members.filter(member => !existingApprovals?.includes(member.address))
+}
+
+/**
+ * Returns the list of internal multisig members who have not yet approved the given pending call.
+ *
+ * @param pendingCall - The multisig call for which to check approvals
+ * @param members - The list of all multisig members
+ * @returns MultisigMember[] - Members who are internal and have not yet signed the call
+ */
+export const getAvailableSigners = (members: MultisigMember[]): MultisigMember[] => {
+  return members.filter(member => member.internal)
 }

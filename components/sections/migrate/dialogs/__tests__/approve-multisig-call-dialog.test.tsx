@@ -1,14 +1,12 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { MultisigAddress, MultisigCall, MultisigMember } from '@/state/types/ledger'
-import type { AppId, Token } from '@/config/apps'
-import { TEST_ADDRESSES, TEST_PATHS } from '@/tests/fixtures/addresses'
-import { TEST_AMOUNTS } from '@/tests/fixtures/balances'
-
-import ApproveMultisigCallDialog from '../approve-multisig-call-dialog'
-
 // Import mocked hooks
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
+import type { AppId, Token } from '@/config/apps'
+import type { MultisigAddress, MultisigCall, MultisigMember } from '@/state/types/ledger'
+import { TEST_ADDRESSES, TEST_PATHS } from '@/tests/fixtures/addresses'
+import { TEST_AMOUNTS } from '@/tests/fixtures/balances'
+import ApproveMultisigCallDialog from '../approve-multisig-call-dialog'
 
 // Mock all external dependencies
 vi.mock('lucide-react', () => ({
@@ -151,7 +149,7 @@ vi.mock('@/lib/utils/multisig', () => ({
     correct: 'Call data is valid',
     failed: 'Validation failed',
   },
-  getAvailableSigners: vi.fn(() => []),
+  getRemainingInternalSigners: vi.fn(() => []),
   validateCallData: vi.fn(() => Promise.resolve({ isValid: true })),
 }))
 
