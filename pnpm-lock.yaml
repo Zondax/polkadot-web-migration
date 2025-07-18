@@ -24,8 +24,8 @@ importers:
         specifier: ^6.30.3
         version: 6.30.3
       '@ledgerhq/types-live':
-        specifier: ^6.76.0
-        version: 6.76.0
+        specifier: ^6.77.0
+        version: 6.77.0
       '@legendapp/state':
         specifier: ^3.0.0-beta.31
         version: 3.0.0-beta.31(react@19.1.0)
@@ -736,8 +736,8 @@ packages:
   '@ledgerhq/logs@6.13.0':
     resolution: {integrity: sha512-4+qRW2Pc8V+btL0QEmdB2X+uyx0kOWMWE1/LWsq5sZy3Q5tpi4eItJS6mB0XL3wGW59RQ+8bchNQQ1OW/va8Og==}
 
-  '@ledgerhq/types-live@6.76.0':
-    resolution: {integrity: sha512-XgshTvNSie5CkudV/ebLDAR7WVEqTDX/xiqg68NZbTr+exJE5t2C4fKEzCMq8wcGVjpbqLZA+RfL/uK/9j385A==}
+  '@ledgerhq/types-live@6.77.0':
+    resolution: {integrity: sha512-XPsUKzGf4L+gai2Np0hJPNqmIYWSh4xGQ7T5nn41z9MxetQCmU3wODUrxep4TdkLNdfT5YI+HNOKgC70AQbA+Q==}
 
   '@legendapp/state@3.0.0-beta.31':
     resolution: {integrity: sha512-ejQHeBk3DEHOeF/j4/nX0W6uXiGQBOqQ5Ftfk10ReDpGzeC/GxF3Or31LG5qPcp3ZZweUBiVyqZqEtQefX4eKA==}
@@ -1851,8 +1851,8 @@ packages:
   balanced-match@1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
 
-  bignumber.js@9.3.0:
-    resolution: {integrity: sha512-EM7aMFTXbptt/wZdMlBv2t8IViwQL+h6SLHosp8Yf0dqJMTnY6iL32opnAB6kAdL0SZPuvcAzFr31o0c/R3/RA==}
+  bignumber.js@9.3.1:
+    resolution: {integrity: sha512-Ko0uX15oIUS7wJ3Rb30Fs6SkVbLmPBAKdlm7q9+ak9bbIeFf0MwuBsQV6z7+X768/cHsfg+WlysDWJcmthjsjQ==}
 
   bn.js@5.2.2:
     resolution: {integrity: sha512-v2YAxEmKaBLahNwE1mjp4WON6huMNeuDvagFZW+ASCuA/ku0bXR9hSMw0XpiqMoA3+rmnyck/tPRSFQkoC9Cuw==}
@@ -3512,9 +3512,9 @@ snapshots:
 
   '@ledgerhq/logs@6.13.0': {}
 
-  '@ledgerhq/types-live@6.76.0':
+  '@ledgerhq/types-live@6.77.0':
     dependencies:
-      bignumber.js: 9.3.0
+      bignumber.js: 9.3.1
       rxjs: 7.8.2
 
   '@legendapp/state@3.0.0-beta.31(react@19.1.0)':
@@ -4758,7 +4758,7 @@ snapshots:
 
   balanced-match@1.0.2: {}
 
-  bignumber.js@9.3.0: {}
+  bignumber.js@9.3.1: {}
 
   bn.js@5.2.2: {}
 
