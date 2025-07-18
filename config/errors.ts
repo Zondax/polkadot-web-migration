@@ -49,6 +49,7 @@ export enum InternalErrorType {
   LOCKED_DEVICE = 'locked_device',
   MIGRATION_ERROR = 'migration_error',
   MIGRATION_TX_INFO_ERROR = 'migration_tx_info_error',
+  MULTISIG_TRANSFER_ERROR = 'multisig_transfer_error',
   NO_BALANCE = 'no_balance',
   NO_CALL_DATA = 'no_call_data',
   NO_MULTISIG_ADDRESS = 'no_multisig_address',
@@ -332,6 +333,12 @@ export const errorDetails: ErrorDetailsMap = {
     description: 'The asset migration could not be completed successfully.',
     content:
       'This could be due to network congestion, insufficient balance, or temporary blockchain issues. Please verify your balances and try the migration again.',
+  },
+  multisig_transfer_error: {
+    title: 'Multisig Transfer Failed',
+    description: 'The multisig transfer could not be initiated.',
+    content:
+      'This could be due to insufficient balance in the multisig account, network issues, or incorrect transaction parameters. Please verify the multisig account has sufficient balance and try again.',
   },
   migration_tx_info_error: {
     title: 'Migration Details Unavailable',

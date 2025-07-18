@@ -1478,10 +1478,9 @@ export async function getMultisigAddresses(
                 pendingMultisigCalls: [],
               })
               break // Success, exit retry loop
-            } else {
+            }
               console.warn(`[getMultisigAddresses] No member info found for multisig account ${account.address}`)
               break // No member info, don't retry
-            }
           } catch (err) {
             retryCount++
             if (retryCount > maxRetries) {
@@ -1490,7 +1489,7 @@ export async function getMultisigAddresses(
             } else {
               console.warn(`[getMultisigAddresses] Attempt ${retryCount} failed for multisig account ${account.address}, retrying...`)
               // Wait a bit before retrying (exponential backoff)
-              await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 100))
+              await new Promise(resolve => setTimeout(resolve, 2 ** retryCount * 100))
             }
           }
         }

@@ -61,6 +61,8 @@ export const useTransactionStatus = <T extends GenericFunction>(
       hash: txDetails?.txHash,
       blockHash: txDetails?.blockHash,
       blockNumber: txDetails?.blockNumber,
+      callData: txDetails?.callData,
+      callHash: txDetails?.callHash,
     }))
   }, [])
 

@@ -20,7 +20,7 @@ import type { ConnectionResponse } from '@/lib/ledger/types'
 import { InternalError, withErrorHandling } from '@/lib/utils'
 import { getBip44Path } from '@/lib/utils/address'
 import { getAccountTransferableBalance } from '@/lib/utils/balance'
-import type { BN } from '@polkadot/util'
+import { BN } from '@polkadot/util'
 import { type AppConfig, type AppId, appsConfigs } from 'config/apps'
 import { maxAddressesToFetch } from 'config/config'
 import { InternalErrorType } from 'config/errors'
@@ -612,6 +612,131 @@ export const ledgerClient = {
     } catch {
       return false
     }
+  },
+
+  async signMultisigTransferTx(
+    appId: AppId,
+    account: MultisigAddress,
+    recipient: string,
+    signer: string,
+    transferAmount: string,
+    updateTxStatus: UpdateTransactionStatus
+  ) {
+    const appConfig = appsConfigs.get(appId)
+    if (!appConfig?.rpcEndpoint) {
+      throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
+    }
+
+    const multisigInfo = account
+    const signerMember = multisigInfo.members.find(m => m.address === signer && m.internal)
+    if (!signerMember) {
+      throw new InternalError(InternalErrorType.NO_SIGNATORY_ADDRESS)
+    }
+    
+    // We need the signer's derivation path to sign with Ledger
+    // The path is only available for the member that matches the synchronized address
+    if (!signerMember.path) {
+      // This is a current limitation - we only have the path for the address
+      // that was used to discover this multisig account
+      throw new InternalError(InternalErrorType.GET_ADDRESS_ERROR)
+    }
+    const signerPath = signerMember.path
+
+    return withErrorHandling(
+      async () => {
+        console.log('[signMultisigTransferTx] Starting with:', {
+          recipient,
+          signer,
+          transferAmount,
+          signerPath,
+          multisigAddress: multisigInfo.address,
+          threshold: multisigInfo.threshold,
+          members: multisigInfo.members.map(m => m.address)
+        })
+        
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        if (!api) {
+          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
+        }
+
+        updateTxStatus(TransactionStatus.PREPARING_TX)
+
+        // Create the transfer call
+        const transferCall = api.tx.balances.transferKeepAlive(recipient, new BN(transferAmount))
+        const callHash = transferCall.method.hash.toHex()
+        const callData = transferCall.method.toHex()
+
+        console.log('[signMultisigTransferTx] Transfer details:', {
+          callHash,
+          callData,
+          amount: transferAmount,
+          recipient,
+        })
+
+        // Prepare the multisig transaction (it will check for existing approvals internally)
+        console.log('[signMultisigTransferTx] Preparing approveAsMulti transaction...')
+        const multiTx = await prepareApproveAsMultiTx(
+          signer,
+          multisigInfo.address,
+          multisigInfo.members.map(m => m.address),
+          multisigInfo.threshold,
+          callHash,
+          api
+        )
+        console.log('[signMultisigTransferTx] approveAsMulti prepared successfully')
+
+        console.log('[signMultisigTransferTx] Preparing transaction payload...')
+        let preparedTx
+        try {
+          preparedTx = await prepareTransactionPayload(api, signer, appConfig, multiTx)
+          if (!preparedTx) {
+            console.error('[signMultisigTransferTx] prepareTransactionPayload returned null/undefined')
+            throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
+          }
+        } catch (payloadError) {
+          console.error('[signMultisigTransferTx] Error in prepareTransactionPayload:', payloadError)
+          throw payloadError
+        }
+        const { transfer, payload, metadataHash, nonce, proof1, payloadBytes } = preparedTx
+
+        // Get chain ID from app config
+        const chainId = appConfig.token.symbol.toLowerCase()
+        
+        // Check if this is the first approval to determine if we should return callData
+        const existingApprovals = await api.query.multisig.multisigs(multisigInfo.address, callHash)
+        const isFirstApproval = existingApprovals.isNone
+
+        updateTxStatus(TransactionStatus.SIGNING, undefined, {
+          callData: isFirstApproval ? callData : undefined,
+          callHash: callHash,
+        })
+
+        // Sign transaction with Ledger
+        const { signature } = await ledgerService.signTransaction(signerPath, payloadBytes, chainId, proof1)
+        if (!signature) {
+          throw new InternalError(InternalErrorType.SIGN_TX_ERROR)
+        }
+
+        // Create signed extrinsic
+        createSignedExtrinsic(api, transfer, signer, signature, payload, nonce, metadataHash)
+
+        updateTxStatus(TransactionStatus.SUBMITTING, undefined, {
+          callData: isFirstApproval ? callData : undefined,
+          callHash: callHash,
+        })
+
+        // Create and wait for transaction to be submitted
+        await submitAndHandleTransaction(transfer, updateTxStatus, api)
+      },
+      {
+        errorCode: InternalErrorType.MULTISIG_TRANSFER_ERROR,
+        operation: 'signMultisigTransferTx',
+        context: { appId, account, recipient, signer, transferAmount },
+        onError: (error) => {
+          console.error('[signMultisigTransferTx] Error details:', error)
+        }
+      }
+    )
   },
 
   async removeProxies(appId: AppId, address: string, path: string, updateTxStatus: UpdateTransactionStatus) {
