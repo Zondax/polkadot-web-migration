@@ -221,6 +221,7 @@ export interface Reserved {
   identity?: { deposit: BN }
   multisig?: { total: BN; deposits: { callHash: string; deposit: BN }[] }
   index?: { deposit: BN }
+  governance?: { total: BN; locks: GovernanceLock[] }
 }
 
 /**
@@ -286,4 +287,70 @@ export interface MigratingItem {
 export interface PreTxInfo {
   fee: BN
   callHash: string
+}
+
+/**
+ * Conviction voting types for OpenGov functionality
+ */
+
+// Vote states for casting votes
+export interface CastingVote {
+  vote: {
+    aye: boolean
+    conviction: number
+  }
+  balance: BN
+  referendum: number
+}
+
+export interface CastingVotes {
+  votes: CastingVote[]
+  prior?: {
+    unlockAt: number
+    amount: BN
+  }
+}
+
+// Delegation state
+export interface VotingDelegation {
+  balance: BN
+  target: string
+  conviction: number
+  delegations: {
+    votes: BN
+    capital: BN
+  }
+  prior?: {
+    unlockAt: number
+    amount: BN
+  }
+}
+
+// Main voting state - can be either casting or delegation
+export interface VotingState {
+  trackId: number
+  voting: CastingVotes | VotingDelegation
+  isDelegation: boolean
+}
+
+// Governance lock information
+export interface GovernanceLock {
+  trackId: number
+  amount: BN
+  endBlock?: number
+  lockPeriod?: number
+  unlockAt?: number
+  canUnlock: boolean
+  type: 'vote' | 'delegation'
+  referendumId?: number
+  isOngoing?: boolean
+}
+
+// Conviction voting information for an address
+export interface ConvictionVotingInfo {
+  locks: GovernanceLock[]
+  totalLocked: BN
+  canRemoveVotes: number // number of ongoing referenda votes that can be removed
+  canUndelegate: boolean
+  canUnlock: number // number of expired locks that can be unlocked
 }

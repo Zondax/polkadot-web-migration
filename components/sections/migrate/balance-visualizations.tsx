@@ -2,7 +2,7 @@
 
 import { BN } from '@polkadot/util'
 import { LockClosedIcon } from '@radix-ui/react-icons'
-import { ArrowRightLeftIcon, BarChartIcon, Check, ClockIcon, Group, Hash, LockOpenIcon, User, UserCog } from 'lucide-react'
+import { ArrowRightLeftIcon, BarChartIcon, Check, ClockIcon, Group, Hash, LockOpenIcon, User, UserCog, Users, Vote } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { Badge } from '@/components/ui/badge'
@@ -152,6 +152,36 @@ const ReservedDetails = ({ reservedData, token }: { reservedData: Reserved; toke
                   Call Hash:
                 </span>
                 <ExplorerLink value={deposit.callHash} disableLink disableTooltip truncate size="xs" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {reservedData.governance?.total.gtn(0) && (
+        <div className="flex flex-col gap-1">
+          {renderDetailsItem(
+            <Vote className="w-4 h-4 text-purple-500" />,
+            'Governance Locks',
+            reservedData.governance.total,
+            token
+          )}
+          <div className="flex flex-col gap-1 px-1">
+            {reservedData.governance.locks.map((lock, index) => (
+              <div key={index} className={`${detailFlagStyle} bg-purple-500/20`}>
+                <span className="flex items-center gap-1.5">
+                  {lock.type === 'vote' ? (
+                    <Vote className="w-3.5 h-3.5 text-purple-600" />
+                  ) : (
+                    <Users className="w-3.5 h-3.5 text-blue-600" />
+                  )}
+                  {lock.type === 'vote' 
+                    ? (lock.referendumId !== undefined ? `Ref #${lock.referendumId}` : `Track ${lock.trackId}`)
+                    : `Delegation Track ${lock.trackId}`}
+                  {lock.isOngoing && <span className="text-orange-500">• Ongoing</span>}
+                  {lock.canUnlock && <span className="text-green-500">• Ready</span>}
+                </span>
+                <span className="font-mono font-medium">{formatBalance(lock.amount, token, token.decimals, true)}</span>
               </div>
             ))}
           </div>
