@@ -23,6 +23,8 @@ function TransactionStatusBody({
 }: Transaction & { appId?: AppId; callHash?: string }) {
   if (!status) return null
 
+  console.log('[TransactionStatusBody] Rendering with props:', { status, callData, callHash, txHash })
+
   // Collect transaction details only if they exist, and filter out undefined values for cleaner display
   const details: { label: string; value: string; type?: ExplorerItemType }[] = [
     { label: 'Transaction Hash', value: txHash, type: ExplorerItemType.Transaction },

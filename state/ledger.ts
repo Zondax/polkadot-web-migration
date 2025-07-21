@@ -822,12 +822,20 @@ export const ledgerState$ = observable({
     updateTxStatus: UpdateTransactionStatus
   ) {
     try {
+      console.log('[ledgerState$.approveMultisigCall] Starting with:', {
+        appId,
+        accountAddress: account.address,
+        formBody,
+        isFinalApproval: formBody.isFinalApprovalWithCall
+      })
+      
       if (formBody.isFinalApprovalWithCall) {
-        await ledgerClient.signAsMultiTx(appId, account, formBody.callHash, formBody.callData, formBody.signer, updateTxStatus)
+        await ledgerClient.signAsMultiTx(appId, account, formBody.callHash, formBody.callData, formBody.signer, formBody.nestedSigner, updateTxStatus)
       } else {
-        await ledgerClient.signApproveAsMultiTx(appId, account, formBody.callHash, formBody.signer, updateTxStatus)
+        await ledgerClient.signApproveAsMultiTx(appId, account, formBody.callHash, formBody.signer, formBody.nestedSigner, updateTxStatus)
       }
     } catch (error) {
+      console.error('[ledgerState$.approveMultisigCall] Error caught:', error)
       const internalError = interpretError(error, InternalErrorType.APPROVE_MULTISIG_CALL_ERROR)
       updateTxStatus(TransactionStatus.ERROR, internalError.description)
     }

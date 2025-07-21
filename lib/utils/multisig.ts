@@ -61,10 +61,36 @@ export async function validateCallData(appId: AppId, callDataValue: string, call
  * Returns the list of internal multisig members who have not yet approved the given pending call.
  *
  * @param pendingCall - The multisig call for which to check approvals
- * @param members - The list of all multisig members
- * @returns MultisigMember[] - Members who are internal and have not yet signed the call
+ * @param members - The list of all multisig members (can be enhanced)
+ * @returns Members who are internal and have not yet signed the call
  */
-export const getAvailableSigners = (pendingCall: MultisigCall, members: MultisigMember[]): MultisigMember[] => {
+export function getAvailableSigners<T extends MultisigMember>(pendingCall: MultisigCall, members: T[]): T[] {
   const existingApprovals = pendingCall.signatories
-  return members.filter(member => !existingApprovals?.includes(member.address) && member.internal)
+  
+  return members.filter(member => {
+    // Check if already approved
+    if (existingApprovals?.includes(member.address)) {
+      return false
+    }
+    
+    // If it's an enhanced member, check if it's a multisig with available signers
+    const enhanced = member as EnhancedMultisigMember
+    if (enhanced.isMultisig && enhanced.multisigData?.availableSigners?.length > 0) {
+      return true
+    }
+    
+    // Otherwise, must be internal
+    return member.internal
+  })
+}
+
+/**
+ * Enhanced multisig member with additional metadata
+ */
+export interface EnhancedMultisigMember extends MultisigMember {
+  isMultisig: boolean
+  multisigData?: {
+    threshold: number
+    availableSigners: MultisigMember[]
+  }
 }

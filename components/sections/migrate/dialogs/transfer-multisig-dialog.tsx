@@ -91,11 +91,6 @@ function TransferMultisigForm({
                   ))}
                 </SelectContent>
               </Select>
-              {form.watch('recipient') === form.watch('signer') && form.watch('recipient') && (
-                <div className="mt-1 text-xs text-red-500">
-                  Recipient and signer cannot be the same address
-                </div>
-              )}
             </div>
           )}
         />
@@ -224,7 +219,7 @@ function TransferMultisigDialogInner({ open, setOpen, token, appId, account }: T
   const recipient = form.watch('recipient')
   const signer = form.watch('signer')
   const isFormReadyForSubmission = Boolean(
-    recipient && signer && recipient !== signer && !Object.keys(form.formState.errors).length && availableSigners.length > 0
+    recipient && signer && !Object.keys(form.formState.errors).length && availableSigners.length > 0
   )
 
   return (

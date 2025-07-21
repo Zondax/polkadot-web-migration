@@ -2,6 +2,7 @@ import type { MultisigInfo } from '@/lib/account'
 import { hasBalance, InternalError, isMultisigAddress } from '@/lib/utils'
 import { type AppId, appsConfigs } from 'config/apps'
 import { InternalErrorType } from 'config/errors'
+import { ledgerState$ } from '@/state/ledger'
 import { AccountType, type Address, type AddressBalance, type MultisigAddress } from '../types/ledger'
 
 // Interface for the return value of validateMigrationParams
@@ -90,6 +91,11 @@ export interface ValidateApproveAsMultiResult {
   callHash: string
   signer: string
   signerPath: string
+  isNestedMultisig?: boolean
+  nestedMultisigData?: {
+    members: string[]
+    threshold: number
+  }
 }
 
 // Basic validation for signApproveAsMultiTx
@@ -97,7 +103,8 @@ export const validateApproveAsMultiParams = (
   appId: AppId,
   account: MultisigAddress,
   callHash: string,
-  signer: string
+  signer: string,
+  nestedSigner?: string
 ): ValidateApproveAsMultiResult => {
   const multisigValidation = validateMultisigParams(account)
 
@@ -115,11 +122,60 @@ export const validateApproveAsMultiParams = (
   // Validate that the signer is internal (i.e., is a member of the multisig)
   const member = account.members?.find(member => member.address === signer)
   if (!member || !signer) {
+    console.error('[validateApproveAsMultiParams] Signer not found in members:', {
+      signer,
+      members: account.members?.map(m => m.address)
+    })
     throw new InternalError(InternalErrorType.NO_SIGNATORY_ADDRESS)
   }
 
-  const signerPath = member.path
+  console.log('[validateApproveAsMultiParams] Found member:', {
+    address: member.address,
+    hasPath: !!member.path,
+    path: member.path,
+    internal: member.internal
+  })
+
+  let signerPath = member.path
+  let actualSigner = signer
+  
+  let isNestedMultisig = false
+  let nestedMultisigData: { members: string[]; threshold: number } | undefined
+  
+  // If nested signer is provided, we need to find its path instead
+  if (nestedSigner) {
+    // Look up the nested multisig account
+    const apps = ledgerState$.apps.apps.get()
+    const app = apps.find(a => a.id === appId)
+    const nestedMultisig = app?.multisigAccounts?.find(ms => ms.address === signer)
+    
+    if (nestedMultisig) {
+      // Find the nested signer's path
+      const nestedMember = nestedMultisig.members.find(m => m.address === nestedSigner)
+      if (nestedMember?.path) {
+        signerPath = nestedMember.path
+        actualSigner = nestedSigner
+        isNestedMultisig = true
+        nestedMultisigData = {
+          members: nestedMultisig.members.map(m => m.address),
+          threshold: nestedMultisig.threshold
+        }
+      } else {
+        throw new InternalError(InternalErrorType.NO_SIGNATORY_ADDRESS)
+      }
+    } else {
+      // If the signer is not found as a multisig, something went wrong
+      throw new InternalError(InternalErrorType.NO_SIGNATORY_ADDRESS)
+    }
+  }
+  
   if (!signerPath) {
+    console.error('[validateApproveAsMultiParams] No signer path found:', {
+      signer: actualSigner,
+      memberHasPath: !!member.path,
+      nestedSigner,
+      isNestedMultisig
+    })
     throw new InternalError(InternalErrorType.NO_SIGNATORY_ADDRESS)
   }
 
@@ -128,8 +184,10 @@ export const validateApproveAsMultiParams = (
     appConfig,
     multisigInfo: multisigValidation.multisigInfo,
     callHash,
-    signer,
+    signer: actualSigner,
     signerPath,
+    isNestedMultisig,
+    nestedMultisigData,
   }
 }
 
@@ -142,10 +200,11 @@ export const validateAsMultiParams = (
   account: MultisigAddress,
   callHash: string,
   callData: string | undefined,
-  signer: string
+  signer: string,
+  nestedSigner?: string
 ): ValidateAsMultiParamsResult => {
   // Use the same validation as validateApproveAsMultiParams
-  const multisigValidation = validateApproveAsMultiParams(appId, account, callHash, signer)
+  const multisigValidation = validateApproveAsMultiParams(appId, account, callHash, signer, nestedSigner)
 
   const appConfig = appsConfigs.get(appId)
   if (!appConfig || !appConfig.rpcEndpoint) {
