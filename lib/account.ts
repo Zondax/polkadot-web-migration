@@ -28,6 +28,8 @@ import {
   type Address,
   type AddressBalance,
   BalanceType,
+  type ConvictionVotingInfo,
+  Conviction,
   type Collection,
   type IdentityInfo,
   type MultisigAddress,
@@ -260,6 +262,12 @@ export async function getNativeBalance(addressString: string, api: ApiPromise, a
       if (!frozenBN.isZero()) {
         const stakingInfo = await getStakingInfo(addressString, api, appId)
         nativeBalance.staking = stakingInfo
+      }
+
+      // Get conviction voting info if available
+      const convictionVotingInfo = await getConvictionVotingInfo(addressString, api)
+      if (convictionVotingInfo?.locked.gtn(0)) {
+        nativeBalance.convictionVoting = convictionVotingInfo
       }
 
       return nativeBalance
@@ -1864,4 +1872,386 @@ export async function getIndexInfo(address: string, api: ApiPromise): Promise<Ac
     console.error('Error fetching index information:', error)
     return undefined
   }
+}
+
+/**
+ * Gets conviction voting information for an address including votes and delegations
+ * @param address The address to query
+ * @param api The Polkadot API instance
+ * @returns Conviction voting info or undefined if not available
+ */
+export async function getConvictionVotingInfo(address: string, api: ApiPromise): Promise<ConvictionVotingInfo | undefined> {
+  try {
+    // Check if convictionVoting pallet is available
+    if (!api.query.convictionVoting?.votingFor) {
+      console.debug('ConvictionVoting pallet is not available on this chain')
+      return undefined
+    }
+
+    const convictionVotingInfo: ConvictionVotingInfo = {
+      votes: [],
+      delegations: [],
+      locked: new BN(0),
+      classLocks: [],
+    }
+
+    // Get voting info for all classes (tracks)
+    const tracks = api.consts.referenda?.tracks || []
+    
+    for (const [trackId] of tracks) {
+      const votingFor = await api.query.convictionVoting.votingFor(address, trackId)
+      
+      if (votingFor.isDelegating) {
+        const delegating = votingFor.asDelegating
+        convictionVotingInfo.delegations.push({
+          target: delegating.target.toString(),
+          conviction: delegating.conviction.toString() as Conviction,
+          balance: new BN(delegating.balance.toString()),
+          lockPeriod: delegating.prior ? delegating.prior[0].toNumber() : undefined,
+        })
+      } else if (votingFor.isCasting) {
+        const casting = votingFor.asCasting
+        for (const [refIndex, vote] of casting.votes) {
+          const voteData = vote.asStandard
+          convictionVotingInfo.votes.push({
+            referendumIndex: refIndex.toNumber(),
+            vote: {
+              aye: voteData.vote.isAye,
+              conviction: voteData.vote.conviction.toString() as Conviction,
+              balance: new BN(voteData.balance.toString()),
+            },
+          })
+        }
+      }
+    }
+
+    // Get class locks
+    const classLocksResult = await api.query.convictionVoting.classLocksFor(address)
+    for (const [classId, lockAmount] of classLocksResult) {
+      convictionVotingInfo.classLocks.push({
+        class: classId.toNumber(),
+        amount: new BN(lockAmount.toString()),
+      })
+      convictionVotingInfo.locked = convictionVotingInfo.locked.add(new BN(lockAmount.toString()))
+    }
+
+    return convictionVotingInfo
+  } catch (error) {
+    console.error('Error fetching conviction voting information:', error)
+    return undefined
+  }
+}
+
+/**
+ * Prepares a transaction to remove a vote from a referendum
+ * @param api The Polkadot API instance
+ * @param trackId The track/class ID
+ * @param referendumIndex The referendum index to remove vote from
+ * @returns The prepared transaction
+ */
+export async function prepareRemoveVoteTransaction(
+  api: ApiPromise,
+  trackId: number,
+  referendumIndex: number
+): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>> {
+  return api.tx.convictionVoting.removeVote(trackId, referendumIndex) as SubmittableExtrinsic<'promise', ISubmittableResult>
+}
+
+/**
+ * Prepares a transaction to undelegate voting power
+ * @param api The Polkadot API instance
+ * @param trackId The track/class ID to undelegate from
+ * @returns The prepared transaction
+ */
+export async function prepareUndelegateTransaction(
+  api: ApiPromise,
+  trackId: number
+): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>> {
+  return api.tx.convictionVoting.undelegate(trackId) as SubmittableExtrinsic<'promise', ISubmittableResult>
+}
+
+/**
+ * Prepares a transaction to unlock conviction-locked tokens
+ * @param api The Polkadot API instance
+ * @param address The address to unlock tokens for
+ * @param trackId The track/class ID to unlock
+ * @returns The prepared transaction
+ */
+export async function prepareUnlockConvictionTransaction(
+  api: ApiPromise,
+  address: string,
+  trackId: number
+): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>> {
+  return api.tx.convictionVoting.unlock(trackId, address) as SubmittableExtrinsic<'promise', ISubmittableResult>
+}
+
+/**
+ * Get detailed information about all governance activity for an address
+ * @param address The address to check
+ * @param api The Polkadot API instance
+ * @returns Detailed governance activity including votes and delegations
+ */
+export async function getGovernanceActivity(address: string, api: ApiPromise): Promise<{
+  votes: Array<{
+    trackId: number
+    referendumIndex: number
+    vote: {
+      aye: boolean
+      conviction: Conviction
+      balance: BN
+    }
+    referendumStatus: 'ongoing' | 'finished'
+    canRemoveVote: boolean
+    unlockAt?: number
+  }>
+  delegations: Array<{
+    trackId: number
+    target: string
+    conviction: Conviction
+    balance: BN
+    canUndelegate: boolean
+    unlockAt?: number
+  }>
+  totalLocked: BN
+  unlockableAmount: BN
+}> {
+  try {
+    if (!api.query.convictionVoting?.votingFor || !api.query.referenda?.referendumInfoFor) {
+      throw new InternalError(InternalErrorType.GET_CONVICTION_VOTING_INFO_ERROR)
+    }
+
+    const result = {
+      votes: [] as any[],
+      delegations: [] as any[],
+      totalLocked: new BN(0),
+      unlockableAmount: new BN(0),
+    }
+
+    // Get current block number
+    const currentBlock = await api.query.system.number()
+    const currentBlockNumber = currentBlock.toNumber()
+
+    // Get voting info for all tracks
+    const tracks = api.consts.referenda?.tracks || []
+    
+    for (const [trackId] of tracks as any) {
+      const votingFor = await api.query.convictionVoting.votingFor(address, trackId)
+      
+      if ((votingFor as any).isDelegating) {
+        const delegating = (votingFor as any).asDelegating
+        const prior = delegating.prior
+        
+        // Calculate unlock block if delegation has prior lock
+        let unlockAt: number | undefined
+        if (prior?.[0]) {
+          const lockPeriods = prior[0].toNumber()
+          unlockAt = currentBlockNumber + lockPeriods
+        }
+        
+        result.delegations.push({
+          trackId: trackId.toNumber(),
+          target: delegating.target.toString(),
+          conviction: delegating.conviction.toString() as Conviction,
+          balance: new BN(delegating.balance.toString()),
+          canUndelegate: true, // Can always undelegate
+          unlockAt,
+        })
+      } else if ((votingFor as any).isCasting) {
+        const casting = (votingFor as any).asCasting
+        
+        for (const [refIndex, vote] of casting.votes) {
+          const referendumIndex = refIndex.toNumber()
+          
+          // Check referendum status
+          const referendumInfo = await api.query.referenda.referendumInfoFor(referendumIndex)
+          const isOngoing = (referendumInfo as any).isSome && (referendumInfo as any).unwrap().isOngoing
+          
+          const voteData = vote.asStandard
+          const conviction = voteData.vote.conviction.toString() as Conviction
+          
+          // Calculate unlock block based on conviction
+          const convictionLockPeriods = getConvictionLockPeriods(conviction)
+          let unlockAt: number | undefined
+          
+          if (!isOngoing && convictionLockPeriods > 0) {
+            // For finished referenda, calculate when tokens can be unlocked
+            const enactmentPeriod = (api.consts.referenda?.undecidingTimeout as any)?.toNumber() || 28800 // Default ~28 days at 6s blocks
+            unlockAt = currentBlockNumber + (convictionLockPeriods * enactmentPeriod)
+          }
+          
+          result.votes.push({
+            trackId: trackId.toNumber(),
+            referendumIndex,
+            vote: {
+              aye: voteData.vote.isAye,
+              conviction,
+              balance: new BN(voteData.balance.toString()),
+            },
+            referendumStatus: isOngoing ? 'ongoing' : 'finished',
+            canRemoveVote: isOngoing, // Can only remove vote if referendum is ongoing
+            unlockAt,
+          })
+        }
+      }
+    }
+
+    // Get class locks to determine total locked and unlockable amounts
+    const classLocksResult = await api.query.convictionVoting.classLocksFor(address)
+    for (const [classId, lockAmount] of classLocksResult as any) {
+      const amount = new BN(lockAmount.toString())
+      result.totalLocked = result.totalLocked.add(amount)
+      
+      // Check if this class can be unlocked
+      const trackId = classId.toNumber()
+      const votingFor = await api.query.convictionVoting.votingFor(address, trackId)
+      
+      // Can unlock if not voting or delegating on this track
+      if (!(votingFor as any).isCasting && !(votingFor as any).isDelegating) {
+        result.unlockableAmount = result.unlockableAmount.add(amount)
+      }
+    }
+
+    return result
+  } catch (error) {
+    console.error('Error fetching governance activity:', error)
+    throw new InternalError(InternalErrorType.GET_CONVICTION_VOTING_INFO_ERROR)
+  }
+}
+
+/**
+ * Get conviction lock periods based on conviction level
+ * @param conviction The conviction level
+ * @returns Number of enactment periods for the lock
+ */
+function getConvictionLockPeriods(conviction: Conviction): number {
+  const lockPeriods: Record<Conviction, number> = {
+    [Conviction.None]: 0,
+    [Conviction.Locked1x]: 1,
+    [Conviction.Locked2x]: 2,
+    [Conviction.Locked3x]: 4,
+    [Conviction.Locked4x]: 8,
+    [Conviction.Locked5x]: 16,
+    [Conviction.Locked6x]: 32,
+  }
+  return lockPeriods[conviction] || 0
+}
+
+/**
+ * Check if a referendum is still ongoing
+ * @param api The Polkadot API instance
+ * @param referendumIndex The referendum index to check
+ * @returns True if the referendum is ongoing
+ */
+export async function isReferendumOngoing(api: ApiPromise, referendumIndex: number): Promise<boolean> {
+  try {
+    const referendumInfo = await api.query.referenda.referendumInfoFor(referendumIndex)
+    return (referendumInfo as any).isSome && (referendumInfo as any).unwrap().isOngoing
+  } catch (error) {
+    console.error('Error checking referendum status:', error)
+    return false
+  }
+}
+
+/**
+ * Get all tracks where the address has delegations
+ * @param address The address to check
+ * @param api The Polkadot API instance
+ * @returns Array of track IDs with active delegations
+ */
+export async function getDelegationTracks(address: string, api: ApiPromise): Promise<number[]> {
+  try {
+    if (!api.query.convictionVoting?.votingFor) {
+      return []
+    }
+
+    const delegationTracks: number[] = []
+    const tracks = api.consts.referenda?.tracks || []
+    
+    for (const [trackId] of tracks as any) {
+      const votingFor = await api.query.convictionVoting.votingFor(address, trackId)
+      if ((votingFor as any).isDelegating) {
+        delegationTracks.push(trackId.toNumber())
+      }
+    }
+    
+    return delegationTracks
+  } catch (error) {
+    console.error('Error fetching delegation tracks:', error)
+    return []
+  }
+}
+
+/**
+ * Get all tracks where the address has votes
+ * @param address The address to check
+ * @param api The Polkadot API instance
+ * @returns Array of track IDs with active votes
+ */
+export async function getVotingTracks(address: string, api: ApiPromise): Promise<number[]> {
+  try {
+    if (!api.query.convictionVoting?.votingFor) {
+      return []
+    }
+
+    const votingTracks: number[] = []
+    const tracks = api.consts.referenda?.tracks || []
+    
+    for (const [trackId] of tracks as any) {
+      const votingFor = await api.query.convictionVoting.votingFor(address, trackId)
+      if ((votingFor as any).isCasting && (votingFor as any).asCasting.votes.length > 0) {
+        votingTracks.push(trackId.toNumber())
+      }
+    }
+    
+    return votingTracks
+  } catch (error) {
+    console.error('Error fetching voting tracks:', error)
+    return []
+  }
+}
+
+/**
+ * Prepare batch transaction to remove multiple votes
+ * @param api The Polkadot API instance
+ * @param votes Array of {trackId, referendumIndex} to remove votes from
+ * @returns The prepared batch transaction
+ */
+export async function prepareBatchRemoveVotesTransaction(
+  api: ApiPromise,
+  votes: Array<{ trackId: number; referendumIndex: number }>
+): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>> {
+  const calls = votes.map(({ trackId, referendumIndex }) =>
+    api.tx.convictionVoting.removeVote(trackId, referendumIndex)
+  )
+  return api.tx.utility.batchAll(calls) as SubmittableExtrinsic<'promise', ISubmittableResult>
+}
+
+/**
+ * Prepare batch transaction to undelegate from multiple tracks
+ * @param api The Polkadot API instance
+ * @param trackIds Array of track IDs to undelegate from
+ * @returns The prepared batch transaction
+ */
+export async function prepareBatchUndelegateTransaction(
+  api: ApiPromise,
+  trackIds: number[]
+): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>> {
+  const calls = trackIds.map((trackId) => api.tx.convictionVoting.undelegate(trackId))
+  return api.tx.utility.batchAll(calls) as SubmittableExtrinsic<'promise', ISubmittableResult>
+}
+
+/**
+ * Prepare batch transaction to unlock tokens from multiple tracks
+ * @param api The Polkadot API instance
+ * @param address The address to unlock tokens for
+ * @param trackIds Array of track IDs to unlock
+ * @returns The prepared batch transaction
+ */
+export async function prepareBatchUnlockTransaction(
+  api: ApiPromise,
+  address: string,
+  trackIds: number[]
+): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>> {
+  const calls = trackIds.map((trackId) => api.tx.convictionVoting.unlock(trackId, address))
+  return api.tx.utility.batchAll(calls) as SubmittableExtrinsic<'promise', ISubmittableResult>
 }

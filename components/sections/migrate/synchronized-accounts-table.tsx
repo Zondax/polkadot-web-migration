@@ -33,7 +33,7 @@ function SynchronizedAccountsTable({
     if (!accounts || accounts.length === 0) {
       return (
         <TableRow>
-          <TableCell colSpan={7} className="text-center text-muted-foreground">
+          <TableCell colSpan={8} className="text-center text-muted-foreground">
             There are no accounts available for migration in this network. Please check your Ledger device for accounts with a balance to
             migrate.
           </TableCell>
@@ -99,6 +99,7 @@ function SynchronizedAccountsTable({
             <TableHead className="text-right">Transferable</TableHead>
             <TableHead className="text-right">Staked</TableHead>
             <TableHead className="text-right">Reserved</TableHead>
+            <TableHead className="text-right">Governance</TableHead>
             <TableHead className="w-[100px]">Actions</TableHead>
           </TableRow>
         </TableHeader>

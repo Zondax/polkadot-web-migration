@@ -15,6 +15,7 @@ export enum BalanceType {
   Transferable = 'transferable',
   Staking = 'staking',
   Reserved = 'reserved',
+  Governance = 'governance',
 }
 
 interface NativeBalanceVisualizationProps {

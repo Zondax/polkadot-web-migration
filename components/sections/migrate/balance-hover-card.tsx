@@ -104,6 +104,8 @@ const NativeBalanceHoverCard = ({ balance, token, type }: NativeBalanceHoverCard
         return balance.reserved?.total
       case BalanceType.Transferable:
         return balance.transferable
+      case BalanceType.Governance:
+        return balance.convictionVoting?.locked
       default:
         return undefined
     }
