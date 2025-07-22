@@ -18,6 +18,7 @@ import {
   User,
   UserCog,
   Users,
+  Vote,
 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import type { Collections } from 'state/ledger'
@@ -46,6 +47,7 @@ import RemoveIdentityDialog from './dialogs/remove-identity-dialog'
 import RemoveProxyDialog from './dialogs/remove-proxy-dialog'
 import UnstakeDialog from './dialogs/unstake-dialog'
 import WithdrawDialog from './dialogs/withdraw-dialog'
+import GovernanceUnlockDialog from './dialogs/governance-unlock-dialog'
 
 // Component for rendering a single synchronized account row
 interface AccountBalanceRowProps {
@@ -92,6 +94,8 @@ const SynchronizedAccountRow = ({
   const [approveMultisigCallOpen, setApproveMultisigCallOpen] = useState<boolean>(false)
   const [removeProxyOpen, setRemoveProxyOpen] = useState<boolean>(false)
   const [removeAccountIndexOpen, setRemoveAccountIndexOpen] = useState<boolean>(false)
+  const [governanceUnlockOpen, setGovernanceUnlockOpen] = useState<boolean>(false)
+  const [governanceActivity, setGovernanceActivity] = useState<any>(null)
   const isNoBalance: boolean = balance === undefined
   const isFirst: boolean = balanceIndex === 0 || isNoBalance
   const isNative = isNativeBalance(balance)
@@ -268,6 +272,24 @@ const SynchronizedAccountRow = ({
       onClick: () => setRemoveProxyOpen(true),
       disabled: false,
       icon: <Trash2 className="h-4 w-4" />,
+    })
+  }
+
+  // Add governance unlock action if there are conviction locks
+  const hasGovernanceLocks = isNative && balance?.balance.convictionVoting?.locked?.gt(new BN(0))
+  if (hasGovernanceLocks) {
+    actions.push({
+      label: 'Gov Unlock',
+      tooltip: 'Manage governance locks and unlock conviction-locked tokens',
+      onClick: async () => {
+        // Fetch governance activity when opening dialog
+        const { ledgerState$ } = await import('@/state/ledger')
+        const activity = await ledgerState$.getGovernanceActivity(appId, account.address)
+        setGovernanceActivity(activity)
+        setGovernanceUnlockOpen(true)
+      },
+      disabled: false,
+      icon: <Vote className="h-4 w-4" />,
     })
   }
 
@@ -602,6 +624,14 @@ const SynchronizedAccountRow = ({
           '-'
         )}
       </TableCell>
+      {/* Governance */}
+      <TableCell className="py-2 text-sm text-right w-1/4">
+        {isNative && balance?.balance.convictionVoting?.locked?.gt(new BN(0)) ? (
+          <NativeBalanceHoverCard balance={balance.balance} token={token} type={BalanceType.Governance} />
+        ) : (
+          '-'
+        )}
+      </TableCell>
       {/* Actions */}
       <TableCell>
         <div className="flex gap-2 justify-end items-center">
@@ -677,6 +707,16 @@ const SynchronizedAccountRow = ({
         appId={appId}
         transferableBalance={transferableBalance}
       />
+      {governanceActivity && (
+        <GovernanceUnlockDialog
+          open={governanceUnlockOpen}
+          setOpen={setGovernanceUnlockOpen}
+          account={account}
+          appId={appId}
+          token={token}
+          governanceActivity={governanceActivity}
+        />
+      )}
     </TableRow>
   )
 }

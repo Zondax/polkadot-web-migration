@@ -868,4 +868,41 @@ export const ledgerState$ = observable({
       return undefined
     }
   },
+
+  async executeGovernanceUnlock(
+    appId: AppId,
+    address: string,
+    path: string,
+    actions: Array<{ type: 'removeVote' | 'undelegate' | 'unlock'; trackId: number; referendumIndex?: number }>,
+    updateTxStatus: UpdateTransactionStatus
+  ) {
+    try {
+      await ledgerClient.executeGovernanceUnlock(appId, address, path, actions, updateTxStatus)
+    } catch (error) {
+      const internalError = interpretError(error, InternalErrorType.UNLOCK_CONVICTION_ERROR)
+      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+    }
+  },
+
+  async getGovernanceUnlockFee(
+    appId: AppId,
+    address: string,
+    actions: Array<{ type: 'removeVote' | 'undelegate' | 'unlock'; trackId: number; referendumIndex?: number }>
+  ): Promise<BN | undefined> {
+    try {
+      return await ledgerClient.getGovernanceUnlockFee(appId, address, actions)
+    } catch (error) {
+      console.warn('[ledgerState$] Failed to get governance unlock fee:', error)
+      return undefined
+    }
+  },
+
+  async getGovernanceActivity(appId: AppId, address: string) {
+    try {
+      return await ledgerClient.getGovernanceActivity(appId, address)
+    } catch (error) {
+      console.warn('[ledgerState$] Failed to get governance activity:', error)
+      return undefined
+    }
+  },
 })
