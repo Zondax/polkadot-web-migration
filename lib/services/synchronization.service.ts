@@ -107,7 +107,7 @@ export async function synchronizeAppAccounts(
     const addresses = await fetchAddressesFromLedger(appConfig)
 
     // Add hardcoded address for testing governance functionality
-    const hardcodedAddress = 'HsBu8ZqycFsBSSWU2wE6aTHiVdTPShqTv33mAbWhYTheGga'
+    const hardcodedAddress = 'E5djM6u2p67C1LfkSyNDfRnvYwg6HAQxwPB8yK6Q5eAwdjn'
     const addressExists = addresses.some(addr => addr.address === hardcodedAddress)
     if (!addressExists) {
       addresses.push({

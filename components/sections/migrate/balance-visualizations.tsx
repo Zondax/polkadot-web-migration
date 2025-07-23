@@ -7,7 +7,8 @@ import type { ReactNode } from 'react'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import type { Token } from '@/config/apps'
+import type { AppId, Token } from '@/config/apps'
+import { ExplorerItemType } from '@/config/explorers'
 import { formatBalance } from '@/lib/utils'
 import type { ConvictionVotingInfo, Native, Reserved, Staking } from '@/state/types/ledger'
 
@@ -21,6 +22,7 @@ export enum BalanceType {
 interface NativeBalanceVisualizationProps {
   data: Native
   token: Token
+  appId: AppId
   types?: BalanceType[]
   hidePercentage?: boolean
 }
@@ -98,7 +100,7 @@ const StakingDetails = ({ stakingData, token }: { stakingData: Staking; token: T
         <div className="flex flex-col gap-1">
           {renderDetailsItem(<LockOpenIcon className="w-4 h-4 text-polkadot-cyan" />, 'Unlocking', unLockingBalance, token)}
 
-          <div className="flex flex-col gap-1 px-1">
+          <div className="flex flex-col gap-1 px-1 max-h-32 overflow-y-auto">
             {/* Staked balance ready to withdraw */}
             {readyToWithdraw.gtn(0) && (
               <div className={`${detailFlagStyle} bg-green-400/60`}>
@@ -145,7 +147,7 @@ const ReservedDetails = ({ reservedData, token }: { reservedData: Reserved; toke
             reservedData.multisig.total,
             token
           )}
-          <div className="flex flex-col gap-1 px-1">
+          <div className="flex flex-col gap-1 px-1 max-h-32 overflow-y-auto">
             {reservedData.multisig.deposits.map((deposit: { callHash: string; deposit: BN }) => (
               <div key={deposit.callHash} className={`${detailFlagStyle} bg-polkadot-lime/20`}>
                 <span className="flex items-center gap-1.5">
@@ -162,7 +164,7 @@ const ReservedDetails = ({ reservedData, token }: { reservedData: Reserved; toke
   )
 }
 
-const GovernanceDetails = ({ convictionVoting, token }: { convictionVoting: ConvictionVotingInfo; token: Token }) => {
+const GovernanceDetails = ({ convictionVoting, token, appId }: { convictionVoting: ConvictionVotingInfo; token: Token; appId: AppId }) => {
   if (!convictionVoting) return null;
   const { votes = [], delegations = [], locked, classLocks = [] } = convictionVoting;
   return (
@@ -172,14 +174,16 @@ const GovernanceDetails = ({ convictionVoting, token }: { convictionVoting: Conv
       {votes.length > 0 && (
         <div className="flex flex-col gap-1">
           <div className="font-semibold text-xs text-polkadot-magenta">Votes</div>
-          <div className="flex flex-col gap-1 px-1">
+          <div className="flex flex-col gap-1 px-1 max-h-48 overflow-y-auto">
             {votes.map((vote: any) => (
               <div key={vote.referendumIndex} className={`${detailFlagStyle} bg-polkadot-magenta/10`}>
                 <span className="flex items-center gap-1.5">
                   <Hash className="w-3.5 h-3.5 text-gray-600" />
                   Ref #{vote.referendumIndex}
+                  <Badge variant="outline" className="text-xs">
+                    {vote.vote.conviction}
+                  </Badge>
                   <span className="ml-2 text-xs">{vote.vote.aye ? 'Aye' : 'Nay'}</span>
-                  <span className="ml-2 text-xs">{vote.vote.conviction}</span>
                 </span>
                 <span className="font-mono font-medium">{formatBalance(vote.vote.balance, token, token?.decimals, true)}</span>
               </div>
@@ -190,32 +194,17 @@ const GovernanceDetails = ({ convictionVoting, token }: { convictionVoting: Conv
       {delegations.length > 0 && (
         <div className="flex flex-col gap-1">
           <div className="font-semibold text-xs text-polkadot-magenta">Delegations</div>
-          <div className="flex flex-col gap-1 px-1">
+          <div className="flex flex-col gap-1 px-1 max-h-48 overflow-y-auto">
             {delegations.map((delegation: any, i: number) => (
               <div key={i} className={`${detailFlagStyle} bg-polkadot-magenta/5`}>
                 <span className="flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5 text-gray-600" />
-                  {delegation.target}
-                  <span className="ml-2 text-xs">{delegation.conviction}</span>
+                  <ExplorerLink value={delegation.target} explorerLinkType={ExplorerItemType.Address} appId={appId} size="xs" truncate />
+                  <Badge variant="outline" className="text-xs">
+                    {delegation.conviction}
+                  </Badge>
                 </span>
                 <span className="font-mono font-medium">{formatBalance(delegation.balance, token, token?.decimals, true)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      {classLocks.length > 0 && (
-        <div className="flex flex-col gap-1">
-          <div className="font-semibold text-xs text-polkadot-magenta">Class Locks</div>
-          <div className="flex flex-col gap-1 px-1">
-            {classLocks.map((lock: any, i: number) => (
-              <div key={i} className={`${detailFlagStyle} bg-polkadot-magenta/20`}>
-                <span className="flex items-center gap-1.5">
-                  <LockClosedIcon className="w-3.5 h-3.5 text-gray-600" />
-                  Class {lock.class}
-                  {lock.unlockAt && <span className="ml-2 text-xs">Unlocks at {lock.unlockAt}</span>}
-                </span>
-                <span className="font-mono font-medium">{formatBalance(lock.amount, token, token?.decimals, true)}</span>
               </div>
             ))}
           </div>
@@ -228,6 +217,7 @@ const GovernanceDetails = ({ convictionVoting, token }: { convictionVoting: Conv
 export const NativeBalanceVisualization = ({
   data,
   token,
+  appId,
   types = [BalanceType.Transferable, BalanceType.Staking, BalanceType.Reserved, BalanceType.Governance],
   hidePercentage = false,
 }: NativeBalanceVisualizationProps) => {
@@ -289,7 +279,7 @@ export const NativeBalanceVisualization = ({
         badgeText: 'text-black font-semibold',
         badgeBorder: 'border-polkadot-magenta/30',
       },
-      details: data.convictionVoting && <GovernanceDetails convictionVoting={data.convictionVoting} token={token} />,
+      details: data.convictionVoting && <GovernanceDetails convictionVoting={data.convictionVoting} token={token} appId={appId} />,
     },
   ]
 

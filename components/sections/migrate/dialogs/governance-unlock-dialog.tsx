@@ -119,7 +119,7 @@ function GovernanceUnlockForm({
       {/* Actions */}
       <DialogField>
         <DialogLabel>Available Actions</DialogLabel>
-        <div className="w-full overflow-y-auto">
+        <div className="w-full max-h-96 overflow-y-auto border rounded-md p-4">
           <div className="space-y-4">
             {/* Ongoing Votes */}
             {hasOngoingVotes && (

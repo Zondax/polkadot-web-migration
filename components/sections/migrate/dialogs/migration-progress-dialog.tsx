@@ -106,7 +106,7 @@ export const MigrationProgressDialog = observer(function MigrationProgressDialog
                         <BalanceTypeFlag type={balance.type} />
                       </TableCell>
                       <TableCell>
-                        <BalanceHoverCard balances={[balance]} token={token} collections={collections} isMigration />
+                        <BalanceHoverCard balances={[balance]} token={token} collections={collections} appId={migratingItem.appId} isMigration />
                       </TableCell>
                       <TableCell>
                         {balance.transaction?.destinationAddress ? (

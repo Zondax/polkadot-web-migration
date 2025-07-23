@@ -1,13 +1,13 @@
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
-import type { Token } from '@/config/apps'
-import { formatBalance } from '@/lib/utils'
-import { isNativeBalance, isNftBalanceType, isUniqueBalanceType } from '@/lib/utils/balance'
-import { createNftBalances } from '@/lib/utils/nft'
-import type { AddressBalance, Native, Nft } from '@/state/types/ledger'
 import { BN } from '@polkadot/util'
 import { Info } from 'lucide-react'
 import { useMemo } from 'react'
 import type { Collections } from 'state/ledger'
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
+import type { AppId, Token } from '@/config/apps'
+import { formatBalance } from '@/lib/utils'
+import { isNativeBalance, isNftBalanceType, isUniqueBalanceType } from '@/lib/utils/balance'
+import { createNftBalances } from '@/lib/utils/nft'
+import type { AddressBalance, Native, Nft } from '@/state/types/ledger'
 import BalanceGallery from './balance-gallery'
 import { BalanceType, NativeBalanceVisualization } from './balance-visualizations'
 import NftCircles from './nft-circles'
@@ -16,6 +16,7 @@ interface BalanceHoverCardProps {
   balances: AddressBalance[]
   collections?: Collections
   token: Token
+  appId: AppId
   isMigration?: boolean // if true, only show transferable amount of native balance
 }
 
@@ -27,7 +28,7 @@ interface BalanceHoverCardProps {
  * - Supports both transferable and total balance display modes
  * - Handles multiple balance types (native, NFT, unique) in a single view
  */
-const BalanceHoverCard = ({ balances, collections, token, isMigration }: BalanceHoverCardProps) => {
+const BalanceHoverCard = ({ balances, collections, token, appId, isMigration }: BalanceHoverCardProps) => {
   const { nfts, uniques, native } = useMemo(() => {
     // Extract balance based on type
     let nfts: Nft[] | undefined
@@ -92,9 +93,10 @@ interface NativeBalanceHoverCardProps {
   balance?: Native
   token: Token
   type: BalanceType
+  appId: AppId
 }
 
-const NativeBalanceHoverCard = ({ balance, token, type }: NativeBalanceHoverCardProps) => {
+const NativeBalanceHoverCard = ({ balance, token, type, appId }: NativeBalanceHoverCardProps) => {
   const lockedBalance = useMemo(() => {
     if (!balance) return undefined
     switch (type) {
@@ -126,7 +128,7 @@ const NativeBalanceHoverCard = ({ balance, token, type }: NativeBalanceHoverCard
       </HoverCardTrigger>
       {hasLockedBalance && balance ? (
         <HoverCardContent className="w-[calc(100vw-32px)] sm:w-auto max-w-full p-0 ml-4 mr-0 sm:mx-0" align="end">
-          <NativeBalanceVisualization data={balance} token={token} types={[type]} hidePercentage />
+          <NativeBalanceVisualization data={balance} token={token} appId={appId} types={[type]} hidePercentage />
         </HoverCardContent>
       ) : null}
     </HoverCard>

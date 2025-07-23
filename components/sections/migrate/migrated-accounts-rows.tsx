@@ -127,7 +127,7 @@ const MigratedAccountRows = ({ app, multisigAddresses, destinationAddressesStatu
               <div key={balance.type}>
                 {balanceIndex !== 0 && <hr className="border-gray-200 my-0" />}
                 <div className="my-4 mx-8 h-8 flex items-center">
-                  <BalanceHoverCard balances={[balance]} collections={collections} token={app.token} isMigration />
+                  <BalanceHoverCard balances={[balance]} collections={collections} token={app.token} appId={app.id as AppId} isMigration />
                 </div>
               </div>
             ))}
