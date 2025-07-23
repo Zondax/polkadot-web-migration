@@ -68,7 +68,7 @@
     "@vercel/analytics": "^1.5.0",
     "@zondax/ledger-js": "^1.2.0",
     "@zondax/ledger-substrate": "^1.1.2",
-    "axios": "^1.10.0",
+    "axios": "^1.11.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.1",
