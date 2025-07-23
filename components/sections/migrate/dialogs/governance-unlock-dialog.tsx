@@ -1,7 +1,6 @@
 import type { BN } from '@polkadot/util'
 import { AlertCircle, Clock, Lock, Users, Vote } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import type { Address, TransactionDetails, TransactionStatus } from 'state/types/ledger'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
 import { Badge } from '@/components/ui/badge'
@@ -12,7 +11,7 @@ import { ExplorerItemType } from '@/config/explorers'
 import { formatBalance } from '@/lib/utils/format'
 import { getConvictionLockDescription } from '@/lib/utils/governance'
 import { ledgerState$ } from '@/state/ledger'
-import type { Conviction } from '@/state/types/ledger'
+import type { Address, Conviction, TransactionDetails, TransactionStatus } from '@/state/types/ledger'
 import { DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
@@ -347,7 +346,7 @@ export default function GovernanceUnlockDialog({ open, setOpen, account, appId, 
             closeDialog={closeDialog}
             signTransfer={executeGovernanceUnlock}
             isSignDisabled={selectedActions.length === 0 || Boolean(txStatus) || estimatedFeeLoading}
-            signLabel={selectedActions.length > 1 ? `Execute ${selectedActions.length} Actions` : 'Execute Action'}
+            mainButtonLabel={selectedActions.length > 1 ? `Execute ${selectedActions.length} Actions` : 'Execute Action'}
           />
         </DialogFooter>
       </DialogContent>
