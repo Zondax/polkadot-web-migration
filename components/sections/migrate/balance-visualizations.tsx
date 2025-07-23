@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import type { Token } from '@/config/apps'
 import { formatBalance } from '@/lib/utils'
-import type { Native, Reserved, Staking } from '@/state/types/ledger'
+import type { ConvictionVotingInfo, Native, Reserved, Staking } from '@/state/types/ledger'
 
 export enum BalanceType {
   Transferable = 'transferable',
@@ -162,10 +162,73 @@ const ReservedDetails = ({ reservedData, token }: { reservedData: Reserved; toke
   )
 }
 
+const GovernanceDetails = ({ convictionVoting, token }: { convictionVoting: ConvictionVotingInfo; token: Token }) => {
+  if (!convictionVoting) return null;
+  const { votes = [], delegations = [], locked, classLocks = [] } = convictionVoting;
+  return (
+    <div className="w-full text-sm border-t border-gray-100 pt-2 mb-2 flex flex-col gap-2">
+      {locked?.gtn(0) && renderDetailsItem(<LockClosedIcon className="w-4 h-4 text-polkadot-magenta" />, 'Locked', locked, token)}
+
+      {votes.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <div className="font-semibold text-xs text-polkadot-magenta">Votes</div>
+          <div className="flex flex-col gap-1 px-1">
+            {votes.map((vote: any) => (
+              <div key={vote.referendumIndex} className={`${detailFlagStyle} bg-polkadot-magenta/10`}>
+                <span className="flex items-center gap-1.5">
+                  <Hash className="w-3.5 h-3.5 text-gray-600" />
+                  Ref #{vote.referendumIndex}
+                  <span className="ml-2 text-xs">{vote.vote.aye ? 'Aye' : 'Nay'}</span>
+                  <span className="ml-2 text-xs">{vote.vote.conviction}</span>
+                </span>
+                <span className="font-mono font-medium">{formatBalance(vote.vote.balance, token, token?.decimals, true)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {delegations.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <div className="font-semibold text-xs text-polkadot-magenta">Delegations</div>
+          <div className="flex flex-col gap-1 px-1">
+            {delegations.map((delegation: any, i: number) => (
+              <div key={i} className={`${detailFlagStyle} bg-polkadot-magenta/5`}>
+                <span className="flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-gray-600" />
+                  {delegation.target}
+                  <span className="ml-2 text-xs">{delegation.conviction}</span>
+                </span>
+                <span className="font-mono font-medium">{formatBalance(delegation.balance, token, token?.decimals, true)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {classLocks.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <div className="font-semibold text-xs text-polkadot-magenta">Class Locks</div>
+          <div className="flex flex-col gap-1 px-1">
+            {classLocks.map((lock: any, i: number) => (
+              <div key={i} className={`${detailFlagStyle} bg-polkadot-magenta/20`}>
+                <span className="flex items-center gap-1.5">
+                  <LockClosedIcon className="w-3.5 h-3.5 text-gray-600" />
+                  Class {lock.class}
+                  {lock.unlockAt && <span className="ml-2 text-xs">Unlocks at {lock.unlockAt}</span>}
+                </span>
+                <span className="font-mono font-medium">{formatBalance(lock.amount, token, token?.decimals, true)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const NativeBalanceVisualization = ({
   data,
   token,
-  types = [BalanceType.Transferable, BalanceType.Staking, BalanceType.Reserved],
+  types = [BalanceType.Transferable, BalanceType.Staking, BalanceType.Reserved, BalanceType.Governance],
   hidePercentage = false,
 }: NativeBalanceVisualizationProps) => {
   const balanceTypes = [
@@ -212,6 +275,21 @@ export const NativeBalanceVisualization = ({
         badgeBorder: 'border-polkadot-lime/30',
       },
       details: <ReservedDetails reservedData={data.reserved} token={token} />,
+    },
+    {
+      id: BalanceType.Governance,
+      value: data.convictionVoting?.locked || new BN(0),
+      label: 'Governance',
+      icon: <Group className="w-6 h-6" />,
+      colorScheme: {
+        gradient: 'from-polkadot-magenta/5 to-polkadot-magenta/15',
+        border: 'border border-polkadot-magenta/20 hover:border-polkadot-magenta/40',
+        iconColor: 'text-polkadot-magenta',
+        badgeBg: 'bg-polkadot-magenta/70',
+        badgeText: 'text-black font-semibold',
+        badgeBorder: 'border-polkadot-magenta/30',
+      },
+      details: data.convictionVoting && <GovernanceDetails convictionVoting={data.convictionVoting} token={token} />,
     },
   ]
 

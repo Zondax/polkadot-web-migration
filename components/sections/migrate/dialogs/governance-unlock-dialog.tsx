@@ -1,21 +1,20 @@
-import { ledgerState$ } from '@/state/ledger'
+import type { BN } from '@polkadot/util'
+import { AlertCircle, Clock, Lock, Users, Vote } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { Address, TransactionDetails, TransactionStatus } from 'state/types/ledger'
-
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { AppId, Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { formatBalance } from '@/lib/utils/format'
 import { getConvictionLockDescription } from '@/lib/utils/governance'
-import type { BN } from '@polkadot/util'
-import { AlertCircle, Clock, Lock, Vote, Users } from 'lucide-react'
+import { ledgerState$ } from '@/state/ledger'
+import type { Conviction } from '@/state/types/ledger'
 import { DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
-import type { Conviction } from '@/state/types/ledger'
 
 interface GovernanceUnlockDialogProps {
   appId: AppId
@@ -78,7 +77,7 @@ function GovernanceUnlockForm({
     const exists = selectedActions.some(
       a => a.type === action.type && a.trackId === action.trackId && a.referendumIndex === action.referendumIndex
     )
-    
+
     if (exists) {
       setSelectedActions(
         selectedActions.filter(
@@ -102,7 +101,7 @@ function GovernanceUnlockForm({
         <DialogLabel>Source Address</DialogLabel>
         <ExplorerLink value={account.address} explorerLinkType={ExplorerItemType.Address} appId={appId} size="xs" />
       </DialogField>
-      
+
       {/* Network */}
       <DialogField>
         <DialogLabel>Network</DialogLabel>
@@ -121,7 +120,7 @@ function GovernanceUnlockForm({
       {/* Actions */}
       <DialogField>
         <DialogLabel>Available Actions</DialogLabel>
-        <div className="h-[300px] w-full rounded-md border p-4 overflow-y-auto">
+        <div className="w-full overflow-y-auto">
           <div className="space-y-4">
             {/* Ongoing Votes */}
             {hasOngoingVotes && (
@@ -141,18 +140,18 @@ function GovernanceUnlockForm({
                     const isSelected = selectedActions.some(
                       a => a.type === action.type && a.trackId === action.trackId && a.referendumIndex === action.referendumIndex
                     )
-                    
+
                     return (
-                      <div key={`vote-${vote.trackId}-${vote.referendumIndex}`} className="flex items-center space-x-3 p-2 rounded hover:bg-gray-50">
+                      <div
+                        key={`vote-${vote.trackId}-${vote.referendumIndex}`}
+                        className="flex items-center space-x-3 p-2 rounded hover:bg-gray-50"
+                      >
                         <Checkbox
                           checked={isSelected}
                           onCheckedChange={() => toggleAction(action)}
                           id={`vote-${vote.trackId}-${vote.referendumIndex}`}
                         />
-                        <label
-                          htmlFor={`vote-${vote.trackId}-${vote.referendumIndex}`}
-                          className="flex-1 cursor-pointer space-y-1"
-                        >
+                        <label htmlFor={`vote-${vote.trackId}-${vote.referendumIndex}`} className="flex-1 cursor-pointer space-y-1">
                           <div className="flex items-center gap-2">
                             <span className="text-sm">Referendum #{vote.referendumIndex}</span>
                             <Badge variant={vote.vote.aye ? 'default' : 'destructive'} className="text-xs">
@@ -162,9 +161,7 @@ function GovernanceUnlockForm({
                               {vote.vote.conviction}
                             </Badge>
                           </div>
-                          <div className="text-xs text-gray-500">
-                            {formatBalance(vote.vote.balance, token)} locked
-                          </div>
+                          <div className="text-xs text-gray-500">{formatBalance(vote.vote.balance, token)} locked</div>
                         </label>
                       </div>
                     )
@@ -184,21 +181,12 @@ function GovernanceUnlockForm({
                     type: 'undelegate',
                     trackId: delegation.trackId,
                   }
-                  const isSelected = selectedActions.some(
-                    a => a.type === action.type && a.trackId === action.trackId
-                  )
-                  
+                  const isSelected = selectedActions.some(a => a.type === action.type && a.trackId === action.trackId)
+
                   return (
                     <div key={`delegation-${delegation.trackId}`} className="flex items-center space-x-3 p-2 rounded hover:bg-gray-50">
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={() => toggleAction(action)}
-                        id={`delegation-${delegation.trackId}`}
-                      />
-                      <label
-                        htmlFor={`delegation-${delegation.trackId}`}
-                        className="flex-1 cursor-pointer space-y-1"
-                      >
+                      <Checkbox checked={isSelected} onCheckedChange={() => toggleAction(action)} id={`delegation-${delegation.trackId}`} />
+                      <label htmlFor={`delegation-${delegation.trackId}`} className="flex-1 cursor-pointer space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="text-sm">Track #{delegation.trackId}</span>
                           <Badge variant="outline" className="text-xs">
@@ -229,8 +217,8 @@ function GovernanceUnlockForm({
                   <div className="flex-1 text-sm text-orange-800">
                     <p className="font-medium">Votes on Finished Referenda</p>
                     <p className="text-xs mt-1">
-                      You have votes on {governanceActivity.votes.filter(v => v.referendumStatus === 'finished').length} finished
-                      referenda. These will be unlocked after their conviction lock periods expire.
+                      You have votes on {governanceActivity.votes.filter(v => v.referendumStatus === 'finished').length} finished referenda.
+                      These will be unlocked after their conviction lock periods expire.
                     </p>
                   </div>
                 </div>
@@ -245,9 +233,7 @@ function GovernanceUnlockForm({
                     <Lock className="w-4 h-4 text-green-600" />
                     <span className="text-sm font-medium text-green-800">Ready to Unlock</span>
                   </div>
-                  <span className="font-mono text-sm text-green-800">
-                    {formatBalance(governanceActivity.unlockableAmount, token)}
-                  </span>
+                  <span className="font-mono text-sm text-green-800">{formatBalance(governanceActivity.unlockableAmount, token)}</span>
                 </div>
               </div>
             )}
@@ -266,14 +252,7 @@ function GovernanceUnlockForm({
   )
 }
 
-export default function GovernanceUnlockDialog({
-  open,
-  setOpen,
-  account,
-  appId,
-  token,
-  governanceActivity,
-}: GovernanceUnlockDialogProps) {
+export default function GovernanceUnlockDialog({ open, setOpen, account, appId, token, governanceActivity }: GovernanceUnlockDialogProps) {
   const [selectedActions, setSelectedActions] = useState<SelectedAction[]>([])
 
   // Wrap governance unlock transaction
@@ -338,8 +317,8 @@ export default function GovernanceUnlockDialog({
         <DialogHeader>
           <DialogTitle>Manage Governance Locks</DialogTitle>
           <DialogDescription>
-            Review and manage your conviction-locked tokens from governance activities. You can remove votes from ongoing
-            referenda, undelegate voting power, and unlock tokens when their lock periods have expired.
+            Review and manage your conviction-locked tokens from governance activities. You can remove votes from ongoing referenda,
+            undelegate voting power, and unlock tokens when their lock periods have expired.
           </DialogDescription>
         </DialogHeader>
         <DialogBody>
