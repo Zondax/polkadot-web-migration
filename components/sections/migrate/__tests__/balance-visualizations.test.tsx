@@ -1,6 +1,6 @@
+import type { BN } from '@polkadot/util'
 import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { BN } from '@polkadot/util'
 import type { Native } from '@/state/types/ledger'
 import { TEST_AMOUNTS } from '@/tests/fixtures/balances'
 
@@ -68,7 +68,7 @@ vi.mock('@radix-ui/react-icons', () => ({
   LockClosedIcon: ({ className }: any) => <div data-testid="lock-closed-icon" className={className} />,
 }))
 
-import { NativeBalanceVisualization, BalanceType } from '../balance-visualizations'
+import { BalanceType, NativeBalanceVisualization } from '../balance-visualizations'
 
 describe('NativeBalanceVisualization component', () => {
   const mockToken = {

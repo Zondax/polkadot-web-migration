@@ -42,12 +42,12 @@ import { BalanceHoverCard, NativeBalanceHoverCard } from './balance-hover-card'
 import { BalanceType } from './balance-visualizations'
 import DestinationAddressSelect from './destination-address-select'
 import ApproveMultisigCallDialog from './dialogs/approve-multisig-call-dialog'
+import GovernanceUnlockDialog from './dialogs/governance-unlock-dialog'
 import RemoveAccountIndexDialog from './dialogs/remove-account-index-dialog'
 import RemoveIdentityDialog from './dialogs/remove-identity-dialog'
 import RemoveProxyDialog from './dialogs/remove-proxy-dialog'
 import UnstakeDialog from './dialogs/unstake-dialog'
 import WithdrawDialog from './dialogs/withdraw-dialog'
-import GovernanceUnlockDialog from './dialogs/governance-unlock-dialog'
 
 // Component for rendering a single synchronized account row
 interface AccountBalanceRowProps {
@@ -315,7 +315,7 @@ const SynchronizedAccountRow = ({
         <CustomTooltip tooltipBody={formatBalance(transferableBalance, token, token?.decimals, true)}>
           <span className="font-mono">{formatBalance(transferableBalance, token)}</span>
         </CustomTooltip>
-        {!isNative ? <BalanceHoverCard balances={balances} collections={collections} token={token} isMigration /> : null}
+        {!isNative ? <BalanceHoverCard balances={balances} collections={collections} token={token} appId={appId} isMigration /> : null}
       </div>
     )
   }
@@ -611,7 +611,7 @@ const SynchronizedAccountRow = ({
       {/* Staked */}
       <TableCell className="py-2 text-sm text-right w-1/4">
         {isNative && balance?.balance.staking?.total?.gt(new BN(0)) ? (
-          <NativeBalanceHoverCard balance={balance.balance} token={token} type={BalanceType.Staking} />
+          <NativeBalanceHoverCard balance={balance.balance} token={token} type={BalanceType.Staking} appId={appId} />
         ) : (
           '-'
         )}
@@ -619,7 +619,7 @@ const SynchronizedAccountRow = ({
       {/* Reserved */}
       <TableCell className="py-2 text-sm text-right w-1/4">
         {isNative && balance?.balance.reserved?.total?.gt(new BN(0)) ? (
-          <NativeBalanceHoverCard balance={balance.balance} token={token} type={BalanceType.Reserved} />
+          <NativeBalanceHoverCard balance={balance.balance} token={token} type={BalanceType.Reserved} appId={appId} />
         ) : (
           '-'
         )}
@@ -627,7 +627,7 @@ const SynchronizedAccountRow = ({
       {/* Governance */}
       <TableCell className="py-2 text-sm text-right w-1/4">
         {isNative && balance?.balance.convictionVoting?.locked?.gt(new BN(0)) ? (
-          <NativeBalanceHoverCard balance={balance.balance} token={token} type={BalanceType.Governance} />
+          <NativeBalanceHoverCard balance={balance.balance} token={token} type={BalanceType.Governance} appId={appId} />
         ) : (
           '-'
         )}

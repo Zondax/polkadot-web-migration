@@ -31,10 +31,9 @@ vi.mock('@/config/apps', async () => {
 })
 
 import { screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
-
-import MigratePage from '@/app/migrate/page'
 import { act } from 'react'
+import { describe, expect, it, vi } from 'vitest'
+import MigratePage from '@/app/migrate/page'
 import { mockGetBalance } from '../helpers/accounts'
 import { mockLedgerClientConnectDevice, mockLedgerClientSynchronizeAccounts } from '../helpers/ledgerClient'
 import { renderWithProviders } from '../helpers/renderWithProviders'

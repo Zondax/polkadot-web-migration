@@ -1,9 +1,9 @@
-import type { App } from '@/state/ledger'
-import type { Address, AddressBalance, MultisigAddress } from '@/state/types/ledger'
-import { BalanceType, TransactionStatus } from '@/state/types/ledger'
 import { BN } from '@polkadot/util'
 import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { App } from '@/state/ledger'
+import type { Address, AddressBalance, MultisigAddress } from '@/state/types/ledger'
+import { BalanceType, TransactionStatus } from '@/state/types/ledger'
 
 // Mock dependencies
 vi.mock('@/components/CustomTooltip', () => ({

@@ -46,21 +46,22 @@ export function calculateVotingPower(balance: BN, conviction: Conviction): BN {
  */
 export function getConvictionLockDescription(conviction: Conviction, enactmentPeriodDays = 28): string {
   const lockPeriods = CONVICTION_LOCK_PERIODS[conviction]
-  
+
   if (lockPeriods === 0) {
     return 'No lock period'
   }
-  
+
   const totalDays = lockPeriods * enactmentPeriodDays
-  
+
   if (totalDays < 30) {
     return `${totalDays} days`
-  }if (totalDays < 365) {
+  }
+  if (totalDays < 365) {
     const months = Math.round(totalDays / 30)
     return `~${months} month${months > 1 ? 's' : ''}`
   }
-    const years = Math.round(totalDays / 365)
-    return `~${years} year${years > 1 ? 's' : ''}`
+  const years = Math.round(totalDays / 365)
+  return `~${years} year${years > 1 ? 's' : ''}`
 }
 
 /**
@@ -80,7 +81,7 @@ export function isConvictionLockExpired(unlockAt: number, currentBlock: number):
  */
 export function groupVotesByTrack(votes: Array<{ referendumIndex: number; trackId?: number }>) {
   const votesByTrack = new Map<number, number[]>()
-  
+
   for (const vote of votes) {
     const trackId = vote.trackId || 0 // Default to track 0 if not specified
     if (!votesByTrack.has(trackId)) {
@@ -88,6 +89,6 @@ export function groupVotesByTrack(votes: Array<{ referendumIndex: number; trackI
     }
     votesByTrack.get(trackId)?.push(vote.referendumIndex)
   }
-  
+
   return votesByTrack
 }

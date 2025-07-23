@@ -1,3 +1,7 @@
+import { BN } from '@polkadot/util'
+import { type AppConfig, type AppId, appsConfigs } from 'config/apps'
+import { maxAddressesToFetch } from 'config/config'
+import { InternalErrorType } from 'config/errors'
 import {
   createSignedExtrinsic,
   getApiAndProvider,
@@ -20,10 +24,6 @@ import type { ConnectionResponse } from '@/lib/ledger/types'
 import { InternalError, withErrorHandling } from '@/lib/utils'
 import { getBip44Path } from '@/lib/utils/address'
 import { getAccountTransferableBalance } from '@/lib/utils/balance'
-import { BN } from '@polkadot/util'
-import { type AppConfig, type AppId, appsConfigs } from 'config/apps'
-import { maxAddressesToFetch } from 'config/config'
-import { InternalErrorType } from 'config/errors'
 
 import {
   type Address,
@@ -801,11 +801,9 @@ export const ledgerClient = {
           throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
 
-        const { 
-          prepareBatchRemoveVotesTransaction, 
-          prepareBatchUndelegateTransaction, 
-          prepareBatchUnlockTransaction 
-        } = await import('@/lib/account')
+        const { prepareBatchRemoveVotesTransaction, prepareBatchUndelegateTransaction, prepareBatchUnlockTransaction } = await import(
+          '@/lib/account'
+        )
 
         updateTxStatus(TransactionStatus.PREPARING_TX)
 
@@ -816,25 +814,35 @@ export const ledgerClient = {
 
         // Prepare batch transactions
         const calls = []
-        
+
         if (removeVotes.length > 0) {
           const validVotes = removeVotes.filter(v => v.referendumIndex !== undefined)
           if (validVotes.length > 0) {
-            const tx = await prepareBatchRemoveVotesTransaction(api, validVotes.map(v => ({
-              trackId: v.trackId,
-              referendumIndex: v.referendumIndex as number
-            })))
+            const tx = await prepareBatchRemoveVotesTransaction(
+              api,
+              validVotes.map(v => ({
+                trackId: v.trackId,
+                referendumIndex: v.referendumIndex as number,
+              }))
+            )
             calls.push(tx)
           }
         }
 
         if (undelegates.length > 0) {
-          const tx = await prepareBatchUndelegateTransaction(api, undelegates.map(u => u.trackId))
+          const tx = await prepareBatchUndelegateTransaction(
+            api,
+            undelegates.map(u => u.trackId)
+          )
           calls.push(tx)
         }
 
         if (unlocks.length > 0) {
-          const tx = await prepareBatchUnlockTransaction(api, address, unlocks.map(u => u.trackId))
+          const tx = await prepareBatchUnlockTransaction(
+            api,
+            address,
+            unlocks.map(u => u.trackId)
+          )
           calls.push(tx)
         }
 
@@ -851,7 +859,7 @@ export const ledgerClient = {
           throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
         }
         const { payload, transfer, nonce, metadataHash, payloadBytes, proof1 } = preparedTx
-        
+
         // Get chain ID from app config
         const chainId = appConfig.token.symbol.toLowerCase()
 
@@ -871,7 +879,11 @@ export const ledgerClient = {
         // Create and wait for transaction to be submitted
         await submitAndHandleTransaction(transfer, updateTxStatus, api)
       },
-      { errorCode: InternalErrorType.UNLOCK_CONVICTION_ERROR, operation: 'executeGovernanceUnlock', context: { appId, address, path, actions } }
+      {
+        errorCode: InternalErrorType.UNLOCK_CONVICTION_ERROR,
+        operation: 'executeGovernanceUnlock',
+        context: { appId, address, path, actions },
+      }
     )
   },
 
@@ -893,11 +905,9 @@ export const ledgerClient = {
             throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
           }
 
-          const { 
-            prepareBatchRemoveVotesTransaction, 
-            prepareBatchUndelegateTransaction, 
-            prepareBatchUnlockTransaction 
-          } = await import('@/lib/account')
+          const { prepareBatchRemoveVotesTransaction, prepareBatchUndelegateTransaction, prepareBatchUnlockTransaction } = await import(
+            '@/lib/account'
+          )
 
           // Group actions by type
           const removeVotes = actions.filter(a => a.type === 'removeVote')
@@ -906,25 +916,35 @@ export const ledgerClient = {
 
           // Prepare batch transactions
           const calls = []
-          
+
           if (removeVotes.length > 0) {
             const validVotes = removeVotes.filter(v => v.referendumIndex !== undefined)
             if (validVotes.length > 0) {
-              const tx = await prepareBatchRemoveVotesTransaction(api, validVotes.map(v => ({
-                trackId: v.trackId,
-                referendumIndex: v.referendumIndex as number
-              })))
+              const tx = await prepareBatchRemoveVotesTransaction(
+                api,
+                validVotes.map(v => ({
+                  trackId: v.trackId,
+                  referendumIndex: v.referendumIndex as number,
+                }))
+              )
               calls.push(tx)
             }
           }
 
           if (undelegates.length > 0) {
-            const tx = await prepareBatchUndelegateTransaction(api, undelegates.map(u => u.trackId))
+            const tx = await prepareBatchUndelegateTransaction(
+              api,
+              undelegates.map(u => u.trackId)
+            )
             calls.push(tx)
           }
 
           if (unlocks.length > 0) {
-            const tx = await prepareBatchUnlockTransaction(api, address, unlocks.map(u => u.trackId))
+            const tx = await prepareBatchUnlockTransaction(
+              api,
+              address,
+              unlocks.map(u => u.trackId)
+            )
             calls.push(tx)
           }
 

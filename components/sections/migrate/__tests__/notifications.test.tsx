@@ -54,10 +54,10 @@ vi.mock('@legendapp/state/react', () => ({
   observer: (Component: any) => Component,
 }))
 
-import Notifications from '../notifications'
 import { notifications$ } from '@/state/notifications'
-import { uiState$ } from '@/state/ui'
 import type { Notification } from '@/state/types/notifications'
+import { uiState$ } from '@/state/ui'
+import Notifications from '../notifications'
 
 describe('Notifications component', () => {
   beforeEach(() => {

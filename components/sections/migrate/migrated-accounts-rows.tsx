@@ -1,8 +1,8 @@
 'use client'
 
+import { ShieldCheck } from 'lucide-react'
 import type { App } from 'state/ledger'
-import { VerificationStatus, type AddressWithVerificationStatus, type MultisigAddress, type Transaction } from 'state/types/ledger'
-
+import { type AddressWithVerificationStatus, type MultisigAddress, type Transaction, VerificationStatus } from 'state/types/ledger'
 import { CustomTooltip } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
@@ -11,7 +11,6 @@ import type { AppId } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { muifyHtml } from '@/lib/utils/html'
 import { getTransactionStatus } from '@/lib/utils/ui'
-import { ShieldCheck } from 'lucide-react'
 import { BalanceHoverCard } from './balance-hover-card'
 import TransactionDropdown from './transaction-dropdown'
 
@@ -127,7 +126,7 @@ const MigratedAccountRows = ({ app, multisigAddresses, destinationAddressesStatu
               <div key={balance.type}>
                 {balanceIndex !== 0 && <hr className="border-gray-200 my-0" />}
                 <div className="my-4 mx-8 h-8 flex items-center">
-                  <BalanceHoverCard balances={[balance]} collections={collections} token={app.token} isMigration />
+                  <BalanceHoverCard balances={[balance]} collections={collections} token={app.token} appId={app.id as AppId} isMigration />
                 </div>
               </div>
             ))}
