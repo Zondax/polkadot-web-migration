@@ -1896,10 +1896,10 @@ export async function getConvictionVotingInfo(address: string, api: ApiPromise):
     }
 
     // Get voting info for all classes (tracks)
-    const tracks = api.consts.referenda?.tracks || []
+    const tracks = api.consts.referenda?.tracks as any
 
     for (const [trackId] of tracks) {
-      const votingFor = await api.query.convictionVoting.votingFor(address, trackId)
+      const votingFor = (await api.query.convictionVoting.votingFor(address, trackId)) as any
 
       if (votingFor.isDelegating) {
         const delegating = votingFor.asDelegating
@@ -1926,7 +1926,7 @@ export async function getConvictionVotingInfo(address: string, api: ApiPromise):
     }
 
     // Get class locks
-    const classLocksResult = await api.query.convictionVoting.classLocksFor(address)
+    const classLocksResult = (await api.query.convictionVoting.classLocksFor(address)) as any
     for (const [classId, lockAmount] of classLocksResult) {
       convictionVotingInfo.classLocks.push({
         class: classId.toNumber(),
@@ -2031,7 +2031,7 @@ export async function getGovernanceActivity(
     }
 
     // Get current block number
-    const currentBlock = await api.query.system.number()
+    const currentBlock = (await api.query.system.number()) as any
     const currentBlockNumber = currentBlock.toNumber()
 
     // Get voting info for all tracks
