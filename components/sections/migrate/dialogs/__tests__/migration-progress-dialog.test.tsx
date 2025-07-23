@@ -1,12 +1,12 @@
+import { BN } from '@polkadot/util'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { BalanceType } from 'state/types/ledger'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppId } from '@/config/apps'
 import { polkadotAppConfig } from '@/config/apps'
 import type { MigratingItem } from '@/state/types/ledger'
 import { TransactionStatus } from '@/state/types/ledger'
 import { TEST_ADDRESSES, TEST_PATHS, TEST_PUBKEYS } from '@/tests/fixtures/addresses'
-import { BN } from '@polkadot/util'
-import { fireEvent, render, screen } from '@testing-library/react'
-import { BalanceType } from 'state/types/ledger'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MigrationProgressDialog } from '../migration-progress-dialog'
 

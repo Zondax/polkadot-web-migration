@@ -28,6 +28,7 @@ interface BalanceHoverCardProps {
  * - Supports both transferable and total balance display modes
  * - Handles multiple balance types (native, NFT, unique) in a single view
  */
+// biome-ignore lint/correctness/noUnusedFunctionParameters: appId is required for consistency across balance display components
 const BalanceHoverCard = ({ balances, collections, token, appId, isMigration }: BalanceHoverCardProps) => {
   const { nfts, uniques, native } = useMemo(() => {
     // Extract balance based on type

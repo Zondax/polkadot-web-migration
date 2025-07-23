@@ -1,8 +1,8 @@
 import type { Address, MultisigAddress } from '@/state/types/ledger'
 import { BalanceType } from '@/state/types/ledger'
-import { TEST_ADDRESSES, TEST_PATHS, TEST_PUBKEYS } from './index'
 import { NATIVE_BALANCE_VARIATIONS } from '../balances'
 import { TEST_NFTS } from '../nfts'
+import { TEST_ADDRESSES, TEST_PATHS, TEST_PUBKEYS } from './index'
 
 /**
  * Complete Address objects for testing, including balances and metadata

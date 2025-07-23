@@ -5,29 +5,23 @@
 
 // Address fixtures
 export * from './addresses'
-export * from './addresses/full-addresses'
-
-// Balance fixtures
-export * from './balances'
-
-// NFT and Collection fixtures
-export * from './nfts'
-export * from './collections'
-
-// API and network fixtures
-export * from './api-responses'
-export * from './rpc'
-
-// Component-specific fixtures
-export * from './components/dialog.fixtures'
-
-// Transaction fixtures
-export * from './transactions'
-
 // Re-export commonly used test data for convenience
 export { TEST_ADDRESSES } from './addresses'
+export * from './addresses/full-addresses'
+// API and network fixtures
+export * from './api-responses'
+// Balance fixtures
+export * from './balances'
 export { TEST_AMOUNTS } from './balances'
-export { TEST_NFTS } from './nfts'
+export * from './collections'
 export { TEST_COLLECTIONS } from './collections'
+// Component-specific fixtures
+export * from './components/dialog.fixtures'
+// NFT and Collection fixtures
+export * from './nfts'
+export { TEST_NFTS } from './nfts'
+export * from './rpc'
 export { TEST_RPC_ENDPOINTS } from './rpc'
-export { transactionScenarios, transactionErrors } from './transactions'
+// Transaction fixtures
+export * from './transactions'
+export { transactionErrors, transactionScenarios } from './transactions'

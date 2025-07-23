@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
-import { groupNftsByCollection, createNftBalances } from '../nft'
 import type { Collection, Nft } from 'state/types/ledger'
+import { describe, expect, it } from 'vitest'
+import { createNftBalances, groupNftsByCollection } from '../nft'
 
 describe('NFT Utilities', () => {
   // Helper function to create test NFTs

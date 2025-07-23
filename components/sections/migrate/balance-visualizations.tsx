@@ -165,8 +165,8 @@ const ReservedDetails = ({ reservedData, token }: { reservedData: Reserved; toke
 }
 
 const GovernanceDetails = ({ convictionVoting, token, appId }: { convictionVoting: ConvictionVotingInfo; token: Token; appId: AppId }) => {
-  if (!convictionVoting) return null;
-  const { votes = [], delegations = [], locked, classLocks = [] } = convictionVoting;
+  if (!convictionVoting) return null
+  const { votes = [], delegations = [], locked } = convictionVoting
   return (
     <div className="w-full text-sm border-t border-gray-100 pt-2 mb-2 flex flex-col gap-2">
       {locked?.gtn(0) && renderDetailsItem(<LockClosedIcon className="w-4 h-4 text-polkadot-magenta" />, 'Locked', locked, token)}
@@ -195,8 +195,8 @@ const GovernanceDetails = ({ convictionVoting, token, appId }: { convictionVotin
         <div className="flex flex-col gap-1">
           <div className="font-semibold text-xs text-polkadot-magenta">Delegations</div>
           <div className="flex flex-col gap-1 px-1 max-h-48 overflow-y-auto">
-            {delegations.map((delegation: any, i: number) => (
-              <div key={i} className={`${detailFlagStyle} bg-polkadot-magenta/5`}>
+            {delegations.map((delegation: any) => (
+              <div key={`${delegation.trackId}-${delegation.target}`} className={`${detailFlagStyle} bg-polkadot-magenta/5`}>
                 <span className="flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5 text-gray-600" />
                   <ExplorerLink value={delegation.target} explorerLinkType={ExplorerItemType.Address} appId={appId} size="xs" truncate />
@@ -211,8 +211,8 @@ const GovernanceDetails = ({ convictionVoting, token, appId }: { convictionVotin
         </div>
       )}
     </div>
-  );
-};
+  )
+}
 
 export const NativeBalanceVisualization = ({
   data,

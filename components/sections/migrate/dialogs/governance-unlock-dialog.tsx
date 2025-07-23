@@ -194,12 +194,12 @@ function GovernanceUnlockForm({
                         </div>
                         <div className="text-xs text-gray-500 flex items-center gap-1">
                           <span>{formatBalance(delegation.balance, token)} delegated to</span>
-                          <ExplorerLink 
-                            value={delegation.target} 
-                            explorerLinkType={ExplorerItemType.Address} 
-                            appId={appId} 
-                            size="xs" 
-                            truncate 
+                          <ExplorerLink
+                            value={delegation.target}
+                            explorerLinkType={ExplorerItemType.Address}
+                            appId={appId}
+                            size="xs"
+                            truncate
                           />
                         </div>
                         {delegation.unlockAt && (
