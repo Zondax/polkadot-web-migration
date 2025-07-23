@@ -299,17 +299,21 @@ const SynchronizedAccountRow = ({
     const hasUnlockable = governanceActivity.unlockableAmount.gtn(0)
 
     let buttonLabel = 'Manage Governance'
+    let tooltip = 'Manage governance locks and unlock conviction-locked tokens'
     if (hasUnlockable) {
       buttonLabel = 'Gov Unlock'
+      tooltip = 'Unlock conviction-locked tokens'
     } else if (hasDelegations) {
       buttonLabel = 'Remove Delegation'
+      tooltip = 'Remove delegation'
     } else if (hasOngoingVotes) {
       buttonLabel = 'Remove Vote'
+      tooltip = 'Remove Votes (Ongoing Referenda)'
     }
 
     actions.push({
       label: buttonLabel,
-      tooltip: 'Manage governance locks and unlock conviction-locked tokens',
+      tooltip: tooltip,
       onClick: async () => {
         setGovernanceUnlockOpen(true)
       },
