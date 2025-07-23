@@ -21,7 +21,7 @@ import {
   Vote,
 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import type { Collections } from 'state/ledger'
+import { type Collections, ledgerState$ } from 'state/ledger'
 import type { Address, AddressBalance, MultisigAddress, MultisigMember } from 'state/types/ledger'
 import { CustomTooltip, TooltipBody, type TooltipItem } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
@@ -99,6 +99,24 @@ const SynchronizedAccountRow = ({
   const isNoBalance: boolean = balance === undefined
   const isFirst: boolean = balanceIndex === 0 || isNoBalance
   const isNative = isNativeBalance(balance)
+  const hasGovernanceLocks = isNative && balance?.balance.convictionVoting?.locked?.gt(new BN(0))
+
+  useEffect(() => {
+    const fetchGovernanceActivity = async () => {
+      if (hasGovernanceLocks) {
+        try {
+          const activity = await ledgerState$.getGovernanceActivity(appId, account.address)
+          setGovernanceActivity(activity)
+        } catch (error) {
+          console.warn('Failed to get governance activity:', error)
+          setGovernanceActivity(null)
+        }
+      } else {
+        setGovernanceActivity(null)
+      }
+    }
+    fetchGovernanceActivity()
+  }, [hasGovernanceLocks, appId, account.address])
   const hasStaked: boolean = isNative && hasStakedBalance(balance)
   const stakingActive: BN | undefined = isNative ? balance?.balance.staking?.active : undefined
   const maxUnstake: BN = stakingActive ?? new BN(0)
@@ -275,17 +293,28 @@ const SynchronizedAccountRow = ({
     })
   }
 
-  // Add governance unlock action if there are conviction locks
-  const hasGovernanceLocks = isNative && balance?.balance.convictionVoting?.locked?.gt(new BN(0))
-  if (hasGovernanceLocks) {
+  if (hasGovernanceLocks && governanceActivity) {
+    const hasDelegations = governanceActivity.delegations.length > 0
+    const hasOngoingVotes = governanceActivity.votes.some((v: { referendumStatus: string }) => v.referendumStatus === 'ongoing')
+    const hasUnlockable = governanceActivity.unlockableAmount.gtn(0)
+
+    let buttonLabel = 'Manage Governance'
+    let tooltip = 'Manage governance locks and unlock conviction-locked tokens'
+    if (hasUnlockable) {
+      buttonLabel = 'Gov Unlock'
+      tooltip = 'Unlock conviction-locked tokens'
+    } else if (hasDelegations) {
+      buttonLabel = 'Remove Delegation'
+      tooltip = 'Remove delegation'
+    } else if (hasOngoingVotes) {
+      buttonLabel = 'Remove Vote'
+      tooltip = 'Remove Votes (Ongoing Referenda)'
+    }
+
     actions.push({
-      label: 'Gov Unlock',
-      tooltip: 'Manage governance locks and unlock conviction-locked tokens',
+      label: buttonLabel,
+      tooltip: tooltip,
       onClick: async () => {
-        // Fetch governance activity when opening dialog
-        const { ledgerState$ } = await import('@/state/ledger')
-        const activity = await ledgerState$.getGovernanceActivity(appId, account.address)
-        setGovernanceActivity(activity)
         setGovernanceUnlockOpen(true)
       },
       disabled: false,
