@@ -192,8 +192,15 @@ function GovernanceUnlockForm({
                             {delegation.conviction}
                           </Badge>
                         </div>
-                        <div className="text-xs text-gray-500">
-                          {formatBalance(delegation.balance, token)} delegated to {delegation.target.slice(0, 8)}...
+                        <div className="text-xs text-gray-500 flex items-center gap-1">
+                          <span>{formatBalance(delegation.balance, token)} delegated to</span>
+                          <ExplorerLink 
+                            value={delegation.target} 
+                            explorerLinkType={ExplorerItemType.Address} 
+                            appId={appId} 
+                            size="xs" 
+                            truncate 
+                          />
                         </div>
                         {delegation.unlockAt && (
                           <div className="flex items-center gap-1 text-xs text-orange-600">
