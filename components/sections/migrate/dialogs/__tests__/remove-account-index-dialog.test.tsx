@@ -1,15 +1,13 @@
-import { render, screen, fireEvent, act } from '@testing-library/react'
 import { BN } from '@polkadot/util'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Address } from '@/state/types/ledger'
-import type { AppId, Token } from '@/config/apps'
-import { TEST_ADDRESSES, TEST_PATHS, TEST_PUBKEYS } from '@/tests/fixtures/addresses'
-import { TEST_AMOUNTS } from '@/tests/fixtures/balances'
-
-import RemoveAccountIndexDialog from '../remove-account-index-dialog'
-
 // Import mocked hooks
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
+import type { AppId, Token } from '@/config/apps'
+import type { Address } from '@/state/types/ledger'
+import { TEST_ADDRESSES, TEST_PATHS, TEST_PUBKEYS } from '@/tests/fixtures/addresses'
+import { TEST_AMOUNTS } from '@/tests/fixtures/balances'
+import RemoveAccountIndexDialog from '../remove-account-index-dialog'
 
 // Mock external dependencies
 vi.mock('@/components/ExplorerLink', () => ({

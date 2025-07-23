@@ -1,6 +1,6 @@
 import { BN } from '@polkadot/util'
-import { describe, expect, it } from 'vitest'
 import { Conviction } from 'state/types/ledger'
+import { describe, expect, it } from 'vitest'
 import {
   CONVICTION_LOCK_PERIODS,
   CONVICTION_MULTIPLIERS,
@@ -109,11 +109,7 @@ describe('Governance Utilities', () => {
     })
 
     it('should default to track 0 when trackId is not specified', () => {
-      const votes = [
-        { referendumIndex: 1 },
-        { referendumIndex: 2, trackId: 1 },
-        { referendumIndex: 3 },
-      ]
+      const votes = [{ referendumIndex: 1 }, { referendumIndex: 2, trackId: 1 }, { referendumIndex: 3 }]
 
       const grouped = groupVotesByTrack(votes)
 

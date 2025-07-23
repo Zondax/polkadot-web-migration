@@ -1,12 +1,10 @@
-import type { AppId } from '@/config/apps'
-import { TransactionStatus } from '@/state/types/ledger'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-
-import { TransactionDialogFooter, TransactionStatusBody } from '../transaction-dialog'
-
+import type { AppId } from '@/config/apps'
 // Import mocked utilities
 import { getTransactionStatus } from '@/lib/utils/ui'
+import { TransactionStatus } from '@/state/types/ledger'
+import { TransactionDialogFooter, TransactionStatusBody } from '../transaction-dialog'
 
 // Mock external dependencies
 vi.mock('@/components/ExplorerLink', () => ({

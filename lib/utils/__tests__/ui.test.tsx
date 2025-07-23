@@ -1,8 +1,8 @@
 import { BN } from '@polkadot/util'
 import { render } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { TransactionStatus } from '@/state/types/ledger'
 import type { Registration, Token } from '@/state/types/ledger'
+import { TransactionStatus } from '@/state/types/ledger'
 
 // Mock dependencies
 vi.mock('lucide-react', () => ({

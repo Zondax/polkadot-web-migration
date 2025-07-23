@@ -1,7 +1,7 @@
 import type { ApiPromise } from '@polkadot/api'
 import { BN } from '@polkadot/util'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Conviction } from 'state/types/ledger'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   getConvictionVotingInfo,
   prepareRemoveVoteTransaction,
@@ -88,9 +88,7 @@ describe('Governance Functions', () => {
         return Promise.resolve({ isDelegating: false, isCasting: false })
       })
 
-      mockApi.query.convictionVoting.classLocksFor.mockResolvedValue([
-        [{ toNumber: () => 0 }, { toString: () => '1000000000000' }],
-      ])
+      mockApi.query.convictionVoting.classLocksFor.mockResolvedValue([[{ toNumber: () => 0 }, { toString: () => '1000000000000' }]])
 
       const result = await getConvictionVotingInfo('5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY', mockApi as ApiPromise)
 

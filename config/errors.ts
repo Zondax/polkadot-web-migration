@@ -492,8 +492,7 @@ export const errorDetails: ErrorDetailsMap = {
   unlock_conviction_error: {
     title: 'Unlock Failed',
     description: 'Unable to unlock your conviction-locked tokens.',
-    content:
-      'This may be due to network issues or your tokens may still be locked. Please check the lock period and try again later.',
+    content: 'This may be due to network issues or your tokens may still be locked. Please check the lock period and try again later.',
   },
   no_active_votes: {
     title: 'No Active Votes',

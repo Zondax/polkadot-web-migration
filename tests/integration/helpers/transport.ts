@@ -1,6 +1,6 @@
+import { vi } from 'vitest'
 import type { DeviceConnectionProps } from '@/lib/ledger/types'
 import { ledgerState$ } from '@/state/ledger'
-import { vi } from 'vitest'
 import { mockDeviceConnection } from '../mocks/ledgerClient'
 
 // Setup state with transport connected, and polkadot app defined, but app not open

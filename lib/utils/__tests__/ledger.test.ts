@@ -1,3 +1,6 @@
+import { BN } from '@polkadot/util'
+import axios from 'axios'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { App } from '@/state/ledger'
 import { AppStatus } from '@/state/ledger'
 import {
@@ -9,9 +12,6 @@ import {
   type NativeBalance,
   VerificationStatus,
 } from '@/state/types/ledger'
-import { BN } from '@polkadot/util'
-import axios from 'axios'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   addDestinationAddressesFromAccounts,

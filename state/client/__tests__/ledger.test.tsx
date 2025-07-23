@@ -1,8 +1,8 @@
-import { InternalError } from '@/lib/utils'
-import { AccountType, type Address, BalanceType, type MultisigAddress, type NativeBalance, TransactionStatus } from '@/state/types/ledger'
 import { BN } from '@polkadot/util'
 import type { AppConfig } from 'config/apps'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { InternalError } from '@/lib/utils'
+import { AccountType, type Address, BalanceType, type MultisigAddress, type NativeBalance, TransactionStatus } from '@/state/types/ledger'
 import { ledgerClient } from '../ledger'
 
 // Mock all dependencies
@@ -83,16 +83,19 @@ const prepareTransactionMock = {
   callData: '0xcalldata',
 } as unknown as PreparedTransaction
 
+import type { ApiPromise } from '@polkadot/api'
+import type { SubmittableExtrinsic } from '@polkadot/api/types'
+import type { ISubmittableResult } from '@polkadot/types/types'
 // Import mocked modules
 import { InternalErrorType } from '@/config/errors'
 import {
   createSignedExtrinsic,
   getApiAndProvider,
   getTxFee,
-  prepareApproveAsMultiTx,
-  prepareAsMultiTx,
   type PreparedTransaction,
   type PreparedTransactionPayload,
+  prepareApproveAsMultiTx,
+  prepareAsMultiTx,
   prepareRemoveAccountIndexTransaction,
   prepareRemoveIdentityTransaction,
   prepareRemoveProxiesTransaction,
@@ -105,9 +108,6 @@ import {
 } from '@/lib/account'
 import { ledgerService } from '@/lib/ledger/ledgerService'
 import { mockApi } from '@/tests/fixtures'
-import type { ApiPromise } from '@polkadot/api'
-import type { SubmittableExtrinsic } from '@polkadot/api/types'
-import type { ISubmittableResult } from '@polkadot/types/types'
 import { validateApproveAsMultiParams, validateAsMultiParams, validateMigrationParams } from '../helpers'
 
 describe('Ledger Client', () => {

@@ -1,6 +1,5 @@
 import { BN } from '@polkadot/util'
 import { MINIMUM_AMOUNT } from '@/config/mockData'
-import { isDevelopment } from './env'
 import {
   type Address,
   type AddressBalance,
@@ -10,6 +9,7 @@ import {
   type Nft,
   type NftBalance,
 } from '@/state/types/ledger'
+import { isDevelopment } from './env'
 
 /**
  * Type guard to check if a balance is a native balance

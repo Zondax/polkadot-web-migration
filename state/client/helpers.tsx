@@ -1,7 +1,7 @@
-import type { MultisigInfo } from '@/lib/account'
-import { hasBalance, InternalError, isMultisigAddress } from '@/lib/utils'
 import { type AppId, appsConfigs } from 'config/apps'
 import { InternalErrorType } from 'config/errors'
+import type { MultisigInfo } from '@/lib/account'
+import { hasBalance, InternalError, isMultisigAddress } from '@/lib/utils'
 import { AccountType, type Address, type AddressBalance, type MultisigAddress } from '../types/ledger'
 
 // Interface for the return value of validateMigrationParams

@@ -1,9 +1,9 @@
-import { render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import BalanceGallery, { type NftBalance } from '../balance-gallery'
-import type { Native, Collection, Nft } from 'state/types/ledger'
-import type { Token } from '@/config/apps'
 import { BN } from '@polkadot/util'
+import { render, screen } from '@testing-library/react'
+import type { Collection, Native, Nft } from 'state/types/ledger'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { Token } from '@/config/apps'
+import BalanceGallery, { type NftBalance } from '../balance-gallery'
 
 // Mock the detail card components
 vi.mock('../balance-detail-card', () => ({
