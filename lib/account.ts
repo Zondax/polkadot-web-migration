@@ -42,6 +42,15 @@ import {
   type TransactionDetails,
   TransactionStatus,
 } from 'state/types/ledger'
+import {
+  ClassLocksResultSchema,
+  CurrentBlockSchema,
+  parseOrThrow,
+  ReferendumInfoSchema,
+  safeParse,
+  TracksSchema,
+  VotingForSchema,
+} from './schemas/governance'
 import { InternalError } from './utils'
 import { isDevelopment } from './utils/env'
 
@@ -1896,29 +1905,39 @@ export async function getConvictionVotingInfo(address: string, api: ApiPromise):
     }
 
     // Get voting info for all classes (tracks)
-    const tracks = api.consts.referenda?.tracks as any
+    const tracks = safeParse(TracksSchema, api.consts.referenda?.tracks)
+    if (!tracks) {
+      console.error('Failed to parse tracks data')
+      return undefined
+    }
 
     for (const [trackId] of tracks) {
-      const votingFor = (await api.query.convictionVoting.votingFor(address, trackId)) as any
+      const votingForRaw = await api.query.convictionVoting.votingFor(address, trackId)
+      const votingFor = safeParse(VotingForSchema, votingForRaw)
 
-      if (votingFor.isDelegating) {
+      if (!votingFor) {
+        console.error(`Failed to parse voting data for track ${trackId}`)
+        continue
+      }
+
+      if (votingFor.isDelegating && votingFor.asDelegating) {
         const delegating = votingFor.asDelegating
         convictionVotingInfo.delegations.push({
-          target: delegating.target.toString(),
-          conviction: delegating.conviction.toString() as Conviction,
-          balance: new BN(delegating.balance.toString()),
-          lockPeriod: delegating.prior ? delegating.prior[0].toNumber() : undefined,
+          target: delegating.target,
+          conviction: delegating.conviction as Conviction,
+          balance: delegating.balance,
+          lockPeriod: delegating.prior ? delegating.prior[0] : undefined,
         })
-      } else if (votingFor.isCasting) {
+      } else if (votingFor.isCasting && votingFor.asCasting) {
         const casting = votingFor.asCasting
         for (const [refIndex, vote] of casting.votes) {
           const voteData = vote.asStandard
           convictionVotingInfo.votes.push({
-            referendumIndex: refIndex.toNumber(),
+            referendumIndex: refIndex,
             vote: {
               aye: voteData.vote.isAye,
-              conviction: voteData.vote.conviction.toString() as Conviction,
-              balance: new BN(voteData.balance.toString()),
+              conviction: voteData.vote.conviction as Conviction,
+              balance: voteData.balance,
             },
           })
         }
@@ -1926,13 +1945,20 @@ export async function getConvictionVotingInfo(address: string, api: ApiPromise):
     }
 
     // Get class locks
-    const classLocksResult = (await api.query.convictionVoting.classLocksFor(address)) as any
+    const classLocksRaw = await api.query.convictionVoting.classLocksFor(address)
+    const classLocksResult = safeParse(ClassLocksResultSchema, classLocksRaw)
+
+    if (!classLocksResult) {
+      console.error('Failed to parse class locks data')
+      return undefined
+    }
+
     for (const [classId, lockAmount] of classLocksResult) {
       convictionVotingInfo.classLocks.push({
-        class: classId.toNumber(),
-        amount: new BN(lockAmount.toString()),
+        class: classId,
+        amount: lockAmount,
       })
-      convictionVotingInfo.locked = convictionVotingInfo.locked.add(new BN(lockAmount.toString()))
+      convictionVotingInfo.locked = convictionVotingInfo.locked.add(lockAmount)
     }
 
     return convictionVotingInfo
@@ -2031,46 +2057,57 @@ export async function getGovernanceActivity(
     }
 
     // Get current block number
-    const currentBlock = (await api.query.system.number()) as any
-    const currentBlockNumber = currentBlock.toNumber()
+    const currentBlockRaw = await api.query.system.number()
+    const currentBlockNumber = parseOrThrow(CurrentBlockSchema, currentBlockRaw, 'Failed to parse current block number')
 
     // Get voting info for all tracks
-    const tracks = api.consts.referenda?.tracks || []
+    const tracks = safeParse(TracksSchema, api.consts.referenda?.tracks)
+    if (!tracks) {
+      console.error('Failed to parse tracks data')
+      throw new InternalError(InternalErrorType.GET_CONVICTION_VOTING_INFO_ERROR)
+    }
 
-    for (const [trackId] of tracks as any) {
-      const votingFor = await api.query.convictionVoting.votingFor(address, trackId)
+    for (const [trackId] of tracks) {
+      const votingForRaw = await api.query.convictionVoting.votingFor(address, trackId)
+      const votingFor = safeParse(VotingForSchema, votingForRaw)
 
-      if ((votingFor as any).isDelegating) {
-        const delegating = (votingFor as any).asDelegating
+      if (!votingFor) {
+        console.error(`Failed to parse voting data for track ${trackId}`)
+        continue
+      }
+
+      if (votingFor.isDelegating && votingFor.asDelegating) {
+        const delegating = votingFor.asDelegating
         const prior = delegating.prior
 
         // Calculate unlock block if delegation has prior lock
         let unlockAt: number | undefined
         if (prior?.[0]) {
-          const lockPeriods = prior[0].toNumber()
+          const lockPeriods = prior[0]
           unlockAt = currentBlockNumber + lockPeriods
         }
 
         result.delegations.push({
-          trackId: trackId.toNumber(),
-          target: delegating.target.toString(),
-          conviction: delegating.conviction.toString() as Conviction,
-          balance: new BN(delegating.balance.toString()),
+          trackId,
+          target: delegating.target,
+          conviction: delegating.conviction as Conviction,
+          balance: delegating.balance,
           canUndelegate: true, // Can always undelegate
           unlockAt,
         })
-      } else if ((votingFor as any).isCasting) {
-        const casting = (votingFor as any).asCasting
+      } else if (votingFor.isCasting && votingFor.asCasting) {
+        const casting = votingFor.asCasting
 
         for (const [refIndex, vote] of casting.votes) {
-          const referendumIndex = refIndex.toNumber()
+          const referendumIndex = refIndex
 
           // Check referendum status
-          const referendumInfo = await api.query.referenda.referendumInfoFor(referendumIndex)
-          const isOngoing = (referendumInfo as any).isSome && (referendumInfo as any).unwrap().isOngoing
+          const referendumInfoRaw = await api.query.referenda.referendumInfoFor(referendumIndex)
+          const referendumInfo = safeParse(ReferendumInfoSchema, referendumInfoRaw)
+          const isOngoing = referendumInfo?.isSome && referendumInfo.value?.isOngoing
 
           const voteData = vote.asStandard
-          const conviction = voteData.vote.conviction.toString() as Conviction
+          const conviction = voteData.vote.conviction as Conviction
 
           // Calculate unlock block based on conviction
           const convictionLockPeriods = getConvictionLockPeriods(conviction)
@@ -2078,20 +2115,21 @@ export async function getGovernanceActivity(
 
           if (!isOngoing && convictionLockPeriods > 0) {
             // For finished referenda, calculate when tokens can be unlocked
-            const enactmentPeriod = (api.consts.referenda?.undecidingTimeout as any)?.toNumber() || 28800 // Default ~28 days at 6s blocks
+            const undecidingTimeoutRaw = api.consts.referenda?.undecidingTimeout
+            const enactmentPeriod = undecidingTimeoutRaw ? safeParse(CurrentBlockSchema, undecidingTimeoutRaw) || 28800 : 28800 // Default ~28 days at 6s blocks
             unlockAt = currentBlockNumber + convictionLockPeriods * enactmentPeriod
           }
 
           result.votes.push({
-            trackId: trackId.toNumber(),
+            trackId,
             referendumIndex,
             vote: {
               aye: voteData.vote.isAye,
               conviction,
-              balance: new BN(voteData.balance.toString()),
+              balance: voteData.balance,
             },
             referendumStatus: isOngoing ? 'ongoing' : 'finished',
-            canRemoveVote: isOngoing, // Can only remove vote if referendum is ongoing
+            canRemoveVote: isOngoing || false, // Can only remove vote if referendum is ongoing
             unlockAt,
           })
         }
@@ -2099,18 +2137,25 @@ export async function getGovernanceActivity(
     }
 
     // Get class locks to determine total locked and unlockable amounts
-    const classLocksResult = await api.query.convictionVoting.classLocksFor(address)
-    for (const [classId, lockAmount] of classLocksResult as any) {
-      const amount = new BN(lockAmount.toString())
-      result.totalLocked = result.totalLocked.add(amount)
+    const classLocksRaw = await api.query.convictionVoting.classLocksFor(address)
+    const classLocksResult = safeParse(ClassLocksResultSchema, classLocksRaw)
+
+    if (!classLocksResult) {
+      console.error('Failed to parse class locks data')
+      throw new InternalError(InternalErrorType.GET_CONVICTION_VOTING_INFO_ERROR)
+    }
+
+    for (const [classId, lockAmount] of classLocksResult) {
+      result.totalLocked = result.totalLocked.add(lockAmount)
 
       // Check if this class can be unlocked
-      const trackId = classId.toNumber()
-      const votingFor = await api.query.convictionVoting.votingFor(address, trackId)
+      const trackId = classId
+      const votingForRaw = await api.query.convictionVoting.votingFor(address, trackId)
+      const votingFor = safeParse(VotingForSchema, votingForRaw)
 
       // Can unlock if not voting or delegating on this track
-      if (!(votingFor as any).isCasting && !(votingFor as any).isDelegating) {
-        result.unlockableAmount = result.unlockableAmount.add(amount)
+      if (votingFor && !votingFor.isCasting && !votingFor.isDelegating) {
+        result.unlockableAmount = result.unlockableAmount.add(lockAmount)
       }
     }
 
@@ -2147,8 +2192,9 @@ function getConvictionLockPeriods(conviction: Conviction): number {
  */
 export async function isReferendumOngoing(api: ApiPromise, referendumIndex: number): Promise<boolean> {
   try {
-    const referendumInfo = await api.query.referenda.referendumInfoFor(referendumIndex)
-    return (referendumInfo as any).isSome && (referendumInfo as any).unwrap().isOngoing
+    const referendumInfoRaw = await api.query.referenda.referendumInfoFor(referendumIndex)
+    const referendumInfo = safeParse(ReferendumInfoSchema, referendumInfoRaw)
+    return (referendumInfo?.isSome && referendumInfo.value?.isOngoing) || false
   } catch (error) {
     console.error('Error checking referendum status:', error)
     return false
@@ -2168,12 +2214,19 @@ export async function getDelegationTracks(address: string, api: ApiPromise): Pro
     }
 
     const delegationTracks: number[] = []
-    const tracks = api.consts.referenda?.tracks || []
+    const tracks = safeParse(TracksSchema, api.consts.referenda?.tracks)
 
-    for (const [trackId] of tracks as any) {
-      const votingFor = await api.query.convictionVoting.votingFor(address, trackId)
-      if ((votingFor as any).isDelegating) {
-        delegationTracks.push(trackId.toNumber())
+    if (!tracks) {
+      console.error('Failed to parse tracks data')
+      return []
+    }
+
+    for (const [trackId] of tracks) {
+      const votingForRaw = await api.query.convictionVoting.votingFor(address, trackId)
+      const votingFor = safeParse(VotingForSchema, votingForRaw)
+
+      if (votingFor?.isDelegating) {
+        delegationTracks.push(trackId)
       }
     }
 
@@ -2197,12 +2250,19 @@ export async function getVotingTracks(address: string, api: ApiPromise): Promise
     }
 
     const votingTracks: number[] = []
-    const tracks = api.consts.referenda?.tracks || []
+    const tracks = safeParse(TracksSchema, api.consts.referenda?.tracks)
 
-    for (const [trackId] of tracks as any) {
-      const votingFor = await api.query.convictionVoting.votingFor(address, trackId)
-      if ((votingFor as any).isCasting && (votingFor as any).asCasting.votes.length > 0) {
-        votingTracks.push(trackId.toNumber())
+    if (!tracks) {
+      console.error('Failed to parse tracks data')
+      return []
+    }
+
+    for (const [trackId] of tracks) {
+      const votingForRaw = await api.query.convictionVoting.votingFor(address, trackId)
+      const votingFor = safeParse(VotingForSchema, votingForRaw)
+
+      if (votingFor?.isCasting && votingFor.asCasting && votingFor.asCasting.votes.length > 0) {
+        votingTracks.push(trackId)
       }
     }
 
