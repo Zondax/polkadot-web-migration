@@ -39,7 +39,7 @@
     "@hookform/resolvers": "^5.1.1",
     "@ledgerhq/errors": "^6.22.0",
     "@ledgerhq/hw-transport": "^6.31.7",
-    "@ledgerhq/hw-transport-mocker": "^6.29.7",
+    "@ledgerhq/hw-transport-mocker": "^6.29.8",
     "@ledgerhq/hw-transport-webhid": "^6.30.3",
     "@ledgerhq/types-live": "^6.76.0",
     "@legendapp/state": "^3.0.0-beta.31",
