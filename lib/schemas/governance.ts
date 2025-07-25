@@ -11,12 +11,7 @@ const toBN = (value: unknown): BN => {
   throw new Error(`Cannot convert ${value} to BN`)
 }
 
-// Basic conversion schemas
-const NumberLikeSchema = z.union([z.number(), z.object({ toNumber: z.function().returns(z.number()) }).transform(obj => obj.toNumber())])
-
 const BNLikeSchema = z.preprocess(toBN, z.instanceof(BN))
-
-const StringLikeSchema = z.union([z.string(), z.object({ toString: z.function().returns(z.string()) }).transform(obj => obj.toString())])
 
 // Simple array schema that handles both arrays and iterables
 const ArrayLikeSchema = <T>(itemSchema: z.ZodType<T>) =>
@@ -44,16 +39,36 @@ const OptionSchema = <T>(innerSchema: z.ZodType<T>) =>
       value: opt.isSome && opt.unwrap ? innerSchema.parse(opt.unwrap()) : undefined,
     }))
 
+// Track info schema based on PalletReferendaTrackInfo
+const TrackInfoSchema = z.object({
+  name: z.string(),
+  maxDeciding: z.number(),
+  decisionDeposit: BNLikeSchema,
+  preparePeriod: z.number(),
+  decisionPeriod: z.number(),
+  confirmPeriod: z.number(),
+  minEnactmentPeriod: z.number(),
+  minApproval: z.unknown(), // PalletReferendaCurve - not needed for our use case
+  minSupport: z.unknown(), // PalletReferendaCurve - not needed for our use case
+})
+
 // Governance-specific schemas
-export const TrackSchema = TupleSchema(NumberLikeSchema, z.unknown())
+export const TrackSchema = TupleSchema(z.number(), TrackInfoSchema)
 export const TracksSchema = ArrayLikeSchema(TrackSchema)
 
-export const ClassLockSchema = TupleSchema(NumberLikeSchema, BNLikeSchema)
+export const ClassLockSchema = TupleSchema(z.number(), BNLikeSchema)
 export const ClassLocksResultSchema = ArrayLikeSchema(ClassLockSchema)
 
-export const ConvictionSchema = StringLikeSchema.transform(
-  str => str as 'None' | 'Locked1x' | 'Locked2x' | 'Locked3x' | 'Locked4x' | 'Locked5x' | 'Locked6x'
-)
+export const ConvictionSchema = z.object({
+  isNone: z.boolean(),
+  isLocked1x: z.boolean(),
+  isLocked2x: z.boolean(),
+  isLocked3x: z.boolean(),
+  isLocked4x: z.boolean(),
+  isLocked5x: z.boolean(),
+  isLocked6x: z.boolean(),
+  type: z.enum(['None', 'Locked1x', 'Locked2x', 'Locked3x', 'Locked4x', 'Locked5x', 'Locked6x']),
+})
 
 // Voting data schemas
 const VoteDataSchema = z.object({
@@ -64,54 +79,66 @@ const VoteDataSchema = z.object({
   balance: BNLikeSchema,
 })
 
-const VoteEntrySchema = TupleSchema(
-  NumberLikeSchema, // referendum index
-  z.object({ asStandard: VoteDataSchema })
-)
-
-const DelegatingSchema = z.object({
-  target: StringLikeSchema,
-  conviction: ConvictionSchema,
-  balance: BNLikeSchema,
-  prior: z.optional(TupleSchema(NumberLikeSchema, BNLikeSchema)),
+const AccountVoteSchema = z.object({
+  isStandard: z.boolean(),
+  asStandard: z.object({
+    vote: z.object({
+      isAye: z.boolean(),
+      conviction: ConvictionSchema,
+    }),
+    balance: BNLikeSchema,
+  }),
+  isSplit: z.boolean(),
+  asSplit: z.object({
+    aye: BNLikeSchema,
+    nay: BNLikeSchema,
+  }),
+  isSplitAbstain: z.boolean(),
+  asSplitAbstain: z.object({
+    aye: BNLikeSchema,
+    nay: BNLikeSchema,
+    abstain: BNLikeSchema,
+  }),
 })
 
-const CastingSchema = z.object({
-  votes: ArrayLikeSchema(VoteEntrySchema),
+const VoteEntrySchema = TupleSchema(
+  z.number(), // referendum index
+  AccountVoteSchema
+)
+
+const DelegationsSchema = z.object({
+  votes: BNLikeSchema,
+  capital: BNLikeSchema,
+})
+
+const PriorLockSchema = TupleSchema(z.number(), BNLikeSchema)
+
+const DelegatingSchema = z.object({
+  target: z.string(),
+  conviction: ConvictionSchema,
+  balance: BNLikeSchema,
+  delegations: DelegationsSchema,
+  prior: PriorLockSchema,
+})
+
+const DirectSchema = z.object({
+  votes: z.array(VoteEntrySchema),
+  delegations: DelegationsSchema,
+  prior: PriorLockSchema,
 })
 
 // VotingFor union schema - simplified
-export const VotingForSchema = z
-  .object({
+export const VotingForSchema = z.object({
     isDelegating: z.boolean(),
-    isCasting: z.boolean(),
-    asDelegating: z.optional(DelegatingSchema),
-    asCasting: z.optional(CastingSchema),
-  })
-  .transform(data => {
-    if (data.isDelegating && data.asDelegating) {
-      return {
-        isDelegating: true as const,
-        isCasting: false as const,
-        asDelegating: data.asDelegating,
-      }
-    }
-    if (data.isCasting && data.asCasting) {
-      return {
-        isDelegating: false as const,
-        isCasting: true as const,
-        asCasting: data.asCasting,
-      }
-    }
-    return {
-      isDelegating: false as const,
-      isCasting: false as const,
-    }
+    isDirect: z.boolean(),
+    asDelegating: DelegatingSchema,
+    asDirect: DirectSchema,
+    type: z.enum(['Direct', 'Delegating']),
   })
 
 export const ReferendumInfoSchema = OptionSchema(z.object({ isOngoing: z.boolean() }))
 
-export const CurrentBlockSchema = NumberLikeSchema
+export const CurrentBlockSchema = z.number()
 
 // Helper functions
 export function safeParse<T>(schema: z.ZodType<T>, data: unknown): T | null {

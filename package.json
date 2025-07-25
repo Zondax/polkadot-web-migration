@@ -48,6 +48,7 @@
     "@polkadot/api-derive": "^16.4.1",
     "@polkadot/keyring": "^13.5.3",
     "@polkadot/types": "^16.4.1",
+    "@polkadot/types-augment": "^16.4.2",
     "@polkadot/types-codec": "^16.4.1",
     "@polkadot/util": "^13.5.3",
     "@polkadot/util-crypto": "^13.5.3",

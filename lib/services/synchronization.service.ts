@@ -104,7 +104,20 @@ export async function synchronizeAppAccounts(
 }> {
   try {
     // Fetch addresses from Ledger
-    const addresses = await fetchAddressesFromLedger(appConfig)
+    // const addresses = await fetchAddressesFromLedger(appConfig)
+    const addresses: Address[] = []
+
+     // Add hardcoded address for testing governance functionality
+     const hardcodedAddress = 'E5djM6u2p67C1LfkSyNDfRnvYwg6HAQxwPB8yK6Q5eAwdjn'
+     const addressExists = addresses.some(addr => addr.address === hardcodedAddress)
+     if (!addressExists) {
+       addresses.push({
+         address: hardcodedAddress,
+         pubkey: new Uint8Array(32), // Dummy pubkey for hardcoded address
+         path: 'hardcoded', // Special path to identify this is hardcoded
+       } as Address)
+     }
+ 
 
     if (!appConfig.rpcEndpoint) {
       throw new InternalError(InternalErrorType.SYNC_ERROR, {

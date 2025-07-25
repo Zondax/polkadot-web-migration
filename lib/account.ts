@@ -10,9 +10,11 @@ import type {
   ProxyDefinition,
   RuntimeDispatchInfo,
   StakingLedger,
+  Voting,
 } from '@polkadot/types/interfaces'
 import type { ExtrinsicPayloadValue, ISubmittableResult } from '@polkadot/types/types/extrinsic'
-import type { Option, u32, u128, Vec } from '@polkadot/types-codec'
+import type { Option, u16, u32, u128, Vec } from '@polkadot/types-codec'
+import type { ITuple } from '@polkadot/types-codec/types'
 import { BN, hexToU8a, u8aToBn } from '@polkadot/util'
 import { decodeAddress } from '@polkadot/util-crypto'
 import { merkleizeMetadata } from '@polkadot-api/merkleize-metadata'
@@ -1904,15 +1906,42 @@ export async function getConvictionVotingInfo(address: string, api: ApiPromise):
       classLocks: [],
     }
 
+    console.log('address', address)
+
     // Get voting info for all classes (tracks)
-    const tracks = safeParse(TracksSchema, api.consts.referenda?.tracks)
+    const tracksRaw = await api.consts.referenda?.tracks
+    if (tracksRaw) {
+      // Method 1: Get the full type definition
+      console.log('Full type:', tracksRaw.meta.type.toString());
+      
+      // Method 2: Get the type path/name
+      console.log('Type path:', tracksRaw.meta.type.type);
+      
+      // Method 3: See the actual data structure
+      console.log('Data structure:', JSON.stringify(tracksRaw.toJSON(), null, 2));
+      
+      // Method 4: Get more detailed type info
+      console.log('Type details:', {
+        type: tracksRaw.meta.type.type,
+        typeName: tracksRaw.meta.typeName.toString(),
+        docs: tracksRaw.meta.docs.map(d => d.toString()),
+      });
+      
+      // Method 5: If it's a Vec, get the inner type
+      if (tracksRaw.meta.type.isVec) {
+        console.log('Inner type:', tracksRaw.meta.type.asVec.type);
+      }
+    }
+    const tracks = safeParse(TracksSchema, tracksRaw)
+    console.log('tracks', tracks)
+
     if (!tracks) {
       console.error('Failed to parse tracks data')
       return undefined
     }
 
     for (const [trackId] of tracks) {
-      const votingForRaw = await api.query.convictionVoting.votingFor(address, trackId)
+      const votingForRaw = await api.query.convictionVoting.votingFor(address, trackId) as Voting
       const votingFor = safeParse(VotingForSchema, votingForRaw)
 
       if (!votingFor) {
@@ -1922,9 +1951,10 @@ export async function getConvictionVotingInfo(address: string, api: ApiPromise):
 
       if (votingFor.isDelegating && votingFor.asDelegating) {
         const delegating = votingFor.asDelegating
+        console.log('delegating', delegating)
         convictionVotingInfo.delegations.push({
-          target: delegating.target,
-          conviction: delegating.conviction as Conviction,
+          target: delegating.target.toString(),
+          conviction: delegating.conviction,
           balance: delegating.balance,
           lockPeriod: delegating.prior ? delegating.prior[0] : undefined,
         })
