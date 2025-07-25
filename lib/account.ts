@@ -2073,9 +2073,14 @@ export async function getGovernanceActivity(
       throw new InternalError(InternalErrorType.GET_CONVICTION_VOTING_INFO_ERROR)
     }
 
+    console.log('tracks', tracks)
+
     for (const [trackId] of tracks) {
       const votingForRaw = await api.query.convictionVoting.votingFor(address, trackId)
+      console.log('votingForRaw', votingForRaw)
       const votingFor = safeParse(VotingForSchema, votingForRaw?.toJSON())
+
+      console.log('votingFor', votingFor)
 
       if (!votingFor) {
         console.error(`Failed to parse voting data for track ${trackId}`)
@@ -2119,12 +2124,27 @@ export async function getGovernanceActivity(
           const convictionLockPeriods = getConvictionLockPeriods(conviction)
           let unlockAt: number | undefined
 
+          console.log('vote', {
+            trackId,
+            referendumIndex,
+            vote: {
+              aye: voteData.vote.isAye,
+              conviction,
+              balance: voteData.balance,
+            },
+            referendumStatus: isOngoing ? 'ongoing' : 'finished',
+            canRemoveVote: isOngoing || false, // Can only remove vote if referendum is ongoing
+            unlockAt,
+          })
+
           if (!isOngoing && convictionLockPeriods > 0) {
             // For finished referenda, calculate when tokens can be unlocked
             const undecidingTimeoutRaw = api.consts.referenda?.undecidingTimeout
             const enactmentPeriod = undecidingTimeoutRaw ? safeParse(CurrentBlockSchema, undecidingTimeoutRaw) || 28800 : 28800 // Default ~28 days at 6s blocks
             unlockAt = currentBlockNumber + convictionLockPeriods * enactmentPeriod
           }
+
+          
 
           result.votes.push({
             trackId,
