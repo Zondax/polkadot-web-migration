@@ -1906,34 +1906,9 @@ export async function getConvictionVotingInfo(address: string, api: ApiPromise):
       classLocks: [],
     }
 
-    console.log('address', address)
-
     // Get voting info for all classes (tracks)
     const tracksRaw = await api.consts.referenda?.tracks
-    if (tracksRaw) {
-      // Method 1: Get the full type definition
-      console.log('Full type:', tracksRaw.meta.type.toString());
-      
-      // Method 2: Get the type path/name
-      console.log('Type path:', tracksRaw.meta.type.type);
-      
-      // Method 3: See the actual data structure
-      console.log('Data structure:', JSON.stringify(tracksRaw.toJSON(), null, 2));
-      
-      // Method 4: Get more detailed type info
-      console.log('Type details:', {
-        type: tracksRaw.meta.type.type,
-        typeName: tracksRaw.meta.typeName.toString(),
-        docs: tracksRaw.meta.docs.map(d => d.toString()),
-      });
-      
-      // Method 5: If it's a Vec, get the inner type
-      if (tracksRaw.meta.type.isVec) {
-        console.log('Inner type:', tracksRaw.meta.type.asVec.type);
-      }
-    }
-    const tracks = safeParse(TracksSchema, tracksRaw)
-    console.log('tracks', tracks)
+    const tracks = safeParse(TracksSchema, tracksRaw?.toJSON())
 
     if (!tracks) {
       console.error('Failed to parse tracks data')
@@ -1941,8 +1916,8 @@ export async function getConvictionVotingInfo(address: string, api: ApiPromise):
     }
 
     for (const [trackId] of tracks) {
-      const votingForRaw = await api.query.convictionVoting.votingFor(address, trackId) as Voting
-      const votingFor = safeParse(VotingForSchema, votingForRaw)
+      const votingForRaw = (await api.query.convictionVoting.votingFor(address, trackId)) as Voting
+      const votingFor = safeParse(VotingForSchema, votingForRaw?.toJSON())
 
       if (!votingFor) {
         console.error(`Failed to parse voting data for track ${trackId}`)
@@ -1954,7 +1929,7 @@ export async function getConvictionVotingInfo(address: string, api: ApiPromise):
         console.log('delegating', delegating)
         convictionVotingInfo.delegations.push({
           target: delegating.target.toString(),
-          conviction: delegating.conviction,
+          conviction: delegating.conviction as Conviction,
           balance: delegating.balance,
           lockPeriod: delegating.prior ? delegating.prior[0] : undefined,
         })
@@ -1976,19 +1951,20 @@ export async function getConvictionVotingInfo(address: string, api: ApiPromise):
 
     // Get class locks
     const classLocksRaw = await api.query.convictionVoting.classLocksFor(address)
-    const classLocksResult = safeParse(ClassLocksResultSchema, classLocksRaw)
+    const classLocksResult = safeParse(ClassLocksResultSchema, classLocksRaw.toJSON())
 
     if (!classLocksResult) {
       console.error('Failed to parse class locks data')
       return undefined
     }
 
-    for (const [classId, lockAmount] of classLocksResult) {
+    for (const [classId, lockAmount] of classLocksResult as Array<[number, number]>) {
+      const lockAmountBN = new BN(lockAmount)
       convictionVotingInfo.classLocks.push({
         class: classId,
-        amount: lockAmount,
+        amount: lockAmountBN,
       })
-      convictionVotingInfo.locked = convictionVotingInfo.locked.add(lockAmount)
+      convictionVotingInfo.locked = convictionVotingInfo.locked.add(lockAmountBN)
     }
 
     return convictionVotingInfo
@@ -2088,10 +2064,10 @@ export async function getGovernanceActivity(
 
     // Get current block number
     const currentBlockRaw = await api.query.system.number()
-    const currentBlockNumber = parseOrThrow(CurrentBlockSchema, currentBlockRaw, 'Failed to parse current block number')
+    const currentBlockNumber = parseOrThrow(CurrentBlockSchema, currentBlockRaw.toJSON(), 'Failed to parse current block number')
 
     // Get voting info for all tracks
-    const tracks = safeParse(TracksSchema, api.consts.referenda?.tracks)
+    const tracks = safeParse(TracksSchema, api.consts.referenda?.tracks?.toJSON())
     if (!tracks) {
       console.error('Failed to parse tracks data')
       throw new InternalError(InternalErrorType.GET_CONVICTION_VOTING_INFO_ERROR)
@@ -2099,7 +2075,7 @@ export async function getGovernanceActivity(
 
     for (const [trackId] of tracks) {
       const votingForRaw = await api.query.convictionVoting.votingFor(address, trackId)
-      const votingFor = safeParse(VotingForSchema, votingForRaw)
+      const votingFor = safeParse(VotingForSchema, votingForRaw?.toJSON())
 
       if (!votingFor) {
         console.error(`Failed to parse voting data for track ${trackId}`)
@@ -2168,24 +2144,25 @@ export async function getGovernanceActivity(
 
     // Get class locks to determine total locked and unlockable amounts
     const classLocksRaw = await api.query.convictionVoting.classLocksFor(address)
-    const classLocksResult = safeParse(ClassLocksResultSchema, classLocksRaw)
+    const classLocksResult = safeParse(ClassLocksResultSchema, classLocksRaw.toJSON())
 
     if (!classLocksResult) {
       console.error('Failed to parse class locks data')
       throw new InternalError(InternalErrorType.GET_CONVICTION_VOTING_INFO_ERROR)
     }
 
-    for (const [classId, lockAmount] of classLocksResult) {
-      result.totalLocked = result.totalLocked.add(lockAmount)
+    for (const [classId, lockAmount] of classLocksResult as Array<[number, number]>) {
+      const lockAmountBN = new BN(lockAmount)
+      result.totalLocked = result.totalLocked.add(lockAmountBN)
 
       // Check if this class can be unlocked
       const trackId = classId
       const votingForRaw = await api.query.convictionVoting.votingFor(address, trackId)
-      const votingFor = safeParse(VotingForSchema, votingForRaw)
+      const votingFor = safeParse(VotingForSchema, votingForRaw?.toJSON())
 
       // Can unlock if not voting or delegating on this track
       if (votingFor && !votingFor.isCasting && !votingFor.isDelegating) {
-        result.unlockableAmount = result.unlockableAmount.add(lockAmount)
+        result.unlockableAmount = result.unlockableAmount.add(lockAmountBN)
       }
     }
 
@@ -2244,7 +2221,7 @@ export async function getDelegationTracks(address: string, api: ApiPromise): Pro
     }
 
     const delegationTracks: number[] = []
-    const tracks = safeParse(TracksSchema, api.consts.referenda?.tracks)
+    const tracks = safeParse(TracksSchema, api.consts.referenda?.tracks?.toJSON())
 
     if (!tracks) {
       console.error('Failed to parse tracks data')
@@ -2253,7 +2230,7 @@ export async function getDelegationTracks(address: string, api: ApiPromise): Pro
 
     for (const [trackId] of tracks) {
       const votingForRaw = await api.query.convictionVoting.votingFor(address, trackId)
-      const votingFor = safeParse(VotingForSchema, votingForRaw)
+      const votingFor = safeParse(VotingForSchema, votingForRaw?.toJSON())
 
       if (votingFor?.isDelegating) {
         delegationTracks.push(trackId)
@@ -2280,7 +2257,7 @@ export async function getVotingTracks(address: string, api: ApiPromise): Promise
     }
 
     const votingTracks: number[] = []
-    const tracks = safeParse(TracksSchema, api.consts.referenda?.tracks)
+    const tracks = safeParse(TracksSchema, api.consts.referenda?.tracks?.toJSON())
 
     if (!tracks) {
       console.error('Failed to parse tracks data')
@@ -2289,7 +2266,7 @@ export async function getVotingTracks(address: string, api: ApiPromise): Promise
 
     for (const [trackId] of tracks) {
       const votingForRaw = await api.query.convictionVoting.votingFor(address, trackId)
-      const votingFor = safeParse(VotingForSchema, votingForRaw)
+      const votingFor = safeParse(VotingForSchema, votingForRaw?.toJSON())
 
       if (votingFor?.isCasting && votingFor.asCasting && votingFor.asCasting.votes.length > 0) {
         votingTracks.push(trackId)
