@@ -81,6 +81,8 @@ describe('NativeBalanceVisualization component', () => {
 
   const createMockNative = (overrides: Partial<Native> = {}): Native => ({
     total: TEST_AMOUNTS.HUNDRED_DOT.clone(),
+    free: TEST_AMOUNTS.HUNDRED_DOT.clone(),
+    frozen: TEST_AMOUNTS.ZERO.clone(),
     transferable: TEST_AMOUNTS.HUNDRED_DOT.clone().muln(6).divn(10), // 60 DOT
     staking: {
       total: TEST_AMOUNTS.HUNDRED_DOT.clone().muln(3).divn(10), // 30 DOT
@@ -99,6 +101,7 @@ describe('NativeBalanceVisualization component', () => {
           timeRemaining: '2 days',
         },
       ],
+      canUnstake: true,
     },
     reserved: {
       total: TEST_AMOUNTS.TEN_DOT.clone(),

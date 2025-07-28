@@ -219,56 +219,6 @@ const GovernanceDetails = ({ convictionVoting, token, appId }: { convictionVotin
   )
 }
 
-const GovernanceDetails = ({ convictionVoting, token, appId }: { convictionVoting: ConvictionVotingInfo; token: Token; appId: AppId }) => {
-  if (!convictionVoting) return null
-  const { votes = [], delegations = [], locked } = convictionVoting
-  return (
-    <div className="w-full text-sm border-t border-gray-100 pt-2 mb-2 flex flex-col gap-2">
-      {locked?.gtn(0) && renderDetailsItem(<LockClosedIcon className="w-4 h-4 text-polkadot-magenta" />, 'Locked', locked, token)}
-
-      {votes.length > 0 && (
-        <div className="flex flex-col gap-1">
-          <div className="font-semibold text-xs text-polkadot-magenta">Votes</div>
-          <div className="flex flex-col gap-1 px-1 max-h-48 overflow-y-auto">
-            {votes.map((vote: any) => (
-              <div key={vote.referendumIndex} className={`${detailFlagStyle} bg-polkadot-magenta/10`}>
-                <span className="flex items-center gap-1.5">
-                  <Hash className="w-3.5 h-3.5 text-gray-600" />
-                  Ref #{vote.referendumIndex}
-                  <Badge variant="outline" className="text-xs">
-                    {vote.vote.conviction}
-                  </Badge>
-                  <span className="ml-2 text-xs">{vote.vote.aye ? 'Aye' : 'Nay'}</span>
-                </span>
-                <span className="font-mono font-medium">{formatBalance(vote.vote.balance, token, token?.decimals, true)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      {delegations.length > 0 && (
-        <div className="flex flex-col gap-1">
-          <div className="font-semibold text-xs text-polkadot-magenta">Delegations</div>
-          <div className="flex flex-col gap-1 px-1 max-h-48 overflow-y-auto">
-            {delegations.map((delegation: any) => (
-              <div key={`${delegation.trackId}-${delegation.target}`} className={`${detailFlagStyle} bg-polkadot-magenta/5`}>
-                <span className="flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-gray-600" />
-                  <ExplorerLink value={delegation.target} explorerLinkType={ExplorerItemType.Address} appId={appId} size="xs" truncate />
-                  <Badge variant="outline" className="text-xs">
-                    {delegation.conviction}
-                  </Badge>
-                </span>
-                <span className="font-mono font-medium">{formatBalance(delegation.balance, token, token?.decimals, true)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
 export const NativeBalanceVisualization = ({
   data,
   token,

@@ -49,7 +49,7 @@ describe('CopyButton component', () => {
     })
 
     it('should render button with correct props', () => {
-      render(<CopyButton value="test content" size="md" />)
+      render(<CopyButton value="test content" size="lg" />)
 
       const button = screen.getByTestId('copy-button')
       expect(button).toBeInTheDocument()
