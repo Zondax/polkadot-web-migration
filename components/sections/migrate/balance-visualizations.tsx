@@ -340,11 +340,12 @@ export const NativeBalanceVisualization = ({
 
   const filteredBalanceTypes = balanceTypes.filter(type => types.includes(type.id))
   // The properties can't be dynamic in tailwind, so we need to use a record
-  type GridColumnCount = 1 | 2 | 3
+  type GridColumnCount = 1 | 2 | 3 | 4
   const gridCols: Record<GridColumnCount, string> = {
     1: 'sm:grid-cols-1',
     2: 'sm:grid-cols-2',
     3: 'sm:grid-cols-3',
+    4: 'sm:grid-cols-4',
   }
 
   return (

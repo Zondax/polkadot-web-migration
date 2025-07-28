@@ -131,7 +131,7 @@ describe('NativeBalanceVisualization component', () => {
   describe('basic rendering', () => {
     it('should render all three balance types by default', () => {
       const mockData = createMockNative()
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
+      render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" />)
 
       expect(screen.getByText('Transferable')).toBeInTheDocument()
       expect(screen.getByText('Staked')).toBeInTheDocument()
@@ -140,26 +140,26 @@ describe('NativeBalanceVisualization component', () => {
 
     it('should render with grid layout', () => {
       const mockData = createMockNative()
-      const { container } = render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
+      const { container } = render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" />)
 
       const gridContainer = container.querySelector('.grid.grid-cols-1')
       expect(gridContainer).toBeInTheDocument()
-      expect(gridContainer).toHaveClass('sm:grid-cols-3')
+      expect(gridContainer).toHaveClass('sm:grid-cols-4')
     })
 
     it('should render correct number of balance cards', () => {
       const mockData = createMockNative()
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
+      render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" />)
 
       const cards = screen.getAllByTestId('card')
-      expect(cards).toHaveLength(3)
+      expect(cards).toHaveLength(4)
     })
   })
 
   describe('balance type filtering', () => {
     it('should render only transferable when types filter is applied', () => {
       const mockData = createMockNative()
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} types={[BalanceType.Transferable]} />)
+      render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" types={[BalanceType.Transferable]} />)
 
       expect(screen.getByText('Transferable')).toBeInTheDocument()
       expect(screen.queryByText('Staked')).not.toBeInTheDocument()
@@ -171,7 +171,14 @@ describe('NativeBalanceVisualization component', () => {
 
     it('should render only staking and reserved when filtered', () => {
       const mockData = createMockNative()
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} types={[BalanceType.Staking, BalanceType.Reserved]} />)
+      render(
+        <NativeBalanceVisualization
+          data={mockData}
+          token={mockToken}
+          appId="polkadot"
+          types={[BalanceType.Staking, BalanceType.Reserved]}
+        />
+      )
 
       expect(screen.queryByText('Transferable')).not.toBeInTheDocument()
       expect(screen.getByText('Staked')).toBeInTheDocument()
@@ -184,7 +191,12 @@ describe('NativeBalanceVisualization component', () => {
     it('should adjust grid columns based on filtered types', () => {
       const mockData = createMockNative()
       const { container } = render(
-        <NativeBalanceVisualization data={mockData} token={mockToken} types={[BalanceType.Transferable, BalanceType.Staking]} />
+        <NativeBalanceVisualization
+          data={mockData}
+          token={mockToken}
+          appId="polkadot"
+          types={[BalanceType.Transferable, BalanceType.Staking]}
+        />
       )
 
       const gridContainer = container.querySelector('.grid.grid-cols-1')
@@ -195,7 +207,7 @@ describe('NativeBalanceVisualization component', () => {
   describe('transferable balance card', () => {
     it('should render transferable card with correct icon and styling', () => {
       const mockData = createMockNative()
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
+      render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" />)
 
       expect(screen.getByTestId('arrow-right-left-icon')).toBeInTheDocument()
       expect(screen.getByText('Transferable')).toBeInTheDocument()
@@ -204,10 +216,10 @@ describe('NativeBalanceVisualization component', () => {
 
     it('should display correct percentage for transferable', () => {
       const mockData = createMockNative()
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
+      render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" />)
 
       const badges = screen.getAllByTestId('badge')
-      expect(badges).toHaveLength(3)
+      expect(badges).toHaveLength(4)
       // Check that badges contain percentage values
       const badgeTexts = badges.map(badge => badge.textContent)
       expect(badgeTexts.some(text => text?.includes('%'))).toBe(true)
@@ -217,7 +229,7 @@ describe('NativeBalanceVisualization component', () => {
   describe('staking balance card', () => {
     it('should render staking card with correct icon and amount', () => {
       const mockData = createMockNative()
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
+      render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" />)
 
       const barChartIcons = screen.getAllByTestId('bar-chart-icon')
       expect(barChartIcons.length).toBeGreaterThan(0)
@@ -227,7 +239,7 @@ describe('NativeBalanceVisualization component', () => {
 
     it('should render staking details when staking data exists', () => {
       const mockData = createMockNative()
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
+      render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" />)
 
       expect(screen.getByText('Active')).toBeInTheDocument()
       expect(screen.getAllByText('200000000000 DOT')).toHaveLength(1)
@@ -237,7 +249,7 @@ describe('NativeBalanceVisualization component', () => {
 
     it('should render ready to withdraw section', () => {
       const mockData = createMockNative()
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
+      render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" />)
 
       expect(screen.getByText('Ready to withdraw')).toBeInTheDocument()
       expect(screen.getByTestId('check-icon')).toBeInTheDocument()
@@ -246,7 +258,7 @@ describe('NativeBalanceVisualization component', () => {
 
     it('should render time remaining for unlocking funds', () => {
       const mockData = createMockNative()
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
+      render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" />)
 
       expect(screen.getByText('2 days')).toBeInTheDocument()
       expect(screen.getByTestId('clock-icon')).toBeInTheDocument()
@@ -258,9 +270,10 @@ describe('NativeBalanceVisualization component', () => {
           total: TEST_AMOUNTS.ZERO,
           active: TEST_AMOUNTS.ZERO,
           unlocking: [],
+          canUnstake: false,
         },
       })
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
+      render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" />)
 
       const zeroBalances = screen.getAllByText('0 DOT')
       expect(zeroBalances.length).toBeGreaterThan(0)
@@ -270,7 +283,7 @@ describe('NativeBalanceVisualization component', () => {
       const mockData = createMockNative({
         staking: undefined,
       })
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
+      render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" />)
 
       expect(screen.getByText('Staked')).toBeInTheDocument()
       expect(screen.queryByText('Active')).not.toBeInTheDocument()
@@ -280,7 +293,7 @@ describe('NativeBalanceVisualization component', () => {
   describe('reserved balance card', () => {
     it('should render reserved card with correct icon and amount', () => {
       const mockData = createMockNative()
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
+      render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" />)
 
       const lockIcons = screen.getAllByTestId('lock-closed-icon')
       expect(lockIcons.length).toBeGreaterThan(0)
@@ -290,7 +303,7 @@ describe('NativeBalanceVisualization component', () => {
 
     it('should render proxy deposit details', () => {
       const mockData = createMockNative()
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
+      render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" />)
 
       expect(screen.getByText('Proxy Deposit')).toBeInTheDocument()
       expect(screen.getByTestId('user-cog-icon')).toBeInTheDocument()
@@ -299,7 +312,7 @@ describe('NativeBalanceVisualization component', () => {
 
     it('should render identity deposit details', () => {
       const mockData = createMockNative()
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
+      render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" />)
 
       expect(screen.getByText('Identity Deposit')).toBeInTheDocument()
       expect(screen.getByTestId('user-icon')).toBeInTheDocument()
@@ -308,7 +321,7 @@ describe('NativeBalanceVisualization component', () => {
 
     it('should render index deposit details', () => {
       const mockData = createMockNative()
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
+      render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" />)
 
       expect(screen.getByText('Account Index Deposit')).toBeInTheDocument()
       expect(screen.getByTestId('hash-icon')).toBeInTheDocument()
@@ -317,11 +330,11 @@ describe('NativeBalanceVisualization component', () => {
 
     it('should render multisig deposit details', () => {
       const mockData = createMockNative()
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
+      render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" />)
 
       expect(screen.getByText('Multisig Deposit')).toBeInTheDocument()
       expect(screen.getByText('Call Hash:')).toBeInTheDocument()
-      expect(screen.getByTestId('group-icon')).toBeInTheDocument()
+      expect(screen.getAllByTestId('group-icon')[0]).toBeInTheDocument()
 
       const explorerLink = screen.getByTestId('explorer-link')
       expect(explorerLink).toHaveAttribute('data-value', '0x1234567890abcdef')
@@ -341,7 +354,7 @@ describe('NativeBalanceVisualization component', () => {
           multisig: { total: TEST_AMOUNTS.ZERO, deposits: [] },
         },
       })
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
+      render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" />)
 
       expect(screen.queryByText('Proxy Deposit')).not.toBeInTheDocument()
       expect(screen.queryByText('Identity Deposit')).not.toBeInTheDocument()
@@ -353,10 +366,10 @@ describe('NativeBalanceVisualization component', () => {
   describe('percentage display', () => {
     it('should show percentages by default', () => {
       const mockData = createMockNative()
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
+      render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" />)
 
       const badges = screen.getAllByTestId('badge')
-      expect(badges).toHaveLength(3)
+      expect(badges).toHaveLength(4)
       // Check that all badges contain percentage symbols
       for (const badge of badges) {
         expect(badge.textContent).toMatch(/%/)
@@ -365,7 +378,7 @@ describe('NativeBalanceVisualization component', () => {
 
     it('should hide percentages when hidePercentage is true', () => {
       const mockData = createMockNative()
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} hidePercentage />)
+      render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" hidePercentage />)
 
       const badges = screen.queryAllByTestId('badge')
       expect(badges).toHaveLength(0)
@@ -378,7 +391,7 @@ describe('NativeBalanceVisualization component', () => {
       const mockData = createMockNative({
         total: TEST_AMOUNTS.ZERO,
         transferable: TEST_AMOUNTS.ZERO,
-        staking: { total: TEST_AMOUNTS.ZERO, active: TEST_AMOUNTS.ZERO, unlocking: [] },
+        staking: { total: TEST_AMOUNTS.ZERO, active: TEST_AMOUNTS.ZERO, unlocking: [], canUnstake: false },
         reserved: {
           total: TEST_AMOUNTS.ZERO,
           proxy: { deposit: TEST_AMOUNTS.ZERO },
@@ -387,7 +400,7 @@ describe('NativeBalanceVisualization component', () => {
           multisig: { total: TEST_AMOUNTS.ZERO, deposits: [] },
         },
       })
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
+      render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" />)
 
       const zeroBalanceTexts = screen.getAllByText('0 DOT')
       expect(zeroBalanceTexts.length).toBeGreaterThanOrEqual(3)
@@ -398,7 +411,7 @@ describe('NativeBalanceVisualization component', () => {
       const mockData = createMockNative({
         total: undefined as any,
       })
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
+      render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" />)
 
       // Should not crash and handle gracefully
       expect(screen.getByText('Transferable')).toBeInTheDocument()
@@ -422,7 +435,7 @@ describe('NativeBalanceVisualization component', () => {
           },
         },
       })
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
+      render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" />)
 
       const explorerLinks = screen.getAllByTestId('explorer-link')
       expect(explorerLinks).toHaveLength(2)
@@ -436,9 +449,10 @@ describe('NativeBalanceVisualization component', () => {
           total: TEST_AMOUNTS.HUNDRED_DOT.clone().divn(5), // 20 DOT
           active: TEST_AMOUNTS.HUNDRED_DOT.clone().divn(5), // 20 DOT
           unlocking: [],
+          canUnstake: false,
         },
       })
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
+      render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" />)
 
       expect(screen.getByText('Active')).toBeInTheDocument()
       expect(screen.queryByText('Unlocking')).not.toBeInTheDocument()
@@ -449,7 +463,7 @@ describe('NativeBalanceVisualization component', () => {
   describe('styling and layout', () => {
     it('should apply correct card styling classes', () => {
       const mockData = createMockNative()
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
+      render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" />)
 
       const cards = screen.getAllByTestId('card')
       for (const card of cards) {
@@ -463,7 +477,7 @@ describe('NativeBalanceVisualization component', () => {
 
     it('should apply correct color schemes for each balance type', () => {
       const mockData = createMockNative()
-      render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
+      render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" />)
 
       const cards = screen.getAllByTestId('card')
 
@@ -479,19 +493,24 @@ describe('NativeBalanceVisualization component', () => {
 
       // Test single column
       const { container: container1 } = render(
-        <NativeBalanceVisualization data={mockData} token={mockToken} types={[BalanceType.Transferable]} />
+        <NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" types={[BalanceType.Transferable]} />
       )
       expect(container1.querySelector('.sm\\:grid-cols-1')).toBeInTheDocument()
 
       // Test two columns
       const { container: container2 } = render(
-        <NativeBalanceVisualization data={mockData} token={mockToken} types={[BalanceType.Transferable, BalanceType.Staking]} />
+        <NativeBalanceVisualization
+          data={mockData}
+          token={mockToken}
+          appId="polkadot"
+          types={[BalanceType.Transferable, BalanceType.Staking]}
+        />
       )
       expect(container2.querySelector('.sm\\:grid-cols-2')).toBeInTheDocument()
 
-      // Test three columns
-      const { container: container3 } = render(<NativeBalanceVisualization data={mockData} token={mockToken} />)
-      expect(container3.querySelector('.sm\\:grid-cols-3')).toBeInTheDocument()
+      // Test four columns (all balance types)
+      const { container: container4 } = render(<NativeBalanceVisualization data={mockData} token={mockToken} appId="polkadot" />)
+      expect(container4.querySelector('.sm\\:grid-cols-4')).toBeInTheDocument()
     })
   })
 })

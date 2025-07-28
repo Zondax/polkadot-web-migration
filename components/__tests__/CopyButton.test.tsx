@@ -217,7 +217,7 @@ describe('CopyButton component', () => {
   })
 
   describe('multiple clicks and timing', () => {
-    it('should handle rapid multiple clicks', () => {
+    it('should handle rapid multiple clicks', async () => {
       render(<CopyButton value="test content" />)
 
       const button = screen.getByTestId('copy-button')
@@ -231,6 +231,11 @@ describe('CopyButton component', () => {
 
       expect(mockCopyContent).toHaveBeenCalledTimes(3)
       expect(screen.getByTestId('check-icon')).toBeInTheDocument()
+
+      // Clean up pending timers
+      act(() => {
+        vi.runAllTimers()
+      })
     })
 
     it('should handle clicks during transition period', () => {
@@ -252,6 +257,11 @@ describe('CopyButton component', () => {
 
       expect(mockCopyContent).toHaveBeenCalledTimes(2)
       expect(screen.getByTestId('check-icon')).toBeInTheDocument()
+
+      // Clean up pending timers
+      act(() => {
+        vi.runAllTimers()
+      })
     })
   })
 
@@ -297,6 +307,11 @@ describe('CopyButton component', () => {
 
       expect(mockCopyContent).toHaveBeenCalledWith('new value')
       expect(mockCopyContent).toHaveBeenCalledTimes(2)
+
+      // Clean up pending timers
+      act(() => {
+        vi.runAllTimers()
+      })
     })
   })
 
@@ -341,6 +356,11 @@ describe('CopyButton component', () => {
 
       // After click should render Check icon
       expect(screen.getByTestId('check-icon')).toBeInTheDocument()
+
+      // Clean up pending timers
+      act(() => {
+        vi.runAllTimers()
+      })
     })
   })
 })
