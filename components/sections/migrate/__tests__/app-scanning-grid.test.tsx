@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
+import { type App, AppStatus } from 'state/ledger'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { AppStatus, type App } from 'state/ledger'
 import AppScanningGrid from '../app-scanning-grid'
 
 // Mock the dependencies

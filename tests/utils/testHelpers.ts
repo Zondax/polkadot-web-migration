@@ -1,7 +1,7 @@
 import { act, waitFor } from '@testing-library/react'
 import { expect } from 'vitest'
 import type { Address } from '@/state/types/ledger'
-import { TEST_PATHS, createTestAddress } from '../fixtures/addresses'
+import { createTestAddress, TEST_PATHS } from '../fixtures/addresses'
 
 /**
  * Wait for async updates with proper act wrapper

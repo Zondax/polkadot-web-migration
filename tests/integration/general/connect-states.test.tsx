@@ -1,9 +1,8 @@
 import { describe, it } from 'vitest'
-import { setupTransportAndAppConnectedState, setupTransportConnectedState } from '../helpers/transport'
-
 import MigratePage from '@/app/migrate/page'
 import { verifyAllStepsDefault, verifyConnectPageContent, verifyStep3Failed, verifyStep3Success } from '../helpers/connect'
 import { renderWithProviders } from '../helpers/renderWithProviders'
+import { setupTransportAndAppConnectedState, setupTransportConnectedState } from '../helpers/transport'
 
 describe('Connect States', () => {
   describe('Device not connected', () => {

@@ -1,7 +1,7 @@
-import type { Token } from '@/config/apps'
 import { render, screen } from '@testing-library/react'
 import type { Collection, Native } from 'state/types/ledger'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { Token } from '@/config/apps'
 import { BalanceTypeFlag, NativeTokensDetailCard, NftDetailCard } from '../balance-detail-card'
 
 // Mock the useTokenLogo hook

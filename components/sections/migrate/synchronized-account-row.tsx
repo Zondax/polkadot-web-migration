@@ -18,9 +18,10 @@ import {
   User,
   UserCog,
   Users,
+  Vote,
 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import type { Collections } from 'state/ledger'
+import { type Collections, ledgerState$ } from 'state/ledger'
 import type { Address, AddressBalance, MultisigAddress, MultisigMember } from 'state/types/ledger'
 import { CustomTooltip, TooltipBody, type TooltipItem } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
@@ -41,6 +42,7 @@ import { BalanceHoverCard, NativeBalanceHoverCard } from './balance-hover-card'
 import { BalanceType } from './balance-visualizations'
 import DestinationAddressSelect from './destination-address-select'
 import ApproveMultisigCallDialog from './dialogs/approve-multisig-call-dialog'
+import GovernanceUnlockDialog from './dialogs/governance-unlock-dialog'
 import RemoveAccountIndexDialog from './dialogs/remove-account-index-dialog'
 import RemoveIdentityDialog from './dialogs/remove-identity-dialog'
 import RemoveProxyDialog from './dialogs/remove-proxy-dialog'
@@ -92,9 +94,29 @@ const SynchronizedAccountRow = ({
   const [approveMultisigCallOpen, setApproveMultisigCallOpen] = useState<boolean>(false)
   const [removeProxyOpen, setRemoveProxyOpen] = useState<boolean>(false)
   const [removeAccountIndexOpen, setRemoveAccountIndexOpen] = useState<boolean>(false)
+  const [governanceUnlockOpen, setGovernanceUnlockOpen] = useState<boolean>(false)
+  const [governanceActivity, setGovernanceActivity] = useState<any>(null)
   const isNoBalance: boolean = balance === undefined
   const isFirst: boolean = balanceIndex === 0 || isNoBalance
   const isNative = isNativeBalance(balance)
+  const hasGovernanceLocks = isNative && balance?.balance.convictionVoting?.locked?.gt(new BN(0))
+
+  useEffect(() => {
+    const fetchGovernanceActivity = async () => {
+      if (hasGovernanceLocks) {
+        try {
+          const activity = await ledgerState$.getGovernanceActivity(appId, account.address)
+          setGovernanceActivity(activity)
+        } catch (error) {
+          console.warn('Failed to get governance activity:', error)
+          setGovernanceActivity(null)
+        }
+      } else {
+        setGovernanceActivity(null)
+      }
+    }
+    fetchGovernanceActivity()
+  }, [hasGovernanceLocks, appId, account.address])
   const hasStaked: boolean = isNative && hasStakedBalance(balance)
   const stakingActive: BN | undefined = isNative ? balance?.balance.staking?.active : undefined
   const maxUnstake: BN = stakingActive ?? new BN(0)
@@ -271,6 +293,35 @@ const SynchronizedAccountRow = ({
     })
   }
 
+  if (hasGovernanceLocks && governanceActivity) {
+    const hasDelegations = governanceActivity.delegations.length > 0
+    const hasOngoingVotes = governanceActivity.votes.some((v: { referendumStatus: string }) => v.referendumStatus === 'ongoing')
+    const hasUnlockable = governanceActivity.unlockableAmount.gtn(0)
+
+    let buttonLabel = 'Manage Governance'
+    let tooltip = 'Manage governance locks and unlock conviction-locked tokens'
+    if (hasUnlockable) {
+      buttonLabel = 'Gov Unlock'
+      tooltip = 'Unlock conviction-locked tokens'
+    } else if (hasDelegations) {
+      buttonLabel = 'Remove Delegation'
+      tooltip = 'Remove delegation'
+    } else if (hasOngoingVotes) {
+      buttonLabel = 'Remove Vote'
+      tooltip = 'Remove Votes (Ongoing Referenda)'
+    }
+
+    actions.push({
+      label: buttonLabel,
+      tooltip: tooltip,
+      onClick: async () => {
+        setGovernanceUnlockOpen(true)
+      },
+      disabled: false,
+      icon: <Vote className="h-4 w-4" />,
+    })
+  }
+
   const renderStatusIcon = (account: Address): React.ReactNode | null => {
     let statusIcon: React.ReactNode | null = null
     let tooltipContent = 'Checking status...'
@@ -293,7 +344,7 @@ const SynchronizedAccountRow = ({
         <CustomTooltip tooltipBody={formatBalance(transferableBalance, token, token?.decimals, true)}>
           <span className="font-mono">{formatBalance(transferableBalance, token)}</span>
         </CustomTooltip>
-        {!isNative ? <BalanceHoverCard balances={balances} collections={collections} token={token} isMigration /> : null}
+        {!isNative ? <BalanceHoverCard balances={balances} collections={collections} token={token} appId={appId} isMigration /> : null}
       </div>
     )
   }
@@ -589,7 +640,7 @@ const SynchronizedAccountRow = ({
       {/* Staked */}
       <TableCell className="py-2 text-sm text-right w-1/4">
         {isNative && balance?.balance.staking?.total?.gt(new BN(0)) ? (
-          <NativeBalanceHoverCard balance={balance.balance} token={token} type={BalanceType.Staking} />
+          <NativeBalanceHoverCard balance={balance.balance} token={token} type={BalanceType.Staking} appId={appId} />
         ) : (
           '-'
         )}
@@ -597,7 +648,15 @@ const SynchronizedAccountRow = ({
       {/* Reserved */}
       <TableCell className="py-2 text-sm text-right w-1/4">
         {isNative && balance?.balance.reserved?.total?.gt(new BN(0)) ? (
-          <NativeBalanceHoverCard balance={balance.balance} token={token} type={BalanceType.Reserved} />
+          <NativeBalanceHoverCard balance={balance.balance} token={token} type={BalanceType.Reserved} appId={appId} />
+        ) : (
+          '-'
+        )}
+      </TableCell>
+      {/* Governance */}
+      <TableCell className="py-2 text-sm text-right w-1/4">
+        {isNative && balance?.balance.convictionVoting?.locked?.gt(new BN(0)) ? (
+          <NativeBalanceHoverCard balance={balance.balance} token={token} type={BalanceType.Governance} appId={appId} />
         ) : (
           '-'
         )}
@@ -677,6 +736,16 @@ const SynchronizedAccountRow = ({
         appId={appId}
         transferableBalance={transferableBalance}
       />
+      {governanceActivity && (
+        <GovernanceUnlockDialog
+          open={governanceUnlockOpen}
+          setOpen={setGovernanceUnlockOpen}
+          account={account}
+          appId={appId}
+          token={token}
+          governanceActivity={governanceActivity}
+        />
+      )}
     </TableRow>
   )
 }

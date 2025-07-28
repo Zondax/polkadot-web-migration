@@ -26,16 +26,16 @@ process.on('unhandledRejection', (reason, promise) => {
 })
 
 import {
+  eraToHumanTime,
+  getNFTsOwnedByAccount,
+  getTxFee,
+  getUniquesOwnedByAccount,
+  ipfsToHttpUrl,
+  isReadyToWithdraw,
+  prepareRemoveProxiesTransaction,
   prepareUnstakeTransaction,
   prepareWithdrawTransaction,
-  prepareRemoveProxiesTransaction,
-  getTxFee,
-  getNFTsOwnedByAccount,
-  getUniquesOwnedByAccount,
   processNftItem,
-  ipfsToHttpUrl,
-  eraToHumanTime,
-  isReadyToWithdraw,
 } from '../account'
 
 // Mock all external modules
