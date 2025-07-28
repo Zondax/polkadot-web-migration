@@ -75,16 +75,16 @@ const BalanceCard = ({ value, total, label, icon, colorScheme, details, hidePerc
 const renderDetailsItem = (icon: ReactNode, label: string, value?: BN, token?: Token) => {
   const bnValue = value !== undefined ? value : new BN(0)
   return (
-    <div className="flex justify-between mb-1 gap-1.5">
-      <span className="flex items-center gap-1.5">
-        {icon} <div className="text-sm text-gray-600">{label}</div>
+    <div className="flex items-center justify-between mb-1.5 gap-2">
+      <span className="flex items-center gap-1.5 min-w-0">
+        {icon} <div className="text-sm text-gray-600 truncate">{label}</div>
       </span>
-      <span className="font-mono font-medium">{formatBalance(bnValue, token, token?.decimals, true)}</span>
+      <span className="font-mono font-medium text-sm flex-shrink-0">{formatBalance(bnValue, token, token?.decimals, true)}</span>
     </div>
   )
 }
 
-const detailFlagStyle = 'flex justify-between text-xxs gap-1.5 px-1.5 py-0.5 rounded-xl [&_svg]:h-3 [&_svg]:w-3'
+const detailFlagStyle = 'flex items-center justify-between text-xs gap-2 px-2 py-1 rounded-lg [&_svg]:h-3 [&_svg]:w-3'
 
 const StakingDetails = ({ stakingData, token }: { stakingData: Staking; token: Token }) => {
   const readyToWithdraw =
@@ -100,24 +100,29 @@ const StakingDetails = ({ stakingData, token }: { stakingData: Staking; token: T
         <div className="flex flex-col gap-1">
           {renderDetailsItem(<LockOpenIcon className="w-4 h-4 text-polkadot-cyan" />, 'Unlocking', unLockingBalance, token)}
 
-          <div className="flex flex-col gap-1 px-1 max-h-32 overflow-y-auto">
+          <div className="flex flex-col gap-1.5 px-2 max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             {/* Staked balance ready to withdraw */}
             {readyToWithdraw.gtn(0) && (
-              <div className={`${detailFlagStyle} bg-green-400/60`}>
-                <span className="flex items-center gap-1.5">
-                  <Check className="w-3.5 h-3.5 text-gray-600" />
+              <div className={`${detailFlagStyle} bg-green-50 border border-green-200`}>
+                <span className="flex items-center gap-1.5 min-w-0">
+                  <Check className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
                   Ready to withdraw
                 </span>
-                <span className="font-mono font-medium">{formatBalance(readyToWithdraw, token, token?.decimals, true)}</span>
+                <span className="font-mono font-medium text-sm flex-shrink-0">
+                  {formatBalance(readyToWithdraw, token, token?.decimals, true)}
+                </span>
               </div>
             )}
             {/* Staked balance not ready to withdraw */}
             {notReadyToWithdraw?.map(unlock => (
-              <div key={`${unlock.era}-${unlock.value}`} className={`${detailFlagStyle} bg-polkadot-cyan/20`}>
-                <span className="flex items-center gap-1.5">
-                  <ClockIcon className="w-3.5 h-3.5 text-gray-600" /> {unlock.timeRemaining}
+              <div key={`${unlock.era}-${unlock.value}`} className={`${detailFlagStyle} bg-blue-50 border border-blue-200`}>
+                <span className="flex items-center gap-1.5 min-w-0">
+                  <ClockIcon className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+                  <span className="text-gray-700">{unlock.timeRemaining}</span>
                 </span>
-                <span className="font-mono font-medium">{formatBalance(unlock.value, token, token?.decimals, true)}</span>
+                <span className="font-mono font-medium text-sm flex-shrink-0">
+                  {formatBalance(unlock.value, token, token?.decimals, true)}
+                </span>
               </div>
             ))}
           </div>
@@ -147,14 +152,14 @@ const ReservedDetails = ({ reservedData, token }: { reservedData: Reserved; toke
             reservedData.multisig.total,
             token
           )}
-          <div className="flex flex-col gap-1 px-1 max-h-32 overflow-y-auto">
+          <div className="flex flex-col gap-1.5 px-2 max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             {reservedData.multisig.deposits.map((deposit: { callHash: string; deposit: BN }) => (
-              <div key={deposit.callHash} className={`${detailFlagStyle} bg-polkadot-lime/20`}>
-                <span className="flex items-center gap-1.5">
-                  <Group className="w-3.5 h-3.5 text-gray-600" />
-                  Call Hash:
+              <div key={deposit.callHash} className={`${detailFlagStyle} bg-lime-50 border border-lime-200`}>
+                <span className="flex items-center gap-1.5 min-w-0">
+                  <Group className="w-3.5 h-3.5 text-lime-600 flex-shrink-0" />
+                  <span className="text-gray-700">Call Hash:</span>
+                  <ExplorerLink value={deposit.callHash} disableLink disableTooltip truncate size="xs" />
                 </span>
-                <ExplorerLink value={deposit.callHash} disableLink disableTooltip truncate size="xs" />
               </div>
             ))}
           </div>
@@ -285,11 +290,12 @@ export const NativeBalanceVisualization = ({
 
   const filteredBalanceTypes = balanceTypes.filter(type => types.includes(type.id))
   // The properties can't be dynamic in tailwind, so we need to use a record
-  type GridColumnCount = 1 | 2 | 3
+  type GridColumnCount = 1 | 2 | 3 | 4
   const gridCols: Record<GridColumnCount, string> = {
     1: 'sm:grid-cols-1',
     2: 'sm:grid-cols-2',
     3: 'sm:grid-cols-3',
+    4: 'sm:grid-cols-4',
   }
 
   return (
