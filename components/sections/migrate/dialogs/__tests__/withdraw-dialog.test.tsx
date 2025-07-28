@@ -1,19 +1,17 @@
-import { render, screen, fireEvent, act } from '@testing-library/react'
 import { BN } from '@polkadot/util'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Address } from '@/state/types/ledger'
-import type { AppId, Token } from '@/config/apps'
-import { createTestAccount } from '@/tests/utils/testHelpers'
-import { TEST_ADDRESSES, TEST_PATHS, TEST_PUBKEYS } from '@/tests/fixtures/addresses'
-import { TEST_AMOUNTS } from '@/tests/fixtures/balances'
-
-import WithdrawDialog from '../withdraw-dialog'
-
+import { useTokenLogo } from '@/components/hooks/useTokenLogo'
 // Import mocked hooks and utilities
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
-import { useTokenLogo } from '@/components/hooks/useTokenLogo'
-import { formatBalance } from '@/lib/utils/format'
+import type { AppId, Token } from '@/config/apps'
 import { getChainName } from '@/config/apps'
+import { formatBalance } from '@/lib/utils/format'
+import type { Address } from '@/state/types/ledger'
+import { TEST_ADDRESSES, TEST_PATHS, TEST_PUBKEYS } from '@/tests/fixtures/addresses'
+import { TEST_AMOUNTS } from '@/tests/fixtures/balances'
+import { createTestAccount } from '@/tests/utils/testHelpers'
+import WithdrawDialog from '../withdraw-dialog'
 
 // Mock external dependencies
 vi.mock('@/components/ExplorerLink', () => ({

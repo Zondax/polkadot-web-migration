@@ -1,7 +1,7 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
-import { UsersIcon, SettingsIcon, SearchIcon, Spinner, Logo, VercelLogo } from '../icons'
+import { Logo, SearchIcon, SettingsIcon, Spinner, UsersIcon, VercelLogo } from '../icons'
 
 describe('Icon Components', () => {
   describe('UsersIcon', () => {

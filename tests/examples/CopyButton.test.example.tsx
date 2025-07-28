@@ -4,14 +4,12 @@
  */
 
 import { act, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { MockedFunction } from 'vitest'
-
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { CopyButton } from '@/components/CopyButton'
 // Import from centralized fixtures
 import { TEST_ADDRESSES } from '@/tests/fixtures/addresses'
 import { waitForAsync } from '@/tests/utils/testHelpers'
-
-import { CopyButton } from '@/components/CopyButton'
 
 // Mock the copyContent utility
 vi.mock('@/lib/utils', () => ({
@@ -19,10 +17,11 @@ vi.mock('@/lib/utils', () => ({
 }))
 
 import { copyContent } from '@/lib/utils'
+
 const mockCopyContent = copyContent as MockedFunction<typeof copyContent>
 
 // Use centralized mock setup for common components
-import { setupCommonMocks, cleanupMocks } from '@/tests/utils/mockSetup'
+import { cleanupMocks, setupCommonMocks } from '@/tests/utils/mockSetup'
 
 // Mock specific to this test
 vi.mock('lucide-react', () => ({
@@ -63,7 +62,7 @@ describe('CopyButton component', () => {
     })
 
     it('should render button with correct props', () => {
-      render(<CopyButton value="test content" size="md" />)
+      render(<CopyButton value="test content" size="lg" />)
 
       const button = screen.getByTestId('copy-button')
       expect(button).toBeInTheDocument()

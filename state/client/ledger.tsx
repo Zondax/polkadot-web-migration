@@ -1,3 +1,7 @@
+import { BN } from '@polkadot/util'
+import { type AppConfig, type AppId, appsConfigs } from 'config/apps'
+import { maxAddressesToFetch } from 'config/config'
+import { InternalErrorType } from 'config/errors'
 import {
   createSignedExtrinsic,
   getApiAndProvider,
@@ -20,10 +24,6 @@ import type { ConnectionResponse } from '@/lib/ledger/types'
 import { InternalError, withErrorHandling } from '@/lib/utils'
 import { getBip44Path } from '@/lib/utils/address'
 import { getAccountTransferableBalance } from '@/lib/utils/balance'
-import type { BN } from '@polkadot/util'
-import { type AppConfig, type AppId, appsConfigs } from 'config/apps'
-import { maxAddressesToFetch } from 'config/config'
-import { InternalErrorType } from 'config/errors'
 
 import {
   type Address,
@@ -782,6 +782,213 @@ export const ledgerClient = {
       return undefined
     }
   },
+  async executeGovernanceUnlock(
+    appId: AppId,
+    address: string,
+    path: string,
+    actions: Array<{ type: 'removeVote' | 'undelegate' | 'unlock'; trackId: number; referendumIndex?: number }>,
+    updateTxStatus: UpdateTransactionStatus
+  ) {
+    const appConfig = appsConfigs.get(appId)
+    if (!appConfig?.rpcEndpoint) {
+      throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
+    }
+
+    return withErrorHandling(
+      async () => {
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        if (!api) {
+          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
+        }
+
+        const { prepareBatchRemoveVotesTransaction, prepareBatchUndelegateTransaction, prepareBatchUnlockTransaction } = await import(
+          '@/lib/account'
+        )
+
+        updateTxStatus(TransactionStatus.PREPARING_TX)
+
+        // Group actions by type
+        const removeVotes = actions.filter(a => a.type === 'removeVote')
+        const undelegates = actions.filter(a => a.type === 'undelegate')
+        const unlocks = actions.filter(a => a.type === 'unlock')
+
+        // Prepare batch transactions
+        const calls = []
+
+        if (removeVotes.length > 0) {
+          const validVotes = removeVotes.filter(v => v.referendumIndex !== undefined)
+          if (validVotes.length > 0) {
+            const tx = await prepareBatchRemoveVotesTransaction(
+              api,
+              validVotes.map(v => ({
+                trackId: v.trackId,
+                referendumIndex: v.referendumIndex as number,
+              }))
+            )
+            calls.push(tx)
+          }
+        }
+
+        if (undelegates.length > 0) {
+          const tx = await prepareBatchUndelegateTransaction(
+            api,
+            undelegates.map(u => u.trackId)
+          )
+          calls.push(tx)
+        }
+
+        if (unlocks.length > 0) {
+          const tx = await prepareBatchUnlockTransaction(
+            api,
+            address,
+            unlocks.map(u => u.trackId)
+          )
+          calls.push(tx)
+        }
+
+        if (calls.length === 0) {
+          throw new InternalError(InternalErrorType.NO_ACTIVE_VOTES)
+        }
+
+        // Create the final transaction (single call or batch)
+        const finalTx = calls.length === 1 ? calls[0] : api.tx.utility.batchAll(calls)
+
+        // Prepare transaction payload
+        const preparedTx = await prepareTransactionPayload(api, address, appConfig, finalTx)
+        if (!preparedTx) {
+          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
+        }
+        const { payload, transfer, nonce, metadataHash, payloadBytes, proof1 } = preparedTx
+
+        // Get chain ID from app config
+        const chainId = appConfig.token.symbol.toLowerCase()
+
+        updateTxStatus(TransactionStatus.SIGNING)
+
+        // Sign transaction with Ledger
+        const { signature } = await ledgerService.signTransaction(path, payloadBytes, chainId, proof1)
+        if (!signature) {
+          throw new InternalError(InternalErrorType.SIGN_TX_ERROR)
+        }
+
+        // Create signed extrinsic
+        createSignedExtrinsic(api, transfer, address, signature, payload, nonce, metadataHash)
+
+        updateTxStatus(TransactionStatus.SUBMITTING)
+
+        // Create and wait for transaction to be submitted
+        await submitAndHandleTransaction(transfer, updateTxStatus, api)
+      },
+      {
+        errorCode: InternalErrorType.UNLOCK_CONVICTION_ERROR,
+        operation: 'executeGovernanceUnlock',
+        context: { appId, address, path, actions },
+      }
+    )
+  },
+
+  async getGovernanceUnlockFee(
+    appId: AppId,
+    address: string,
+    actions: Array<{ type: 'removeVote' | 'undelegate' | 'unlock'; trackId: number; referendumIndex?: number }>
+  ): Promise<BN | undefined> {
+    const appConfig = appsConfigs.get(appId)
+    if (!appConfig?.rpcEndpoint) {
+      return undefined
+    }
+
+    try {
+      return await withErrorHandling(
+        async () => {
+          const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+          if (!api) {
+            throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
+          }
+
+          const { prepareBatchRemoveVotesTransaction, prepareBatchUndelegateTransaction, prepareBatchUnlockTransaction } = await import(
+            '@/lib/account'
+          )
+
+          // Group actions by type
+          const removeVotes = actions.filter(a => a.type === 'removeVote')
+          const undelegates = actions.filter(a => a.type === 'undelegate')
+          const unlocks = actions.filter(a => a.type === 'unlock')
+
+          // Prepare batch transactions
+          const calls = []
+
+          if (removeVotes.length > 0) {
+            const validVotes = removeVotes.filter(v => v.referendumIndex !== undefined)
+            if (validVotes.length > 0) {
+              const tx = await prepareBatchRemoveVotesTransaction(
+                api,
+                validVotes.map(v => ({
+                  trackId: v.trackId,
+                  referendumIndex: v.referendumIndex as number,
+                }))
+              )
+              calls.push(tx)
+            }
+          }
+
+          if (undelegates.length > 0) {
+            const tx = await prepareBatchUndelegateTransaction(
+              api,
+              undelegates.map(u => u.trackId)
+            )
+            calls.push(tx)
+          }
+
+          if (unlocks.length > 0) {
+            const tx = await prepareBatchUnlockTransaction(
+              api,
+              address,
+              unlocks.map(u => u.trackId)
+            )
+            calls.push(tx)
+          }
+
+          if (calls.length === 0) {
+            return new BN(0)
+          }
+
+          // Create the final transaction
+          const finalTx = calls.length === 1 ? calls[0] : api.tx.utility.batchAll(calls)
+
+          const estimatedFee = await getTxFee(finalTx, address)
+          return estimatedFee
+        },
+        { errorCode: InternalErrorType.GET_CONVICTION_VOTING_INFO_ERROR, operation: 'getGovernanceUnlockFee', context: { appId, address } }
+      )
+    } catch {
+      return undefined
+    }
+  },
+
+  async getGovernanceActivity(appId: AppId, address: string) {
+    const appConfig = appsConfigs.get(appId)
+    if (!appConfig?.rpcEndpoint) {
+      return undefined
+    }
+
+    try {
+      return await withErrorHandling(
+        async () => {
+          const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+          if (!api) {
+            throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
+          }
+
+          const { getGovernanceActivity } = await import('@/lib/account')
+          return await getGovernanceActivity(address, api)
+        },
+        { errorCode: InternalErrorType.GET_CONVICTION_VOTING_INFO_ERROR, operation: 'getGovernanceActivity', context: { appId, address } }
+      )
+    } catch {
+      return undefined
+    }
+  },
+
   clearConnection() {
     ledgerService.clearConnection()
   },
