@@ -833,6 +833,21 @@ export const ledgerState$ = observable({
     }
   },
 
+  async createMultisigTransfer(
+    appId: AppId,
+    account: MultisigAddress,
+    formBody: { recipient: string; signer: string },
+    transferAmount: string,
+    updateTxStatus: UpdateTransactionStatus
+  ) {
+    try {
+      await ledgerClient.signMultisigTransferTx(appId, account, formBody.recipient, formBody.signer, transferAmount, updateTxStatus)
+    } catch (error) {
+      const internalError = interpretError(error, InternalErrorType.MULTISIG_TRANSFER_ERROR)
+      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+    }
+  },
+
   async removeProxies(appId: AppId, address: string, path: string, updateTxStatus: UpdateTransactionStatus) {
     try {
       await ledgerClient.removeProxies(appId, address, path, updateTxStatus)

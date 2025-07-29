@@ -49,6 +49,7 @@ export enum InternalErrorType {
   LOCKED_DEVICE = 'locked_device',
   MIGRATION_ERROR = 'migration_error',
   MIGRATION_TX_INFO_ERROR = 'migration_tx_info_error',
+  MULTISIG_TRANSFER_ERROR = 'multisig_transfer_error',
   NO_BALANCE = 'no_balance',
   NO_CALL_DATA = 'no_call_data',
   NO_MULTISIG_ADDRESS = 'no_multisig_address',
@@ -344,6 +345,11 @@ export const errorDetails: ErrorDetailsMap = {
     title: 'Migration Details Unavailable',
     description: 'Unable to retrieve information about your migration transaction.',
     content: 'This may be a temporary network issue. Please refresh the page or try again in a few moments.',
+  },
+  multisig_transfer_error: {
+    title: 'Multisig Transfer Failed',
+    description: 'Unable to create a multisig transfer to the signatory.',
+    content: 'This may be due to network issues, insufficient balance, or invalid multisig configuration. Please check your account details and try again.',
   },
   no_balance: {
     title: 'No Balance',

@@ -35,6 +35,12 @@ export const defaultDecimals = 4
 export const MULTISIG_WEIGHT_BUFFER = 1.2
 
 /**
+ * @constant MULTISIG_TRANSFER_AMOUNT
+ * @description Fixed transfer amount for multisig transfers to signatories (in base units, e.g., 0.0001 KSM).
+ */
+export const MULTISIG_TRANSFER_AMOUNT = '0.0001'
+
+/**
  * @constant defaultWeights
  * @description Default weights for common operations.
  */

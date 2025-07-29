@@ -13,6 +13,7 @@ import {
   KeyRound,
   LockOpen,
   Route,
+  Send,
   Shield,
   Trash2,
   User,
@@ -46,6 +47,7 @@ import GovernanceUnlockDialog from './dialogs/governance-unlock-dialog'
 import RemoveAccountIndexDialog from './dialogs/remove-account-index-dialog'
 import RemoveIdentityDialog from './dialogs/remove-identity-dialog'
 import RemoveProxyDialog from './dialogs/remove-proxy-dialog'
+import TransferMultisigDialog from './dialogs/transfer-multisig-dialog'
 import UnstakeDialog from './dialogs/unstake-dialog'
 import WithdrawDialog from './dialogs/withdraw-dialog'
 
@@ -94,6 +96,7 @@ const SynchronizedAccountRow = ({
   const [approveMultisigCallOpen, setApproveMultisigCallOpen] = useState<boolean>(false)
   const [removeProxyOpen, setRemoveProxyOpen] = useState<boolean>(false)
   const [removeAccountIndexOpen, setRemoveAccountIndexOpen] = useState<boolean>(false)
+  const [transferMultisigOpen, setTransferMultisigOpen] = useState<boolean>(false)
   const [governanceUnlockOpen, setGovernanceUnlockOpen] = useState<boolean>(false)
   const [governanceActivity, setGovernanceActivity] = useState<any>(null)
   const isNoBalance: boolean = balance === undefined
@@ -241,6 +244,16 @@ const SynchronizedAccountRow = ({
       onClick: () => setApproveMultisigCallOpen(true),
       disabled: false,
       icon: <Users className="h-4 w-4" />,
+    })
+  }
+
+  if (isMultisigAddress && internalMultisigMembers.length > 0) {
+    actions.push({
+      label: 'Transfer',
+      tooltip: 'Transfer funds to a multisig signatory',
+      onClick: () => setTransferMultisigOpen(true),
+      disabled: false,
+      icon: <Send className="h-4 w-4" />,
     })
   }
 
@@ -720,6 +733,15 @@ const SynchronizedAccountRow = ({
         account={account as MultisigAddress}
         appId={appId}
       />
+      {isMultisigAddress && (
+        <TransferMultisigDialog
+          open={transferMultisigOpen}
+          setOpen={setTransferMultisigOpen}
+          token={token}
+          account={account as MultisigAddress}
+          appId={appId}
+        />
+      )}
       <RemoveAccountIndexDialog
         open={removeAccountIndexOpen}
         setOpen={setRemoveAccountIndexOpen}
