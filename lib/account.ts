@@ -1420,6 +1420,7 @@ export async function getMultisigAddresses(
 ): Promise<MultisigAddress[] | undefined> {
   try {
     const multisigInfo = await getMultisigInfo(address, network)
+    console.log(`multisigInfo for ${address.slice(0, 6)}...`, multisigInfo)
 
     // If no multisig info is available, return undefined
     if (!multisigInfo) {
@@ -1428,7 +1429,7 @@ export async function getMultisigAddresses(
 
     const multisigAddresses: MultisigAddress[] = []
 
-    // Case 1: Address is a multisig account itself (has threshold and members). It should not happen, because the synchroniser should not have multisig accounts
+    // Case 1: Address is a multisig account itself (has threshold and members). It should not happen, because the synchronizer should not have multisig accounts
     if (multisigInfo.threshold && multisigInfo.multi_account_member && multisigInfo.multi_account_member.length > 0) {
       multisigAddresses.push({
         address,
@@ -1447,11 +1448,14 @@ export async function getMultisigAddresses(
 
     // Case 2: Address is part of other multisig accounts
     if (multisigInfo.multi_account && multisigInfo.multi_account.length > 0) {
+      console.log(`Case 2: Address ${address.slice(0, 6)}... is part of other multisig accounts`)
       // Process each multisig account the address is part of
       for (const account of multisigInfo.multi_account) {
         try {
           // Get member info for this specific multisig address
           const memberInfo = await getMultisigInfo(account.address, network)
+          console.log(`getMultisigInfo ${account.address.slice(0, 6)}...`, memberInfo)
+
           if (memberInfo?.multi_account_member) {
             multisigAddresses.push({
               address: account.address,
@@ -1675,6 +1679,122 @@ export function estimateCallWeight(call: SubmittableExtrinsic<'promise', ISubmit
       // Default weight for unknown calls
       return 500_000_000
   }
+}
+
+/**
+ * Prepares a nested multisig transaction where the signer is itself a multisig
+ * @param innerMultisigAddress The address of the inner multisig (the signer)
+ * @param innerMembers Array of inner multisig member addresses
+ * @param innerThreshold The inner multisig threshold
+ * @param actualSigner The actual signer from the inner multisig
+ * @param outerCall The outer multisig call to be wrapped
+ * @param api The API instance
+ */
+export const prepareNestedMultisigTx = async (
+  innerMultisigAddress: string,
+  innerMembers: string[],
+  innerThreshold: number,
+  actualSigner: string,
+  outerCall: SubmittableExtrinsic<'promise', ISubmittableResult>,
+  api: ApiPromise
+) => {
+  // Get the call hash for the outer multisig call
+  const outerCallHash = outerCall.method.hash.toHex()
+  
+  // Sort the inner signatories (excluding the actual signer)
+  const allInnerSignatories = innerMembers.sort()
+  const otherInnerSignatories = allInnerSignatories.filter(addr => addr !== actualSigner)
+  
+  // Check if there's an existing inner multisig for this call
+  const innerMultisigs = (await api.query.multisig.multisigs(innerMultisigAddress, outerCallHash)) as Option<Multisig>
+  
+  let innerTimepoint = null
+  if (innerMultisigs?.isSome) {
+    const multisigInfo = innerMultisigs.unwrap()
+    innerTimepoint = {
+      height: multisigInfo.when.height.toNumber(),
+      index: multisigInfo.when.index.toNumber(),
+    }
+  }
+  
+  // Estimate weight for the nested multisig
+  const estimatedWeight = estimateMultisigWeight(outerCall, innerThreshold, otherInnerSignatories, innerTimepoint)
+  
+  // Create the nested approveAsMulti transaction
+  const nestedMultisigTx = api.tx.multisig.approveAsMulti(
+    innerThreshold,
+    otherInnerSignatories,
+    innerTimepoint,
+    outerCallHash,
+    estimatedWeight
+  ) as SubmittableExtrinsic<'promise', ISubmittableResult>
+  
+  return nestedMultisigTx
+}
+
+/**
+ * Prepares a nested multisig transaction for asMulti where the signer is itself a multisig
+ * @param innerMultisigAddress The address of the inner multisig (the signer)
+ * @param innerMembers Array of inner multisig member addresses
+ * @param innerThreshold The inner multisig threshold
+ * @param actualSigner The actual signer from the inner multisig
+ * @param outerCall The outer asMulti call to be wrapped
+ * @param api The API instance
+ */
+export async function prepareNestedAsMultiTx(
+  innerMultisigAddress: string,
+  innerMembers: string[],
+  innerThreshold: number,
+  actualSigner: string,
+  outerCall: SubmittableExtrinsic<'promise', ISubmittableResult>,
+  api: ApiPromise
+) {
+  // Get the call hash for the outer multisig call
+  const outerCallHash = outerCall.method.hash.toHex()
+  const outerCallData = outerCall.method.toHex()
+  
+  // Sort the inner signatories (excluding the actual signer)
+  const allInnerSignatories = innerMembers.sort()
+  const otherInnerSignatories = allInnerSignatories.filter(addr => addr !== actualSigner)
+  
+  // Check if there's an existing inner multisig for this call
+  const innerMultisigs = (await api.query.multisig.multisigs(innerMultisigAddress, outerCallHash)) as Option<Multisig>
+  
+  let innerTimepoint = null
+  if (innerMultisigs?.isSome) {
+    const multisigInfo = innerMultisigs.unwrap()
+    innerTimepoint = {
+      height: multisigInfo.when.height.toNumber(),
+      index: multisigInfo.when.index.toNumber(),
+    }
+  }
+  
+  if (innerTimepoint) {
+    // If there's already a timepoint, we need to use asMulti with the call data
+    const call = api.createType('Call', outerCallData)
+    const estimatedWeight = estimateMultisigWeight(outerCall, innerThreshold, otherInnerSignatories)
+    
+    return api.tx.multisig.asMulti(
+      innerThreshold,
+      otherInnerSignatories,
+      innerTimepoint,
+      call,
+      estimatedWeight
+    ) as SubmittableExtrinsic<'promise', ISubmittableResult>
+  } 
+  if (!innerTimepoint) {
+    // First approval for the inner multisig
+    const estimatedWeight = estimateMultisigWeight(outerCall, innerThreshold, otherInnerSignatories, null)
+    
+    return api.tx.multisig.approveAsMulti(
+      innerThreshold,
+      otherInnerSignatories,
+      null,
+      outerCallHash,
+      estimatedWeight
+    ) as SubmittableExtrinsic<'promise', ISubmittableResult>
+  }
+
 }
 
 /**

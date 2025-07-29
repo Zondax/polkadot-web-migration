@@ -9,9 +9,9 @@ interface SubscanBaseResponse {
 }
 
 export interface SubscanMultisig {
-  multi_account: { address: string }[]
-  multi_account_member: { address: string }[]
-  threshold: number
+  multi_account: { address: string }[] // Multisig accounts the address is part of
+  multi_account_member: { address: string }[] // Members of this multisig account
+  threshold: number // Threshold of this multisig account
 }
 
 interface SubscanSearchResponse extends SubscanBaseResponse {

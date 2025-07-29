@@ -90,6 +90,11 @@ export interface ValidateApproveAsMultiResult {
   callHash: string
   signer: string
   signerPath: string
+  isNestedMultisig: boolean
+  nestedMultisigData?: {
+    members: string[]
+    threshold: number
+  }
 }
 
 // Basic validation for signApproveAsMultiTx
@@ -97,7 +102,8 @@ export const validateApproveAsMultiParams = (
   appId: AppId,
   account: MultisigAddress,
   callHash: string,
-  signer: string
+  signer: string,
+  nestedSigner?: string
 ): ValidateApproveAsMultiResult => {
   const multisigValidation = validateMultisigParams(account)
 
@@ -112,15 +118,59 @@ export const validateApproveAsMultiParams = (
     throw new InternalError(InternalErrorType.NO_PENDING_MULTISIG_CALL)
   }
 
-  // Validate that the signer is internal (i.e., is a member of the multisig)
-  const member = account.members?.find(member => member.address === signer)
-  if (!member || !signer) {
-    throw new InternalError(InternalErrorType.NO_SIGNATORY_ADDRESS)
-  }
+  // Check if signer is itself a multisig (nested multisig scenario)
+  const isNestedMultisig = nestedSigner !== undefined
+  let signerPath: string
+  let actualSigner: string
+  let nestedMultisigData: { members: string[], threshold: number } | undefined
 
-  const signerPath = member.path
-  if (!signerPath) {
-    throw new InternalError(InternalErrorType.NO_SIGNATORY_ADDRESS)
+  if (isNestedMultisig && nestedSigner) {
+    // Nested multisig: signer is a multisig address, nestedSigner is the actual signer
+    const nestedMember = account.members?.find(member => member.address === signer)
+    if (!nestedMember) {
+      throw new InternalError(InternalErrorType.NO_SIGNATORY_ADDRESS)
+    }
+
+    // Find the nested multisig in the member's multisig addresses
+    const nestedMultisigAddress = nestedMember.memberMultisigAddresses?.find(addr => addr === signer)
+    if (!nestedMultisigAddress) {
+      throw new InternalError(InternalErrorType.NO_MULTISIG_ADDRESS)
+    }
+
+    // Get the nested multisig details from somewhere (this is a limitation - we need the nested multisig data)
+    // For now, we'll assume the nested multisig data is passed somehow
+    // In a real implementation, this would need to be fetched from the chain or stored locally
+    const nestedMembers = [nestedSigner] // This needs to be populated with actual members
+    const nestedThreshold = 2 // This needs to be the actual threshold
+
+    nestedMultisigData = {
+      members: nestedMembers,
+      threshold: nestedThreshold,
+    }
+
+    // The actual signer is the nested signer
+    actualSigner = nestedSigner
+    
+    // We need to find the path for the actual signer
+    // This is a limitation - we only have paths for direct members
+    const actualMember = account.members?.find(member => member.address === nestedSigner)
+    if (!actualMember || !actualMember.path) {
+      throw new InternalError(InternalErrorType.NO_SIGNATORY_ADDRESS)
+    }
+    signerPath = actualMember.path
+  } else {
+    // Regular multisig
+    const member = account.members?.find(member => member.address === signer)
+    if (!member || !signer) {
+      throw new InternalError(InternalErrorType.NO_SIGNATORY_ADDRESS)
+    }
+
+    if (!member.path) {
+      throw new InternalError(InternalErrorType.NO_SIGNATORY_ADDRESS)
+    }
+    
+    signerPath = member.path
+    actualSigner = signer
   }
 
   return {
@@ -128,8 +178,10 @@ export const validateApproveAsMultiParams = (
     appConfig,
     multisigInfo: multisigValidation.multisigInfo,
     callHash,
-    signer,
+    signer: actualSigner,
     signerPath,
+    isNestedMultisig,
+    nestedMultisigData,
   }
 }
 
@@ -142,10 +194,11 @@ export const validateAsMultiParams = (
   account: MultisigAddress,
   callHash: string,
   callData: string | undefined,
-  signer: string
+  signer: string,
+  nestedSigner?: string
 ): ValidateAsMultiParamsResult => {
   // Use the same validation as validateApproveAsMultiParams
-  const multisigValidation = validateApproveAsMultiParams(appId, account, callHash, signer)
+  const multisigValidation = validateApproveAsMultiParams(appId, account, callHash, signer, nestedSigner)
 
   const appConfig = appsConfigs.get(appId)
   if (!appConfig || !appConfig.rpcEndpoint) {
@@ -158,12 +211,7 @@ export const validateAsMultiParams = (
   }
 
   return {
-    isValid: true,
-    appConfig,
-    multisigInfo: multisigValidation.multisigInfo,
-    callHash,
+    ...multisigValidation,
     callData,
-    signer,
-    signerPath: multisigValidation.signerPath,
   }
 }

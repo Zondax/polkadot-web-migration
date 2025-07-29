@@ -1,3 +1,5 @@
+import type { SubmittableExtrinsic } from '@polkadot/api/types'
+import type { ISubmittableResult } from '@polkadot/types/types'
 import { BN } from '@polkadot/util'
 import { type AppConfig, type AppId, appsConfigs } from 'config/apps'
 import { maxAddressesToFetch } from 'config/config'
@@ -8,6 +10,8 @@ import {
   getTxFee,
   prepareApproveAsMultiTx,
   prepareAsMultiTx,
+  prepareNestedMultisigTx,
+  prepareNestedAsMultiTx,
   prepareRemoveAccountIndexTransaction,
   prepareRemoveIdentityTransaction,
   prepareRemoveProxiesTransaction,
@@ -457,9 +461,10 @@ export const ledgerClient = {
     account: MultisigAddress,
     callHash: string,
     signer: string,
+    nestedSigner: string | undefined,
     updateTxStatus: UpdateTransactionStatus
   ) {
-    const validation = validateApproveAsMultiParams(appId, account, callHash, signer)
+    const validation = validateApproveAsMultiParams(appId, account, callHash, signer, nestedSigner)
 
     if (!validation.isValid) {
       return undefined
@@ -476,17 +481,44 @@ export const ledgerClient = {
 
         updateTxStatus(TransactionStatus.PREPARING_TX)
 
-        const multiTx = await prepareApproveAsMultiTx(
-          signer,
-          multisigInfo.address,
-          multisigInfo.members,
-          multisigInfo.threshold,
-          callHash,
-          api
-        )
+        let multiTx: SubmittableExtrinsic<'promise', ISubmittableResult>
+        const signerForPayload = validation.signer
+
+        // Check if this is a nested multisig scenario
+        if (validation.isNestedMultisig && validation.nestedMultisigData) {
+          // First create the outer multisig call
+          const outerCall = await prepareApproveAsMultiTx(
+            signer, // The nested multisig address
+            multisigInfo.address,
+            multisigInfo.members,
+            multisigInfo.threshold,
+            callHash,
+            api
+          )
+
+          // Then wrap it in the inner multisig call
+          multiTx = await prepareNestedMultisigTx(
+            signer, // Inner multisig address
+            validation.nestedMultisigData.members,
+            validation.nestedMultisigData.threshold,
+            validation.signer, // Actual signer
+            outerCall,
+            api
+          )
+        } else {
+          // Regular multisig approval
+          multiTx = await prepareApproveAsMultiTx(
+            validation.signer,
+            multisigInfo.address,
+            multisigInfo.members,
+            multisigInfo.threshold,
+            callHash,
+            api
+          )
+        }
 
         // Prepare transaction payload
-        const preparedTx = await prepareTransactionPayload(api, signer, appConfig, multiTx)
+        const preparedTx = await prepareTransactionPayload(api, signerForPayload, appConfig, multiTx)
         if (!preparedTx) {
           throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
         }
@@ -504,7 +536,7 @@ export const ledgerClient = {
         }
 
         // Create signed extrinsic
-        createSignedExtrinsic(api, transfer, signer, signature, payload, nonce, metadataHash)
+        createSignedExtrinsic(api, transfer, signerForPayload, signature, payload, nonce, metadataHash)
 
         updateTxStatus(TransactionStatus.SUBMITTING)
 
@@ -514,7 +546,7 @@ export const ledgerClient = {
       {
         errorCode: InternalErrorType.APPROVE_MULTISIG_CALL_ERROR,
         operation: 'signApproveAsMultiTx',
-        context: { appId, account, callHash, signer },
+        context: { appId, account, callHash, signer, nestedSigner },
       }
     )
   },
@@ -525,9 +557,10 @@ export const ledgerClient = {
     callHash: string,
     callData: string | undefined,
     signer: string,
+    nestedSigner: string | undefined,
     updateTxStatus: UpdateTransactionStatus
   ) {
-    const validation = validateAsMultiParams(appId, account, callHash, callData, signer)
+    const validation = validateAsMultiParams(appId, account, callHash, callData, signer, nestedSigner)
 
     if (!validation.isValid) {
       return undefined
@@ -544,18 +577,46 @@ export const ledgerClient = {
 
         updateTxStatus(TransactionStatus.PREPARING_TX)
 
-        const multiTx = await prepareAsMultiTx(
-          signer,
-          multisigInfo.address,
-          multisigInfo.members,
-          multisigInfo.threshold,
-          callHash,
-          validCallData,
-          api
-        )
+        let multiTx: SubmittableExtrinsic<'promise', ISubmittableResult>
+        const signerForPayload = validation.signer
+
+        // Check if this is a nested multisig scenario
+        if (validation.isNestedMultisig && validation.nestedMultisigData) {
+          // First create the outer multisig call
+          const outerCall = await prepareAsMultiTx(
+            signer, // The nested multisig address
+            multisigInfo.address,
+            multisigInfo.members,
+            multisigInfo.threshold,
+            callHash,
+            validCallData,
+            api
+          )
+
+          // Then wrap it in the inner multisig call
+          multiTx = await prepareNestedAsMultiTx(
+            signer, // Inner multisig address
+            validation.nestedMultisigData.members,
+            validation.nestedMultisigData.threshold,
+            validation.signer, // Actual signer
+            outerCall,
+            api
+          )
+        } else {
+          // Regular multisig approval
+          multiTx = await prepareAsMultiTx(
+            validation.signer,
+            multisigInfo.address,
+            multisigInfo.members,
+            multisigInfo.threshold,
+            callHash,
+            validCallData,
+            api
+          )
+        }
 
         // Prepare transaction payload
-        const preparedTx = await prepareTransactionPayload(api, signer, appConfig, multiTx)
+        const preparedTx = await prepareTransactionPayload(api, signerForPayload, appConfig, multiTx)
         if (!preparedTx) {
           throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
         }
@@ -573,7 +634,7 @@ export const ledgerClient = {
         }
 
         // Create signed extrinsic
-        createSignedExtrinsic(api, transfer, signer, signature, payload, nonce, metadataHash)
+        createSignedExtrinsic(api, transfer, signerForPayload, signature, payload, nonce, metadataHash)
 
         updateTxStatus(TransactionStatus.SUBMITTING)
 
@@ -583,7 +644,7 @@ export const ledgerClient = {
       {
         errorCode: InternalErrorType.APPROVE_MULTISIG_CALL_ERROR,
         operation: 'signAsMultiTx',
-        context: { appId, account, callHash, callData, signer },
+        context: { appId, account, callHash, callData, signer, nestedSigner },
       }
     )
   },

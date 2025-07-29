@@ -27,6 +27,7 @@ const multisigCallFormSchema = z.object({
   signer: z.string().min(1, 'Signer is required'),
   isFinalApprovalWithCall: z.boolean().optional(),
   callData: z.string().optional().or(z.literal('')),
+  nestedSigner: z.string().optional(),
 })
 
 export type MultisigCallFormData = z.infer<typeof multisigCallFormSchema>
