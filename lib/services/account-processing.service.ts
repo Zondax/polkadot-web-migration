@@ -108,7 +108,7 @@ async function getBlockchainDataForAccount(
 ): Promise<{
   account: Address
   multisigDeposits: { callHash: string; deposit: BN }[]
-  memberMultisigAddresses?: string[]
+  memberMultisigInfo?: MultisigAddress[]
 }> {
   const balances: AddressBalance[] = []
   let addressHasNegativeBalance = false
@@ -208,7 +208,7 @@ async function getBlockchainDataForAccount(
         selected: true,
       },
       multisigDeposits,
-      memberMultisigAddresses,
+      memberMultisigInfo: multisigAddresses,
     }
   } catch (error) {
     throw new InternalError(InternalErrorType.SYNC_ERROR, {
@@ -429,19 +429,9 @@ export async function processAccountsForApp(
 
     // Collect multisig accounts
     for (const result of accountResults) {
-      if (result.memberMultisigAddresses) {
-        // Get multisig addresses and add them to the map
-        const multisigAddresses = await getMultisigAddresses(
-          result.account.address,
-          result.account.path,
-          appConfig.explorer?.network || appConfig.id,
-          api
-        )
-
-        if (multisigAddresses) {
-          for (const multisigAddress of multisigAddresses) {
-            multisigAccounts.set(multisigAddress.address, multisigAddress)
-          }
+      if (result.memberMultisigInfo) {
+        for (const multisigAddress of result.memberMultisigInfo) {
+          multisigAccounts.set(multisigAddress.address, multisigAddress)
         }
       }
     }
