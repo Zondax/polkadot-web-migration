@@ -1,9 +1,9 @@
-import type { AppId, Token } from '@/config/apps'
 import { vi } from 'vitest'
+import type { AppId, Token } from '@/config/apps'
+import { BalanceType } from '@/state/types/ledger'
 import { createTestAccount } from '../../utils/testHelpers'
 import { TEST_ADDRESSES } from '../addresses'
-import { TEST_AMOUNTS, createTestReservedBalance, createTestNativeBalance } from '../balances'
-import { BalanceType } from '@/state/types/ledger'
+import { createTestNativeBalance, createTestReservedBalance, TEST_AMOUNTS } from '../balances'
 
 /**
  * Common props for dialog component tests

@@ -1,6 +1,6 @@
 import type { BN } from '@polkadot/util'
 import { useEffect } from 'react'
-import type { Address, TransactionStatus, TransactionDetails } from 'state/types/ledger'
+import type { Address, TransactionDetails, TransactionStatus } from 'state/types/ledger'
 import { CustomTooltip } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'

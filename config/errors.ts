@@ -76,6 +76,13 @@ export enum InternalErrorType {
   UNSTAKE_ERROR = 'unstake_error',
   VALIDATE_CALL_DATA_MATCHES_HASH_ERROR = 'validate_call_data_matches_hash_error',
   WITHDRAW_ERROR = 'withdraw_error',
+  GET_CONVICTION_VOTING_INFO_ERROR = 'get_conviction_voting_info_error',
+  REMOVE_VOTE_ERROR = 'remove_vote_error',
+  UNDELEGATE_ERROR = 'undelegate_error',
+  UNLOCK_CONVICTION_ERROR = 'unlock_conviction_error',
+  NO_ACTIVE_VOTES = 'no_active_votes',
+  NO_ACTIVE_DELEGATION = 'no_active_delegation',
+  CONVICTION_LOCK_ACTIVE = 'conviction_lock_active',
 }
 
 /**
@@ -472,5 +479,41 @@ export const errorDetails: ErrorDetailsMap = {
     description: 'Unable to withdraw your staked funds.',
     content:
       'This may be due to network issues or your funds may still be in the unbonding period. Please check your staking status and try again.',
+  },
+  get_conviction_voting_info_error: {
+    title: 'Governance Info Unavailable',
+    description: 'Unable to retrieve your voting and delegation information.',
+    content: 'This may be due to network issues or the governance module may not be available on this chain. Please try again later.',
+  },
+  remove_vote_error: {
+    title: 'Vote Removal Failed',
+    description: 'Unable to remove your vote from the referendum.',
+    content:
+      'This may be due to network issues or the referendum may have already ended. Please verify the referendum status and try again.',
+  },
+  undelegate_error: {
+    title: 'Undelegate Failed',
+    description: 'Unable to remove your voting delegation.',
+    content: 'This may be due to network issues. Please verify your delegation status and try again.',
+  },
+  unlock_conviction_error: {
+    title: 'Unlock Failed',
+    description: 'Unable to unlock your conviction-locked tokens.',
+    content: 'This may be due to network issues or your tokens may still be locked. Please check the lock period and try again later.',
+  },
+  no_active_votes: {
+    title: 'No Active Votes',
+    description: 'You have no active votes to remove.',
+    content: 'You can only remove votes from ongoing referenda where you have voted.',
+  },
+  no_active_delegation: {
+    title: 'No Active Delegation',
+    description: 'You have no active delegation to remove.',
+    content: 'You can only undelegate if you have previously delegated your voting power.',
+  },
+  conviction_lock_active: {
+    title: 'Tokens Still Locked',
+    description: 'Your tokens are still locked due to conviction voting.',
+    content: 'Please wait for the lock period to expire before attempting to unlock your tokens.',
   },
 }

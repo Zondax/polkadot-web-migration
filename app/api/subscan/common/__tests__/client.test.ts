@@ -127,7 +127,7 @@ describe('SubscanClient', () => {
         expect(error).toBeInstanceOf(SubscanError)
         expect((error as SubscanError).subscanCode).toBe(10004)
         expect((error as SubscanError).httpStatus).toBe(404)
-        expect(error.message).toBe('Record Not Found')
+        expect((error as Error).message).toBe('Record Not Found')
       }
     })
 
@@ -162,7 +162,7 @@ describe('SubscanClient', () => {
           expect(error).toBeInstanceOf(SubscanError)
           expect((error as SubscanError).subscanCode).toBe(testCase.code)
           expect((error as SubscanError).httpStatus).toBe(testCase.expectedHttpStatus)
-          expect(error.message).toBe(testCase.message)
+          expect((error as Error).message).toBe(testCase.message)
         }
       }
     })

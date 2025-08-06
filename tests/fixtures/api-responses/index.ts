@@ -1,5 +1,5 @@
-import { vi } from 'vitest'
 import { BN } from '@polkadot/util'
+import { vi } from 'vitest'
 import { TEST_ADDRESSES } from '../addresses'
 import { TEST_AMOUNTS } from '../balances'
 

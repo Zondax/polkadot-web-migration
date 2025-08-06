@@ -1,8 +1,8 @@
-import { InternalErrorType } from '@/config/errors'
 import type { ApiPromise } from '@polkadot/api'
 import { BN } from '@polkadot/util'
 import { type AddressBalance, BalanceType } from 'state/types/ledger'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { InternalErrorType } from '@/config/errors'
 import { prepareTransaction } from '../account'
 import {
   mockAppConfig as importedMockAppConfig,

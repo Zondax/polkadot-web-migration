@@ -1,11 +1,7 @@
 import { BalanceType } from 'state/types/ledger'
 import { vi } from 'vitest'
-import { mockNativeBalance, mockNftCollections } from '../mocks/ledger'
-import { mockUniquesNfts } from '../mocks/ledger'
-import { mockUniquesCollections } from '../mocks/ledger'
-import { mockNfts } from '../mocks/ledger'
-
 import { mockApi, mockWsProvider } from '../mocks/api'
+import { mockNativeBalance, mockNftCollections, mockNfts, mockUniquesCollections, mockUniquesNfts } from '../mocks/ledger'
 
 // Mock getApiAndProvider function
 export function mockGetApiAndProvider() {

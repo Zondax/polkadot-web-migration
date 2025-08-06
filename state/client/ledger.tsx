@@ -1,3 +1,7 @@
+import { BN } from '@polkadot/util'
+import { type AppConfig,type AppId, appsConfigs } from 'config/apps'
+import { maxAddressesToFetch } from 'config/config'
+import { InternalErrorType } from 'config/errors'
 import {
   createSignedExtrinsic,
   getApiAndProvider,
@@ -22,10 +26,6 @@ import type { ConnectionResponse } from '@/lib/ledger/types'
 import { InternalError, withErrorHandling } from '@/lib/utils'
 import { getBip44Path } from '@/lib/utils/address'
 import { getAccountTransferableBalance } from '@/lib/utils/balance'
-import { BN } from '@polkadot/util'
-import { type AppConfig, type AppId, appsConfigs } from 'config/apps'
-import { maxAddressesToFetch } from 'config/config'
-import { InternalErrorType } from 'config/errors'
 
 import {
   type Address,
@@ -467,9 +467,9 @@ export const ledgerClient = {
       accountAddress: account.address,
       callHash,
       signer,
-      nestedSigner
+      nestedSigner,
     })
-    
+
     let validation
     try {
       validation = validateApproveAsMultiParams(appId, account, callHash, signer, nestedSigner)
@@ -486,7 +486,7 @@ export const ledgerClient = {
     const { appConfig, multisigInfo, signerPath } = validation
     console.log('[signApproveAsMultiTx] Validation passed:', {
       signerPath,
-      multisigAddress: multisigInfo.address
+      multisigAddress: multisigInfo.address,
     })
 
     return withErrorHandling(
@@ -497,20 +497,20 @@ export const ledgerClient = {
         }
 
         updateTxStatus(TransactionStatus.PREPARING_TX, undefined, {
-          callHash: callHash
+          callHash: callHash,
         })
 
         let multiTx
-        let signerForPayload = validation.signer
+        const signerForPayload = validation.signer
         let isFirstApproval = false
         let callData: string | undefined
-        
+
         // Check if this is the first approval
         const existingApprovals = await api.query.multisig.multisigs(multisigInfo.address, callHash)
         if (existingApprovals.isNone) {
           isFirstApproval = true
           console.log('[signApproveAsMultiTx] This is the first approval for call hash:', callHash)
-          
+
           // Try to get the actual call from pending multisig calls
           // Note: This is a limitation - we can't reconstruct the original call from just the hash
           // The call data should have been stored when the multisig call was created
@@ -525,7 +525,7 @@ export const ledgerClient = {
             console.log('[signApproveAsMultiTx] Timepoint:', timepoint.toHuman())
           }
         }
-        
+
         // Check if this is a nested multisig scenario
         if (validation.isNestedMultisig && validation.nestedMultisigData) {
           // First create the outer multisig call
@@ -537,7 +537,7 @@ export const ledgerClient = {
             callHash,
             api
           )
-          
+
           // Then wrap it in the inner multisig call
           multiTx = await prepareNestedMultisigTx(
             signer, // Inner multisig address
@@ -547,7 +547,7 @@ export const ledgerClient = {
             outerCall,
             api
           )
-          
+
           // For nested multisig, the call data is the outer call
           if (isFirstApproval) {
             callData = outerCall.method.toHex()
@@ -577,7 +577,7 @@ export const ledgerClient = {
 
         updateTxStatus(TransactionStatus.SIGNING, undefined, {
           callHash: callHash,
-          callData: callData
+          callData: callData,
         })
 
         // Sign transaction with Ledger
@@ -591,14 +591,14 @@ export const ledgerClient = {
 
         updateTxStatus(TransactionStatus.SUBMITTING, undefined, {
           callHash: callHash,
-          callData: callData
+          callData: callData,
         })
-        
+
         // Log multisig call data if this is the first approval
         if (isFirstApproval && callData) {
           console.log('[signApproveAsMultiTx] First approval - Multisig call data:', {
             callHash,
-            callData
+            callData,
           })
         } else if (isFirstApproval) {
           console.log('[signApproveAsMultiTx] First approval but no call data available for hash:', callHash)
@@ -612,7 +612,7 @@ export const ledgerClient = {
             callHash: callHash || txDetails?.callHash,
           })
         }
-        
+
         // Create and wait for transaction to be submitted
         await submitAndHandleTransaction(transfer, updateTxStatusWithCallData, api)
       },
@@ -620,10 +620,6 @@ export const ledgerClient = {
         errorCode: InternalErrorType.APPROVE_MULTISIG_CALL_ERROR,
         operation: 'signApproveAsMultiTx',
         context: { appId, account, callHash, signer, nestedSigner },
-        onError: (error) => {
-          console.error('[signApproveAsMultiTx] Error details:', error)
-          console.error('[signApproveAsMultiTx] Error stack:', error.stack)
-        }
       }
     )
   },
@@ -655,8 +651,8 @@ export const ledgerClient = {
         updateTxStatus(TransactionStatus.PREPARING_TX)
 
         let multiTx
-        let signerForPayload = validation.signer
-        
+        const signerForPayload = validation.signer
+
         // Check if this is a nested multisig scenario
         if (validation.isNestedMultisig && validation.nestedMultisigData) {
           // First create the outer multisig call
@@ -669,7 +665,7 @@ export const ledgerClient = {
             validCallData,
             api
           )
-          
+
           // Then wrap it in the inner multisig call
           multiTx = await prepareNestedAsMultiTx(
             signer, // Inner multisig address
@@ -704,7 +700,7 @@ export const ledgerClient = {
 
         updateTxStatus(TransactionStatus.SIGNING, undefined, {
           callHash: callHash,
-          callData: validCallData
+          callData: validCallData,
         })
 
         // Sign transaction with Ledger
@@ -718,13 +714,13 @@ export const ledgerClient = {
 
         updateTxStatus(TransactionStatus.SUBMITTING, undefined, {
           callHash: callHash,
-          callData: validCallData
+          callData: validCallData,
         })
-        
+
         // Log multisig call data for final approval
         console.log('[signAsMultiTx] Final approval with call data:', {
           callHash,
-          callData: validCallData
+          callData: validCallData,
         })
 
         // Create wrapper to preserve call data through all status updates
@@ -735,7 +731,7 @@ export const ledgerClient = {
             callHash: callHash || txDetails?.callHash,
           })
         }
-        
+
         // Create and wait for transaction to be submitted
         await submitAndHandleTransaction(transfer, updateTxStatusWithCallData, api)
       },
@@ -791,7 +787,7 @@ export const ledgerClient = {
     if (!signerMember) {
       throw new InternalError(InternalErrorType.NO_SIGNATORY_ADDRESS)
     }
-    
+
     // We need the signer's derivation path to sign with Ledger
     // The path is only available for the member that matches the synchronized address
     if (!signerMember.path) {
@@ -810,9 +806,9 @@ export const ledgerClient = {
           signerPath,
           multisigAddress: multisigInfo.address,
           threshold: multisigInfo.threshold,
-          members: multisigInfo.members.map(m => m.address)
+          members: multisigInfo.members.map(m => m.address),
         })
-        
+
         const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
         if (!api) {
           throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
@@ -860,7 +856,7 @@ export const ledgerClient = {
 
         // Get chain ID from app config
         const chainId = appConfig.token.symbol.toLowerCase()
-        
+
         // Check if this is the first approval to determine if we should return callData
         const existingApprovals = await api.query.multisig.multisigs(multisigInfo.address, callHash)
         const isFirstApproval = existingApprovals.isNone
@@ -892,17 +888,14 @@ export const ledgerClient = {
             callHash: callHash || txDetails?.callHash,
           })
         }
-        
+
         // Create and wait for transaction to be submitted
         await submitAndHandleTransaction(transfer, updateTxStatusWithCallData, api)
       },
       {
         errorCode: InternalErrorType.MULTISIG_TRANSFER_ERROR,
         operation: 'signMultisigTransferTx',
-        context: { appId, account, recipient, signer, transferAmount },
-        onError: (error) => {
-          console.error('[signMultisigTransferTx] Error details:', error)
-        }
+        context: { appId, account, recipient, signer, transferAmount }
       }
     )
   },
@@ -1075,6 +1068,213 @@ export const ledgerClient = {
       return undefined
     }
   },
+  async executeGovernanceUnlock(
+    appId: AppId,
+    address: string,
+    path: string,
+    actions: Array<{ type: 'removeVote' | 'undelegate' | 'unlock'; trackId: number; referendumIndex?: number }>,
+    updateTxStatus: UpdateTransactionStatus
+  ) {
+    const appConfig = appsConfigs.get(appId)
+    if (!appConfig?.rpcEndpoint) {
+      throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
+    }
+
+    return withErrorHandling(
+      async () => {
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        if (!api) {
+          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
+        }
+
+        const { prepareBatchRemoveVotesTransaction, prepareBatchUndelegateTransaction, prepareBatchUnlockTransaction } = await import(
+          '@/lib/account'
+        )
+
+        updateTxStatus(TransactionStatus.PREPARING_TX)
+
+        // Group actions by type
+        const removeVotes = actions.filter(a => a.type === 'removeVote')
+        const undelegates = actions.filter(a => a.type === 'undelegate')
+        const unlocks = actions.filter(a => a.type === 'unlock')
+
+        // Prepare batch transactions
+        const calls = []
+
+        if (removeVotes.length > 0) {
+          const validVotes = removeVotes.filter(v => v.referendumIndex !== undefined)
+          if (validVotes.length > 0) {
+            const tx = await prepareBatchRemoveVotesTransaction(
+              api,
+              validVotes.map(v => ({
+                trackId: v.trackId,
+                referendumIndex: v.referendumIndex as number,
+              }))
+            )
+            calls.push(tx)
+          }
+        }
+
+        if (undelegates.length > 0) {
+          const tx = await prepareBatchUndelegateTransaction(
+            api,
+            undelegates.map(u => u.trackId)
+          )
+          calls.push(tx)
+        }
+
+        if (unlocks.length > 0) {
+          const tx = await prepareBatchUnlockTransaction(
+            api,
+            address,
+            unlocks.map(u => u.trackId)
+          )
+          calls.push(tx)
+        }
+
+        if (calls.length === 0) {
+          throw new InternalError(InternalErrorType.NO_ACTIVE_VOTES)
+        }
+
+        // Create the final transaction (single call or batch)
+        const finalTx = calls.length === 1 ? calls[0] : api.tx.utility.batchAll(calls)
+
+        // Prepare transaction payload
+        const preparedTx = await prepareTransactionPayload(api, address, appConfig, finalTx)
+        if (!preparedTx) {
+          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
+        }
+        const { payload, transfer, nonce, metadataHash, payloadBytes, proof1 } = preparedTx
+
+        // Get chain ID from app config
+        const chainId = appConfig.token.symbol.toLowerCase()
+
+        updateTxStatus(TransactionStatus.SIGNING)
+
+        // Sign transaction with Ledger
+        const { signature } = await ledgerService.signTransaction(path, payloadBytes, chainId, proof1)
+        if (!signature) {
+          throw new InternalError(InternalErrorType.SIGN_TX_ERROR)
+        }
+
+        // Create signed extrinsic
+        createSignedExtrinsic(api, transfer, address, signature, payload, nonce, metadataHash)
+
+        updateTxStatus(TransactionStatus.SUBMITTING)
+
+        // Create and wait for transaction to be submitted
+        await submitAndHandleTransaction(transfer, updateTxStatus, api)
+      },
+      {
+        errorCode: InternalErrorType.UNLOCK_CONVICTION_ERROR,
+        operation: 'executeGovernanceUnlock',
+        context: { appId, address, path, actions },
+      }
+    )
+  },
+
+  async getGovernanceUnlockFee(
+    appId: AppId,
+    address: string,
+    actions: Array<{ type: 'removeVote' | 'undelegate' | 'unlock'; trackId: number; referendumIndex?: number }>
+  ): Promise<BN | undefined> {
+    const appConfig = appsConfigs.get(appId)
+    if (!appConfig?.rpcEndpoint) {
+      return undefined
+    }
+
+    try {
+      return await withErrorHandling(
+        async () => {
+          const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+          if (!api) {
+            throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
+          }
+
+          const { prepareBatchRemoveVotesTransaction, prepareBatchUndelegateTransaction, prepareBatchUnlockTransaction } = await import(
+            '@/lib/account'
+          )
+
+          // Group actions by type
+          const removeVotes = actions.filter(a => a.type === 'removeVote')
+          const undelegates = actions.filter(a => a.type === 'undelegate')
+          const unlocks = actions.filter(a => a.type === 'unlock')
+
+          // Prepare batch transactions
+          const calls = []
+
+          if (removeVotes.length > 0) {
+            const validVotes = removeVotes.filter(v => v.referendumIndex !== undefined)
+            if (validVotes.length > 0) {
+              const tx = await prepareBatchRemoveVotesTransaction(
+                api,
+                validVotes.map(v => ({
+                  trackId: v.trackId,
+                  referendumIndex: v.referendumIndex as number,
+                }))
+              )
+              calls.push(tx)
+            }
+          }
+
+          if (undelegates.length > 0) {
+            const tx = await prepareBatchUndelegateTransaction(
+              api,
+              undelegates.map(u => u.trackId)
+            )
+            calls.push(tx)
+          }
+
+          if (unlocks.length > 0) {
+            const tx = await prepareBatchUnlockTransaction(
+              api,
+              address,
+              unlocks.map(u => u.trackId)
+            )
+            calls.push(tx)
+          }
+
+          if (calls.length === 0) {
+            return new BN(0)
+          }
+
+          // Create the final transaction
+          const finalTx = calls.length === 1 ? calls[0] : api.tx.utility.batchAll(calls)
+
+          const estimatedFee = await getTxFee(finalTx, address)
+          return estimatedFee
+        },
+        { errorCode: InternalErrorType.GET_CONVICTION_VOTING_INFO_ERROR, operation: 'getGovernanceUnlockFee', context: { appId, address } }
+      )
+    } catch {
+      return undefined
+    }
+  },
+
+  async getGovernanceActivity(appId: AppId, address: string) {
+    const appConfig = appsConfigs.get(appId)
+    if (!appConfig?.rpcEndpoint) {
+      return undefined
+    }
+
+    try {
+      return await withErrorHandling(
+        async () => {
+          const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+          if (!api) {
+            throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
+          }
+
+          const { getGovernanceActivity } = await import('@/lib/account')
+          return await getGovernanceActivity(address, api)
+        },
+        { errorCode: InternalErrorType.GET_CONVICTION_VOTING_INFO_ERROR, operation: 'getGovernanceActivity', context: { appId, address } }
+      )
+    } catch {
+      return undefined
+    }
+  },
+
   clearConnection() {
     ledgerService.clearConnection()
   },

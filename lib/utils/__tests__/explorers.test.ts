@@ -50,8 +50,8 @@ vi.mock('@/config/explorers', () => ({
   }),
 }))
 
-import { getAddressExplorerUrl, getBlockExplorerUrl, getTransactionExplorerUrl } from '../explorers'
 import { getAppConfig } from '@/config/apps'
+import { getAddressExplorerUrl, getBlockExplorerUrl, getTransactionExplorerUrl } from '../explorers'
 
 describe('explorer utilities', () => {
   describe('getTransactionExplorerUrl', () => {

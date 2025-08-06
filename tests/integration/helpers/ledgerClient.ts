@@ -1,6 +1,6 @@
+import { vi } from 'vitest'
 import { ledgerClient } from '@/lib/client/ledger'
 import type { DeviceConnectionProps } from '@/lib/ledger/types'
-import { vi } from 'vitest'
 
 import type { Address } from '@/state/types/ledger'
 import { getMockAccount } from '../mocks/accounts'

@@ -57,15 +57,23 @@ export default function CallToAction() {
                 background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1))',
               }}
             >
-              <Button
-                variant="ghost"
-                className="rounded-[1.15rem] px-8 py-6 text-lg font-semibold backdrop-blur-md 
-                          bg-transparent hover:bg-white/10
-                          border border-white/20 hover:shadow-md text-white
-                          group-hover:-translate-y-0.5 transition-all duration-300"
+              <a
+                href="https://docs.zondax.ch/polkadot-migration-app"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-block group relative p-px rounded-2xl backdrop-blur-lg 
+                          overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300"
               >
-                <span className="opacity-90 group-hover:opacity-100 transition-opacity">Learn More</span>
-              </Button>
+                <Button
+                  variant="ghost"
+                  className="rounded-[1.15rem] px-8 py-6 text-lg font-semibold backdrop-blur-md 
+                            bg-transparent hover:bg-white/10
+                            border border-white/20 hover:shadow-md text-white
+                            group-hover:-translate-y-0.5 transition-all duration-300"
+                >
+                  <span className="opacity-90 group-hover:opacity-100 transition-opacity">Learn More</span>
+                </Button>
+              </a>
             </div>
           </div>
 

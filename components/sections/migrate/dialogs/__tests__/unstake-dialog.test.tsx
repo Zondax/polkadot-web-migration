@@ -1,11 +1,11 @@
-import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
 import { BN } from '@polkadot/util'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Address } from '@/state/types/ledger'
 import type { AppId, Token } from '@/config/apps'
-import { createTestAccount } from '@/tests/utils/testHelpers'
+import type { Address } from '@/state/types/ledger'
 import { TEST_ADDRESSES, TEST_PATHS, TEST_PUBKEYS } from '@/tests/fixtures/addresses'
 import { TEST_AMOUNTS } from '@/tests/fixtures/balances'
+import { createTestAccount } from '@/tests/utils/testHelpers'
 
 // Mock form values
 let formValues = {
@@ -225,10 +225,10 @@ vi.mock('../transaction-dialog', () => ({
   )),
 }))
 
+import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
+import { convertToRawUnits, formatBalance } from '@/lib/utils/format'
 // Import the component after all mocks are defined
 import UnstakeDialog from '../unstake-dialog'
-import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
-import { formatBalance, convertToRawUnits } from '@/lib/utils/format'
 
 describe('UnstakeDialog', () => {
   // Get mocked functions
