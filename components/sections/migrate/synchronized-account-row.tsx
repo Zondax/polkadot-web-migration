@@ -171,7 +171,7 @@ const SynchronizedAccountRow = ({
   let hasMultisigPending = false
   let hasRemainingInternalSigners = false
   let hasRemainingSigners = false
-  let hasAvailableSigners = false
+  let _hasAvailableSigners = false
   let multisigPendingTooltip: React.ReactNode = null
   if (isMultisigAddress && (account as MultisigAddress).pendingMultisigCalls.length > 0) {
     hasMultisigPending = true
@@ -181,7 +181,7 @@ const SynchronizedAccountRow = ({
     // If at least one call has available signers, allow action
     hasRemainingInternalSigners = pendingCalls.some(call => getRemainingInternalSigners(call, members).length > 0)
     hasRemainingSigners = pendingCalls.some(call => getRemainingSigners(call, members).length > 0)
-    hasAvailableSigners = pendingCalls.some(call => getAvailableSigners(call, members).length > 0)
+    _hasAvailableSigners = pendingCalls.some(call => getAvailableSigners(call, members).length > 0)
 
     if (!hasRemainingInternalSigners) {
       // Compose tooltip for all pending calls
@@ -237,7 +237,7 @@ const SynchronizedAccountRow = ({
       )
     }
   }
-  if (hasMultisigPending && hasAvailableSigners && !hasRemainingSigners) {
+  if (hasMultisigPending) {
     actions.push({
       label: 'Multisig Call',
       tooltip: 'Approve multisig pending calls',

@@ -70,7 +70,6 @@ export const useTransactionStatus = <T extends GenericFunction>(
   const runTransaction = useCallback(
     async (...args: Parameters<T>) => {
       try {
-        console.log('[useTransactionStatus] Starting transaction with args:', args)
         setTxStatus({
           status: TransactionStatus.IS_LOADING,
         })

@@ -66,19 +66,19 @@ export async function validateCallData(appId: AppId, callDataValue: string, call
  */
 export const getRemainingInternalSigners = (pendingCall: MultisigCall, members: MultisigMember[]): MultisigMember[] => {
   const existingApprovals = pendingCall.signatories
-  
+
   return members.filter(member => {
     // Check if already approved
     if (existingApprovals?.includes(member.address)) {
       return false
     }
-    
+
     // If it's an enhanced member, check if it's a multisig with available signers
     const enhanced = member as EnhancedMultisigMember
     if (enhanced.isMultisig && (enhanced.multisigData?.availableSigners?.length ?? 0) > 0) {
       return true
     }
-    
+
     // Otherwise, must be internal
     return member.internal
   })

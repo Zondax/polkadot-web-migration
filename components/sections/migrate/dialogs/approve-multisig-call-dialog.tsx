@@ -195,7 +195,7 @@ function MultisigCallForm({
                   signers.
                 </>
               ) : (
-                <> This is approving an existing multisig call. The call data should have been provided by whoever created this call.</>
+                'This is approving an existing multisig call. The call data should have been provided by whoever created this call.'
               )}
             </div>
           </div>
@@ -441,31 +441,12 @@ function ApproveMultisigCallDialogInner({ open, setOpen, token, appId, account }
   const isFinalApprovalWithCall = form.watch('isFinalApprovalWithCall')
   const callData = form.watch('callData')
 
-  // Debug log to see form values
-  useEffect(() => {
-    console.log('[ApproveMultisigCallDialog] Form values changed:', {
-      callHash: selectedCallHash,
-      isFinalApprovalWithCall,
-      callData,
-      allFormValues: form.getValues(),
-    })
-  }, [selectedCallHash, isFinalApprovalWithCall, callData, form])
-
   // Compute derived values only once per render
   const selectedCall = useMemo(() => pendingCalls.find(call => call.callHash === selectedCallHash), [pendingCalls, selectedCallHash])
   const approvers = useMemo(() => selectedCall?.signatories || [], [selectedCall])
   const isAllApproved = approvers.length === account.threshold
   const isLastApproval = approvers.length === account.threshold - 1
   const isCallDataRequired = (isLastApproval && isFinalApprovalWithCall) || isAllApproved
-
-  console.log('[ApproveMultisigCallDialog] Approval state:', {
-    approvers: approvers.length,
-    threshold: account.threshold,
-    isAllApproved,
-    isLastApproval,
-    isFinalApprovalWithCall,
-    isCallDataRequired,
-  })
 
   // Enhance members with multisig data
   const enhancedMembers = useMemo(() => enhanceMembers(account.members, currentApp), [account.members, currentApp])
@@ -491,17 +472,6 @@ function ApproveMultisigCallDialogInner({ open, setOpen, token, appId, account }
       availableSigners.length > 0 &&
       (!isSignerMultisig || nestedSigner) // If signer is multisig, nested signer must be selected
   )
-
-  console.log('[ApproveMultisigCallDialog] Form readiness:', {
-    isFormReadyForSubmission,
-    hasCallData: !!callData,
-    isCallDataRequired,
-    selectedCallHash: !!selectedCallHash,
-    formErrors: Object.keys(form.formState.errors),
-    availableSignersCount: availableSigners.length,
-    isSignerMultisig,
-    hasNestedSigner: !!nestedSigner,
-  })
 
   // Validate call data using utility function
   const validateCallDataHandler = useCallback(
@@ -544,16 +514,6 @@ function ApproveMultisigCallDialogInner({ open, setOpen, token, appId, account }
     appId: AppId
   ) => {
     const formData = form.getValues()
-    console.log('[ApproveMultisigCallDialog] Form data:', JSON.stringify(formData, null, 2))
-    console.log('[ApproveMultisigCallDialog] Call Hash:', formData.callHash)
-    console.log('[ApproveMultisigCallDialog] Call Data:', formData.callData)
-    console.log('[ApproveMultisigCallDialog] Call Data length:', formData.callData?.length)
-    console.log('[ApproveMultisigCallDialog] Is Final Approval:', formData.isFinalApprovalWithCall)
-    console.log('[ApproveMultisigCallDialog] All form field values:', {
-      callHash: form.getFieldState('callHash'),
-      callData: form.getFieldState('callData'),
-      isFinalApprovalWithCall: form.getFieldState('isFinalApprovalWithCall'),
-    })
 
     // Create a wrapper that always includes the callHash and callData from the form
     const updateTxStatusWithFormData: UpdateTransactionStatus = (status, message, txDetails) => {
@@ -562,9 +522,6 @@ function ApproveMultisigCallDialogInner({ open, setOpen, token, appId, account }
         callHash: formData.callHash || txDetails?.callHash,
         callData: formData.callData || txDetails?.callData,
       }
-      console.log('[ApproveMultisigCallDialog] Updating status:', status)
-      console.log('[ApproveMultisigCallDialog] Message:', message)
-      console.log('[ApproveMultisigCallDialog] Updated details:', updatedDetails)
 
       updateTxStatus(status, message, updatedDetails)
     }
@@ -582,7 +539,6 @@ function ApproveMultisigCallDialogInner({ open, setOpen, token, appId, account }
   // Handle form submission
   const onSubmit = async (_data: MultisigCallFormData) => {
     try {
-      console.log('[ApproveMultisigCallDialog] onSubmit called with appId:', appId)
       await runTransaction(appId, account.address, account.path)
     } catch (error) {
       console.error('[ApproveMultisigCallDialog] Error in onSubmit:', error)
@@ -612,10 +568,7 @@ function ApproveMultisigCallDialogInner({ open, setOpen, token, appId, account }
         </DialogHeader>
         <DialogBody>
           {txStatus ? (
-            <>
-              {console.log('[ApproveMultisigCallDialog] Rendering with txStatus:', txStatus)}
-              <TransactionStatusBody {...txStatus} appId={appId} />
-            </>
+            <TransactionStatusBody {...txStatus} appId={appId} />
           ) : (
             <MultisigCallForm
               form={form}

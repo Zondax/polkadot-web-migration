@@ -1,11 +1,16 @@
+import type { SubmittableExtrinsic } from '@polkadot/api/types'
+import type { Multisig } from '@polkadot/types/interfaces'
+import type { ISubmittableResult } from '@polkadot/types/types/extrinsic'
+import type { Option } from '@polkadot/types-codec'
 import { BN } from '@polkadot/util'
-import { type AppConfig,type AppId, appsConfigs } from 'config/apps'
+import { type AppConfig, type AppId, appsConfigs } from 'config/apps'
 import { maxAddressesToFetch } from 'config/config'
 import { InternalErrorType } from 'config/errors'
 import {
   createSignedExtrinsic,
   getApiAndProvider,
   getTxFee,
+  type PreparedTransactionPayload,
   prepareApproveAsMultiTx,
   prepareAsMultiTx,
   prepareNestedAsMultiTx,
@@ -26,7 +31,6 @@ import type { ConnectionResponse } from '@/lib/ledger/types'
 import { InternalError, withErrorHandling } from '@/lib/utils'
 import { getBip44Path } from '@/lib/utils/address'
 import { getAccountTransferableBalance } from '@/lib/utils/balance'
-
 import {
   type Address,
   type MultisigAddress,
@@ -35,7 +39,7 @@ import {
   TransactionStatus,
   type UpdateMigratedStatusFn,
 } from '../types/ledger'
-import { validateApproveAsMultiParams, validateAsMultiParams, validateMigrationParams } from './helpers'
+import { type ValidateApproveAsMultiResult, validateApproveAsMultiParams, validateAsMultiParams, validateMigrationParams } from './helpers'
 
 export const ledgerClient = {
   // Device operations
@@ -462,15 +466,7 @@ export const ledgerClient = {
     nestedSigner: string | undefined,
     updateTxStatus: UpdateTransactionStatus
   ) {
-    console.log('[signApproveAsMultiTx] Starting with params:', {
-      appId,
-      accountAddress: account.address,
-      callHash,
-      signer,
-      nestedSigner,
-    })
-
-    let validation
+    let validation: ValidateApproveAsMultiResult
     try {
       validation = validateApproveAsMultiParams(appId, account, callHash, signer, nestedSigner)
     } catch (validationError) {
@@ -484,10 +480,6 @@ export const ledgerClient = {
     }
 
     const { appConfig, multisigInfo, signerPath } = validation
-    console.log('[signApproveAsMultiTx] Validation passed:', {
-      signerPath,
-      multisigAddress: multisigInfo.address,
-    })
 
     return withErrorHandling(
       async () => {
@@ -500,36 +492,15 @@ export const ledgerClient = {
           callHash: callHash,
         })
 
-        let multiTx
+        let multiTx: SubmittableExtrinsic<'promise', ISubmittableResult>
         const signerForPayload = validation.signer
-        let isFirstApproval = false
+        const isFirstApproval = false
         let callData: string | undefined
-
-        // Check if this is the first approval
-        const existingApprovals = await api.query.multisig.multisigs(multisigInfo.address, callHash)
-        if (existingApprovals.isNone) {
-          isFirstApproval = true
-          console.log('[signApproveAsMultiTx] This is the first approval for call hash:', callHash)
-
-          // Try to get the actual call from pending multisig calls
-          // Note: This is a limitation - we can't reconstruct the original call from just the hash
-          // The call data should have been stored when the multisig call was created
-          console.log('[signApproveAsMultiTx] WARNING: Cannot retrieve original call data from hash alone')
-          console.log('[signApproveAsMultiTx] The call data should have been provided by the original creator')
-        } else if (existingApprovals.isSome) {
-          const approval = existingApprovals.unwrap()
-          console.log('[signApproveAsMultiTx] Existing approval found:', approval.toHuman())
-          // Check if this approval has the call data stored
-          if (approval.maybeTimepoint.isSome) {
-            const timepoint = approval.maybeTimepoint.unwrap()
-            console.log('[signApproveAsMultiTx] Timepoint:', timepoint.toHuman())
-          }
-        }
 
         // Check if this is a nested multisig scenario
         if (validation.isNestedMultisig && validation.nestedMultisigData) {
-          // First create the outer multisig call
-          const outerCall = await prepareApproveAsMultiTx(
+          // First create the inner multisig call
+          const innerCall = await prepareApproveAsMultiTx(
             signer, // The nested multisig address
             multisigInfo.address,
             multisigInfo.members,
@@ -538,20 +509,19 @@ export const ledgerClient = {
             api
           )
 
-          // Then wrap it in the inner multisig call
+          // Then wrap it in the outer multisig call
           multiTx = await prepareNestedMultisigTx(
             signer, // Inner multisig address
             validation.nestedMultisigData.members,
             validation.nestedMultisigData.threshold,
             validation.signer, // Actual signer
-            outerCall,
+            innerCall,
             api
           )
 
           // For nested multisig, the call data is the outer call
           if (isFirstApproval) {
-            callData = outerCall.method.toHex()
-            console.log('[signApproveAsMultiTx] Nested multisig - Generated call data:', callData)
+            callData = multiTx.method.toHex()
           }
         } else {
           // Regular multisig approval
@@ -593,16 +563,6 @@ export const ledgerClient = {
           callHash: callHash,
           callData: callData,
         })
-
-        // Log multisig call data if this is the first approval
-        if (isFirstApproval && callData) {
-          console.log('[signApproveAsMultiTx] First approval - Multisig call data:', {
-            callHash,
-            callData,
-          })
-        } else if (isFirstApproval) {
-          console.log('[signApproveAsMultiTx] First approval but no call data available for hash:', callHash)
-        }
 
         // Create wrapper to preserve call data through all status updates
         const updateTxStatusWithCallData: UpdateTransactionStatus = (status, message, txDetails) => {
@@ -650,13 +610,13 @@ export const ledgerClient = {
 
         updateTxStatus(TransactionStatus.PREPARING_TX)
 
-        let multiTx
+        let multiTx: SubmittableExtrinsic<'promise', ISubmittableResult>
         const signerForPayload = validation.signer
 
         // Check if this is a nested multisig scenario
         if (validation.isNestedMultisig && validation.nestedMultisigData) {
-          // First create the outer multisig call
-          const outerCall = await prepareAsMultiTx(
+          // First create the inner multisig call
+          const innerCall: SubmittableExtrinsic<'promise', ISubmittableResult> = await prepareAsMultiTx(
             signer, // The nested multisig address
             multisigInfo.address,
             multisigInfo.members,
@@ -666,13 +626,13 @@ export const ledgerClient = {
             api
           )
 
-          // Then wrap it in the inner multisig call
+          // Then wrap it in the outter multisig call
           multiTx = await prepareNestedAsMultiTx(
             signer, // Inner multisig address
             validation.nestedMultisigData.members,
             validation.nestedMultisigData.threshold,
             validation.signer, // Actual signer
-            outerCall,
+            innerCall,
             api
           )
         } else {
@@ -693,6 +653,7 @@ export const ledgerClient = {
         if (!preparedTx) {
           throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
         }
+
         const { transfer, payload, metadataHash, nonce, proof1, payloadBytes } = preparedTx
 
         // Get chain ID from app config
@@ -714,12 +675,6 @@ export const ledgerClient = {
 
         updateTxStatus(TransactionStatus.SUBMITTING, undefined, {
           callHash: callHash,
-          callData: validCallData,
-        })
-
-        // Log multisig call data for final approval
-        console.log('[signAsMultiTx] Final approval with call data:', {
-          callHash,
           callData: validCallData,
         })
 
@@ -799,16 +754,6 @@ export const ledgerClient = {
 
     return withErrorHandling(
       async () => {
-        console.log('[signMultisigTransferTx] Starting with:', {
-          recipient,
-          signer,
-          transferAmount,
-          signerPath,
-          multisigAddress: multisigInfo.address,
-          threshold: multisigInfo.threshold,
-          members: multisigInfo.members.map(m => m.address),
-        })
-
         const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
         if (!api) {
           throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
@@ -821,15 +766,7 @@ export const ledgerClient = {
         const callHash = transferCall.method.hash.toHex()
         const callData = transferCall.method.toHex()
 
-        console.log('[signMultisigTransferTx] Transfer details:', {
-          callHash,
-          callData,
-          amount: transferAmount,
-          recipient,
-        })
-
         // Prepare the multisig transaction (it will check for existing approvals internally)
-        console.log('[signMultisigTransferTx] Preparing approveAsMulti transaction...')
         const multiTx = await prepareApproveAsMultiTx(
           signer,
           multisigInfo.address,
@@ -838,10 +775,8 @@ export const ledgerClient = {
           callHash,
           api
         )
-        console.log('[signMultisigTransferTx] approveAsMulti prepared successfully')
 
-        console.log('[signMultisigTransferTx] Preparing transaction payload...')
-        let preparedTx
+        let preparedTx: PreparedTransactionPayload | undefined
         try {
           preparedTx = await prepareTransactionPayload(api, signer, appConfig, multiTx)
           if (!preparedTx) {
@@ -858,7 +793,7 @@ export const ledgerClient = {
         const chainId = appConfig.token.symbol.toLowerCase()
 
         // Check if this is the first approval to determine if we should return callData
-        const existingApprovals = await api.query.multisig.multisigs(multisigInfo.address, callHash)
+        const existingApprovals = (await api.query.multisig.multisigs(multisigInfo.address, callHash)) as Option<Multisig>
         const isFirstApproval = existingApprovals.isNone
 
         updateTxStatus(TransactionStatus.SIGNING, undefined, {
@@ -895,7 +830,7 @@ export const ledgerClient = {
       {
         errorCode: InternalErrorType.MULTISIG_TRANSFER_ERROR,
         operation: 'signMultisigTransferTx',
-        context: { appId, account, recipient, signer, transferAmount }
+        context: { appId, account, recipient, signer, transferAmount },
       }
     )
   },

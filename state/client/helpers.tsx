@@ -124,31 +124,24 @@ export const validateApproveAsMultiParams = (
   if (!member || !signer) {
     console.error('[validateApproveAsMultiParams] Signer not found in members:', {
       signer,
-      members: account.members?.map(m => m.address)
+      members: account.members?.map(m => m.address),
     })
     throw new InternalError(InternalErrorType.NO_SIGNATORY_ADDRESS)
   }
 
-  console.log('[validateApproveAsMultiParams] Found member:', {
-    address: member.address,
-    hasPath: !!member.path,
-    path: member.path,
-    internal: member.internal
-  })
-
   let signerPath = member.path
   let actualSigner = signer
-  
+
   let isNestedMultisig = false
   let nestedMultisigData: { members: string[]; threshold: number } | undefined
-  
+
   // If nested signer is provided, we need to find its path instead
   if (nestedSigner) {
     // Look up the nested multisig account
     const apps = ledgerState$.apps.apps.get()
     const app = apps.find(a => a.id === appId)
     const nestedMultisig = app?.multisigAccounts?.find(ms => ms.address === signer)
-    
+
     if (nestedMultisig) {
       // Find the nested signer's path
       const nestedMember = nestedMultisig.members.find(m => m.address === nestedSigner)
@@ -158,7 +151,7 @@ export const validateApproveAsMultiParams = (
         isNestedMultisig = true
         nestedMultisigData = {
           members: nestedMultisig.members.map(m => m.address),
-          threshold: nestedMultisig.threshold
+          threshold: nestedMultisig.threshold,
         }
       } else {
         throw new InternalError(InternalErrorType.NO_SIGNATORY_ADDRESS)
@@ -168,13 +161,13 @@ export const validateApproveAsMultiParams = (
       throw new InternalError(InternalErrorType.NO_SIGNATORY_ADDRESS)
     }
   }
-  
+
   if (!signerPath) {
     console.error('[validateApproveAsMultiParams] No signer path found:', {
       signer: actualSigner,
       memberHasPath: !!member.path,
       nestedSigner,
-      isNestedMultisig
+      isNestedMultisig,
     })
     throw new InternalError(InternalErrorType.NO_SIGNATORY_ADDRESS)
   }
@@ -220,9 +213,11 @@ export const validateAsMultiParams = (
     isValid: true,
     appConfig,
     multisigInfo: multisigValidation.multisigInfo,
-    callHash,
-    callData,
-    signer,
+    callHash: callHash,
+    signer: multisigValidation.signer,
     signerPath: multisigValidation.signerPath,
+    isNestedMultisig: multisigValidation.isNestedMultisig,
+    nestedMultisigData: multisigValidation.nestedMultisigData,
+    callData,
   }
 }
