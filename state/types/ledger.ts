@@ -62,6 +62,7 @@ export enum BalanceType {
   NATIVE = 'native',
   UNIQUE = 'unique',
   NFT = 'nft',
+  CONVICTION_VOTING = 'conviction_voting',
 }
 
 export enum AccountType {
@@ -234,6 +235,7 @@ export interface Native {
   total: BN
   transferable: BN
   staking?: Staking
+  convictionVoting?: ConvictionVotingInfo
 }
 
 export interface IdentityInfo {
@@ -287,4 +289,54 @@ export interface MigratingItem {
 export interface PreTxInfo {
   fee: BN
   callHash: string
+}
+
+/**
+ * Conviction levels for governance voting
+ */
+export enum Conviction {
+  None = 'None',
+  Locked1x = 'Locked1x',
+  Locked2x = 'Locked2x',
+  Locked3x = 'Locked3x',
+  Locked4x = 'Locked4x',
+  Locked5x = 'Locked5x',
+  Locked6x = 'Locked6x',
+}
+
+/**
+ * Information about a vote on a referendum
+ */
+export interface VoteInfo {
+  referendumIndex: number
+  vote: {
+    aye: boolean
+    conviction: Conviction
+    balance: BN
+  }
+  lockPeriod?: number
+}
+
+/**
+ * Information about delegated voting power
+ */
+export interface DelegationInfo {
+  target: string
+  conviction: Conviction
+  balance: BN
+  lockPeriod?: number
+}
+
+/**
+ * Information about conviction voting locks
+ */
+export interface ConvictionVotingInfo {
+  votes: VoteInfo[]
+  delegations: DelegationInfo[]
+  locked: BN
+  classLocks: {
+    class: number
+    amount: BN
+    unlockAt?: number
+  }[]
 }

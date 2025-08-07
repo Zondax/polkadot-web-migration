@@ -822,15 +822,16 @@ export const ledgerState$ = observable({
     updateTxStatus: UpdateTransactionStatus
   ) {
     try {
-      console.log('[ledgerState$.approveMultisigCall] Starting with:', {
-        appId,
-        accountAddress: account.address,
-        formBody,
-        isFinalApproval: formBody.isFinalApprovalWithCall
-      })
-      
       if (formBody.isFinalApprovalWithCall) {
-        await ledgerClient.signAsMultiTx(appId, account, formBody.callHash, formBody.callData, formBody.signer, formBody.nestedSigner, updateTxStatus)
+        await ledgerClient.signAsMultiTx(
+          appId,
+          account,
+          formBody.callHash,
+          formBody.callData,
+          formBody.signer,
+          formBody.nestedSigner,
+          updateTxStatus
+        )
       } else {
         await ledgerClient.signApproveAsMultiTx(appId, account, formBody.callHash, formBody.signer, formBody.nestedSigner, updateTxStatus)
       }
@@ -888,6 +889,43 @@ export const ledgerState$ = observable({
       return await ledgerClient.getRemoveAccountIndexFee(appId, address, accountIndex)
     } catch (error) {
       console.warn('[ledgerState$] Failed to get remove account index fee:', error)
+      return undefined
+    }
+  },
+
+  async executeGovernanceUnlock(
+    appId: AppId,
+    address: string,
+    path: string,
+    actions: Array<{ type: 'removeVote' | 'undelegate' | 'unlock'; trackId: number; referendumIndex?: number }>,
+    updateTxStatus: UpdateTransactionStatus
+  ) {
+    try {
+      await ledgerClient.executeGovernanceUnlock(appId, address, path, actions, updateTxStatus)
+    } catch (error) {
+      const internalError = interpretError(error, InternalErrorType.UNLOCK_CONVICTION_ERROR)
+      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+    }
+  },
+
+  async getGovernanceUnlockFee(
+    appId: AppId,
+    address: string,
+    actions: Array<{ type: 'removeVote' | 'undelegate' | 'unlock'; trackId: number; referendumIndex?: number }>
+  ): Promise<BN | undefined> {
+    try {
+      return await ledgerClient.getGovernanceUnlockFee(appId, address, actions)
+    } catch (error) {
+      console.warn('[ledgerState$] Failed to get governance unlock fee:', error)
+      return undefined
+    }
+  },
+
+  async getGovernanceActivity(appId: AppId, address: string) {
+    try {
+      return await ledgerClient.getGovernanceActivity(appId, address)
+    } catch (error) {
+      console.warn('[ledgerState$] Failed to get governance activity:', error)
       return undefined
     }
   },

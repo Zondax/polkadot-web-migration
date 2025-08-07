@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Info } from 'lucide-react'
-import { useMemo, } from 'react'
+import { useMemo } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import type { MultisigAddress, MultisigMember, TransactionDetails, TransactionStatus } from 'state/types/ledger'
 import { z } from 'zod'
@@ -49,7 +49,6 @@ function TransferMultisigForm({
   internalMembers: MultisigMember[]
   availableSigners: MultisigMember[]
 }) {
-
   const {
     control,
     formState: { errors },
@@ -100,7 +99,9 @@ function TransferMultisigForm({
       <DialogField>
         <DialogLabel>Transfer Amount</DialogLabel>
         <CustomTooltip tooltipBody={`${MULTISIG_TRANSFER_AMOUNT} ${token.symbol}`}>
-          <span className="font-mono">{MULTISIG_TRANSFER_AMOUNT} {token.symbol}</span>
+          <span className="font-mono">
+            {MULTISIG_TRANSFER_AMOUNT} {token.symbol}
+          </span>
         </CustomTooltip>
       </DialogField>
 
@@ -160,16 +161,10 @@ function TransferMultisigForm({
 }
 
 function TransferMultisigDialogInner({ open, setOpen, token, appId, account }: TransferMultisigDialogProps) {
-  const internalMembers = useMemo(() => 
-    account.members?.filter(member => member.internal) ?? [],
-    [account.members]
-  )
-  
+  const internalMembers = useMemo(() => account.members?.filter(member => member.internal) ?? [], [account.members])
+
   // For signing, we can only use members that have a derivation path
-  const availableSigners = useMemo(() =>
-    internalMembers.filter(member => member.path),
-    [internalMembers]
-  )
+  const availableSigners = useMemo(() => internalMembers.filter(member => member.path), [internalMembers])
 
   // Initialize form with React Hook Form + Zod
   const form = useForm<TransferMultisigFormData>({
@@ -218,9 +213,7 @@ function TransferMultisigDialogInner({ open, setOpen, token, appId, account }: T
   // Check if form is ready for submission
   const recipient = form.watch('recipient')
   const signer = form.watch('signer')
-  const isFormReadyForSubmission = Boolean(
-    recipient && signer && !Object.keys(form.formState.errors).length && availableSigners.length > 0
-  )
+  const isFormReadyForSubmission = Boolean(recipient && signer && !Object.keys(form.formState.errors).length && availableSigners.length > 0)
 
   return (
     <Dialog open={open} onOpenChange={closeDialog}>
@@ -228,7 +221,8 @@ function TransferMultisigDialogInner({ open, setOpen, token, appId, account }: T
         <DialogHeader>
           <DialogTitle>Transfer to Signatory</DialogTitle>
           <DialogDescription>
-            Create a multisig transfer of {MULTISIG_TRANSFER_AMOUNT} {token.symbol} to a Ledger-derived signatory. This transaction will require approval from {account.threshold} of {account.members.length} signers.
+            Create a multisig transfer of {MULTISIG_TRANSFER_AMOUNT} {token.symbol} to a Ledger-derived signatory. This transaction will
+            require approval from {account.threshold} of {account.members.length} signers.
           </DialogDescription>
         </DialogHeader>
         <DialogBody>

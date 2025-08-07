@@ -1,10 +1,10 @@
+import { BalanceType, type Collection, type Native } from 'state/types/ledger'
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
 import TokenIcon from '@/components/TokenIcon'
 import { Badge, type BadgeProps } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { Token } from '@/config/apps'
 import { formatBalance } from '@/lib/utils/format'
-import { BalanceType, type Collection, type Native } from 'state/types/ledger'
 
 interface NftDetailCardProps {
   balance: number

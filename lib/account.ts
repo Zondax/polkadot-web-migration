@@ -29,6 +29,8 @@ import {
   type AddressBalance,
   BalanceType,
   type Collection,
+  Conviction,
+  type ConvictionVotingInfo,
   type IdentityInfo,
   type MultisigAddress,
   type MultisigCall,
@@ -260,6 +262,12 @@ export async function getNativeBalance(addressString: string, api: ApiPromise, a
       if (!frozenBN.isZero()) {
         const stakingInfo = await getStakingInfo(addressString, api, appId)
         nativeBalance.staking = stakingInfo
+      }
+
+      // Get conviction voting info if available
+      const convictionVotingInfo = await getConvictionVotingInfo(addressString, api)
+      if (convictionVotingInfo?.locked.gtn(0)) {
+        nativeBalance.convictionVoting = convictionVotingInfo
       }
 
       return nativeBalance
@@ -1411,7 +1419,7 @@ export async function getMultisigAddresses(
   api: ApiPromise
 ): Promise<MultisigAddress[] | undefined> {
   console.debug(`[getMultisigAddresses] Starting multisig detection for address ${address} on network ${network}`)
-  
+
   try {
     const multisigInfo = await getMultisigInfo(address, network)
 
@@ -1424,7 +1432,7 @@ export async function getMultisigAddresses(
     console.debug(`[getMultisigAddresses] Found multisig info for address ${address}:`, {
       hasThreshold: !!multisigInfo.threshold,
       hasMultiAccountMember: !!multisigInfo.multi_account_member?.length,
-      multiAccountCount: multisigInfo.multi_account?.length || 0
+      multiAccountCount: multisigInfo.multi_account?.length || 0,
     })
 
     const multisigAddresses: MultisigAddress[] = []
@@ -1449,21 +1457,21 @@ export async function getMultisigAddresses(
     // Case 2: Address is part of other multisig accounts
     if (multisigInfo.multi_account && multisigInfo.multi_account.length > 0) {
       console.debug(`[getMultisigAddresses] Processing ${multisigInfo.multi_account.length} multisig accounts for address ${address}`)
-      
+
       // Process each multisig account the address is part of
       for (const account of multisigInfo.multi_account) {
         let retryCount = 0
         const maxRetries = 2
-        
+
         while (retryCount <= maxRetries) {
           try {
             console.debug(`[getMultisigAddresses] Fetching member info for multisig account ${account.address} (attempt ${retryCount + 1})`)
-            
+
             // Get member info for this specific multisig address
             const memberInfo = await getMultisigInfo(account.address, network)
             if (memberInfo?.multi_account_member) {
               console.debug(`[getMultisigAddresses] Successfully fetched member info for multisig account ${account.address}`)
-              
+
               multisigAddresses.push({
                 address: account.address,
                 path: '', // Not available for external multisig accounts
@@ -1479,12 +1487,15 @@ export async function getMultisigAddresses(
               })
               break // Success, exit retry loop
             }
-              console.warn(`[getMultisigAddresses] No member info found for multisig account ${account.address}`)
-              break // No member info, don't retry
+            console.warn(`[getMultisigAddresses] No member info found for multisig account ${account.address}`)
+            break // No member info, don't retry
           } catch (err) {
             retryCount++
             if (retryCount > maxRetries) {
-              console.error(`[getMultisigAddresses] Failed to fetch member info for multisig account ${account.address} after ${maxRetries + 1} attempts:`, err)
+              console.error(
+                `[getMultisigAddresses] Failed to fetch member info for multisig account ${account.address} after ${maxRetries + 1} attempts:`,
+                err
+              )
               // Continue processing other multisig accounts instead of failing completely
             } else {
               console.warn(`[getMultisigAddresses] Attempt ${retryCount} failed for multisig account ${account.address}, retrying...`)
@@ -1494,8 +1505,10 @@ export async function getMultisigAddresses(
           }
         }
       }
-      
-      console.debug(`[getMultisigAddresses] Successfully processed ${multisigAddresses.length} out of ${multisigInfo.multi_account.length} multisig accounts`)
+
+      console.debug(
+        `[getMultisigAddresses] Successfully processed ${multisigAddresses.length} out of ${multisigInfo.multi_account.length} multisig accounts`
+      )
     }
 
     // If no multisig addresses were found, return undefined
@@ -1610,14 +1623,14 @@ export const prepareNestedMultisigTx = async (
 ) => {
   // Get the call hash for the outer multisig call
   const outerCallHash = outerCall.method.hash.toHex()
-  
+
   // Sort the inner signatories (excluding the actual signer)
   const allInnerSignatories = innerMembers.sort()
   const otherInnerSignatories = allInnerSignatories.filter(addr => addr !== actualSigner)
-  
+
   // Check if there's an existing inner multisig for this call
   const innerMultisigs = (await api.query.multisig.multisigs(innerMultisigAddress, outerCallHash)) as Option<Multisig>
-  
+
   let innerTimepoint = null
   if (innerMultisigs?.isSome) {
     const multisigInfo = innerMultisigs.unwrap()
@@ -1626,10 +1639,10 @@ export const prepareNestedMultisigTx = async (
       index: multisigInfo.when.index.toNumber(),
     }
   }
-  
+
   // Estimate weight for the nested multisig
   const estimatedWeight = estimateMultisigWeight(outerCall, innerThreshold, otherInnerSignatories, innerTimepoint)
-  
+
   // Create the nested approveAsMulti transaction
   const nestedMultisigTx = api.tx.multisig.approveAsMulti(
     innerThreshold,
@@ -1638,7 +1651,7 @@ export const prepareNestedMultisigTx = async (
     outerCallHash,
     estimatedWeight
   ) as SubmittableExtrinsic<'promise', ISubmittableResult>
-  
+
   return nestedMultisigTx
 }
 
@@ -1719,14 +1732,14 @@ export async function prepareNestedAsMultiTx(
   // Get the call hash for the outer multisig call
   const outerCallHash = outerCall.method.hash.toHex()
   const outerCallData = outerCall.method.toHex()
-  
+
   // Sort the inner signatories (excluding the actual signer)
   const allInnerSignatories = innerMembers.sort()
   const otherInnerSignatories = allInnerSignatories.filter(addr => addr !== actualSigner)
-  
+
   // Check if there's an existing inner multisig for this call
   const innerMultisigs = (await api.query.multisig.multisigs(innerMultisigAddress, outerCallHash)) as Option<Multisig>
-  
+
   let innerTimepoint = null
   if (innerMultisigs?.isSome) {
     const multisigInfo = innerMultisigs.unwrap()
@@ -1735,31 +1748,27 @@ export async function prepareNestedAsMultiTx(
       index: multisigInfo.when.index.toNumber(),
     }
   }
-  
+
   if (innerTimepoint) {
     // If there's already a timepoint, we need to use asMulti with the call data
     const call = api.createType('Call', outerCallData)
     const estimatedWeight = estimateMultisigWeight(outerCall, innerThreshold, otherInnerSignatories)
-    
-    return api.tx.multisig.asMulti(
-      innerThreshold,
-      otherInnerSignatories,
-      innerTimepoint,
-      call,
-      estimatedWeight
-    ) as SubmittableExtrinsic<'promise', ISubmittableResult>
-  } else {
-    // First approval for the inner multisig
-    const estimatedWeight = estimateMultisigWeight(outerCall, innerThreshold, otherInnerSignatories, null)
-    
-    return api.tx.multisig.approveAsMulti(
-      innerThreshold,
-      otherInnerSignatories,
-      null,
-      outerCallHash,
-      estimatedWeight
-    ) as SubmittableExtrinsic<'promise', ISubmittableResult>
+
+    return api.tx.multisig.asMulti(innerThreshold, otherInnerSignatories, innerTimepoint, call, estimatedWeight) as SubmittableExtrinsic<
+      'promise',
+      ISubmittableResult
+    >
   }
+  // First approval for the inner multisig
+  const estimatedWeight = estimateMultisigWeight(outerCall, innerThreshold, otherInnerSignatories, null)
+
+  return api.tx.multisig.approveAsMulti(
+    innerThreshold,
+    otherInnerSignatories,
+    null,
+    outerCallHash,
+    estimatedWeight
+  ) as SubmittableExtrinsic<'promise', ISubmittableResult>
 }
 
 /**
@@ -2013,4 +2022,387 @@ export async function getIndexInfo(address: string, api: ApiPromise): Promise<Ac
     console.error('Error fetching index information:', error)
     return undefined
   }
+}
+
+/**
+ * Gets conviction voting information for an address including votes and delegations
+ * @param address The address to query
+ * @param api The Polkadot API instance
+ * @returns Conviction voting info or undefined if not available
+ */
+export async function getConvictionVotingInfo(address: string, api: ApiPromise): Promise<ConvictionVotingInfo | undefined> {
+  try {
+    // Check if convictionVoting pallet is available
+    if (!api.query.convictionVoting?.votingFor) {
+      console.debug('ConvictionVoting pallet is not available on this chain')
+      return undefined
+    }
+
+    const convictionVotingInfo: ConvictionVotingInfo = {
+      votes: [],
+      delegations: [],
+      locked: new BN(0),
+      classLocks: [],
+    }
+
+    // Get voting info for all classes (tracks)
+    const tracks = api.consts.referenda?.tracks as any
+
+    for (const [trackId] of tracks) {
+      const votingFor = (await api.query.convictionVoting.votingFor(address, trackId)) as any
+
+      if (votingFor.isDelegating) {
+        const delegating = votingFor.asDelegating
+        convictionVotingInfo.delegations.push({
+          target: delegating.target.toString(),
+          conviction: delegating.conviction.toString() as Conviction,
+          balance: new BN(delegating.balance.toString()),
+          lockPeriod: delegating.prior ? delegating.prior[0].toNumber() : undefined,
+        })
+      } else if (votingFor.isCasting) {
+        const casting = votingFor.asCasting
+        for (const [refIndex, vote] of casting.votes) {
+          const voteData = vote.asStandard
+          convictionVotingInfo.votes.push({
+            referendumIndex: refIndex.toNumber(),
+            vote: {
+              aye: voteData.vote.isAye,
+              conviction: voteData.vote.conviction.toString() as Conviction,
+              balance: new BN(voteData.balance.toString()),
+            },
+          })
+        }
+      }
+    }
+
+    // Get class locks
+    const classLocksResult = (await api.query.convictionVoting.classLocksFor(address)) as any
+    for (const [classId, lockAmount] of classLocksResult) {
+      convictionVotingInfo.classLocks.push({
+        class: classId.toNumber(),
+        amount: new BN(lockAmount.toString()),
+      })
+      convictionVotingInfo.locked = convictionVotingInfo.locked.add(new BN(lockAmount.toString()))
+    }
+
+    return convictionVotingInfo
+  } catch (error) {
+    console.error('Error fetching conviction voting information:', error)
+    return undefined
+  }
+}
+
+/**
+ * Prepares a transaction to remove a vote from a referendum
+ * @param api The Polkadot API instance
+ * @param trackId The track/class ID
+ * @param referendumIndex The referendum index to remove vote from
+ * @returns The prepared transaction
+ */
+export async function prepareRemoveVoteTransaction(
+  api: ApiPromise,
+  trackId: number,
+  referendumIndex: number
+): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>> {
+  return api.tx.convictionVoting.removeVote(trackId, referendumIndex) as SubmittableExtrinsic<'promise', ISubmittableResult>
+}
+
+/**
+ * Prepares a transaction to undelegate voting power
+ * @param api The Polkadot API instance
+ * @param trackId The track/class ID to undelegate from
+ * @returns The prepared transaction
+ */
+export async function prepareUndelegateTransaction(
+  api: ApiPromise,
+  trackId: number
+): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>> {
+  return api.tx.convictionVoting.undelegate(trackId) as SubmittableExtrinsic<'promise', ISubmittableResult>
+}
+
+/**
+ * Prepares a transaction to unlock conviction-locked tokens
+ * @param api The Polkadot API instance
+ * @param address The address to unlock tokens for
+ * @param trackId The track/class ID to unlock
+ * @returns The prepared transaction
+ */
+export async function prepareUnlockConvictionTransaction(
+  api: ApiPromise,
+  address: string,
+  trackId: number
+): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>> {
+  return api.tx.convictionVoting.unlock(trackId, address) as SubmittableExtrinsic<'promise', ISubmittableResult>
+}
+
+/**
+ * Get detailed information about all governance activity for an address
+ * @param address The address to check
+ * @param api The Polkadot API instance
+ * @returns Detailed governance activity including votes and delegations
+ */
+export async function getGovernanceActivity(
+  address: string,
+  api: ApiPromise
+): Promise<{
+  votes: Array<{
+    trackId: number
+    referendumIndex: number
+    vote: {
+      aye: boolean
+      conviction: Conviction
+      balance: BN
+    }
+    referendumStatus: 'ongoing' | 'finished'
+    canRemoveVote: boolean
+    unlockAt?: number
+  }>
+  delegations: Array<{
+    trackId: number
+    target: string
+    conviction: Conviction
+    balance: BN
+    canUndelegate: boolean
+    unlockAt?: number
+  }>
+  totalLocked: BN
+  unlockableAmount: BN
+}> {
+  try {
+    if (!api.query.convictionVoting?.votingFor || !api.query.referenda?.referendumInfoFor) {
+      throw new InternalError(InternalErrorType.GET_CONVICTION_VOTING_INFO_ERROR)
+    }
+
+    const result = {
+      votes: [] as any[],
+      delegations: [] as any[],
+      totalLocked: new BN(0),
+      unlockableAmount: new BN(0),
+    }
+
+    // Get current block number
+    const currentBlock = (await api.query.system.number()) as any
+    const currentBlockNumber = currentBlock.toNumber()
+
+    // Get voting info for all tracks
+    const tracks = api.consts.referenda?.tracks || []
+
+    for (const [trackId] of tracks as any) {
+      const votingFor = await api.query.convictionVoting.votingFor(address, trackId)
+
+      if ((votingFor as any).isDelegating) {
+        const delegating = (votingFor as any).asDelegating
+        const prior = delegating.prior
+
+        // Calculate unlock block if delegation has prior lock
+        let unlockAt: number | undefined
+        if (prior?.[0]) {
+          const lockPeriods = prior[0].toNumber()
+          unlockAt = currentBlockNumber + lockPeriods
+        }
+
+        result.delegations.push({
+          trackId: trackId.toNumber(),
+          target: delegating.target.toString(),
+          conviction: delegating.conviction.toString() as Conviction,
+          balance: new BN(delegating.balance.toString()),
+          canUndelegate: true, // Can always undelegate
+          unlockAt,
+        })
+      } else if ((votingFor as any).isCasting) {
+        const casting = (votingFor as any).asCasting
+
+        for (const [refIndex, vote] of casting.votes) {
+          const referendumIndex = refIndex.toNumber()
+
+          // Check referendum status
+          const referendumInfo = await api.query.referenda.referendumInfoFor(referendumIndex)
+          const isOngoing = (referendumInfo as any).isSome && (referendumInfo as any).unwrap().isOngoing
+
+          const voteData = vote.asStandard
+          const conviction = voteData.vote.conviction.toString() as Conviction
+
+          // Calculate unlock block based on conviction
+          const convictionLockPeriods = getConvictionLockPeriods(conviction)
+          let unlockAt: number | undefined
+
+          if (!isOngoing && convictionLockPeriods > 0) {
+            // For finished referenda, calculate when tokens can be unlocked
+            const enactmentPeriod = (api.consts.referenda?.undecidingTimeout as any)?.toNumber() || 28800 // Default ~28 days at 6s blocks
+            unlockAt = currentBlockNumber + convictionLockPeriods * enactmentPeriod
+          }
+
+          result.votes.push({
+            trackId: trackId.toNumber(),
+            referendumIndex,
+            vote: {
+              aye: voteData.vote.isAye,
+              conviction,
+              balance: new BN(voteData.balance.toString()),
+            },
+            referendumStatus: isOngoing ? 'ongoing' : 'finished',
+            canRemoveVote: isOngoing, // Can only remove vote if referendum is ongoing
+            unlockAt,
+          })
+        }
+      }
+    }
+
+    // Get class locks to determine total locked and unlockable amounts
+    const classLocksResult = await api.query.convictionVoting.classLocksFor(address)
+    for (const [classId, lockAmount] of classLocksResult as any) {
+      const amount = new BN(lockAmount.toString())
+      result.totalLocked = result.totalLocked.add(amount)
+
+      // Check if this class can be unlocked
+      const trackId = classId.toNumber()
+      const votingFor = await api.query.convictionVoting.votingFor(address, trackId)
+
+      // Can unlock if not voting or delegating on this track
+      if (!(votingFor as any).isCasting && !(votingFor as any).isDelegating) {
+        result.unlockableAmount = result.unlockableAmount.add(amount)
+      }
+    }
+
+    return result
+  } catch (error) {
+    console.error('Error fetching governance activity:', error)
+    throw new InternalError(InternalErrorType.GET_CONVICTION_VOTING_INFO_ERROR)
+  }
+}
+
+/**
+ * Get conviction lock periods based on conviction level
+ * @param conviction The conviction level
+ * @returns Number of enactment periods for the lock
+ */
+function getConvictionLockPeriods(conviction: Conviction): number {
+  const lockPeriods: Record<Conviction, number> = {
+    [Conviction.None]: 0,
+    [Conviction.Locked1x]: 1,
+    [Conviction.Locked2x]: 2,
+    [Conviction.Locked3x]: 4,
+    [Conviction.Locked4x]: 8,
+    [Conviction.Locked5x]: 16,
+    [Conviction.Locked6x]: 32,
+  }
+  return lockPeriods[conviction] || 0
+}
+
+/**
+ * Check if a referendum is still ongoing
+ * @param api The Polkadot API instance
+ * @param referendumIndex The referendum index to check
+ * @returns True if the referendum is ongoing
+ */
+export async function isReferendumOngoing(api: ApiPromise, referendumIndex: number): Promise<boolean> {
+  try {
+    const referendumInfo = await api.query.referenda.referendumInfoFor(referendumIndex)
+    return (referendumInfo as any).isSome && (referendumInfo as any).unwrap().isOngoing
+  } catch (error) {
+    console.error('Error checking referendum status:', error)
+    return false
+  }
+}
+
+/**
+ * Get all tracks where the address has delegations
+ * @param address The address to check
+ * @param api The Polkadot API instance
+ * @returns Array of track IDs with active delegations
+ */
+export async function getDelegationTracks(address: string, api: ApiPromise): Promise<number[]> {
+  try {
+    if (!api.query.convictionVoting?.votingFor) {
+      return []
+    }
+
+    const delegationTracks: number[] = []
+    const tracks = api.consts.referenda?.tracks || []
+
+    for (const [trackId] of tracks as any) {
+      const votingFor = await api.query.convictionVoting.votingFor(address, trackId)
+      if ((votingFor as any).isDelegating) {
+        delegationTracks.push(trackId.toNumber())
+      }
+    }
+
+    return delegationTracks
+  } catch (error) {
+    console.error('Error fetching delegation tracks:', error)
+    return []
+  }
+}
+
+/**
+ * Get all tracks where the address has votes
+ * @param address The address to check
+ * @param api The Polkadot API instance
+ * @returns Array of track IDs with active votes
+ */
+export async function getVotingTracks(address: string, api: ApiPromise): Promise<number[]> {
+  try {
+    if (!api.query.convictionVoting?.votingFor) {
+      return []
+    }
+
+    const votingTracks: number[] = []
+    const tracks = api.consts.referenda?.tracks || []
+
+    for (const [trackId] of tracks as any) {
+      const votingFor = await api.query.convictionVoting.votingFor(address, trackId)
+      if ((votingFor as any).isCasting && (votingFor as any).asCasting.votes.length > 0) {
+        votingTracks.push(trackId.toNumber())
+      }
+    }
+
+    return votingTracks
+  } catch (error) {
+    console.error('Error fetching voting tracks:', error)
+    return []
+  }
+}
+
+/**
+ * Prepare batch transaction to remove multiple votes
+ * @param api The Polkadot API instance
+ * @param votes Array of {trackId, referendumIndex} to remove votes from
+ * @returns The prepared batch transaction
+ */
+export async function prepareBatchRemoveVotesTransaction(
+  api: ApiPromise,
+  votes: Array<{ trackId: number; referendumIndex: number }>
+): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>> {
+  const calls = votes.map(({ trackId, referendumIndex }) => api.tx.convictionVoting.removeVote(trackId, referendumIndex))
+  return api.tx.utility.batchAll(calls) as SubmittableExtrinsic<'promise', ISubmittableResult>
+}
+
+/**
+ * Prepare batch transaction to undelegate from multiple tracks
+ * @param api The Polkadot API instance
+ * @param trackIds Array of track IDs to undelegate from
+ * @returns The prepared batch transaction
+ */
+export async function prepareBatchUndelegateTransaction(
+  api: ApiPromise,
+  trackIds: number[]
+): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>> {
+  const calls = trackIds.map(trackId => api.tx.convictionVoting.undelegate(trackId))
+  return api.tx.utility.batchAll(calls) as SubmittableExtrinsic<'promise', ISubmittableResult>
+}
+
+/**
+ * Prepare batch transaction to unlock tokens from multiple tracks
+ * @param api The Polkadot API instance
+ * @param address The address to unlock tokens for
+ * @param trackIds Array of track IDs to unlock
+ * @returns The prepared batch transaction
+ */
+export async function prepareBatchUnlockTransaction(
+  api: ApiPromise,
+  address: string,
+  trackIds: number[]
+): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>> {
+  const calls = trackIds.map(trackId => api.tx.convictionVoting.unlock(trackId, address))
+  return api.tx.utility.batchAll(calls) as SubmittableExtrinsic<'promise', ISubmittableResult>
 }

@@ -1,3 +1,4 @@
+import { observer } from '@legendapp/state/react'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { BalanceHoverCard } from '@/components/sections/migrate/balance-hover-card'
 import { TransactionStatusBody } from '@/components/sections/migrate/dialogs/transaction-dialog'
@@ -7,8 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import type { AppId } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import type { Collections } from '@/state/ledger'
-import { BalanceType, TransactionStatus, type MigratingItem } from '@/state/types/ledger'
-import { observer } from '@legendapp/state/react'
+import { BalanceType, type MigratingItem, TransactionStatus } from '@/state/types/ledger'
 import { BalanceTypeFlag } from '../balance-detail-card'
 import { DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 
@@ -106,7 +106,13 @@ export const MigrationProgressDialog = observer(function MigrationProgressDialog
                         <BalanceTypeFlag type={balance.type} />
                       </TableCell>
                       <TableCell>
-                        <BalanceHoverCard balances={[balance]} token={token} collections={collections} isMigration />
+                        <BalanceHoverCard
+                          balances={[balance]}
+                          token={token}
+                          collections={collections}
+                          appId={migratingItem.appId}
+                          isMigration
+                        />
                       </TableCell>
                       <TableCell>
                         {balance.transaction?.destinationAddress ? (

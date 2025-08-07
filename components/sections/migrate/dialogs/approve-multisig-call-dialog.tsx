@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import type { MultisigAddress, MultisigCall, MultisigMember, TransactionDetails, TransactionStatus } from 'state/types/ledger'
 import { z } from 'zod'
-import type { UpdateTransactionStatus } from '@/lib/account'
 import { CustomTooltip } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
@@ -16,8 +15,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import Switch from '@/components/ui/switch'
 import { type AppId, getChainName, type Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
+import type { UpdateTransactionStatus } from '@/lib/account'
 import { formatBalance } from '@/lib/utils/format'
-import { callDataValidationMessages, getAvailableSigners, validateCallData, type EnhancedMultisigMember } from '@/lib/utils/multisig'
+import {
+  callDataValidationMessages,
+  type EnhancedMultisigMember,
+  getAvailableSigners,
+  getRemainingInternalSigners,
+  validateCallData,
+} from '@/lib/utils/multisig'
 import { type App, ledgerState$ } from '@/state/ledger'
 import { DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
@@ -95,7 +101,7 @@ function MultisigCallForm({
     },
     [setValue, clearErrors]
   )
-  
+
   // Handle signer change
   const handleSignerChange = useCallback(
     (value: string) => {
@@ -124,11 +130,11 @@ function MultisigCallForm({
     const enhanced = signer as EnhancedMultisigMember
     return enhanced.isMultisig && enhanced.multisigData?.availableSigners && enhanced.multisigData.availableSigners.length > 0
   })
-  
+
   // Consider signers available if there are multisig signers with members, even if they're not internal
   const hasUsableSigners = availableSigners.some(s => s.internal) || hasMultisigSignersWithAvailableMembers
   const noAvailableSigners = availableSigners.length === 0 || !hasUsableSigners
-  
+
   // Find the selected signer and check if it's a multisig
   const selectedSignerData = availableSigners.find(s => s.address === selectedSigner) as EnhancedMultisigMember | undefined
   const isSelectedSignerMultisig = selectedSignerData?.isMultisig ?? false
@@ -172,22 +178,24 @@ function MultisigCallForm({
           )}
         />
       </DialogField>
-      
+
       {/* Display Call Hash for Copy */}
       {selectedCallHash && (
         <DialogField>
           <DialogLabel>Call Hash (for sharing)</DialogLabel>
-          <div className="p-2 bg-muted rounded text-xs font-mono break-all select-all">
-            {selectedCallHash}
-          </div>
+          <div className="p-2 bg-muted rounded text-xs font-mono break-all select-all">{selectedCallHash}</div>
           <div className="mt-2 p-3 bg-yellow-500/10 rounded-md">
             <div className="text-xs text-yellow-600 dark:text-yellow-400">
               <Info className="h-3.5 w-3.5 inline mr-1" />
-              <span className="font-medium">Important:</span> 
+              <span className="font-medium">Important:</span>
               {isSelectedSignerMultisig ? (
-                <> If this is the first approval using a nested multisig, the call data will be shown during signing. Save it for other signers.</>
+                <>
+                  {' '}
+                  If this is the first approval using a nested multisig, the call data will be shown during signing. Save it for other
+                  signers.
+                </>
               ) : (
-                <> This is approving an existing multisig call. The call data should have been provided by whoever created this call.</>
+                'This is approving an existing multisig call. The call data should have been provided by whoever created this call.'
               )}
             </div>
           </div>
@@ -388,14 +396,14 @@ function MultisigCallForm({
 // Helper to enhance members with multisig data
 function enhanceMembers(members: MultisigMember[], app: App | undefined): EnhancedMultisigMember[] {
   if (!app?.multisigAccounts) return members.map(m => ({ ...m, isMultisig: false }))
-  
+
   return members.map(member => {
     const multisigAccount = app.multisigAccounts?.find(ms => ms.address === member.address)
-    
+
     if (multisigAccount) {
       // Get available signers from the nested multisig who have paths
       const availableSigners = multisigAccount.members.filter(m => m.internal && m.path)
-      
+
       return {
         ...member,
         isMultisig: true,
@@ -405,14 +413,14 @@ function enhanceMembers(members: MultisigMember[], app: App | undefined): Enhanc
         },
       }
     }
-    
+
     return { ...member, isMultisig: false }
   })
 }
 
 function ApproveMultisigCallDialogInner({ open, setOpen, token, appId, account }: ApproveMultisigCallDialogProps) {
   const pendingCalls = account.pendingMultisigCalls ?? []
-  
+
   // Get app data to access multisig accounts
   const apps = ledgerState$.apps.apps.get()
   const currentApp = apps.find(app => app.id === appId)
@@ -422,7 +430,7 @@ function ApproveMultisigCallDialogInner({ open, setOpen, token, appId, account }
     resolver: zodResolver(multisigCallFormSchema),
     defaultValues: {
       callHash: pendingCalls[0]?.callHash ?? '',
-      signer: getAvailableSigners(pendingCalls[0], account.members)[0]?.address ?? undefined,
+      signer: getRemainingInternalSigners(pendingCalls[0], account.members)[0]?.address ?? undefined,
       isFinalApprovalWithCall: pendingCalls[0].signatories.length === account.threshold,
       callData: '',
     },
@@ -432,16 +440,6 @@ function ApproveMultisigCallDialogInner({ open, setOpen, token, appId, account }
   const selectedCallHash = form.watch('callHash')
   const isFinalApprovalWithCall = form.watch('isFinalApprovalWithCall')
   const callData = form.watch('callData')
-  
-  // Debug log to see form values
-  useEffect(() => {
-    console.log('[ApproveMultisigCallDialog] Form values changed:', {
-      callHash: selectedCallHash,
-      isFinalApprovalWithCall,
-      callData,
-      allFormValues: form.getValues()
-    })
-  }, [selectedCallHash, isFinalApprovalWithCall, callData, form])
 
   // Compute derived values only once per render
   const selectedCall = useMemo(() => pendingCalls.find(call => call.callHash === selectedCallHash), [pendingCalls, selectedCallHash])
@@ -449,19 +447,10 @@ function ApproveMultisigCallDialogInner({ open, setOpen, token, appId, account }
   const isAllApproved = approvers.length === account.threshold
   const isLastApproval = approvers.length === account.threshold - 1
   const isCallDataRequired = (isLastApproval && isFinalApprovalWithCall) || isAllApproved
-  
-  console.log('[ApproveMultisigCallDialog] Approval state:', {
-    approvers: approvers.length,
-    threshold: account.threshold,
-    isAllApproved,
-    isLastApproval,
-    isFinalApprovalWithCall,
-    isCallDataRequired
-  })
 
   // Enhance members with multisig data
   const enhancedMembers = useMemo(() => enhanceMembers(account.members, currentApp), [account.members, currentApp])
-  
+
   const availableSigners = useMemo(() => {
     if (isAllApproved) return enhancedMembers
     return selectedCall ? getAvailableSigners(selectedCall, enhancedMembers) : []
@@ -474,26 +463,15 @@ function ApproveMultisigCallDialogInner({ open, setOpen, token, appId, account }
   const selectedSignerMember = availableSigners.find(s => s.address === form.watch('signer')) as EnhancedMultisigMember | undefined
   const isSignerMultisig = selectedSignerMember?.isMultisig ?? false
   const nestedSigner = form.watch('nestedSigner')
-  
+
   // Check if form is ready for submission
   const isFormReadyForSubmission = Boolean(
-    !(!callData && isCallDataRequired) && 
-    selectedCallHash && 
-    !Object.keys(form.formState.errors).length && 
-    availableSigners.length > 0 &&
-    (!isSignerMultisig || nestedSigner) // If signer is multisig, nested signer must be selected
+    !(!callData && isCallDataRequired) &&
+      selectedCallHash &&
+      !Object.keys(form.formState.errors).length &&
+      availableSigners.length > 0 &&
+      (!isSignerMultisig || nestedSigner) // If signer is multisig, nested signer must be selected
   )
-  
-  console.log('[ApproveMultisigCallDialog] Form readiness:', {
-    isFormReadyForSubmission,
-    hasCallData: !!callData,
-    isCallDataRequired,
-    selectedCallHash: !!selectedCallHash,
-    formErrors: Object.keys(form.formState.errors),
-    availableSignersCount: availableSigners.length,
-    isSignerMultisig,
-    hasNestedSigner: !!nestedSigner
-  })
 
   // Validate call data using utility function
   const validateCallDataHandler = useCallback(
@@ -536,17 +514,7 @@ function ApproveMultisigCallDialogInner({ open, setOpen, token, appId, account }
     appId: AppId
   ) => {
     const formData = form.getValues()
-    console.log('[ApproveMultisigCallDialog] Form data:', JSON.stringify(formData, null, 2))
-    console.log('[ApproveMultisigCallDialog] Call Hash:', formData.callHash)
-    console.log('[ApproveMultisigCallDialog] Call Data:', formData.callData)
-    console.log('[ApproveMultisigCallDialog] Call Data length:', formData.callData?.length)
-    console.log('[ApproveMultisigCallDialog] Is Final Approval:', formData.isFinalApprovalWithCall)
-    console.log('[ApproveMultisigCallDialog] All form field values:', {
-      callHash: form.getFieldState('callHash'),
-      callData: form.getFieldState('callData'),
-      isFinalApprovalWithCall: form.getFieldState('isFinalApprovalWithCall')
-    })
-    
+
     // Create a wrapper that always includes the callHash and callData from the form
     const updateTxStatusWithFormData: UpdateTransactionStatus = (status, message, txDetails) => {
       const updatedDetails = {
@@ -554,10 +522,7 @@ function ApproveMultisigCallDialogInner({ open, setOpen, token, appId, account }
         callHash: formData.callHash || txDetails?.callHash,
         callData: formData.callData || txDetails?.callData,
       }
-      console.log('[ApproveMultisigCallDialog] Updating status:', status)
-      console.log('[ApproveMultisigCallDialog] Message:', message)
-      console.log('[ApproveMultisigCallDialog] Updated details:', updatedDetails)
-      
+
       updateTxStatus(status, message, updatedDetails)
     }
     try {
@@ -574,7 +539,6 @@ function ApproveMultisigCallDialogInner({ open, setOpen, token, appId, account }
   // Handle form submission
   const onSubmit = async (_data: MultisigCallFormData) => {
     try {
-      console.log('[ApproveMultisigCallDialog] onSubmit called with appId:', appId)
       await runTransaction(appId, account.address, account.path)
     } catch (error) {
       console.error('[ApproveMultisigCallDialog] Error in onSubmit:', error)
@@ -604,10 +568,7 @@ function ApproveMultisigCallDialogInner({ open, setOpen, token, appId, account }
         </DialogHeader>
         <DialogBody>
           {txStatus ? (
-            <>
-              {console.log('[ApproveMultisigCallDialog] Rendering with txStatus:', txStatus)}
-              <TransactionStatusBody {...txStatus} appId={appId} />
-            </>
+            <TransactionStatusBody {...txStatus} appId={appId} />
           ) : (
             <MultisigCallForm
               form={form}
