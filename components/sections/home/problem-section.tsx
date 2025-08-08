@@ -51,18 +51,6 @@ export default function ProblemSection() {
             </p>
           </motion.div>
         </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          className="mt-12 text-center"
-        >
-          <div className="inline-block px-6 py-3 rounded-full bg-red-50 text-red-700 font-medium">
-            Without proper guidance, migration risks and frustration increase
-          </div>
-        </motion.div>
       </div>
     </section>
   )
