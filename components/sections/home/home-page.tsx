@@ -19,8 +19,6 @@ export function HomePage({
   subtitle = 'Simplifying your journey to the new Polkadot Universal Ledger App',
   animationSpeed = 1,
 }: HomePageProps) {
-  const words = title.split(' ')
-
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden">
       {/* Background with gradient and animations */}
@@ -33,31 +31,20 @@ export function HomePage({
           transition={{ duration: 2 / animationSpeed }}
           className="max-w-4xl mx-auto"
         >
-          <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold mb-6 tracking-tighter">
-            {words.map((word, wordIndex) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: word content makes index stable
-              <span key={`word-${word}-${wordIndex}`} className="inline-block mr-4 last:mr-0">
-                {word.split('').map((letter, letterIndex) => (
-                  <motion.span
-                    // biome-ignore lint/suspicious/noArrayIndexKey: letter content makes index stable
-                    key={`letter-${word}-${wordIndex}-${letter}-${letterIndex}`}
-                    initial={{ y: 100, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{
-                      delay: (wordIndex * 0.1 + letterIndex * 0.03) / animationSpeed,
-                      type: 'spring',
-                      stiffness: 150,
-                      damping: 25,
-                    }}
-                    className="inline-block text-transparent bg-clip-text 
-                    bg-linear-to-r from-white to-white/80"
-                  >
-                    {letter}
-                  </motion.span>
-                ))}
-              </span>
-            ))}
-          </h1>
+          <motion.h1
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{
+              duration: 1 / animationSpeed,
+              type: 'spring',
+              stiffness: 150,
+              damping: 25,
+            }}
+            className="text-4xl sm:text-6xl md:text-7xl font-bold mb-6 tracking-tighter
+                       text-transparent bg-clip-text bg-linear-to-r from-white to-white/80"
+          >
+            {title}
+          </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 20 }}
