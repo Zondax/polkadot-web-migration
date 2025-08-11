@@ -160,8 +160,8 @@ vi.mock('@/state/ledger', () => ({
   ledgerState$: {
     apps: {
       apps: {
-        get: vi.fn(() => [])
-      }
+        get: vi.fn(() => []),
+      },
     },
     approveMultisigCall: vi.fn(),
     synchronizeAccount: vi.fn(),
