@@ -15,6 +15,7 @@ vi.mock('lucide-react', () => ({
       !
     </div>
   ),
+  AlertTriangle: () => <div data-testid="alert-triangle">⚠</div>,
   Banknote: () => <div data-testid="banknote">💰</div>,
   BanknoteArrowDown: () => <div data-testid="banknote-arrow-down">💰⬇</div>,
   Check: () => <div data-testid="check">✓</div>,
@@ -24,6 +25,7 @@ vi.mock('lucide-react', () => ({
   KeyRound: () => <div data-testid="key-round">🔑</div>,
   LockOpen: () => <div data-testid="lock-open">🔓</div>,
   Route: () => <div data-testid="route">🛣</div>,
+  Send: () => <div data-testid="send">📤</div>,
   Shield: () => <div data-testid="shield">🛡</div>,
   Trash2: () => <div data-testid="trash2">🗑</div>,
   User: () => <div data-testid="user">👤</div>,
@@ -33,6 +35,7 @@ vi.mock('lucide-react', () => ({
     </div>
   ),
   Users: () => <div data-testid="users">👥</div>,
+  Vote: () => <div data-testid="vote">🗳</div>,
   X: () => <div data-testid="x">✕</div>,
 }))
 
