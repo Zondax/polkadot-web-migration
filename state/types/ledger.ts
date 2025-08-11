@@ -44,6 +44,7 @@ export interface TransactionDetails {
   blockHash?: string
   blockNumber?: string
   callData?: string // Used in multisig transactions - call data of the transaction
+  callHash?: string // Used in multisig transactions - hash of the call data
 }
 
 /**

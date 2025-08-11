@@ -149,12 +149,20 @@ vi.mock('@/lib/utils/multisig', () => ({
     correct: 'Call data is valid',
     failed: 'Validation failed',
   },
+  EnhancedMultisigMember: {},
   getRemainingInternalSigners: vi.fn(() => []),
+  getRemainingSigners: vi.fn(() => []),
+  getAvailableSigners: vi.fn(() => []),
   validateCallData: vi.fn(() => Promise.resolve({ isValid: true })),
 }))
 
 vi.mock('@/state/ledger', () => ({
   ledgerState$: {
+    apps: {
+      apps: {
+        get: vi.fn(() => []),
+      },
+    },
     approveMultisigCall: vi.fn(),
     synchronizeAccount: vi.fn(),
   },
@@ -306,8 +314,8 @@ describe('ApproveMultisigCallDialog', () => {
       render(<ApproveMultisigCallDialog {...defaultProps} />)
 
       // Check for key form elements
-      expect(screen.getAllByTestId('dialog-field')).toHaveLength(6) // Multisig Address, Call Hash, Approvers, Deposit, Network, Signer
-      expect(screen.getAllByTestId('dialog-label')).toHaveLength(6)
+      expect(screen.getAllByTestId('dialog-field')).toHaveLength(7) // Multisig Address, Call Hash, Call Hash (for sharing), Approvers, Deposit, Network, Signer
+      expect(screen.getAllByTestId('dialog-label')).toHaveLength(7)
       expect(screen.getAllByTestId('select')).toHaveLength(2)
       expect(screen.getByTestId('transaction-dialog-footer')).toBeInTheDocument()
     })
@@ -507,15 +515,16 @@ describe('ApproveMultisigCallDialog', () => {
       const switchElement = screen.getByTestId('switch')
       expect(switchElement).toHaveAttribute('id', 'final-approval-switch')
 
-      const infoIcon = screen.getByTestId('info-icon')
-      expect(infoIcon).toHaveAttribute('aria-label', 'Info')
+      const infoIcons = screen.getAllByTestId('info-icon')
+      expect(infoIcons.length).toBeGreaterThan(0)
+      expect(infoIcons[0]).toHaveAttribute('aria-label', 'Info')
     })
 
     it('should have proper form labels', () => {
       render(<ApproveMultisigCallDialog {...defaultProps} />)
 
       const labels = screen.getAllByTestId('dialog-label')
-      expect(labels).toHaveLength(6)
+      expect(labels).toHaveLength(7)
     })
   })
 })

@@ -1,7 +1,7 @@
 import type { ApiPromise } from '@polkadot/api'
 import { BN } from '@polkadot/util'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Address } from '@/state/types/address'
+import type { Address } from '@/state/types/ledger'
 
 // Handle unhandled promise rejections in tests to prevent CI failures
 const originalHandler = process.listeners('unhandledRejection')[0]
@@ -55,7 +55,7 @@ describe('Account Module - Coverage Tests', () => {
   const mockAddress: Address = {
     address: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
     path: "m/44'/354'/0'/0'/0'",
-    publicKey: new Uint8Array(),
+    pubKey: '0x1234567890123456789012345678901234567890',
   }
 
   beforeEach(() => {

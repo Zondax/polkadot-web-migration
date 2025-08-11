@@ -25,7 +25,6 @@ export function MigrateTabContent({ onBack }: MigrateTabContentProps) {
   const [migrationStatus, setMigrationStatus] = useState<undefined | 'loading' | 'finished'>()
   const {
     appsForMigration,
-    migrateSelected,
     migrationResults,
     restartSynchronization,
     allVerified,
@@ -48,7 +47,6 @@ export function MigrateTabContent({ onBack }: MigrateTabContentProps) {
 
   const handleMigrate = async () => {
     setMigrationStatus('loading')
-    await migrateSelected()
     setShowSuccessDialog(true)
     setMigrationStatus('finished')
   }
