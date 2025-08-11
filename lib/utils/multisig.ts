@@ -85,11 +85,11 @@ export const getRemainingInternalSigners = (pendingCall: MultisigCall, members: 
 }
 
 /**
- * Returns the list of internal multisig members who have not yet approved the given pending call.
+ * Returns the list of all multisig members who have not yet approved the given pending call.
  *
  * @param pendingCall - The multisig call for which to check approvals
  * @param members - The list of all multisig members
- * @returns MultisigMember[] - Members who are internal and have not yet signed the call
+ * @returns MultisigMember[] - Members who have not yet signed the call
  */
 export const getRemainingSigners = (pendingCall: MultisigCall, members: MultisigMember[]): MultisigMember[] => {
   const existingApprovals = pendingCall.signatories
