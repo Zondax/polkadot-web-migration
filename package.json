@@ -43,7 +43,7 @@
     "@ledgerhq/hw-transport-webhid": "^6.30.4",
     "@ledgerhq/types-live": "^6.80.0",
     "@legendapp/state": "^3.0.0-beta.31",
-    "@polkadot-api/merkleize-metadata": "^1.1.20",
+    "@polkadot-api/merkleize-metadata": "^1.1.21",
     "@polkadot/api": "^16.4.3",
     "@polkadot/api-derive": "^16.4.3",
     "@polkadot/keyring": "^13.5.4",
