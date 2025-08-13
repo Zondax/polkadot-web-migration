@@ -17,8 +17,10 @@ function TransactionStatusBody({
   txHash,
   blockHash,
   blockNumber,
+  callData,
+  callHash,
   appId,
-}: Transaction & { appId?: AppId }) {
+}: Transaction & { appId?: AppId; callHash?: string }) {
   if (!status) return null
 
   // Collect transaction details only if they exist, and filter out undefined values for cleaner display
@@ -56,6 +58,28 @@ function TransactionStatusBody({
       {statusIcon}
       <span className="text-base font-medium max-w-[80%] text-center">{statusMessage}</span>
       {details.length > 0 && renderTransactionDetails()}
+
+      {/* Display multisig call data and hash for first approval */}
+      {callData && callHash && (
+        <div className="w-full space-y-3 mt-4 p-4 bg-muted/50 rounded-lg">
+          <div className="text-sm font-medium text-center">Multisig Transaction Details</div>
+          <div className="text-xs text-muted-foreground text-center">
+            Save these details - other signers will need them to approve this transaction
+          </div>
+
+          <div className="space-y-2">
+            <div className="space-y-1">
+              <div className="text-xs font-medium">Call Hash</div>
+              <div className="p-2 bg-background rounded text-xs font-mono break-all select-all">{callHash}</div>
+            </div>
+
+            <div className="space-y-1">
+              <div className="text-xs font-medium">Call Data</div>
+              <div className="p-2 bg-background rounded text-xs font-mono break-all select-all">{callData}</div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

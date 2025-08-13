@@ -13,6 +13,7 @@ import {
   KeyRound,
   LockOpen,
   Route,
+  Send,
   Shield,
   Trash2,
   User,
@@ -46,6 +47,7 @@ import GovernanceUnlockDialog from './dialogs/governance-unlock-dialog'
 import RemoveAccountIndexDialog from './dialogs/remove-account-index-dialog'
 import RemoveIdentityDialog from './dialogs/remove-identity-dialog'
 import RemoveProxyDialog from './dialogs/remove-proxy-dialog'
+import TransferMultisigDialog from './dialogs/transfer-multisig-dialog'
 import UnstakeDialog from './dialogs/unstake-dialog'
 import WithdrawDialog from './dialogs/withdraw-dialog'
 
@@ -96,6 +98,7 @@ const SynchronizedAccountRow = ({
   const [removeAccountIndexOpen, setRemoveAccountIndexOpen] = useState<boolean>(false)
   const [governanceUnlockOpen, setGovernanceUnlockOpen] = useState<boolean>(false)
   const [governanceActivity, setGovernanceActivity] = useState<any>(null)
+  const [transferMultisigOpen, setTransferMultisigOpen] = useState<boolean>(false)
   const isNoBalance: boolean = balance === undefined
   const isFirst: boolean = balanceIndex === 0 || isNoBalance
   const isNative = isNativeBalance(balance)
@@ -168,7 +171,7 @@ const SynchronizedAccountRow = ({
   let hasMultisigPending = false
   let hasRemainingInternalSigners = false
   let hasRemainingSigners = false
-  let hasAvailableSigners = false
+  let _hasAvailableSigners = false
   let multisigPendingTooltip: React.ReactNode = null
   if (isMultisigAddress && (account as MultisigAddress).pendingMultisigCalls.length > 0) {
     hasMultisigPending = true
@@ -178,7 +181,7 @@ const SynchronizedAccountRow = ({
     // If at least one call has available signers, allow action
     hasRemainingInternalSigners = pendingCalls.some(call => getRemainingInternalSigners(call, members).length > 0)
     hasRemainingSigners = pendingCalls.some(call => getRemainingSigners(call, members).length > 0)
-    hasAvailableSigners = getAvailableSigners(members).length > 0
+    _hasAvailableSigners = pendingCalls.some(call => getAvailableSigners(call, members).length > 0)
 
     if (!hasRemainingInternalSigners) {
       // Compose tooltip for all pending calls
@@ -234,13 +237,23 @@ const SynchronizedAccountRow = ({
       )
     }
   }
-  if (hasMultisigPending && hasAvailableSigners && !hasRemainingSigners) {
+  if (hasMultisigPending) {
     actions.push({
       label: 'Multisig Call',
       tooltip: 'Approve multisig pending calls',
       onClick: () => setApproveMultisigCallOpen(true),
       disabled: false,
       icon: <Users className="h-4 w-4" />,
+    })
+  }
+
+  if (isMultisigAddress && internalMultisigMembers.length > 0) {
+    actions.push({
+      label: 'Transfer',
+      tooltip: 'Transfer funds to a multisig signatory',
+      onClick: () => setTransferMultisigOpen(true),
+      disabled: false,
+      icon: <Send className="h-4 w-4" />,
     })
   }
 
@@ -744,6 +757,15 @@ const SynchronizedAccountRow = ({
           appId={appId}
           token={token}
           governanceActivity={governanceActivity}
+        />
+      )}
+      {isMultisigAddress && (
+        <TransferMultisigDialog
+          open={transferMultisigOpen}
+          setOpen={setTransferMultisigOpen}
+          token={token}
+          account={account as MultisigAddress}
+          appId={appId}
         />
       )}
     </TableRow>

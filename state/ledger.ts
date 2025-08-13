@@ -823,12 +823,36 @@ export const ledgerState$ = observable({
   ) {
     try {
       if (formBody.isFinalApprovalWithCall) {
-        await ledgerClient.signAsMultiTx(appId, account, formBody.callHash, formBody.callData, formBody.signer, updateTxStatus)
+        await ledgerClient.signAsMultiTx(
+          appId,
+          account,
+          formBody.callHash,
+          formBody.callData,
+          formBody.signer,
+          formBody.nestedSigner,
+          updateTxStatus
+        )
       } else {
-        await ledgerClient.signApproveAsMultiTx(appId, account, formBody.callHash, formBody.signer, updateTxStatus)
+        await ledgerClient.signApproveAsMultiTx(appId, account, formBody.callHash, formBody.signer, formBody.nestedSigner, updateTxStatus)
       }
     } catch (error) {
+      console.error('[ledgerState$.approveMultisigCall] Error caught:', error)
       const internalError = interpretError(error, InternalErrorType.APPROVE_MULTISIG_CALL_ERROR)
+      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+    }
+  },
+
+  async createMultisigTransfer(
+    appId: AppId,
+    account: MultisigAddress,
+    formBody: { recipient: string; signer: string },
+    transferAmount: string,
+    updateTxStatus: UpdateTransactionStatus
+  ) {
+    try {
+      await ledgerClient.signMultisigTransferTx(appId, account, formBody.recipient, formBody.signer, transferAmount, updateTxStatus)
+    } catch (error) {
+      const internalError = interpretError(error, InternalErrorType.MULTISIG_TRANSFER_ERROR)
       updateTxStatus(TransactionStatus.ERROR, internalError.description)
     }
   },

@@ -1418,13 +1418,22 @@ export async function getMultisigAddresses(
   network: string,
   api: ApiPromise
 ): Promise<MultisigAddress[] | undefined> {
+  console.debug(`[getMultisigAddresses] Starting multisig detection for address ${address} on network ${network}`)
+
   try {
     const multisigInfo = await getMultisigInfo(address, network)
 
     // If no multisig info is available, return undefined
     if (!multisigInfo) {
+      console.debug(`[getMultisigAddresses] No multisig info found for address ${address}`)
       return undefined
     }
+
+    console.debug(`[getMultisigAddresses] Found multisig info for address ${address}:`, {
+      hasThreshold: !!multisigInfo.threshold,
+      hasMultiAccountMember: !!multisigInfo.multi_account_member?.length,
+      multiAccountCount: multisigInfo.multi_account?.length || 0,
+    })
 
     const multisigAddresses: MultisigAddress[] = []
 
@@ -1447,30 +1456,59 @@ export async function getMultisigAddresses(
 
     // Case 2: Address is part of other multisig accounts
     if (multisigInfo.multi_account && multisigInfo.multi_account.length > 0) {
+      console.debug(`[getMultisigAddresses] Processing ${multisigInfo.multi_account.length} multisig accounts for address ${address}`)
+
       // Process each multisig account the address is part of
       for (const account of multisigInfo.multi_account) {
-        try {
-          // Get member info for this specific multisig address
-          const memberInfo = await getMultisigInfo(account.address, network)
-          if (memberInfo?.multi_account_member) {
-            multisigAddresses.push({
-              address: account.address,
-              path: '', // Not available for external multisig accounts
-              pubKey: '', // Not available for external multisig accounts
-              threshold: memberInfo.threshold || multisigInfo.threshold,
-              members: memberInfo.multi_account_member.map(member => ({
-                address: member.address,
-                internal: member.address === address,
-                path: member.address === address ? path : undefined,
-              })),
-              memberMultisigAddresses: memberInfo.multi_account?.map(account => account.address),
-              pendingMultisigCalls: [],
-            })
+        let retryCount = 0
+        const maxRetries = 2
+
+        while (retryCount <= maxRetries) {
+          try {
+            console.debug(`[getMultisigAddresses] Fetching member info for multisig account ${account.address} (attempt ${retryCount + 1})`)
+
+            // Get member info for this specific multisig address
+            const memberInfo = await getMultisigInfo(account.address, network)
+            if (memberInfo?.multi_account_member) {
+              console.debug(`[getMultisigAddresses] Successfully fetched member info for multisig account ${account.address}`)
+
+              multisigAddresses.push({
+                address: account.address,
+                path: '', // Not available for external multisig accounts
+                pubKey: '', // Not available for external multisig accounts
+                threshold: memberInfo.threshold || multisigInfo.threshold,
+                members: memberInfo.multi_account_member.map(member => ({
+                  address: member.address,
+                  internal: member.address === address,
+                  path: member.address === address ? path : undefined,
+                })),
+                memberMultisigAddresses: memberInfo.multi_account?.map(account => account.address),
+                pendingMultisigCalls: [],
+              })
+              break // Success, exit retry loop
+            }
+            console.warn(`[getMultisigAddresses] No member info found for multisig account ${account.address}`)
+            break // No member info, don't retry
+          } catch (err) {
+            retryCount++
+            if (retryCount > maxRetries) {
+              console.error(
+                `[getMultisigAddresses] Failed to fetch member info for multisig account ${account.address} after ${maxRetries + 1} attempts:`,
+                err
+              )
+              // Continue processing other multisig accounts instead of failing completely
+            } else {
+              console.warn(`[getMultisigAddresses] Attempt ${retryCount} failed for multisig account ${account.address}, retrying...`)
+              // Wait a bit before retrying (exponential backoff)
+              await new Promise(resolve => setTimeout(resolve, 2 ** retryCount * 100))
+            }
           }
-        } catch (err) {
-          console.error(`Error fetching member info for multisig account ${account.address}:`, err)
         }
       }
+
+      console.debug(
+        `[getMultisigAddresses] Successfully processed ${multisigAddresses.length} out of ${multisigInfo.multi_account.length} multisig accounts`
+      )
     }
 
     // If no multisig addresses were found, return undefined
@@ -1521,6 +1559,8 @@ export async function getMultisigAddresses(
   } catch (error) {
     console.warn('[getMultisigAddresses] Failed to get multisig addresses:', error)
     return undefined
+  } finally {
+    console.debug(`[getMultisigAddresses] Completed multisig detection for address ${address}`)
   }
 }
 
@@ -1562,6 +1602,57 @@ export const prepareApproveAsMultiTx = async (
   ) as SubmittableExtrinsic<'promise', ISubmittableResult>
 
   return multisigTx
+}
+
+/**
+ * Prepares a nested multisig transaction where the signer is itself a multisig
+ * @param innerMultisigAddress The address of the inner multisig (the signer)
+ * @param innerMembers Array of inner multisig member addresses
+ * @param innerThreshold The inner multisig threshold
+ * @param actualSigner The actual signer from the inner multisig
+ * @param outerCall The outer multisig call to be wrapped
+ * @param api The API instance
+ */
+export const prepareNestedMultisigTx = async (
+  innerMultisigAddress: string,
+  innerMembers: string[],
+  innerThreshold: number,
+  actualSigner: string,
+  outerCall: SubmittableExtrinsic<'promise', ISubmittableResult>,
+  api: ApiPromise
+) => {
+  // Get the call hash for the outer multisig call
+  const outerCallHash = outerCall.method.hash.toHex()
+
+  // Sort the inner signatories (excluding the actual signer)
+  const allInnerSignatories = innerMembers.sort()
+  const otherInnerSignatories = allInnerSignatories.filter(addr => addr !== actualSigner)
+
+  // Check if there's an existing inner multisig for this call
+  const innerMultisigs = (await api.query.multisig.multisigs(innerMultisigAddress, outerCallHash)) as Option<Multisig>
+
+  let innerTimepoint = null
+  if (innerMultisigs?.isSome) {
+    const multisigInfo = innerMultisigs.unwrap()
+    innerTimepoint = {
+      height: multisigInfo.when.height.toNumber(),
+      index: multisigInfo.when.index.toNumber(),
+    }
+  }
+
+  // Estimate weight for the nested multisig
+  const estimatedWeight = estimateMultisigWeight(outerCall, innerThreshold, otherInnerSignatories, innerTimepoint)
+
+  // Create the nested approveAsMulti transaction
+  const nestedMultisigTx = api.tx.multisig.approveAsMulti(
+    innerThreshold,
+    otherInnerSignatories,
+    innerTimepoint,
+    outerCallHash,
+    estimatedWeight
+  ) as SubmittableExtrinsic<'promise', ISubmittableResult>
+
+  return nestedMultisigTx
 }
 
 /**
@@ -1619,6 +1710,65 @@ export async function prepareAsMultiTx(
   ) as SubmittableExtrinsic<'promise', ISubmittableResult>
 
   return finalMultisigTx
+}
+
+/**
+ * Prepares a nested multisig transaction for asMulti where the signer is itself a multisig
+ * @param innerMultisigAddress The address of the inner multisig (the signer)
+ * @param innerMembers Array of inner multisig member addresses
+ * @param innerThreshold The inner multisig threshold
+ * @param actualSigner The actual signer from the inner multisig
+ * @param outerCall The outer asMulti call to be wrapped
+ * @param api The API instance
+ */
+export async function prepareNestedAsMultiTx(
+  innerMultisigAddress: string,
+  innerMembers: string[],
+  innerThreshold: number,
+  actualSigner: string,
+  outerCall: SubmittableExtrinsic<'promise', ISubmittableResult>,
+  api: ApiPromise
+): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>> {
+  // Get the call hash for the outer multisig call
+  const outerCallHash = outerCall.method.hash.toHex()
+  const outerCallData = outerCall.method.toHex()
+
+  // Sort the inner signatories (excluding the actual signer)
+  const allInnerSignatories = innerMembers.sort()
+  const otherInnerSignatories = allInnerSignatories.filter(addr => addr !== actualSigner)
+
+  // Check if there's an existing inner multisig for this call
+  const innerMultisigs = (await api.query.multisig.multisigs(innerMultisigAddress, outerCallHash)) as Option<Multisig>
+
+  let innerTimepoint = null
+  if (innerMultisigs?.isSome) {
+    const multisigInfo = innerMultisigs.unwrap()
+    innerTimepoint = {
+      height: multisigInfo.when.height.toNumber(),
+      index: multisigInfo.when.index.toNumber(),
+    }
+  }
+
+  if (innerTimepoint) {
+    // If there's already a timepoint, we need to use asMulti with the call data
+    const call = api.createType('Call', outerCallData)
+    const estimatedWeight = estimateMultisigWeight(outerCall, innerThreshold, otherInnerSignatories)
+
+    return api.tx.multisig.asMulti(innerThreshold, otherInnerSignatories, innerTimepoint, call, estimatedWeight) as SubmittableExtrinsic<
+      'promise',
+      ISubmittableResult
+    >
+  }
+  // First approval for the inner multisig
+  const estimatedWeight = estimateMultisigWeight(outerCall, innerThreshold, otherInnerSignatories, null)
+
+  return api.tx.multisig.approveAsMulti(
+    innerThreshold,
+    otherInnerSignatories,
+    null,
+    outerCallHash,
+    estimatedWeight
+  ) as SubmittableExtrinsic<'promise', ISubmittableResult>
 }
 
 /**

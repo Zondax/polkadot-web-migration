@@ -61,17 +61,29 @@ export const useTransactionStatus = <T extends GenericFunction>(
       hash: txDetails?.txHash,
       blockHash: txDetails?.blockHash,
       blockNumber: txDetails?.blockNumber,
+      callData: txDetails?.callData,
+      callHash: txDetails?.callHash,
     }))
   }, [])
 
   // Run a generic transaction
   const runTransaction = useCallback(
     async (...args: Parameters<T>) => {
-      setTxStatus({
-        status: TransactionStatus.IS_LOADING,
-      })
-      await transactionFn(updateTxStatus, ...args)
-      setIsTxFinished(true)
+      try {
+        setTxStatus({
+          status: TransactionStatus.IS_LOADING,
+        })
+        await transactionFn(updateTxStatus, ...args)
+        setIsTxFinished(true)
+      } catch (error) {
+        console.error('[useTransactionStatus] Transaction error:', error)
+        setTxStatus({
+          status: TransactionStatus.ERROR,
+          statusMessage: 'An unexpected error occurred',
+        })
+        setIsTxFinished(true)
+        throw error
+      }
     },
     [transactionFn, updateTxStatus]
   )

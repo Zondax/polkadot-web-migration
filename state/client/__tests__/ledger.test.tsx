@@ -765,6 +765,7 @@ describe('Ledger Client', () => {
         mockMultisigAddress,
         mockFormData.callHash,
         mockFormData.signatoryAddress,
+        undefined,
         mockUpdateTxStatus
       )
 
@@ -772,7 +773,8 @@ describe('Ledger Client', () => {
         mockFormData.appId,
         mockMultisigAddress,
         mockFormData.callHash,
-        mockFormData.signatoryAddress
+        mockFormData.signatoryAddress,
+        undefined
       )
       expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
       expect(prepareApproveAsMultiTx).toHaveBeenCalled()
@@ -795,6 +797,7 @@ describe('Ledger Client', () => {
           mockMultisigAddress,
           mockFormData.callHash,
           mockFormData.signatoryAddress,
+          undefined,
           mockUpdateTxStatus
         )
       ).rejects.toBeInstanceOf(InternalError)
@@ -809,6 +812,7 @@ describe('Ledger Client', () => {
           mockMultisigAddress,
           mockFormData.callHash,
           mockFormData.signatoryAddress,
+          undefined,
           mockUpdateTxStatus
         )
       ).rejects.toThrow(InternalError)
@@ -851,6 +855,7 @@ describe('Ledger Client', () => {
         '0xcallhash',
         mockFormData.callData,
         mockFormData.signatoryAddress,
+        undefined,
         mockUpdateTxStatus
       )
 
@@ -859,7 +864,8 @@ describe('Ledger Client', () => {
         mockMultisigAddress,
         '0xcallhash',
         mockFormData.callData,
-        mockFormData.signatoryAddress
+        mockFormData.signatoryAddress,
+        undefined
       )
       expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
       expect(prepareAsMultiTx).toHaveBeenCalled()

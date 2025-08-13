@@ -11,6 +11,7 @@ vi.mock('@legendapp/state/react', () => ({
 
 vi.mock('lucide-react', () => ({
   AlertCircle: () => null,
+  AlertTriangle: () => null,
   Banknote: () => null,
   BanknoteArrowDown: () => null,
   Check: () => null,
@@ -20,11 +21,13 @@ vi.mock('lucide-react', () => ({
   KeyRound: () => null,
   LockOpen: () => null,
   Route: () => null,
+  Send: () => null,
   Shield: () => null,
   Trash2: () => null,
   User: () => null,
   UserCog: () => null,
   Users: () => null,
+  Vote: () => null,
   X: () => null,
 }))
 
