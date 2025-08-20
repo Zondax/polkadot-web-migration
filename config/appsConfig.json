@@ -100,7 +100,7 @@
     "name": "Edgeware",
     "bip44Path": "m/44'/523'/0'/0'/0'",
     "ss58Prefix": 7,
-    "rpcEndpoint": "wss://edgeware-rpc1.jelliedowl.net",
+    "rpcEndpoint": "wss://edgeware-rpc3.jelliedowl.net",
     "token": {
       "symbol": "EDG",
       "decimals": 18
