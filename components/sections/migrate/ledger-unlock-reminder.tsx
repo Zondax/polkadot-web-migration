@@ -37,7 +37,7 @@ export function LedgerUnlockReminder({ isVisible }: LedgerUnlockReminderProps) {
       setShowReminder(true)
       // Hide after 10 seconds
       setTimeout(() => setShowReminder(false), LEDGER_UNLOCK_REMINDER_TIME_ON_SCREEN)
-    }, LEDGER_UNLOCK_REMINDER_INTERVAL)
+    }, LEDGER_MINIMUM_UNLOCK_REMINDER_INTERVAL)
 
     return () => {
       clearTimeout(initialTimer)
