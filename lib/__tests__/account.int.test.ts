@@ -24,9 +24,9 @@ describe('Account Integration', () => {
   beforeAll(async () => {
     // Connect to all endpoints in parallel for faster setup
     const [result, assetHubResult, peopleResult] = await Promise.all([
-      getApiAndProvider(KUSAMA_RPC),
-      getApiAndProvider(KUSAMA_ASSET_HUB_RPC),
-      getApiAndProvider(KUSAMA_PEOPLE_RPC),
+      getApiAndProvider([KUSAMA_RPC]),
+      getApiAndProvider([KUSAMA_ASSET_HUB_RPC]),
+      getApiAndProvider([KUSAMA_PEOPLE_RPC]),
     ])
 
     api = result.api

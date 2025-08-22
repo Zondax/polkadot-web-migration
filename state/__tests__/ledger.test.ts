@@ -76,10 +76,10 @@ vi.mock('../notifications', () => ({
 
 vi.mock('config/apps', () => ({
   appsConfigs: new Map([
-    ['polkadot', { id: 'polkadot', name: 'Polkadot', rpcEndpoint: 'wss://rpc.polkadot.io', token: { symbol: 'DOT', decimals: 10 } }],
-    ['kusama', { id: 'kusama', name: 'Kusama', rpcEndpoint: 'wss://kusama-rpc.polkadot.io', token: { symbol: 'KSM', decimals: 12 } }],
+    ['polkadot', { id: 'polkadot', name: 'Polkadot', rpcEndpoints: ['wss://rpc.polkadot.io'], token: { symbol: 'DOT', decimals: 10 } }],
+    ['kusama', { id: 'kusama', name: 'Kusama', rpcEndpoints: ['wss://kusama-rpc.polkadot.io'], token: { symbol: 'KSM', decimals: 12 } }],
   ]),
-  polkadotAppConfig: { id: 'polkadot', name: 'Polkadot', rpcEndpoint: 'wss://rpc.polkadot.io', token: { symbol: 'DOT', decimals: 10 } },
+  polkadotAppConfig: { id: 'polkadot', name: 'Polkadot', rpcEndpoints: ['wss://rpc.polkadot.io'], token: { symbol: 'DOT', decimals: 10 } },
 }))
 
 describe('Ledger State', () => {

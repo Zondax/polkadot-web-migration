@@ -29,7 +29,7 @@ export const TEST_RPC_ENDPOINTS = {
 export const TEST_NETWORK_CONFIGS = {
   polkadot: {
     name: 'Polkadot',
-    rpcEndpoint: TEST_RPC_ENDPOINTS.POLKADOT,
+    rpcEndpoints: [TEST_RPC_ENDPOINTS.POLKADOT],
     ss58Format: 0,
     tokenSymbol: 'DOT',
     tokenDecimals: 10,
@@ -38,7 +38,7 @@ export const TEST_NETWORK_CONFIGS = {
 
   kusama: {
     name: 'Kusama',
-    rpcEndpoint: TEST_RPC_ENDPOINTS.KUSAMA,
+    rpcEndpoints: [TEST_RPC_ENDPOINTS.KUSAMA],
     ss58Format: 2,
     tokenSymbol: 'KSM',
     tokenDecimals: 12,
@@ -47,7 +47,7 @@ export const TEST_NETWORK_CONFIGS = {
 
   'polkadot-asset-hub': {
     name: 'Polkadot Asset Hub',
-    rpcEndpoint: TEST_RPC_ENDPOINTS.POLKADOT_ASSET_HUB,
+    rpcEndpoints: [TEST_RPC_ENDPOINTS.POLKADOT_ASSET_HUB],
     ss58Format: 0,
     tokenSymbol: 'DOT',
     tokenDecimals: 10,
@@ -56,7 +56,7 @@ export const TEST_NETWORK_CONFIGS = {
 
   'kusama-asset-hub': {
     name: 'Kusama Asset Hub',
-    rpcEndpoint: TEST_RPC_ENDPOINTS.KUSAMA_ASSET_HUB,
+    rpcEndpoints: [TEST_RPC_ENDPOINTS.KUSAMA_ASSET_HUB],
     ss58Format: 2,
     tokenSymbol: 'KSM',
     tokenDecimals: 12,
@@ -65,7 +65,7 @@ export const TEST_NETWORK_CONFIGS = {
 
   'people-polkadot': {
     name: 'People Polkadot',
-    rpcEndpoint: TEST_RPC_ENDPOINTS.POLKADOT_PEOPLE,
+    rpcEndpoints: [TEST_RPC_ENDPOINTS.POLKADOT_PEOPLE],
     ss58Format: 0,
     tokenSymbol: 'DOT',
     tokenDecimals: 10,
@@ -74,7 +74,7 @@ export const TEST_NETWORK_CONFIGS = {
 
   'people-kusama': {
     name: 'People Kusama',
-    rpcEndpoint: TEST_RPC_ENDPOINTS.KUSAMA_PEOPLE,
+    rpcEndpoints: [TEST_RPC_ENDPOINTS.KUSAMA_PEOPLE],
     ss58Format: 2,
     tokenSymbol: 'KSM',
     tokenDecimals: 12,
@@ -84,7 +84,7 @@ export const TEST_NETWORK_CONFIGS = {
   // Local/mock network for testing
   local: {
     name: 'Local Development',
-    rpcEndpoint: TEST_RPC_ENDPOINTS.LOCAL,
+    rpcEndpoints: [TEST_RPC_ENDPOINTS.LOCAL],
     ss58Format: 42,
     tokenSymbol: 'UNIT',
     tokenDecimals: 12,

@@ -58,7 +58,7 @@ vi.mock('config/apps', () => ({
       {
         id: 'polkadot',
         name: 'Polkadot',
-        rpcEndpoint: 'wss://rpc.polkadot.io',
+        rpcEndpoints: ['wss://rpc.polkadot.io'],
         token: { symbol: 'DOT', decimals: 10 },
         bip44Path: "m/44'/354'/0'/0/0",
         ss58Prefix: 0,
@@ -69,7 +69,7 @@ vi.mock('config/apps', () => ({
       {
         id: 'kusama',
         name: 'Kusama',
-        rpcEndpoint: 'wss://kusama-rpc.polkadot.io',
+        rpcEndpoints: ['wss://kusama-rpc.polkadot.io'],
         token: { symbol: 'KSM', decimals: 12 },
         bip44Path: "m/44'/434'/0'/0/0",
         ss58Prefix: 2,
@@ -79,7 +79,7 @@ vi.mock('config/apps', () => ({
   polkadotAppConfig: {
     id: 'polkadot',
     name: 'Polkadot',
-    rpcEndpoint: 'wss://rpc.polkadot.io',
+    rpcEndpoints: ['wss://rpc.polkadot.io'],
     token: { symbol: 'DOT', decimals: 10 },
     bip44Path: "m/44'/354'/0'/0/0",
     ss58Prefix: 0,
@@ -112,7 +112,7 @@ describe('Synchronization Service', () => {
   const mockApp: AppConfig = {
     id: 'polkadot',
     name: 'Polkadot',
-    rpcEndpoint: 'wss://rpc.polkadot.io',
+    rpcEndpoints: ['wss://rpc.polkadot.io'],
     token: { symbol: 'DOT', decimals: 10 },
     bip44Path: "m/44'/354'/0'/0/0",
     ss58Prefix: 0,

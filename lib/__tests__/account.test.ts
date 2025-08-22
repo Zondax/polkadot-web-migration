@@ -339,7 +339,7 @@ describe('getApiAndProvider', () => {
     vi.mocked(WsProvider).mockImplementation(() => mockProvider as any)
 
     // Verify that the function resolves with the expected api and provider
-    await expect(getApiAndProvider('wss://example.endpoint')).resolves.toEqual({
+    await expect(getApiAndProvider(['wss://example.endpoint'])).resolves.toEqual({
       api: mockApi,
       provider: mockProvider,
     })
@@ -911,7 +911,7 @@ describe('getApiAndProvider retry logic', () => {
       .mockRejectedValueOnce(new Error('Connection failed'))
       .mockResolvedValueOnce({ disconnect: vi.fn() } as any)
 
-    const connectionPromise = getApiAndProvider('wss://test.endpoint')
+    const connectionPromise = getApiAndProvider(['wss://test.endpoint'])
 
     // Fast-forward through the retry delays
     await vi.runAllTimersAsync()
@@ -928,12 +928,130 @@ describe('getApiAndProvider retry logic', () => {
     // Mock ApiPromise.create to always fail
     vi.mocked(ApiPromise.create).mockRejectedValue(new Error('Connection failed'))
 
-    const connectionPromise = getApiAndProvider('wss://test.endpoint')
+    const connectionPromise = getApiAndProvider(['wss://test.endpoint'])
 
     // Fast-forward through all retry delays
     await vi.runAllTimersAsync()
 
     await expect(connectionPromise).rejects.toThrow(InternalError)
     expect(vi.mocked(ApiPromise.create)).toHaveBeenCalledTimes(3) // MAX_CONNECTION_RETRIES
+  })
+})
+
+describe('getApiAndProvider fallback logic', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    vi.clearAllTimers()
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('should fallback to second endpoint when first endpoint fails after 3 retries', async () => {
+    const mockProvider = { disconnect: vi.fn().mockResolvedValue(undefined) }
+    const mockApi = { disconnect: vi.fn() }
+    vi.mocked(WsProvider).mockImplementation(() => mockProvider as any)
+
+    // Mock ApiPromise.create to fail 3 times for first endpoint, succeed for second
+    vi.mocked(ApiPromise.create)
+      .mockRejectedValueOnce(new Error('First endpoint failed'))
+      .mockRejectedValueOnce(new Error('First endpoint failed'))
+      .mockRejectedValueOnce(new Error('First endpoint failed'))
+      .mockResolvedValueOnce(mockApi as any)
+
+    const connectionPromise = getApiAndProvider(['wss://first.endpoint', 'wss://second.endpoint'])
+
+    // Fast-forward through all retry delays
+    await vi.runAllTimersAsync()
+
+    const result = await connectionPromise
+    expect(result.api).toBe(mockApi)
+    expect(result.provider).toBe(mockProvider)
+    // Should try first endpoint 3 times, then second endpoint once
+    expect(vi.mocked(ApiPromise.create)).toHaveBeenCalledTimes(4)
+    expect(vi.mocked(WsProvider)).toHaveBeenCalledWith('wss://first.endpoint', 5)
+    expect(vi.mocked(WsProvider)).toHaveBeenCalledWith('wss://second.endpoint', 5)
+  })
+
+  it('should exhaust all endpoints and throw error when all fail', async () => {
+    const mockProvider = { disconnect: vi.fn().mockResolvedValue(undefined) }
+    vi.mocked(WsProvider).mockImplementation(() => mockProvider as any)
+
+    // Mock ApiPromise.create to always fail for both endpoints
+    vi.mocked(ApiPromise.create).mockRejectedValue(new Error('Connection failed'))
+
+    const connectionPromise = getApiAndProvider(['wss://first.endpoint', 'wss://second.endpoint'])
+
+    // Fast-forward through all retry delays
+    await vi.runAllTimersAsync()
+
+    await expect(connectionPromise).rejects.toThrow(InternalError)
+    // Should try first endpoint 3 times, then second endpoint 3 times
+    expect(vi.mocked(ApiPromise.create)).toHaveBeenCalledTimes(6)
+  })
+
+  it('should succeed with first endpoint without trying fallback', async () => {
+    const mockProvider = { disconnect: vi.fn().mockResolvedValue(undefined) }
+    const mockApi = { disconnect: vi.fn() }
+    vi.mocked(WsProvider).mockImplementation(() => mockProvider as any)
+
+    // Mock ApiPromise.create to succeed on first try
+    vi.mocked(ApiPromise.create).mockResolvedValueOnce(mockApi as any)
+
+    const result = await getApiAndProvider(['wss://first.endpoint', 'wss://second.endpoint'])
+
+    expect(result.api).toBe(mockApi)
+    expect(result.provider).toBe(mockProvider)
+    // Should only try first endpoint once
+    expect(vi.mocked(ApiPromise.create)).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(WsProvider)).toHaveBeenCalledWith('wss://first.endpoint', 5)
+    expect(vi.mocked(WsProvider)).not.toHaveBeenCalledWith('wss://second.endpoint', 5)
+  })
+
+  it('should retry and succeed on same endpoint without fallback', async () => {
+    const mockProvider = { disconnect: vi.fn().mockResolvedValue(undefined) }
+    const mockApi = { disconnect: vi.fn() }
+    vi.mocked(WsProvider).mockImplementation(() => mockProvider as any)
+
+    // Mock ApiPromise.create to fail twice on first endpoint, then succeed on third attempt
+    vi.mocked(ApiPromise.create)
+      .mockRejectedValueOnce(new Error('First attempt failed'))
+      .mockRejectedValueOnce(new Error('Second attempt failed'))
+      .mockResolvedValueOnce(mockApi as any)
+
+    const connectionPromise = getApiAndProvider(['wss://first.endpoint', 'wss://second.endpoint'])
+
+    // Fast-forward through retry delays
+    await vi.runAllTimersAsync()
+
+    const result = await connectionPromise
+    expect(result.api).toBe(mockApi)
+    expect(result.provider).toBe(mockProvider)
+    // Should try first endpoint 3 times, succeed on third, never try second
+    expect(vi.mocked(ApiPromise.create)).toHaveBeenCalledTimes(3)
+    expect(vi.mocked(WsProvider)).toHaveBeenCalledWith('wss://first.endpoint', 5)
+    expect(vi.mocked(WsProvider)).not.toHaveBeenCalledWith('wss://second.endpoint', 5)
+  })
+
+  it('should handle empty endpoints array', async () => {
+    const connectionPromise = getApiAndProvider([])
+
+    await expect(connectionPromise).rejects.toThrow(InternalError)
+    expect(vi.mocked(ApiPromise.create)).not.toHaveBeenCalled()
+  })
+
+  it('should handle single endpoint in array', async () => {
+    const mockProvider = { disconnect: vi.fn().mockResolvedValue(undefined) }
+    const mockApi = { disconnect: vi.fn() }
+    vi.mocked(WsProvider).mockImplementation(() => mockProvider as any)
+    vi.mocked(ApiPromise.create).mockResolvedValueOnce(mockApi as any)
+
+    const result = await getApiAndProvider(['wss://single.endpoint'])
+
+    expect(result.api).toBe(mockApi)
+    expect(result.provider).toBe(mockProvider)
+    expect(vi.mocked(ApiPromise.create)).toHaveBeenCalledTimes(1)
   })
 })
