@@ -24,7 +24,7 @@ export const uiState$ = observable({
     const appIcons: Partial<AppIcons> = {}
 
     const iconPromises = Array.from(appsConfigs.values())
-      .filter(app => app.rpcEndpoint)
+      .filter(app => app.rpcEndpoints && app.rpcEndpoints.length > 0)
       .map(async (app: AppConfig) => {
         const lightIconResponse = await getAppLightIcon(app.id)
         if (typeof lightIconResponse?.error === 'undefined') {

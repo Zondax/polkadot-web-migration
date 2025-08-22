@@ -49,7 +49,7 @@ interface AppConfigJSON {
   name: string
   bip44Path: string
   ss58Prefix: number
-  rpcEndpoint?: string
+  rpcEndpoints?: string[]
   token: Token
   explorer?: AppExplorerConfig
   eraTimeInHours?: number
@@ -81,9 +81,9 @@ export interface AppConfig {
    */
   ss58Prefix: number
   /**
-   * RPC endpoint for the chain
+   * RPC endpoints for the chain (with fallback support)
    */
-  rpcEndpoint?: string
+  rpcEndpoints?: string[]
   /**
    * Token configuration
    */
@@ -106,7 +106,7 @@ export const polkadotAppConfig: AppConfig = {
   id: 'polkadot',
   bip44Path: "m/44'/354'/0'/0'/0'", // 354 = 0x80000162
   ss58Prefix: 0,
-  rpcEndpoint: 'wss://rpc.polkadot.io',
+  rpcEndpoints: ['wss://rpc.polkadot.io', 'wss://polkadot-rpc.dwellir.com'],
   token: {
     symbol: 'DOT',
     decimals: 10,
@@ -166,13 +166,13 @@ export function getChainName(id: AppId): string {
 }
 
 /**
- * Get the RPC endpoint for a chain
+ * Get the RPC endpoints for a chain
  * @param id Chain ID
- * @returns RPC endpoint or undefined if not available
+ * @returns RPC endpoints array or undefined if not available
  */
-export function getRpcEndpoint(id: AppId): string | undefined {
+export function getRpcEndpoints(id: AppId): string[] | undefined {
   const app = getAppConfig(id)
-  return app?.rpcEndpoint
+  return app?.rpcEndpoints
 }
 
 /**

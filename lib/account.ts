@@ -93,63 +93,80 @@ const getRetryDelay = (attempt: number): number => {
   return Math.min(1000 * 2 ** attempt, 10000) // Max 10 seconds
 }
 
-export async function getApiAndProvider(rpcEndpoint: string): Promise<{ api?: ApiPromise; provider?: WsProvider; error?: string }> {
-  let retryCount = 0
-  let currentProvider: WsProvider | undefined
+export async function getApiAndProvider(rpcEndpoints: string[]): Promise<{ api?: ApiPromise; provider?: WsProvider; error?: string }> {
+  if (!rpcEndpoints || rpcEndpoints.length === 0) {
+    throw new InternalError(InternalErrorType.FAILED_TO_CONNECT_TO_BLOCKCHAIN)
+  }
 
-  while (retryCount < MAX_CONNECTION_RETRIES) {
-    try {
-      // Create a provider with default settings (will allow first connection)
-      currentProvider = new WsProvider(rpcEndpoint, AUTO_CONNECT_MS)
+  for (let endpointIndex = 0; endpointIndex < rpcEndpoints.length; endpointIndex++) {
+    const rpcEndpoint = rpcEndpoints[endpointIndex]
+    console.debug(`Trying RPC endpoint ${endpointIndex + 1}/${rpcEndpoints.length}: ${rpcEndpoint}`)
+    
+    let retryCount = 0
+    let currentProvider: WsProvider | undefined
 
-      // Set a timeout for the connection attempt
-      const connectionPromise = new Promise<ApiPromise>((resolve, reject) => {
-        const timeoutId = setTimeout(() => {
-          reject(new Error('Connection timeout: The node is not responding.'))
-        }, 15000) // 15 second timeout
+    while (retryCount < MAX_CONNECTION_RETRIES) {
+      try {
+        // Create a provider with default settings (will allow first connection)
+        currentProvider = new WsProvider(rpcEndpoint, AUTO_CONNECT_MS)
 
-        ApiPromise.create({
-          provider: currentProvider,
-          throwOnConnect: true,
-          throwOnUnknown: true,
+        // Set a timeout for the connection attempt
+        const connectionPromise = new Promise<ApiPromise>((resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error('Connection timeout: The node is not responding.'))
+          }, 15000) // 15 second timeout
+
+          ApiPromise.create({
+            provider: currentProvider,
+            throwOnConnect: true,
+            throwOnUnknown: true,
+          })
+            .then(api => {
+              clearTimeout(timeoutId)
+              resolve(api)
+            })
+            .catch(err => {
+              reject(err)
+            })
         })
-          .then(api => {
-            clearTimeout(timeoutId)
-            resolve(api)
-          })
-          .catch(err => {
-            reject(err)
-          })
-      })
 
-      const api = await connectionPromise
+        const api = await connectionPromise
 
-      // If connection is successful, return the API and provider
-      return { api, provider: currentProvider }
-    } catch (_e) {
-      retryCount++
-      console.debug(`Connection attempt ${retryCount} failed. Retrying... (${MAX_CONNECTION_RETRIES - retryCount} attempts remaining)`)
+        // If connection is successful, return the API and provider
+        console.debug(`Successfully connected to endpoint ${endpointIndex + 1}/${rpcEndpoints.length}: ${rpcEndpoint}`)
+        return { api, provider: currentProvider }
+      } catch (_e) {
+        retryCount++
+        console.debug(`Connection attempt ${retryCount}/${MAX_CONNECTION_RETRIES} failed for endpoint ${endpointIndex + 1}/${rpcEndpoints.length}`)
 
-      // Disconnect the current provider before retrying
-      if (currentProvider) {
-        await disconnectSafely(undefined, currentProvider)
-        currentProvider = undefined
+        // Disconnect the current provider before retrying
+        if (currentProvider) {
+          await disconnectSafely(undefined, currentProvider)
+          currentProvider = undefined
+        }
+
+        // If we haven't exhausted retries for this endpoint, wait and retry
+        if (retryCount < MAX_CONNECTION_RETRIES) {
+          // Use exponential backoff for retry delay
+          const delay = getRetryDelay(retryCount - 1)
+          console.debug(`Waiting ${delay}ms before retry attempt ${retryCount + 1}`)
+          await new Promise(resolve => setTimeout(resolve, delay))
+        }
       }
+    }
+    
+    // If we've exhausted all retries for this endpoint, disconnect and try next endpoint
+    if (currentProvider) {
+      await disconnectSafely(undefined, currentProvider)
+      currentProvider = undefined
+    }
 
-      // Use exponential backoff for retry delay
-      const delay = getRetryDelay(retryCount - 1) // retryCount - 1 because we want 0-based indexing for the delay calculation
-      console.debug(`Waiting ${delay}ms before retry attempt ${retryCount + 1}`)
-      await new Promise(resolve => setTimeout(resolve, delay))
+    if (endpointIndex < rpcEndpoints.length - 1) {
+      console.debug(`Failed to connect to endpoint ${endpointIndex + 1}/${rpcEndpoints.length} after ${MAX_CONNECTION_RETRIES} attempts. Trying next endpoint...`)
     }
   }
-  // If we've exhausted all retries, disconnect the provider
-  if (currentProvider) {
-    await disconnectSafely(undefined, currentProvider)
-    currentProvider = undefined
-  }
 
-  console.debug(`Failed to connect to the blockchain after ${MAX_CONNECTION_RETRIES} attempts: The node is not responding.`)
-
+  console.debug(`Failed to connect to any of the ${rpcEndpoints.length} endpoints after ${MAX_CONNECTION_RETRIES} attempts each.`)
   throw new InternalError(InternalErrorType.FAILED_TO_CONNECT_TO_BLOCKCHAIN)
 }
 
@@ -885,16 +902,16 @@ export function processNftItem(item: NftItem, isUnique = false) {
  */
 async function getNFTsCommon(
   address: string,
-  apiOrEndpoint: string | ApiPromise,
+  apiOrEndpoint: string[] | ApiPromise,
   palletType: BalanceType.NFT | BalanceType.UNIQUE
 ): Promise<NftsInfo> {
   let apiToUse: ApiPromise
   let providerToDisconnect: WsProvider | undefined
 
-  // Check if we received an API instance or an endpoint string
-  if (typeof apiOrEndpoint === 'string') {
+  // Check if we received an API instance or endpoint strings array
+  if (Array.isArray(apiOrEndpoint)) {
     try {
-      // Create a new connection using the provided endpoint
+      // Create a new connection using the provided endpoints
       const { api, provider } = await getApiAndProvider(apiOrEndpoint)
       if (!api) {
         throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
@@ -1028,7 +1045,7 @@ async function getNFTsCommon(
  * @param apiOrEndpoint An existing API instance or RPC endpoint string (required).
  * @returns An array of NFTDisplayInfo objects, or an empty array on error.
  */
-export async function getNFTsOwnedByAccount(address: string, apiOrEndpoint: string | ApiPromise): Promise<NftsInfo> {
+export async function getNFTsOwnedByAccount(address: string, apiOrEndpoint: string[] | ApiPromise): Promise<NftsInfo> {
   return getNFTsCommon(address, apiOrEndpoint, BalanceType.NFT)
 }
 
@@ -1038,7 +1055,7 @@ export async function getNFTsOwnedByAccount(address: string, apiOrEndpoint: stri
  * @param apiOrEndpoint An existing API instance or RPC endpoint string (required).
  * @returns An array of NFTDisplayInfo objects, or an empty array on error.
  */
-export async function getUniquesOwnedByAccount(address: string, apiOrEndpoint: string | ApiPromise): Promise<NftsInfo> {
+export async function getUniquesOwnedByAccount(address: string, apiOrEndpoint: string[] | ApiPromise): Promise<NftsInfo> {
   return getNFTsCommon(address, apiOrEndpoint, BalanceType.UNIQUE)
 }
 
