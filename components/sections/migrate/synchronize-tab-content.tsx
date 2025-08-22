@@ -15,6 +15,7 @@ import { polkadotAppConfig } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import AppScanningGrid from './app-scanning-grid'
 import EmptyStateRow from './empty-state-row'
+import { LedgerUnlockReminder } from './ledger-unlock-reminder'
 import SynchronizedApp from './synchronized-app'
 
 interface SynchronizeTabContentProps {
@@ -227,6 +228,7 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
             <span className="text-sm text-gray-600">{syncProgress.percentage}%</span>
           </div>
           <Progress value={syncProgress.percentage} data-testid="app-sync-progress-bar" />
+          <LedgerUnlockReminder isVisible={isLoading} />
           <div className="pt-2">
             <AppScanningGrid />
           </div>
