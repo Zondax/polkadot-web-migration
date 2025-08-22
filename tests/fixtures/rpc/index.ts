@@ -128,7 +128,7 @@ export class MockWsProvider {
   private connected = false
   private listeners: { [key: string]: ((...args: any[]) => void)[] } = {}
 
-  constructor(private endpoint: string) {}
+  constructor(_endpoint: string) {}
 
   async connect(): Promise<void> {
     this.connected = true

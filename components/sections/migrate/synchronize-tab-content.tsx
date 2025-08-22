@@ -1,7 +1,7 @@
 'use client'
 
 import type { CheckedState } from '@radix-ui/react-checkbox'
-import { FolderSync, Info, Loader2, RefreshCw, User, Users, X } from 'lucide-react'
+import { FolderSync, Info, Loader2, RefreshCw, Search, User, Users, X } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { AppStatus } from 'state/ledger'
 import { CustomTooltip } from '@/components/CustomTooltip'
@@ -14,6 +14,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { polkadotAppConfig } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import AppScanningGrid from './app-scanning-grid'
+import { DeepScanModal, type DeepScanOptions } from './deep-scan-modal'
 import EmptyStateRow from './empty-state-row'
 import { LedgerUnlockReminder } from './ledger-unlock-reminder'
 import SynchronizedApp from './synchronized-app'
@@ -54,9 +55,161 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
   } = useSynchronization()
 
   const [activeView, setActiveView] = useState<AccountViewType>(AccountViewType.ALL)
+  const [isDeepScanModalOpen, setIsDeepScanModalOpen] = useState(false)
+  const [isDeepScanning, setIsDeepScanning] = useState(false)
 
   const handleMigrate = () => {
     onContinue()
+  }
+
+  const handleDeepScan = async (options: DeepScanOptions) => {
+    setIsDeepScanning(true)
+    try {
+      // Import the necessary modules for deep scanning
+      const { ledgerClient } = await import('@/state/client/ledger')
+      const { appsConfigs } = await import('@/config/apps')
+      const { processAccountsForApp } = await import('@/lib/services/account-processing.service')
+      const { getApiAndProvider } = await import('@/lib/account')
+      const { getBip44PathWithAccount } = await import('@/lib/utils/address')
+      const { ledgerService } = await import('@/lib/ledger/ledgerService')
+
+      // Determine which account indices to scan
+      const indicesToScan: number[] = []
+      if (options.type === 'single' && options.accountIndex !== undefined) {
+        indicesToScan.push(options.accountIndex)
+      } else if (options.type === 'range' && options.startIndex !== undefined && options.endIndex !== undefined) {
+        for (let i = options.startIndex; i <= options.endIndex; i++) {
+          indicesToScan.push(i)
+        }
+      }
+
+      if (indicesToScan.length === 0) {
+        throw new Error('No valid account indices to scan')
+      }
+
+      // Get polkadot addresses for cross-chain migration
+      const polkadotApp = appsWithoutErrors.find(app => app.id === 'polkadot')
+      const polkadotAddressesArray = polkadotApp?.accounts?.map(account => account.address) || polkadotAddresses || []
+
+      // Determine which apps to scan
+      const appsToScan = options.selectedChain === 'all' 
+        ? appsWithoutErrors 
+        : appsWithoutErrors.filter(app => app.id === options.selectedChain)
+
+      // Scan additional accounts for selected apps
+      const updatedApps = [...appsWithoutErrors]
+      let newAccountsFound = 0
+      let totalScanned = 0
+
+      for (const app of appsToScan) {
+        const appConfig = appsConfigs.get(app.id)
+        if (!appConfig || !appConfig.rpcEndpoint) continue
+
+        // Scan new account indices with correct derivation path (modifying account index, not address index)
+        const newAddresses = []
+        for (const accountIndex of indicesToScan) {
+          try {
+            // Use the new function to correctly set the account index in the derivation path
+            const derivedPath = getBip44PathWithAccount(appConfig.bip44Path, accountIndex)
+            const address = await ledgerService.getAccountAddress(derivedPath, appConfig.ss58Prefix, false)
+            if (address) {
+              newAddresses.push({ ...address, path: derivedPath })
+            }
+            totalScanned++
+          } catch (error) {
+            console.warn(`Failed to get address for account index ${accountIndex} on ${app.name}:`, error)
+          }
+        }
+
+        if (newAddresses.length === 0) continue
+
+        // Connect to blockchain and process new accounts
+        const { api, provider } = await getApiAndProvider(appConfig.rpcEndpoint)
+        if (!api) continue
+
+        try {
+          // Process the new accounts
+          const { success, data } = await processAccountsForApp(
+            newAddresses,
+            appConfig,
+            api,
+            polkadotAddressesArray,
+            true // Filter by balance
+          )
+
+          if (success && data) {
+            const { accounts, multisigAccounts } = data
+
+            // Merge new accounts with existing ones
+            const existingApp = updatedApps.find(a => a.id === app.id)
+            if (existingApp) {
+              const existingAddresses = new Set([
+                ...(existingApp.accounts || []).map(acc => acc.address),
+                ...(existingApp.multisigAccounts || []).map(acc => acc.address)
+              ])
+
+              // Only add accounts that don't already exist
+              const newUniqueAccounts = accounts.filter(acc => !existingAddresses.has(acc.address))
+              const newUniqueMultisigAccounts = multisigAccounts.filter(acc => !existingAddresses.has(acc.address))
+
+              if (newUniqueAccounts.length > 0 || newUniqueMultisigAccounts.length > 0) {
+                existingApp.accounts = [...(existingApp.accounts || []), ...newUniqueAccounts]
+                existingApp.multisigAccounts = [...(existingApp.multisigAccounts || []), ...newUniqueMultisigAccounts]
+                newAccountsFound += newUniqueAccounts.length + newUniqueMultisigAccounts.length
+              }
+            }
+          }
+        } finally {
+          // Always disconnect the API
+          if (api) {
+            await api.disconnect()
+          } else if (provider) {
+            await provider.disconnect()
+          }
+        }
+      }
+
+      // Update the state with new accounts if any were found
+      if (newAccountsFound > 0) {
+        // Import the ledger state to update it
+        const { ledgerState$ } = await import('@/state/ledger')
+        ledgerState$.apps.apps.set(updatedApps)
+
+        // Show success notification
+        const { notifications$ } = await import('@/state/notifications')
+        const chainInfo = options.selectedChain === 'all' ? 'all networks' : appsToScan[0]?.name || 'selected network'
+        notifications$.push({
+          title: 'Deep Scan Complete',
+          description: `Found ${newAccountsFound} new account${newAccountsFound === 1 ? '' : 's'} with balances on ${chainInfo}.`,
+          type: 'success',
+          autoHideDuration: 5000,
+        })
+      } else {
+        // Show info notification when no new accounts found
+        const { notifications$ } = await import('@/state/notifications')
+        notifications$.push({
+          title: 'Deep Scan Complete',
+          description: 'No new accounts with balances were found in the specified range.',
+          type: 'info',
+          autoHideDuration: 5000,
+        })
+      }
+
+      setIsDeepScanModalOpen(false)
+    } catch (error) {
+      console.error('Deep scan failed:', error)
+      
+      // Show error notification
+      const { notifications$ } = await import('@/state/notifications')
+      notifications$.push({
+        title: 'Deep Scan Failed',
+        description: error instanceof Error ? error.message : 'An error occurred during deep scan.',
+        type: 'error',
+        autoHideDuration: 5000,
+      })
+    } finally {
+      setIsDeepScanning(false)
+    }
   }
 
   // Check if all apps are selected
@@ -196,10 +349,32 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
     )
   }
 
+  const renderDeepScanButton = () => {
+    if (isLoading) {
+      return null
+    }
+
+    return (
+      <CustomTooltip tooltipBody="Scan additional account indices">
+        <Button
+          onClick={() => setIsDeepScanModalOpen(true)}
+          variant="outline"
+          className="flex items-center gap-1"
+          disabled={isRescaning}
+          data-testid="deep-scan-button"
+        >
+          <Search className="h-4 w-4" />
+          Deep Scan
+        </Button>
+      </CustomTooltip>
+    )
+  }
+
   const renderActionButtons = () => {
     return (
       <div className="flex gap-2 self-start">
         {renderRestartSynchronizationButton()}
+        {renderDeepScanButton()}
         {renderStopSynchronizationButton()}
         {renderMigrateButton()}
       </div>
@@ -324,6 +499,13 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
           ))}
         </div>
       )}
+
+      <DeepScanModal
+        isOpen={isDeepScanModalOpen}
+        onClose={() => setIsDeepScanModalOpen(false)}
+        onScan={handleDeepScan}
+        isScanning={isDeepScanning}
+      />
     </div>
   )
 }
