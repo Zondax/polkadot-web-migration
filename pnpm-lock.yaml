@@ -30,8 +30,8 @@ importers:
         specifier: ^3.0.0-beta.31
         version: 3.0.0-beta.31(react@19.1.1)
       '@polkadot-api/merkleize-metadata':
-        specifier: ^1.1.20
-        version: 1.1.20
+        specifier: ^1.1.22
+        version: 1.1.22
       '@polkadot/api':
         specifier: ^16.4.3
         version: 16.4.3
@@ -307,8 +307,8 @@ packages:
     resolution: {integrity: sha512-vbavdySgbTTrmFE+EsiqUTzlOr5bzlnJtUv9PynGCAKvfQqjIXbvFdumPM/GxMDfyuGMJaJAU6TO4zc1Jf1i8Q==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/runtime@7.28.2':
-    resolution: {integrity: sha512-KHp2IflsnGywDjBWDkR9iEqiWSpc8GIi0lgTT3mOElT0PP1tG26P4tmFI2YvAdzgq9RGyoHZQEIEdZy6Ec5xCA==}
+  '@babel/runtime@7.28.3':
+    resolution: {integrity: sha512-9uIQ10o0WGdpP6GDhXcdOJPJuDgFtIDtN/9+ArJQ2NAfAmiuhTQdzkaTGR33v43GYS2UrSA0eX2pPPHoFVvpxA==}
     engines: {node: '>=6.9.0'}
 
   '@babel/template@7.27.2':
@@ -840,11 +840,11 @@ packages:
   '@polkadot-api/json-rpc-provider@0.0.1':
     resolution: {integrity: sha512-/SMC/l7foRjpykLTUTacIH05H3mr9ip8b5xxfwXlVezXrNVLp3Cv0GX6uItkKd+ZjzVPf3PFrDF2B2/HLSNESA==}
 
-  '@polkadot-api/merkleize-metadata@1.1.20':
-    resolution: {integrity: sha512-biHRZbMJkKhmzBegiOk4W+iwiVNgNQ1YV5QzMrgmFwFeGBhm8iaNILnz0iB7t48+IaiWczQYnT3ZqYMTJslXwg==}
+  '@polkadot-api/merkleize-metadata@1.1.22':
+    resolution: {integrity: sha512-OU8rWgBkIVaS3P+Kzra9JyKuEKu+vbpFRFB441PKctbNduQIw/CoxCh2TcCZ6aQD2ecpZgPgqC88Ffgcl2ffRg==}
 
-  '@polkadot-api/metadata-builders@0.13.1':
-    resolution: {integrity: sha512-a0vnN/BmSBnpsC/rD52Uej8dIiwWwdVy0K67NKw8jmRgl2LXYbsy4YSLB49WDwCD6p9AGm5chydNDCGYq4wOMw==}
+  '@polkadot-api/metadata-builders@0.13.2':
+    resolution: {integrity: sha512-zUWoNxDqYbB1KvSyugTgIc0HpGl6FdrXvY8xQlYLPQFbvHKH4HSJ+9vspropfGOkyc6zy/DlbHX7fKMhGesDwQ==}
 
   '@polkadot-api/metadata-builders@0.3.2':
     resolution: {integrity: sha512-TKpfoT6vTb+513KDzMBTfCb/ORdgRnsS3TDFpOhAhZ08ikvK+hjHMt5plPiAX/OWkm1Wc9I3+K6W0hX5Ab7MVg==}
@@ -855,8 +855,8 @@ packages:
       '@polkadot-api/substrate-client': 0.1.4
       rxjs: '>=7.8.0'
 
-  '@polkadot-api/substrate-bindings@0.15.1':
-    resolution: {integrity: sha512-zQqgjjEqx7aQtssu5OMm+nLOGDQXvPZUrWGwtbT6rWJNDB5s3FcMhG5RBiBB2HUwjWPrC28XO/A2c8dNUtRKOw==}
+  '@polkadot-api/substrate-bindings@0.16.0':
+    resolution: {integrity: sha512-kNIOvUuiGPGsQBEJfLTm8sU7JnAOFBc/VDCkEv4p2zOp+BiUW9BuchEQZumVua+zAok+EShX6zFrTptPjNjd5Q==}
 
   '@polkadot-api/substrate-bindings@0.6.0':
     resolution: {integrity: sha512-lGuhE74NA1/PqdN7fKFdE5C1gNYX357j1tWzdlPXI0kQ7h3kN0zfxNOpPUN7dIrPcOFZ6C0tRRVrBylXkI6xPw==}
@@ -3186,7 +3186,7 @@ snapshots:
 
   '@babel/runtime@7.27.6': {}
 
-  '@babel/runtime@7.28.2': {}
+  '@babel/runtime@7.28.3': {}
 
   '@babel/template@7.27.2':
     dependencies:
@@ -3589,15 +3589,15 @@ snapshots:
   '@polkadot-api/json-rpc-provider@0.0.1':
     optional: true
 
-  '@polkadot-api/merkleize-metadata@1.1.20':
+  '@polkadot-api/merkleize-metadata@1.1.22':
     dependencies:
-      '@polkadot-api/metadata-builders': 0.13.1
-      '@polkadot-api/substrate-bindings': 0.15.1
+      '@polkadot-api/metadata-builders': 0.13.2
+      '@polkadot-api/substrate-bindings': 0.16.0
       '@polkadot-api/utils': 0.2.0
 
-  '@polkadot-api/metadata-builders@0.13.1':
+  '@polkadot-api/metadata-builders@0.13.2':
     dependencies:
-      '@polkadot-api/substrate-bindings': 0.15.1
+      '@polkadot-api/substrate-bindings': 0.16.0
       '@polkadot-api/utils': 0.2.0
 
   '@polkadot-api/metadata-builders@0.3.2':
@@ -3615,7 +3615,7 @@ snapshots:
       rxjs: 7.8.2
     optional: true
 
-  '@polkadot-api/substrate-bindings@0.15.1':
+  '@polkadot-api/substrate-bindings@0.16.0':
     dependencies:
       '@noble/hashes': 1.8.0
       '@polkadot-api/utils': 0.2.0
@@ -4546,7 +4546,7 @@ snapshots:
   '@testing-library/dom@10.4.0':
     dependencies:
       '@babel/code-frame': 7.27.1
-      '@babel/runtime': 7.28.2
+      '@babel/runtime': 7.28.3
       '@types/aria-query': 5.0.4
       aria-query: 5.3.0
       chalk: 4.1.2
