@@ -74,17 +74,27 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
       const { ledgerService } = await import('@/lib/ledger/ledgerService')
 
       // Determine which account indices to scan
-      const indicesToScan: number[] = []
-      if (options.type === 'single' && options.accountIndex !== undefined) {
-        indicesToScan.push(options.accountIndex)
-      } else if (options.type === 'range' && options.startIndex !== undefined && options.endIndex !== undefined) {
-        for (let i = options.startIndex; i <= options.endIndex; i++) {
-          indicesToScan.push(i)
+      const accountIndicesToScan: number[] = []
+      if (options.accountType === 'single' && options.accountIndex !== undefined) {
+        accountIndicesToScan.push(options.accountIndex)
+      } else if (options.accountType === 'range' && options.accountStartIndex !== undefined && options.accountEndIndex !== undefined) {
+        for (let i = options.accountStartIndex; i <= options.accountEndIndex; i++) {
+          accountIndicesToScan.push(i)
         }
       }
 
-      if (indicesToScan.length === 0) {
-        throw new Error('No valid account indices to scan')
+      // Determine which address indices to scan
+      const addressIndicesToScan: number[] = []
+      if (options.addressType === 'single' && options.addressIndex !== undefined) {
+        addressIndicesToScan.push(options.addressIndex)
+      } else if (options.addressType === 'range' && options.addressStartIndex !== undefined && options.addressEndIndex !== undefined) {
+        for (let i = options.addressStartIndex; i <= options.addressEndIndex; i++) {
+          addressIndicesToScan.push(i)
+        }
+      }
+
+      if (accountIndicesToScan.length === 0 || addressIndicesToScan.length === 0) {
+        throw new Error('No valid account or address indices to scan')
       }
 
       // Get polkadot addresses for cross-chain migration
@@ -105,19 +115,26 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
         const appConfig = appsConfigs.get(app.id)
         if (!appConfig || !appConfig.rpcEndpoint) continue
 
-        // Scan new account indices with correct derivation path (modifying account index, not address index)
+        // Scan new account and address combinations
         const newAddresses = []
-        for (const accountIndex of indicesToScan) {
-          try {
-            // Use the new function to correctly set the account index in the derivation path
-            const derivedPath = getBip44PathWithAccount(appConfig.bip44Path, accountIndex)
-            const address = await ledgerService.getAccountAddress(derivedPath, appConfig.ss58Prefix, false)
-            if (address) {
-              newAddresses.push({ ...address, path: derivedPath })
+        for (const accountIndex of accountIndicesToScan) {
+          for (const addressIndex of addressIndicesToScan) {
+            try {
+              // Build the derivation path with both account and address indices
+              const basePath = getBip44PathWithAccount(appConfig.bip44Path, accountIndex)
+              // Replace the last component (address index) in the path
+              const pathParts = basePath.split('/')
+              pathParts[pathParts.length - 1] = `${addressIndex}'`
+              const derivedPath = pathParts.join('/')
+              
+              const address = await ledgerService.getAccountAddress(derivedPath, appConfig.ss58Prefix, false)
+              if (address) {
+                newAddresses.push({ ...address, path: derivedPath })
+              }
+              totalScanned++
+            } catch (error) {
+              console.warn(`Failed to get address for account index ${accountIndex}, address index ${addressIndex} on ${app.name}:`, error)
             }
-            totalScanned++
-          } catch (error) {
-            console.warn(`Failed to get address for account index ${accountIndex} on ${app.name}:`, error)
           }
         }
 
