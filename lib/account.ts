@@ -126,6 +126,7 @@ export async function getApiAndProvider(rpcEndpoints: string[]): Promise<{ api?:
               resolve(api)
             })
             .catch(err => {
+              clearTimeout(timeoutId)
               reject(err)
             })
         })
