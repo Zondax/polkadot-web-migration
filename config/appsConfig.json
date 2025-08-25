@@ -255,7 +255,10 @@
     "name": "Polkadex",
     "bip44Path": "m/44'/799'/0'/0'/0'",
     "ss58Prefix": 88,
-    "rpcEndpoints": ["wss://polkadex.api.onfinality.io/public-ws", "wss://api-polkadex-mainnet.dwellir.com/63708dfe-972e-4f49-b0cb-2b8676052a14"],
+    "rpcEndpoints": [
+      "wss://polkadex.api.onfinality.io/public-ws",
+      "wss://api-polkadex-mainnet.dwellir.com/63708dfe-972e-4f49-b0cb-2b8676052a14"
+    ],
     "token": {
       "symbol": "PDEX",
       "decimals": 12

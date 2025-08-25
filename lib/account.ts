@@ -101,7 +101,7 @@ export async function getApiAndProvider(rpcEndpoints: string[]): Promise<{ api?:
   for (let endpointIndex = 0; endpointIndex < rpcEndpoints.length; endpointIndex++) {
     const rpcEndpoint = rpcEndpoints[endpointIndex]
     console.debug(`Trying RPC endpoint ${endpointIndex + 1}/${rpcEndpoints.length}: ${rpcEndpoint}`)
-    
+
     let retryCount = 0
     let currentProvider: WsProvider | undefined
 
@@ -137,7 +137,9 @@ export async function getApiAndProvider(rpcEndpoints: string[]): Promise<{ api?:
         return { api, provider: currentProvider }
       } catch (_e) {
         retryCount++
-        console.debug(`Connection attempt ${retryCount}/${MAX_CONNECTION_RETRIES} failed for endpoint ${endpointIndex + 1}/${rpcEndpoints.length}`)
+        console.debug(
+          `Connection attempt ${retryCount}/${MAX_CONNECTION_RETRIES} failed for endpoint ${endpointIndex + 1}/${rpcEndpoints.length}`
+        )
 
         // Disconnect the current provider before retrying
         if (currentProvider) {
@@ -154,7 +156,7 @@ export async function getApiAndProvider(rpcEndpoints: string[]): Promise<{ api?:
         }
       }
     }
-    
+
     // If we've exhausted all retries for this endpoint, disconnect and try next endpoint
     if (currentProvider) {
       await disconnectSafely(undefined, currentProvider)
@@ -162,7 +164,9 @@ export async function getApiAndProvider(rpcEndpoints: string[]): Promise<{ api?:
     }
 
     if (endpointIndex < rpcEndpoints.length - 1) {
-      console.debug(`Failed to connect to endpoint ${endpointIndex + 1}/${rpcEndpoints.length} after ${MAX_CONNECTION_RETRIES} attempts. Trying next endpoint...`)
+      console.debug(
+        `Failed to connect to endpoint ${endpointIndex + 1}/${rpcEndpoints.length} after ${MAX_CONNECTION_RETRIES} attempts. Trying next endpoint...`
+      )
     }
   }
 
