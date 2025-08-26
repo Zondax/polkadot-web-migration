@@ -128,8 +128,6 @@ export class MockWsProvider {
   private connected = false
   private listeners: { [key: string]: ((...args: any[]) => void)[] } = {}
 
-  constructor(private endpoint: string) {}
-
   async connect(): Promise<void> {
     this.connected = true
     this.emit('connected')
@@ -205,8 +203,8 @@ export class MockWsProvider {
 /**
  * Helper to create mock provider
  */
-export function createMockProvider(endpoint: string = TEST_RPC_ENDPOINTS.MOCK): MockWsProvider {
-  return new MockWsProvider(endpoint)
+export function createMockProvider(): MockWsProvider {
+  return new MockWsProvider()
 }
 
 /**
