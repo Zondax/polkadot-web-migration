@@ -3,7 +3,7 @@ export const mockPolkadotAppConfigs = {
   id: 'polkadot',
   bip44Path: "m/44'/354'/0'/0'/0'", // 354 = 0x80000162
   ss58Prefix: 0,
-  rpcEndpoint: 'wss://rpc.polkadot.io',
+  rpcEndpoints: ['wss://rpc.polkadot.io'],
   token: {
     symbol: 'DOT',
     decimals: 10,
@@ -21,7 +21,7 @@ export const mockKusamaAppConfig = {
   name: 'Kusama',
   bip44Path: "m/44'/434'/0'/0'/0'",
   ss58Prefix: 2,
-  rpcEndpoint: 'wss://kusama-rpc.polkadot.io',
+  rpcEndpoints: ['wss://kusama-rpc.polkadot.io'],
   token: {
     symbol: 'KSM',
     decimals: 12,
@@ -38,7 +38,7 @@ export const mockAcalaAppConfig = {
   name: 'Acala',
   bip44Path: "m/44'/787'/0'/0'/0'",
   ss58Prefix: 10,
-  rpcEndpoint: 'wss://acala-rpc.aca-api.network',
+  rpcEndpoints: ['wss://acala-rpc.aca-api.network'],
   token: {
     symbol: 'ACA',
     decimals: 12,

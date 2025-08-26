@@ -45,7 +45,7 @@ function getAppsToSync(): AppConfig[] {
       appsToSync = appsToSyncInDev.map(appId => appsConfigs.get(appId as AppId))
     }
   }
-  return appsToSync.filter(appConfig => appConfig?.rpcEndpoint) as AppConfig[]
+  return appsToSync.filter(appConfig => appConfig?.rpcEndpoints && appConfig.rpcEndpoints.length > 0) as AppConfig[]
 }
 
 /**
@@ -106,7 +106,7 @@ export async function synchronizeAppAccounts(
     // Fetch addresses from Ledger
     const addresses = await fetchAddressesFromLedger(appConfig)
 
-    if (!appConfig.rpcEndpoint) {
+    if (!appConfig.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
       throw new InternalError(InternalErrorType.SYNC_ERROR, {
         operation: 'synchronizeAppAccounts',
         context: { appId: appConfig.id, reason: 'RPC endpoint not configured' },
@@ -114,12 +114,12 @@ export async function synchronizeAppAccounts(
     }
 
     // Get API connection
-    const { api, provider } = await getApiAndProvider(appConfig.rpcEndpoint)
+    const { api, provider } = await getApiAndProvider(appConfig.rpcEndpoints)
 
     if (!api) {
       throw new InternalError(InternalErrorType.FAILED_TO_CONNECT_TO_BLOCKCHAIN, {
         operation: 'synchronizeAppAccounts',
-        context: { appId: appConfig.id, rpcEndpoint: appConfig.rpcEndpoint },
+        context: { appId: appConfig.id, rpcEndpoints: appConfig.rpcEndpoints },
       })
     }
 
@@ -246,7 +246,7 @@ export async function synchronizePolkadotAccounts(): Promise<App> {
       })
     }
 
-    if (!appConfig.rpcEndpoint) {
+    if (!appConfig.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
       notifications$.push(noAccountsNotification)
       throw new InternalError(InternalErrorType.SYNC_ERROR, {
         operation: 'synchronizePolkadotAccounts',
@@ -257,12 +257,12 @@ export async function synchronizePolkadotAccounts(): Promise<App> {
     const accounts = response.result
 
     // Test API connection
-    const { api, provider } = await getApiAndProvider(appConfig.rpcEndpoint)
+    const { api, provider } = await getApiAndProvider(appConfig.rpcEndpoints)
 
     if (!api) {
       throw new InternalError(InternalErrorType.FAILED_TO_CONNECT_TO_BLOCKCHAIN, {
         operation: 'synchronizePolkadotAccounts',
-        context: { rpcEndpoint: appConfig.rpcEndpoint },
+        context: { rpcEndpoints: appConfig.rpcEndpoints },
       })
     }
 

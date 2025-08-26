@@ -57,7 +57,7 @@ export const validateMigrationParams = (appId: AppId, account: Address | Multisi
   const appConfig = appsConfigs.get(appId)
   let multisigInfo: MultisigInfo | undefined
 
-  if (!appConfig || !appConfig.rpcEndpoint) {
+  if (!appConfig || !appConfig.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
     throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
   }
   if (!senderAddress || !senderPath) {
@@ -109,7 +109,7 @@ export const validateApproveAsMultiParams = (
   const multisigValidation = validateMultisigParams(account)
 
   const appConfig = appsConfigs.get(appId)
-  if (!appConfig || !appConfig.rpcEndpoint) {
+  if (!appConfig || !appConfig.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
     throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
   }
 
@@ -200,7 +200,7 @@ export const validateAsMultiParams = (
   const multisigValidation = validateApproveAsMultiParams(appId, account, callHash, signer, nestedSigner)
 
   const appConfig = appsConfigs.get(appId)
-  if (!appConfig || !appConfig.rpcEndpoint) {
+  if (!appConfig || !appConfig.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
     throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
   }
 

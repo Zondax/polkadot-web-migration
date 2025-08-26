@@ -23,9 +23,9 @@ export const TEST_ADDRESSES = {
 }
 
 // test rpc endpoints
-export const KUSAMA_RPC = appsConfigs.get('kusama')?.rpcEndpoint || 'wss://kusama-rpc.polkadot.io'
-export const KUSAMA_PEOPLE_RPC = appsConfigs.get('people-kusama')?.rpcEndpoint || 'wss://people-kusama.api.onfinality.io/public-ws'
-export const KUSAMA_ASSET_HUB_RPC = appsConfigs.get('kusama-asset-hub')?.rpcEndpoint || 'wss://asset-hub-kusama-rpc.dwellir.com'
+export const KUSAMA_RPC = appsConfigs.get('kusama')?.rpcEndpoints?.[0] || 'wss://kusama-rpc.polkadot.io'
+export const KUSAMA_PEOPLE_RPC = appsConfigs.get('people-kusama')?.rpcEndpoints?.[0] || 'wss://people-kusama.api.onfinality.io/public-ws'
+export const KUSAMA_ASSET_HUB_RPC = appsConfigs.get('kusama-asset-hub')?.rpcEndpoints?.[0] || 'wss://asset-hub-kusama-rpc.dwellir.com'
 
 // =========== Mock Staking ===========
 export const mockStaking: Staking = {

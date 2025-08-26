@@ -487,21 +487,21 @@ export const ledgerState$ = observable({
   // Synchronize Balance
   async getAccountBalance(appId: AppId, accountType: AccountType, address: Address) {
     updateAccount(appId, accountType, address.address, { isLoading: true })
-    const rpcEndpoint = appsConfigs.get(appId)?.rpcEndpoint
+    const rpcEndpoints = appsConfigs.get(appId)?.rpcEndpoints
 
-    if (!rpcEndpoint) {
-      console.error('RPC endpoint not found for app:', appId)
+    if (!rpcEndpoints || rpcEndpoints.length === 0) {
+      console.error('RPC endpoints not found for app:', appId)
       updateAccount(appId, accountType, address.address, {
         isLoading: false,
         error: {
           source: 'balance_fetch',
-          description: 'RPC endpoint not found',
+          description: 'RPC endpoints not found',
         },
       })
       return
     }
 
-    const { api, provider } = await getApiAndProvider(rpcEndpoint)
+    const { api, provider } = await getApiAndProvider(rpcEndpoints)
 
     if (!api) {
       updateAccount(appId, accountType, address.address, {

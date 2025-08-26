@@ -40,7 +40,7 @@ const mockAppConfig = {
   name: 'Polkadot',
   bip44Path: "m/44'/354'/0'/0'/0'",
   ss58Prefix: 0,
-  rpcEndpoint: 'wss://rpc.polkadot.io',
+  rpcEndpoints: ['wss://rpc.polkadot.io'],
   token: {
     symbol: 'DOT',
     decimals: 10,
@@ -153,7 +153,7 @@ describe('client helpers', () => {
       })
 
       it('should throw APP_CONFIG_NOT_FOUND error when app config has no rpc endpoint', () => {
-        mockedAppsConfigs.get.mockReturnValue({ ...mockAppConfig, rpcEndpoint: undefined })
+        mockedAppsConfigs.get.mockReturnValue({ ...mockAppConfig, rpcEndpoints: undefined })
 
         expect(() => validateMigrationParams(mockAppId, mockAccount)).toThrow(InternalErrorType.APP_CONFIG_NOT_FOUND)
       })
@@ -268,7 +268,7 @@ describe('client helpers', () => {
       })
 
       it('should throw APP_CONFIG_NOT_FOUND error when app config has no rpc endpoint', () => {
-        mockedAppsConfigs.get.mockReturnValue({ ...mockAppConfig, rpcEndpoint: undefined })
+        mockedAppsConfigs.get.mockReturnValue({ ...mockAppConfig, rpcEndpoints: undefined })
 
         expect(() => validateApproveAsMultiParams(mockAppId, mockMultisigAccount, mockCallHash, mockSigner)).toThrow(
           InternalErrorType.APP_CONFIG_NOT_FOUND
@@ -407,7 +407,7 @@ describe('client helpers', () => {
       )
     })
     it('should throw if app config has no rpc endpoint', () => {
-      mockedAppsConfigs.get.mockReturnValue({ ...mockAppConfig, rpcEndpoint: undefined })
+      mockedAppsConfigs.get.mockReturnValue({ ...mockAppConfig, rpcEndpoints: undefined })
       expect(() => validateAsMultiParams(mockAppId, mockMultisigAccount, mockCallHash, mockCallData, mockSigner)).toThrow(
         InternalErrorType.APP_CONFIG_NOT_FOUND
       )
