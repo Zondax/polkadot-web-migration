@@ -121,6 +121,24 @@ vi.mock('@/config/apps', () => ({
       },
     ],
   ]),
+  polkadotAppConfig: {
+    id: 'polkadot',
+    name: 'Polkadot',
+    bip44Path: "m/44'/354'/0'/0'/0'",
+    ss58Prefix: 0,
+    rpcEndpoint: 'wss://polkadot-rpc.polkadot.io',
+    token: {
+      symbol: 'DOT',
+      decimals: 10,
+    },
+  },
+  getChainName: (id: string) => {
+    const chainNames: { [key: string]: string } = {
+      polkadot: 'Polkadot',
+      kusama: 'Kusama',
+    }
+    return chainNames[id] || id
+  },
 }))
 
 describe('DeepScanModal', () => {
@@ -381,14 +399,35 @@ describe('DeepScanModal', () => {
       expect(mockOnClose).toHaveBeenCalled()
     })
 
-    it('should disable buttons during scanning', () => {
+    it('should show cancel scan button during scanning', () => {
       render(<DeepScanModal isOpen={true} onClose={mockOnClose} onScan={mockOnScan} isScanning={true} />)
 
-      const cancelButton = screen.getByText('Cancel')
-      const scanButton = screen.getByText('Scanning...')
+      // During scanning, should show "Cancel Scan" button
+      const cancelScanButton = screen.getByText('Cancel Scan')
+      expect(cancelScanButton).toBeInTheDocument()
+      expect(cancelScanButton).not.toBeDisabled()
 
-      expect(cancelButton).toBeDisabled()
-      expect(scanButton).toBeDisabled()
+      // Should not show "Start Deep Scan" button during scanning
+      expect(screen.queryByText('Start Deep Scan')).not.toBeInTheDocument()
+    })
+
+    it('should disable cancel button when cancelling', () => {
+      const mockOnCancel = vi.fn()
+      render(
+        <DeepScanModal
+          isOpen={true}
+          onClose={mockOnClose}
+          onScan={mockOnScan}
+          isScanning={true}
+          isCancelling={true}
+          onCancel={mockOnCancel}
+        />
+      )
+
+      // When cancelling, button should show "Cancelling..." and be disabled
+      const cancellingButton = screen.getByText('Cancelling...')
+      expect(cancellingButton).toBeInTheDocument()
+      expect(cancellingButton).toBeDisabled()
     })
 
     it('should show alert for large account ranges', async () => {
