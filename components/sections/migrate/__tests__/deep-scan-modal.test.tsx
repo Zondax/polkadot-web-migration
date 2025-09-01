@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import React from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { ScanTypeEnum } from '@/lib/types/scan'
 import { DeepScanModal } from '../deep-scan-modal'
 
 // Mock UI components
@@ -307,8 +308,8 @@ describe('DeepScanModal', () => {
       fireEvent.click(scanButton)
 
       expect(mockOnScan).toHaveBeenCalledWith({
-        accountType: 'single',
-        addressType: 'single',
+        accountType: ScanTypeEnum.SINGLE,
+        addressType: ScanTypeEnum.SINGLE,
         accountIndex: 7,
         addressIndex: 3,
         selectedChain: 'all',
@@ -343,8 +344,8 @@ describe('DeepScanModal', () => {
         fireEvent.click(scanButton)
 
         expect(mockOnScan).toHaveBeenCalledWith({
-          accountType: 'range',
-          addressType: 'range',
+          accountType: ScanTypeEnum.RANGE,
+          addressType: ScanTypeEnum.RANGE,
           accountStartIndex: 2,
           accountEndIndex: 5,
           addressStartIndex: 1,
@@ -378,8 +379,8 @@ describe('DeepScanModal', () => {
         fireEvent.click(scanButton)
 
         expect(mockOnScan).toHaveBeenCalledWith({
-          accountType: 'single',
-          addressType: 'range',
+          accountType: ScanTypeEnum.SINGLE,
+          addressType: ScanTypeEnum.RANGE,
           accountIndex: 3,
           addressStartIndex: 0,
           addressEndIndex: 5,

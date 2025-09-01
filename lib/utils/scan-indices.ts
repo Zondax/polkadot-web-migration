@@ -1,32 +1,32 @@
 import type { IndexConfig, RangeField, RangeIndexConfig, ScanType, SingleIndexConfig, ValidationResult } from '@/lib/types/scan'
-import { SCAN_LIMITS } from '@/lib/types/scan'
+import { SCAN_LIMITS, ScanTypeEnum, RangeFieldEnum } from '@/lib/types/scan'
 
 /**
  * Type guard to check if scan type is 'single'
  */
 export function isSingleScan(scanType: ScanType): scanType is 'single' {
-  return scanType === 'single'
+  return scanType === ScanTypeEnum.SINGLE
 }
 
 /**
  * Type guard to check if scan type is 'range'
  */
 export function isRangeScan(scanType: ScanType): scanType is 'range' {
-  return scanType === 'range'
+  return scanType === ScanTypeEnum.RANGE
 }
 
 /**
  * Type guard to check if config is single index config
  */
 export function isSingleConfig(config: IndexConfig): config is SingleIndexConfig {
-  return config.type === 'single'
+  return config.type === ScanTypeEnum.SINGLE
 }
 
 /**
  * Type guard to check if config is range index config
  */
 export function isRangeConfig(config: IndexConfig): config is RangeIndexConfig {
-  return config.type === 'range'
+  return config.type === ScanTypeEnum.RANGE
 }
 
 /**
@@ -36,14 +36,14 @@ export function parseIndexConfig(scanType: ScanType, singleValue: string, rangeS
   if (isSingleScan(scanType)) {
     const value = Number.parseInt(singleValue, 10)
     if (Number.isNaN(value) || value < SCAN_LIMITS.MIN_INDEX) return null
-    return { type: 'single', value }
+    return { type: ScanTypeEnum.SINGLE, value }
   }
 
   const start = Number.parseInt(rangeStart, 10)
   const end = Number.parseInt(rangeEnd, 10)
   if (Number.isNaN(start) || Number.isNaN(end) || start < SCAN_LIMITS.MIN_INDEX || end < start) return null
 
-  return { type: 'range', start, end }
+  return { type: ScanTypeEnum.RANGE, start, end }
 }
 
 /**
@@ -138,14 +138,14 @@ export function adjustIndexValue(currentValue: string, increment: number, min = 
  * Get range field value
  */
 export function getRangeValue(range: { start: string; end: string }, field: RangeField): string {
-  return field === 'start' ? range.start : range.end
+  return field === RangeFieldEnum.START ? range.start : range.end
 }
 
 /**
  * Update range field value
  */
 export function updateRangeValue(range: { start: string; end: string }, field: RangeField, value: string): { start: string; end: string } {
-  return field === 'start' ? { ...range, start: value } : { ...range, end: value }
+  return field === RangeFieldEnum.START ? { ...range, start: value } : { ...range, end: value }
 }
 
 /**

@@ -21,6 +21,7 @@ import { IndexInputSection } from './index-input-section'
 import { LedgerUnlockReminder } from './ledger-unlock-reminder'
 
 import type { ScanType, RangeField } from '@/lib/types/scan'
+import { ScanTypeEnum, RangeFieldEnum } from '@/lib/types/scan'
 import { parseIndexConfig, validateIndexConfig, formatIndexDisplay } from '@/lib/utils/scan-indices'
 
 interface DeepScanModalProps {
@@ -65,8 +66,8 @@ export function DeepScanModal({
   onCancel,
   onDone,
 }: DeepScanModalProps) {
-  const [accountScanType, setAccountScanType] = useState<ScanType>('single')
-  const [addressScanType, setAddressScanType] = useState<ScanType>('single')
+  const [accountScanType, setAccountScanType] = useState<ScanType>(ScanTypeEnum.SINGLE)
+  const [addressScanType, setAddressScanType] = useState<ScanType>(ScanTypeEnum.SINGLE)
   const [accountIndex, setAccountIndex] = useState<string>('1')
   const [accountStartIndex, setAccountStartIndex] = useState<string>('1')
   const [accountEndIndex, setAccountEndIndex] = useState<string>('5')
@@ -129,13 +130,13 @@ export function DeepScanModal({
       accountType: accountConfig.type,
       addressType: addressConfig.type,
       selectedChain,
-      ...(accountConfig.type === 'single'
+      ...(accountConfig.type === ScanTypeEnum.SINGLE
         ? { accountIndex: accountConfig.value }
         : {
             accountStartIndex: accountConfig.start,
             accountEndIndex: accountConfig.end,
           }),
-      ...(addressConfig.type === 'single'
+      ...(addressConfig.type === ScanTypeEnum.SINGLE
         ? { addressIndex: addressConfig.value }
         : {
             addressStartIndex: addressConfig.start,
@@ -163,7 +164,7 @@ export function DeepScanModal({
 
   // Handlers for account index changes
   const handleAccountRangeChange = (field: RangeField, value: string) => {
-    if (field === 'start') {
+    if (field === RangeFieldEnum.START) {
       setAccountStartIndex(value)
     } else {
       setAccountEndIndex(value)
@@ -172,7 +173,7 @@ export function DeepScanModal({
 
   // Handlers for address index changes
   const handleAddressRangeChange = (field: RangeField, value: string) => {
-    if (field === 'start') {
+    if (field === RangeFieldEnum.START) {
       setAddressStartIndex(value)
     } else {
       setAddressEndIndex(value)

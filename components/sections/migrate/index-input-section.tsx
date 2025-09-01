@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { ScanType, RangeField } from '@/lib/types/scan'
-import { SCAN_LIMITS } from '@/lib/types/scan'
+import { SCAN_LIMITS, ScanTypeEnum, RangeFieldEnum } from '@/lib/types/scan'
 import { adjustIndexValue, getIndexCount, isRangeExceedsLimit, getPluralForm } from '@/lib/utils/scan-indices'
 
 interface IndexInputSectionProps {
@@ -37,14 +37,15 @@ export function IndexInputSection({
   unitPlural,
 }: IndexInputSectionProps) {
   const indexCount = getIndexCount(scanType, rangeStart, rangeEnd)
-  const exceedsLimit = scanType === 'range' && isRangeExceedsLimit(rangeStart, rangeEnd)
+  const exceedsLimit = scanType === ScanTypeEnum.RANGE && isRangeExceedsLimit(rangeStart, rangeEnd)
 
   const handleAdjust = (field: 'single' | RangeField, increment: number) => {
     if (field === 'single') {
       onSingleChange(adjustIndexValue(singleValue, increment))
     } else {
-      const currentValue = field === 'start' ? rangeStart : rangeEnd
-      const min = field === 'end' ? Math.max(Number.parseInt(rangeStart, 10) || 0, SCAN_LIMITS.MIN_INDEX) : SCAN_LIMITS.MIN_INDEX
+      const currentValue = field === RangeFieldEnum.START ? rangeStart : rangeEnd
+      const min =
+        field === RangeFieldEnum.END ? Math.max(Number.parseInt(rangeStart, 10) || 0, SCAN_LIMITS.MIN_INDEX) : SCAN_LIMITS.MIN_INDEX
       onRangeChange(field, adjustIndexValue(currentValue, increment, min))
     }
   }
@@ -57,15 +58,15 @@ export function IndexInputSection({
         <div className="text-sm font-medium">{title}</div>
         <Tabs value={scanType} onValueChange={value => onScanTypeChange(value as ScanType)} data-testid={`${testIdPrefix}-tabs`}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="single" data-testid={`${testIdPrefix}-single-tab`}>
+            <TabsTrigger value={ScanTypeEnum.SINGLE} data-testid={`${testIdPrefix}-single-tab`}>
               Single {title.split(' ')[0]}
             </TabsTrigger>
-            <TabsTrigger value="range" data-testid={`${testIdPrefix}-range-tab`}>
+            <TabsTrigger value={ScanTypeEnum.RANGE} data-testid={`${testIdPrefix}-range-tab`}>
               {title.split(' ')[0]} Range
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="single" className="space-y-2 mt-4">
+          <TabsContent value={ScanTypeEnum.SINGLE} className="space-y-2 mt-4">
             <div className="flex items-center justify-center space-x-2">
               <Button
                 type="button"
@@ -92,7 +93,7 @@ export function IndexInputSection({
             <p className="text-sm text-gray-600 dark:text-gray-400">{helpText}</p>
           </TabsContent>
 
-          <TabsContent value="range" className="space-y-2 mt-4">
+          <TabsContent value={ScanTypeEnum.RANGE} className="space-y-2 mt-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label htmlFor={`${testIdPrefix}-start-index`} className="text-sm font-medium">
@@ -103,7 +104,7 @@ export function IndexInputSection({
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => handleAdjust('start', -1)}
+                    onClick={() => handleAdjust(RangeFieldEnum.START, -1)}
                     disabled={Number.parseInt(rangeStart, 10) <= SCAN_LIMITS.MIN_INDEX}
                   >
                     <Minus className="h-4 w-4" />
@@ -113,10 +114,10 @@ export function IndexInputSection({
                     type="number"
                     min={SCAN_LIMITS.MIN_INDEX}
                     value={rangeStart}
-                    onChange={e => onRangeChange('start', e.target.value)}
+                    onChange={e => onRangeChange(RangeFieldEnum.START, e.target.value)}
                     className="text-center"
                   />
-                  <Button type="button" variant="outline" size="sm" onClick={() => handleAdjust('start', 1)}>
+                  <Button type="button" variant="outline" size="sm" onClick={() => handleAdjust(RangeFieldEnum.START, 1)}>
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
@@ -131,7 +132,7 @@ export function IndexInputSection({
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => handleAdjust('end', -1)}
+                    onClick={() => handleAdjust(RangeFieldEnum.END, -1)}
                     disabled={Number.parseInt(rangeEnd, 10) <= Number.parseInt(rangeStart, 10)}
                   >
                     <Minus className="h-4 w-4" />
@@ -141,10 +142,10 @@ export function IndexInputSection({
                     type="number"
                     min={rangeStart}
                     value={rangeEnd}
-                    onChange={e => onRangeChange('end', e.target.value)}
+                    onChange={e => onRangeChange(RangeFieldEnum.END, e.target.value)}
                     className="text-center"
                   />
-                  <Button type="button" variant="outline" size="sm" onClick={() => handleAdjust('end', 1)}>
+                  <Button type="button" variant="outline" size="sm" onClick={() => handleAdjust(RangeFieldEnum.END, 1)}>
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
@@ -153,7 +154,7 @@ export function IndexInputSection({
 
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Scanning {indexCount} {getPluralForm(indexCount, unitSingular, unitPlural)}
-              {scanType === 'range' && unitSingular === 'address' && ' per account'}
+              {scanType === ScanTypeEnum.RANGE && unitSingular === 'address' && ' per account'}
             </p>
 
             {exceedsLimit && (
