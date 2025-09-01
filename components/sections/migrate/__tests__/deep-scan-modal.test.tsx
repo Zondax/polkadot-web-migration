@@ -231,9 +231,6 @@ describe('DeepScanModal', () => {
 
       // Initial path should use Polkadot coin type (354)
       expect(screen.getByText(/m\/44'\/354'/i)).toBeInTheDocument()
-
-      // Note: Full chain selection testing would require more complex mocking
-      // of the Select component to properly simulate selection changes
     })
   })
 

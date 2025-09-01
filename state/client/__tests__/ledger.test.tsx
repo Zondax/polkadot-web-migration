@@ -248,15 +248,15 @@ describe('Ledger Client', () => {
       }
       vi.mocked(ledgerService.getAccountAddress).mockResolvedValueOnce(mockGenericAddress)
 
-      const result = await ledgerClient.getAccountAddress("m/44'/354'/0'/0'", 5, 0)
+      const result = await ledgerClient.getAccountAddress("m/44'/354'/0'/0'/0'", 5, 0)
 
       expect(result).toEqual({
         result: {
           ...mockGenericAddress,
-          path: "m/44'/354'/0'/5'",
+          path: "m/44'/354'/0'/0'/5'",
         },
       })
-      expect(ledgerService.getAccountAddress).toHaveBeenCalledWith("m/44'/354'/0'/5'", 0, true)
+      expect(ledgerService.getAccountAddress).toHaveBeenCalledWith("m/44'/354'/0'/0'/5'", 0, true)
     })
 
     it('should handle ledger service error', async () => {

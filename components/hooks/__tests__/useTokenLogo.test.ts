@@ -90,7 +90,6 @@ describe('useTokenLogo hook', () => {
     })
 
     it('should handle null/undefined from icons.get()', () => {
-      // Fixed: Now gracefully handles null icons
       mockIconsGet.mockReturnValue(null)
 
       const result = useTokenLogo('token-1')
@@ -226,7 +225,6 @@ describe('useTokenLogo hook', () => {
     })
 
     it('should handle malformed icons data structure', () => {
-      // Fixed: Function gracefully handles malformed data by returning undefined
       mockIconsGet.mockReturnValue('not-an-object')
 
       const result = useTokenLogo('test')

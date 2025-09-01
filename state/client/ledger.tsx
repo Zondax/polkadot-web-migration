@@ -29,7 +29,7 @@ import {
 import { ledgerService } from '@/lib/ledger/ledgerService'
 import type { ConnectionResponse } from '@/lib/ledger/types'
 import { InternalError, withErrorHandling } from '@/lib/utils'
-import { getBip44Path, getBip44PathWithAccount } from '@/lib/utils/address'
+import { updateBip44PathIndices } from '@/lib/utils/address'
 import { getAccountTransferableBalance } from '@/lib/utils/balance'
 import {
   type Address,
@@ -71,7 +71,7 @@ export const ledgerClient = {
         const addresses: Address[] = []
         for (let i = 0; i < maxAddressesToFetch; i++) {
           try {
-            const derivedPath = getBip44Path(app.bip44Path, i)
+            const derivedPath = updateBip44PathIndices(app.bip44Path, { address: i })
             const address = await ledgerService.getAccountAddress(derivedPath, app.ss58Prefix, false)
             if (address) {
               addresses.push({ ...address, path: derivedPath } as Address)
@@ -110,12 +110,11 @@ export const ledgerClient = {
         for (const accountIndex of accountIndices) {
           for (const addressIndex of addressIndices) {
             try {
-              // Build the derivation path with both account and address indices
-              const basePath = getBip44PathWithAccount(app.bip44Path, accountIndex)
-              // Replace the last component (address index) in the path
-              const pathParts = basePath.split('/')
-              pathParts[pathParts.length - 1] = `${addressIndex}'`
-              const derivedPath = pathParts.join('/')
+              // Build the derivation path with both account and address indices using the robust utility
+              const derivedPath = updateBip44PathIndices(app.bip44Path, {
+                account: accountIndex,
+                address: addressIndex,
+              })
 
               const address = await ledgerService.getAccountAddress(derivedPath, app.ss58Prefix, false)
               if (address) {
@@ -142,7 +141,7 @@ export const ledgerClient = {
     return withErrorHandling(
       async () => {
         // get address
-        const derivedPath = getBip44Path(bip44Path, index)
+        const derivedPath = updateBip44PathIndices(bip44Path, { address: index })
         const genericAddress = await ledgerService.getAccountAddress(derivedPath, ss58Prefix, true)
         const address: Address = {
           ...genericAddress,

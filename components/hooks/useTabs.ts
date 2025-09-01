@@ -17,15 +17,12 @@ export const useTabs = <T extends string>({ tabs }: UseTabsProps<T>): UseTabsRet
   const [activeTab, setActiveTab] = useState<number>(0)
 
   // Tab change handler with additional logic
-  const handleTabChange = useCallback(
-    (tabIndex: number) => {
-      // Find the index of the tab in tabs array
-      if (tabIndex !== -1) {
-        setActiveTab(tabIndex)
-      }
-    },
-    [] // Removed tabs dependency as it's not actually used in the function
-  )
+  const handleTabChange = useCallback((tabIndex: number) => {
+    // Find the index of the tab in tabs array
+    if (tabIndex !== -1) {
+      setActiveTab(tabIndex)
+    }
+  }, [])
 
   // Helper to go to the next tab in sequence
   const goToNextTab = useCallback(() => {

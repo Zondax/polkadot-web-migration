@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
-// Remove unused imports - keeping for completeness of type testing
-import { SCAN_LIMITS, ScanTypeEnum, RangeFieldEnum } from '@/lib/types/scan'
+import { RangeFieldEnum, SCAN_LIMITS, ScanTypeEnum } from '@/lib/types/scan'
 import {
   adjustIndexValue,
   formatIndexDisplay,
