@@ -13,6 +13,10 @@ import { Progress } from '@/components/ui/progress'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { type AppConfig, appsConfigs, polkadotAppConfig } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
+import { scanAppWithCustomIndices } from '@/lib/services/synchronization.service'
+import { generateIndicesArray } from '@/lib/utils/scan-indices'
+import { ledgerState$ } from '@/state/ledger'
+import { notifications$ } from '@/state/notifications'
 import type { Address, MultisigAddress } from '@/state/types/ledger'
 import AppScanningGrid from './app-scanning-grid'
 import { DeepScanModal, type DeepScanOptions } from './deep-scan-modal'
@@ -34,23 +38,9 @@ enum AccountViewType {
  * Extract account and address indices to scan from DeepScanOptions
  */
 function getIndicesToScan(options: DeepScanOptions): { accountIndices: number[]; addressIndices: number[] } {
-  const accountIndices: number[] = []
-  if (options.accountType === 'single' && options.accountIndex !== undefined) {
-    accountIndices.push(options.accountIndex)
-  } else if (options.accountType === 'range' && options.accountStartIndex !== undefined && options.accountEndIndex !== undefined) {
-    for (let i = options.accountStartIndex; i <= options.accountEndIndex; i++) {
-      accountIndices.push(i)
-    }
-  }
+  const accountIndices = generateIndicesArray(options.accountType, options.accountIndex, options.accountStartIndex, options.accountEndIndex)
 
-  const addressIndices: number[] = []
-  if (options.addressType === 'single' && options.addressIndex !== undefined) {
-    addressIndices.push(options.addressIndex)
-  } else if (options.addressType === 'range' && options.addressStartIndex !== undefined && options.addressEndIndex !== undefined) {
-    for (let i = options.addressStartIndex; i <= options.addressEndIndex; i++) {
-      addressIndices.push(i)
-    }
-  }
+  const addressIndices = generateIndicesArray(options.addressType, options.addressIndex, options.addressStartIndex, options.addressEndIndex)
 
   return { accountIndices, addressIndices }
 }
@@ -64,7 +54,7 @@ interface SingleAppScanResult {
 }
 
 /**
- * Scan a single app for new accounts using the provided account and address indices
+ * Scan a single app for new accounts using the service layer
  */
 async function scanSingleApp(
   app: App,
@@ -78,67 +68,17 @@ async function scanSingleApp(
     newMultisigAccounts: [],
   }
 
-  if (!appConfig.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
-    return result
-  }
-
-  // Import required services
-  const { getApiAndProvider } = await import('@/lib/account')
-  const { getBip44PathWithAccount } = await import('@/lib/utils/address')
-  const { ledgerService } = await import('@/lib/ledger/ledgerService')
-  const { processAccountsForApp } = await import('@/lib/services/account-processing.service')
-
-  // Derive addresses for all account/address combinations in parallel
-  const addressPromises = accountIndices.flatMap(accountIndex =>
-    addressIndices.map(async addressIndex => {
-      try {
-        // Build the derivation path with both account and address indices
-        const basePath = getBip44PathWithAccount(appConfig.bip44Path, accountIndex)
-        // Replace the last component (address index) in the path
-        const pathParts = basePath.split('/')
-        pathParts[pathParts.length - 1] = `${addressIndex}'`
-        const derivedPath = pathParts.join('/')
-
-        const address = await ledgerService.getAccountAddress(derivedPath, appConfig.ss58Prefix, false)
-        if (address) {
-          return { ...address, path: derivedPath }
-        }
-      } catch (error) {
-        console.warn(`Failed to get address for account index ${accountIndex}, address index ${addressIndex} on ${app.name}:`, error)
-      }
-      return null
-    })
-  )
-
-  // Wait for all address derivations to complete in parallel
-  const addressResults = await Promise.all(addressPromises)
-
-  // Filter out null results from failed derivations
-  const newAddresses = addressResults.filter((addr): addr is Address => addr !== null)
-
-  if (newAddresses.length === 0) {
-    return result
-  }
-
-  // Connect to blockchain and process new accounts
-  const { api, provider } = await getApiAndProvider(appConfig.rpcEndpoints)
-  if (!api) {
-    return result
-  }
-
   try {
-    // Process the new accounts
-    const { success, data } = await processAccountsForApp(
-      newAddresses,
+    // Use the service layer for scanning
+    const scannedApp = await scanAppWithCustomIndices(
       appConfig,
-      api,
       polkadotAddresses,
+      accountIndices,
+      addressIndices,
       true // Filter by balance
     )
 
-    if (success && data) {
-      const { accounts, multisigAccounts } = data
-
+    if (scannedApp.accounts || scannedApp.multisigAccounts) {
       // Check for existing addresses to avoid duplicates
       const existingAddresses = new Set([
         ...(app.accounts || []).map(acc => acc.address),
@@ -146,16 +86,12 @@ async function scanSingleApp(
       ])
 
       // Only add accounts that don't already exist
-      result.newAccounts = accounts.filter(acc => !existingAddresses.has(acc.address))
-      result.newMultisigAccounts = multisigAccounts.filter(acc => !existingAddresses.has(acc.address))
+      result.newAccounts = (scannedApp.accounts || []).filter(acc => !existingAddresses.has(acc.address))
+      result.newMultisigAccounts = (scannedApp.multisigAccounts || []).filter(acc => !existingAddresses.has(acc.address))
     }
-  } finally {
-    // Always disconnect the API
-    if (api) {
-      await api.disconnect()
-    } else if (provider) {
-      await provider.disconnect()
-    }
+  } catch (error) {
+    console.warn(`Failed to scan app ${app.name}:`, error)
+    // Return empty result on error - let the caller handle the error
   }
 
   return result
@@ -167,7 +103,6 @@ async function scanSingleApp(
 async function updateStateWithScanResults(updatedApps: App[], newAccountsFound: number): Promise<void> {
   if (newAccountsFound > 0) {
     // Import the ledger state to update it
-    const { ledgerState$ } = await import('@/state/ledger')
     ledgerState$.apps.apps.set(updatedApps)
   }
 }
@@ -176,8 +111,6 @@ async function updateStateWithScanResults(updatedApps: App[], newAccountsFound: 
  * Show appropriate notifications based on scan results
  */
 async function showScanNotifications(newAccountsFound: number, chainInfo: string, error?: Error): Promise<void> {
-  const { notifications$ } = await import('@/state/notifications')
-
   if (error) {
     notifications$.push({
       title: 'Deep Scan Failed',
@@ -343,7 +276,6 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
           scanResult = await scanSingleApp(appForScanning, accountIndices, addressIndices, appConfig, polkadotAddressesArray)
 
           // Update app status based on scan result
-          const hasNewAccounts = scanResult.newAccounts.length > 0 || scanResult.newMultisigAccounts.length > 0
           setDeepScanApps(prev =>
             prev.map(scanApp =>
               scanApp.id === appConfig.id
@@ -436,7 +368,6 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
       // Check if this was a cancellation vs a critical system error
       if (error instanceof Error && error.message === 'Deep scan was cancelled') {
         // Show cancellation notification
-        const { notifications$ } = await import('@/state/notifications')
         notifications$.push({
           title: 'Deep Scan Cancelled',
           description: 'The deep scan was cancelled by the user.',
@@ -445,7 +376,6 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
         })
       } else {
         // Show critical system error notification (not individual chain failures)
-        const { notifications$ } = await import('@/state/notifications')
         notifications$.push({
           title: 'Deep Scan System Error',
           description: error instanceof Error ? error.message : 'A critical system error occurred during deep scan.',

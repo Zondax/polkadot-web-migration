@@ -1,26 +1,27 @@
 'use client'
 
 import { use$ } from '@legendapp/state/react'
-import { AlertCircle, Loader2, Minus, Plus } from 'lucide-react'
+import { AlertCircle, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import { useMemo, useState } from 'react'
 import { AppStatus } from 'state/ledger'
 import { uiState$ } from 'state/ui'
 import { CustomTooltip } from '@/components/CustomTooltip'
 import TokenIcon from '@/components/TokenIcon'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { AppId } from '@/config/apps'
 import { appsConfigs, getChainName, polkadotAppConfig } from '@/config/apps'
 import { cn, getAppTotalAccounts } from '@/lib/utils'
 import type { App } from '@/state/ledger'
+import { IndexInputSection } from './index-input-section'
 import { LedgerUnlockReminder } from './ledger-unlock-reminder'
+
+import type { ScanType, RangeField } from '@/lib/types/scan'
+import { parseIndexConfig, validateIndexConfig, formatIndexDisplay } from '@/lib/utils/scan-indices'
 
 interface DeepScanModalProps {
   isOpen: boolean
@@ -41,8 +42,8 @@ interface DeepScanModalProps {
 }
 
 export interface DeepScanOptions {
-  accountType: 'single' | 'range'
-  addressType: 'single' | 'range'
+  accountType: ScanType
+  addressType: ScanType
   accountIndex?: number
   accountStartIndex?: number
   accountEndIndex?: number
@@ -64,8 +65,8 @@ export function DeepScanModal({
   onCancel,
   onDone,
 }: DeepScanModalProps) {
-  const [accountScanType, setAccountScanType] = useState<'single' | 'range'>('single')
-  const [addressScanType, setAddressScanType] = useState<'single' | 'range'>('single')
+  const [accountScanType, setAccountScanType] = useState<ScanType>('single')
+  const [addressScanType, setAddressScanType] = useState<ScanType>('single')
   const [accountIndex, setAccountIndex] = useState<string>('1')
   const [accountStartIndex, setAccountStartIndex] = useState<string>('1')
   const [accountEndIndex, setAccountEndIndex] = useState<string>('5')
@@ -96,27 +97,10 @@ export function DeepScanModal({
     const pathParts = chain.bip44Path.split('/')
     const coinType = pathParts[2] // e.g., "354'"
 
-    // Handle account part based on account scan type
-    let accountPart: string
-    if (accountScanType === 'single') {
-      const accIndex = Number.parseInt(accountIndex, 10) || 0
-      accountPart = `${accIndex}`
-    } else {
-      const accStart = Number.parseInt(accountStartIndex, 10) || 0
-      const accEnd = Number.parseInt(accountEndIndex, 10) || 0
-      accountPart = accStart === accEnd ? `${accStart}` : `{${accStart}...${accEnd}}`
-    }
+    // Use utility functions for formatting
+    const accountPart = formatIndexDisplay(accountScanType, accountIndex, accountStartIndex, accountEndIndex)
 
-    // Handle address part based on address scan type
-    let addressPart: string
-    if (addressScanType === 'single') {
-      const addrIndex = Number.parseInt(addressIndex, 10) || 0
-      addressPart = `${addrIndex}`
-    } else {
-      const addrStart = Number.parseInt(addressStartIndex, 10) || 0
-      const addrEnd = Number.parseInt(addressEndIndex, 10) || 0
-      addressPart = addrStart === addrEnd ? `${addrStart}` : `{${addrStart}...${addrEnd}}`
-    }
+    const addressPart = formatIndexDisplay(addressScanType, addressIndex, addressStartIndex, addressEndIndex)
 
     return `m/44'/${coinType}/${accountPart}'/0'/${addressPart}'`
   }, [
@@ -133,36 +117,30 @@ export function DeepScanModal({
   ])
 
   const handleScan = () => {
+    // Parse and validate configurations using utilities
+    const accountConfig = parseIndexConfig(accountScanType, accountIndex, accountStartIndex, accountEndIndex)
+
+    const addressConfig = parseIndexConfig(addressScanType, addressIndex, addressStartIndex, addressEndIndex)
+
+    if (!accountConfig || !addressConfig) return
+
+    // Convert to DeepScanOptions format
     const scanOptions: DeepScanOptions = {
-      accountType: accountScanType,
-      addressType: addressScanType,
+      accountType: accountConfig.type,
+      addressType: addressConfig.type,
       selectedChain,
-    }
-
-    // Add account values based on type
-    if (accountScanType === 'single') {
-      const accIndex = Number.parseInt(accountIndex, 10)
-      if (Number.isNaN(accIndex) || accIndex < 0) return
-      scanOptions.accountIndex = accIndex
-    } else {
-      const accStart = Number.parseInt(accountStartIndex, 10)
-      const accEnd = Number.parseInt(accountEndIndex, 10)
-      if (Number.isNaN(accStart) || Number.isNaN(accEnd) || accStart < 0 || accEnd < accStart) return
-      scanOptions.accountStartIndex = accStart
-      scanOptions.accountEndIndex = accEnd
-    }
-
-    // Add address values based on type
-    if (addressScanType === 'single') {
-      const addrIndex = Number.parseInt(addressIndex, 10)
-      if (Number.isNaN(addrIndex) || addrIndex < 0) return
-      scanOptions.addressIndex = addrIndex
-    } else {
-      const addrStart = Number.parseInt(addressStartIndex, 10)
-      const addrEnd = Number.parseInt(addressEndIndex, 10)
-      if (Number.isNaN(addrStart) || Number.isNaN(addrEnd) || addrStart < 0 || addrEnd < addrStart) return
-      scanOptions.addressStartIndex = addrStart
-      scanOptions.addressEndIndex = addrEnd
+      ...(accountConfig.type === 'single'
+        ? { accountIndex: accountConfig.value }
+        : {
+            accountStartIndex: accountConfig.start,
+            accountEndIndex: accountConfig.end,
+          }),
+      ...(addressConfig.type === 'single'
+        ? { addressIndex: addressConfig.value }
+        : {
+            addressStartIndex: addressConfig.start,
+            addressEndIndex: addressConfig.end,
+          }),
     }
 
     onScan(scanOptions)
@@ -175,65 +153,29 @@ export function DeepScanModal({
   }
 
   const isValidScan = () => {
-    // Validate account settings
-    let accountValid = false
-    if (accountScanType === 'single') {
-      const accIndex = Number.parseInt(accountIndex, 10)
-      accountValid = !Number.isNaN(accIndex) && accIndex >= 0
-    } else {
-      const accStart = Number.parseInt(accountStartIndex, 10)
-      const accEnd = Number.parseInt(accountEndIndex, 10)
-      accountValid = !Number.isNaN(accStart) && !Number.isNaN(accEnd) && accStart >= 0 && accEnd >= accStart && accEnd - accStart < 50
-    }
+    // Use utility functions for validation
+    const accountValidation = validateIndexConfig(accountScanType, accountIndex, accountStartIndex, accountEndIndex)
 
-    // Validate address settings
-    let addressValid = false
-    if (addressScanType === 'single') {
-      const addrIndex = Number.parseInt(addressIndex, 10)
-      addressValid = !Number.isNaN(addrIndex) && addrIndex >= 0
-    } else {
-      const addrStart = Number.parseInt(addressStartIndex, 10)
-      const addrEnd = Number.parseInt(addressEndIndex, 10)
-      addressValid =
-        !Number.isNaN(addrStart) && !Number.isNaN(addrEnd) && addrStart >= 0 && addrEnd >= addrStart && addrEnd - addrStart < 50
-    }
+    const addressValidation = validateIndexConfig(addressScanType, addressIndex, addressStartIndex, addressEndIndex)
 
-    return accountValid && addressValid
+    return accountValidation.isValid && addressValidation.isValid
   }
 
-  const adjustAccountIndex = (increment: number) => {
-    const current = Number.parseInt(accountIndex, 10) || 0
-    const newValue = Math.max(0, current + increment)
-    setAccountIndex(newValue.toString())
-  }
-
-  const adjustAccountRange = (field: 'start' | 'end', increment: number) => {
+  // Handlers for account index changes
+  const handleAccountRangeChange = (field: RangeField, value: string) => {
     if (field === 'start') {
-      const current = Number.parseInt(accountStartIndex, 10) || 0
-      const newValue = Math.max(0, current + increment)
-      setAccountStartIndex(newValue.toString())
+      setAccountStartIndex(value)
     } else {
-      const current = Number.parseInt(accountEndIndex, 10) || 0
-      const newValue = Math.max(0, current + increment)
-      setAccountEndIndex(newValue.toString())
+      setAccountEndIndex(value)
     }
   }
 
-  const adjustAddressIndex = (increment: number) => {
-    const current = Number.parseInt(addressIndex, 10) || 0
-    const newValue = Math.max(0, current + increment)
-    setAddressIndex(newValue.toString())
-  }
-
-  const adjustAddressRange = (field: 'start' | 'end', increment: number) => {
+  // Handlers for address index changes
+  const handleAddressRangeChange = (field: RangeField, value: string) => {
     if (field === 'start') {
-      const current = Number.parseInt(addressStartIndex, 10) || 0
-      const newValue = Math.max(0, current + increment)
-      setAddressStartIndex(newValue.toString())
+      setAddressStartIndex(value)
     } else {
-      const current = Number.parseInt(addressEndIndex, 10) || 0
-      const newValue = Math.max(0, current + increment)
-      setAddressEndIndex(newValue.toString())
+      setAddressEndIndex(value)
     }
   }
 
@@ -429,233 +371,35 @@ export function DeepScanModal({
       </div>
 
       {/* Account Index Section */}
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <div className="text-sm font-medium">Account Index</div>
-          <Tabs value={accountScanType} onValueChange={value => setAccountScanType(value as 'single' | 'range')} data-testid="account-tabs">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="single" data-testid="account-single-tab">
-                Single Account
-              </TabsTrigger>
-              <TabsTrigger value="range" data-testid="account-range-tab">
-                Account Range
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="single" className="space-y-2 mt-4">
-              <div className="flex items-center justify-center space-x-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => adjustAccountIndex(-1)}
-                  disabled={Number.parseInt(accountIndex, 10) <= 0}
-                >
-                  <Minus className="h-4 w-4" />
-                </Button>
-                <Input
-                  id="account-index"
-                  type="number"
-                  min="0"
-                  value={accountIndex}
-                  onChange={e => setAccountIndex(e.target.value)}
-                  className="text-center"
-                  placeholder="1"
-                />
-                <Button type="button" variant="outline" size="sm" onClick={() => adjustAccountIndex(1)}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">The account index is the third component in the BIP44 path</p>
-            </TabsContent>
-
-            <TabsContent value="range" className="space-y-2 mt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label htmlFor="account-start-index" className="text-sm font-medium">
-                    Start Index
-                  </label>
-                  <div className="flex items-center space-x-1">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => adjustAccountRange('start', -1)}
-                      disabled={Number.parseInt(accountStartIndex, 10) <= 0}
-                    >
-                      <Minus className="h-4 w-4" />
-                    </Button>
-                    <Input
-                      id="account-start-index"
-                      type="number"
-                      min="0"
-                      value={accountStartIndex}
-                      onChange={e => setAccountStartIndex(e.target.value)}
-                      className="text-center"
-                    />
-                    <Button type="button" variant="outline" size="sm" onClick={() => adjustAccountRange('start', 1)}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="account-end-index" className="text-sm font-medium">
-                    End Index
-                  </label>
-                  <div className="flex items-center space-x-1">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => adjustAccountRange('end', -1)}
-                      disabled={Number.parseInt(accountEndIndex, 10) <= Number.parseInt(accountStartIndex, 10)}
-                    >
-                      <Minus className="h-4 w-4" />
-                    </Button>
-                    <Input
-                      id="account-end-index"
-                      type="number"
-                      min={accountStartIndex}
-                      value={accountEndIndex}
-                      onChange={e => setAccountEndIndex(e.target.value)}
-                      className="text-center"
-                    />
-                    <Button type="button" variant="outline" size="sm" onClick={() => adjustAccountRange('end', 1)}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Scanning {Math.max(0, Number.parseInt(accountEndIndex, 10) - Number.parseInt(accountStartIndex, 10) + 1)} account
-                {Math.max(0, Number.parseInt(accountEndIndex, 10) - Number.parseInt(accountStartIndex, 10) + 1) !== 1 ? 's' : ''}
-              </p>
-              {Number.parseInt(accountEndIndex, 10) - Number.parseInt(accountStartIndex, 10) >= 50 && (
-                <Alert>
-                  <AlertDescription className="text-amber-900 dark:text-amber-200">
-                    Large account ranges may take a long time to scan. Consider smaller ranges for better performance.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
+      <IndexInputSection
+        title="Account Index"
+        helpText="The account index is the third component in the BIP44 path"
+        scanType={accountScanType}
+        singleValue={accountIndex}
+        rangeStart={accountStartIndex}
+        rangeEnd={accountEndIndex}
+        onScanTypeChange={setAccountScanType}
+        onSingleChange={setAccountIndex}
+        onRangeChange={handleAccountRangeChange}
+        testIdPrefix="account"
+        unitSingular="account"
+      />
 
       {/* Address Index Section */}
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <div className="text-sm font-medium">Address Index</div>
-          <Tabs value={addressScanType} onValueChange={value => setAddressScanType(value as 'single' | 'range')} data-testid="address-tabs">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="single" data-testid="address-single-tab">
-                Single Address
-              </TabsTrigger>
-              <TabsTrigger value="range" data-testid="address-range-tab">
-                Address Range
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="single" className="space-y-2 mt-4">
-              <div className="flex items-center justify-center space-x-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => adjustAddressIndex(-1)}
-                  disabled={Number.parseInt(addressIndex, 10) <= 0}
-                >
-                  <Minus className="h-4 w-4" />
-                </Button>
-                <Input
-                  id="address-index"
-                  type="number"
-                  min="0"
-                  value={addressIndex}
-                  onChange={e => setAddressIndex(e.target.value)}
-                  className="text-center"
-                  placeholder="0"
-                />
-                <Button type="button" variant="outline" size="sm" onClick={() => adjustAddressIndex(1)}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">The address index is the fifth component in the BIP44 path</p>
-            </TabsContent>
-
-            <TabsContent value="range" className="space-y-2 mt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label htmlFor="address-start-index" className="text-sm font-medium">
-                    Start Index
-                  </label>
-                  <div className="flex items-center space-x-1">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => adjustAddressRange('start', -1)}
-                      disabled={Number.parseInt(addressStartIndex, 10) <= 0}
-                    >
-                      <Minus className="h-4 w-4" />
-                    </Button>
-                    <Input
-                      id="address-start-index"
-                      type="number"
-                      min="0"
-                      value={addressStartIndex}
-                      onChange={e => setAddressStartIndex(e.target.value)}
-                      className="text-center"
-                    />
-                    <Button type="button" variant="outline" size="sm" onClick={() => adjustAddressRange('start', 1)}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="address-end-index" className="text-sm font-medium">
-                    End Index
-                  </label>
-                  <div className="flex items-center space-x-1">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => adjustAddressRange('end', -1)}
-                      disabled={Number.parseInt(addressEndIndex, 10) <= Number.parseInt(addressStartIndex, 10)}
-                    >
-                      <Minus className="h-4 w-4" />
-                    </Button>
-                    <Input
-                      id="address-end-index"
-                      type="number"
-                      min={addressStartIndex}
-                      value={addressEndIndex}
-                      onChange={e => setAddressEndIndex(e.target.value)}
-                      className="text-center"
-                    />
-                    <Button type="button" variant="outline" size="sm" onClick={() => adjustAddressRange('end', 1)}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Scanning {Math.max(0, Number.parseInt(addressEndIndex, 10) - Number.parseInt(addressStartIndex, 10) + 1)} address
-                {Math.max(0, Number.parseInt(addressEndIndex, 10) - Number.parseInt(addressStartIndex, 10) + 1) !== 1 ? 'es' : ''} per
-                account
-              </p>
-              {Number.parseInt(addressEndIndex, 10) - Number.parseInt(addressStartIndex, 10) >= 50 && (
-                <Alert>
-                  <AlertDescription className="text-amber-900 dark:text-amber-200">
-                    Large address ranges may take a long time to scan. Consider smaller ranges for better performance.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
+      <IndexInputSection
+        title="Address Index"
+        helpText="The address index is the fifth component in the BIP44 path"
+        scanType={addressScanType}
+        singleValue={addressIndex}
+        rangeStart={addressStartIndex}
+        rangeEnd={addressEndIndex}
+        onScanTypeChange={setAddressScanType}
+        onSingleChange={setAddressIndex}
+        onRangeChange={handleAddressRangeChange}
+        testIdPrefix="address"
+        unitSingular="address"
+        unitPlural="addresses"
+      />
     </>
   )
 

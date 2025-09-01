@@ -29,7 +29,7 @@ import {
 import { ledgerService } from '@/lib/ledger/ledgerService'
 import type { ConnectionResponse } from '@/lib/ledger/types'
 import { InternalError, withErrorHandling } from '@/lib/utils'
-import { getBip44Path } from '@/lib/utils/address'
+import { getBip44Path, getBip44PathWithAccount } from '@/lib/utils/address'
 import { getAccountTransferableBalance } from '@/lib/utils/balance'
 import {
   type Address,
@@ -91,6 +91,50 @@ export const ledgerClient = {
         return { result: filteredAddresses }
       },
       { errorCode: InternalErrorType.SYNC_ERROR, operation: 'synchronizeAccounts', context: { appId: app.id } }
+    )
+  },
+
+  /**
+   * Synchronize accounts with custom account and address indices for deep scanning
+   */
+  async synchronizeAccountsWithIndices(
+    app: AppConfig,
+    accountIndices: number[],
+    addressIndices: number[]
+  ): Promise<{ result?: Address[] }> {
+    return withErrorHandling(
+      async () => {
+        const addresses: Address[] = []
+
+        // Process accounts and addresses sequentially with small delays to avoid overwhelming Ledger
+        for (const accountIndex of accountIndices) {
+          for (const addressIndex of addressIndices) {
+            try {
+              // Build the derivation path with both account and address indices
+              const basePath = getBip44PathWithAccount(app.bip44Path, accountIndex)
+              // Replace the last component (address index) in the path
+              const pathParts = basePath.split('/')
+              pathParts[pathParts.length - 1] = `${addressIndex}'`
+              const derivedPath = pathParts.join('/')
+
+              const address = await ledgerService.getAccountAddress(derivedPath, app.ss58Prefix, false)
+              if (address) {
+                addresses.push({ ...address, path: derivedPath } as Address)
+              }
+            } catch (error) {
+              console.warn(`Failed to get address for account ${accountIndex}, address ${addressIndex} on ${app.name}:`, error)
+              // Continue with next address even if this one fails
+            }
+          }
+        }
+
+        return { result: addresses }
+      },
+      {
+        errorCode: InternalErrorType.SYNC_ERROR,
+        operation: 'synchronizeAccountsWithIndices',
+        context: { appId: app.id, accountIndices, addressIndices },
+      }
     )
   },
 
