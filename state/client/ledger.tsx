@@ -106,7 +106,7 @@ export const ledgerClient = {
       async () => {
         const addresses: Address[] = []
 
-        // Process accounts and addresses sequentially with small delays to avoid overwhelming Ledger
+        // Process accounts and addresses sequentially
         for (const accountIndex of accountIndices) {
           for (const addressIndex of addressIndices) {
             try {
