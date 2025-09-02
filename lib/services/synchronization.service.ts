@@ -18,6 +18,17 @@ export interface SyncProgress {
   percentage: number
 }
 
+/**
+ * Checks if cancellation is requested and throws an error if so
+ * @param onCancel - Optional cancellation callback function
+ * @throws {Error} When cancellation is requested
+ */
+function checkCancellation(onCancel?: () => boolean): void {
+  if (onCancel?.()) {
+    throw new Error('Scan was cancelled')
+  }
+}
+
 export interface SyncResult {
   success: boolean
   apps: App[]
@@ -360,11 +371,18 @@ export async function scanAppWithCustomIndices(
   polkadotAddresses: string[],
   accountIndices: number[],
   addressIndices: number[],
-  filterByBalance = true
+  filterByBalance = true,
+  onCancel?: () => boolean
 ): Promise<App> {
   try {
+    // Check for cancellation before starting
+    checkCancellation(onCancel)
+
     // Fetch addresses from Ledger using custom indices
     const addresses = await ledgerClient.synchronizeAccountsWithIndices(appConfig, accountIndices, addressIndices)
+
+    // Check for cancellation after Ledger interaction
+    checkCancellation(onCancel)
 
     if (!addresses.result || addresses.result.length === 0) {
       return {
@@ -395,8 +413,14 @@ export async function scanAppWithCustomIndices(
     }
 
     try {
+      // Check for cancellation before processing accounts
+      checkCancellation(onCancel)
+
       // Process accounts using the standard account processing service
       const { success, data, error } = await processAccountsForApp(addresses.result, appConfig, api, polkadotAddresses, filterByBalance)
+
+      // Check for cancellation after account processing
+      checkCancellation(onCancel)
 
       if (!success || !data) {
         throw new InternalError(InternalErrorType.SYNC_ERROR, {
