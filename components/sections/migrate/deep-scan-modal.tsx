@@ -21,7 +21,7 @@ import { IndexInputSection } from './index-input-section'
 import { LedgerUnlockReminder } from './ledger-unlock-reminder'
 
 import type { ScanType, RangeField } from '@/lib/types/scan'
-import { ScanTypeEnum, RangeFieldEnum } from '@/lib/types/scan'
+import { ScanTypeEnum, RangeFieldEnum, SCAN_LIMITS } from '@/lib/types/scan'
 import { parseIndexConfig, validateIndexConfig, formatIndexDisplay } from '@/lib/utils/scan-indices'
 
 interface DeepScanModalProps {
@@ -68,12 +68,12 @@ export function DeepScanModal({
 }: DeepScanModalProps) {
   const [accountScanType, setAccountScanType] = useState<ScanType>(ScanTypeEnum.SINGLE)
   const [addressScanType, setAddressScanType] = useState<ScanType>(ScanTypeEnum.SINGLE)
-  const [accountIndex, setAccountIndex] = useState<string>('1')
-  const [accountStartIndex, setAccountStartIndex] = useState<string>('1')
-  const [accountEndIndex, setAccountEndIndex] = useState<string>('5')
-  const [addressIndex, setAddressIndex] = useState<string>('0')
-  const [addressStartIndex, setAddressStartIndex] = useState<string>('0')
-  const [addressEndIndex, setAddressEndIndex] = useState<string>('5')
+  const [accountIndex, setAccountIndex] = useState<string>(SCAN_LIMITS.DEFAULT_SINGLE.toString())
+  const [accountStartIndex, setAccountStartIndex] = useState<string>(SCAN_LIMITS.DEFAULT_RANGE_START.toString())
+  const [accountEndIndex, setAccountEndIndex] = useState<string>(SCAN_LIMITS.DEFAULT_RANGE_END.toString())
+  const [addressIndex, setAddressIndex] = useState<string>(SCAN_LIMITS.DEFAULT_SINGLE.toString())
+  const [addressStartIndex, setAddressStartIndex] = useState<string>(SCAN_LIMITS.DEFAULT_RANGE_START.toString())
+  const [addressEndIndex, setAddressEndIndex] = useState<string>(SCAN_LIMITS.DEFAULT_RANGE_END.toString())
   const [selectedChain, setSelectedChain] = useState<AppId | 'all'>('all')
 
   // Get available chains from config
