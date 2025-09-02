@@ -238,7 +238,7 @@ describe('DeepScanModal', () => {
     it('should disable scan button for negative account index', () => {
       render(<DeepScanModal isOpen={true} onClose={mockOnClose} onScan={mockOnScan} />)
 
-      const accountInput = screen.getByDisplayValue('1') as HTMLInputElement
+      const accountInput = screen.getByLabelText('Account Index')
       fireEvent.change(accountInput, { target: { value: '-1' } })
 
       const scanButton = screen.getByText('Start Deep Scan')
@@ -248,7 +248,7 @@ describe('DeepScanModal', () => {
     it('should disable scan button for negative address index', () => {
       render(<DeepScanModal isOpen={true} onClose={mockOnClose} onScan={mockOnScan} />)
 
-      const addressInput = document.getElementById('address-index') as HTMLInputElement
+      const addressInput = screen.getByLabelText('Address Index')
       fireEvent.change(addressInput, { target: { value: '-1' } })
 
       const scanButton = screen.getByText('Start Deep Scan')
@@ -280,8 +280,8 @@ describe('DeepScanModal', () => {
     it('should enable scan button for valid inputs', () => {
       render(<DeepScanModal isOpen={true} onClose={mockOnClose} onScan={mockOnScan} />)
 
-      const accountInput = screen.getByDisplayValue('1') as HTMLInputElement
-      const addressInput = document.getElementById('address-index') as HTMLInputElement
+      const accountInput = screen.getByLabelText('Account Index')
+      const addressInput = screen.getByLabelText('Address Index')
 
       fireEvent.change(accountInput, { target: { value: '5' } })
       fireEvent.change(addressInput, { target: { value: '10' } })
@@ -295,8 +295,8 @@ describe('DeepScanModal', () => {
     it('should generate correct options for single account + single address', () => {
       render(<DeepScanModal isOpen={true} onClose={mockOnClose} onScan={mockOnScan} />)
 
-      const accountInput = screen.getByDisplayValue('1') as HTMLInputElement
-      const addressInput = document.getElementById('address-index') as HTMLInputElement
+      const accountInput = screen.getByLabelText('Account Index')
+      const addressInput = screen.getByLabelText('Address Index')
 
       fireEvent.change(accountInput, { target: { value: '7' } })
       fireEvent.change(addressInput, { target: { value: '3' } })

@@ -67,6 +67,9 @@ export function IndexInputSection({
           </TabsList>
 
           <TabsContent value={ScanTypeEnum.SINGLE} className="space-y-2 mt-4">
+            <label htmlFor={`${testIdPrefix}-index`} className="sr-only">
+              {title}
+            </label>
             <div className="flex items-center justify-center space-x-2">
               <Button
                 type="button"
