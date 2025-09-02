@@ -41,7 +41,7 @@ describe('Account Processing Service', () => {
   const mockApp: AppConfig = {
     id: 'polkadot',
     name: 'Polkadot',
-    rpcEndpoint: 'wss://rpc.polkadot.io',
+    rpcEndpoints: ['wss://rpc.polkadot.io'],
     token: { symbol: 'DOT', decimals: 10 },
     bip44Path: "m/44'/354'/0'/0/0",
     ss58Prefix: 0,

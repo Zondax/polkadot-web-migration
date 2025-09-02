@@ -29,7 +29,7 @@ import {
 import { ledgerService } from '@/lib/ledger/ledgerService'
 import type { ConnectionResponse } from '@/lib/ledger/types'
 import { InternalError, withErrorHandling } from '@/lib/utils'
-import { getBip44Path } from '@/lib/utils/address'
+import { updateBip44PathIndices } from '@/lib/utils/address'
 import { getAccountTransferableBalance } from '@/lib/utils/balance'
 import {
   type Address,
@@ -71,7 +71,7 @@ export const ledgerClient = {
         const addresses: Address[] = []
         for (let i = 0; i < maxAddressesToFetch; i++) {
           try {
-            const derivedPath = getBip44Path(app.bip44Path, i)
+            const derivedPath = updateBip44PathIndices(app.bip44Path, { address: i })
             const address = await ledgerService.getAccountAddress(derivedPath, app.ss58Prefix, false)
             if (address) {
               addresses.push({ ...address, path: derivedPath } as Address)
@@ -94,11 +94,54 @@ export const ledgerClient = {
     )
   },
 
+  /**
+   * Synchronize accounts with custom account and address indices for deep scanning
+   */
+  async synchronizeAccountsWithIndices(
+    app: AppConfig,
+    accountIndices: number[],
+    addressIndices: number[]
+  ): Promise<{ result?: Address[] }> {
+    return withErrorHandling(
+      async () => {
+        const addresses: Address[] = []
+
+        // Process accounts and addresses sequentially
+        for (const accountIndex of accountIndices) {
+          for (const addressIndex of addressIndices) {
+            try {
+              // Build the derivation path with both account and address indices using the robust utility
+              const derivedPath = updateBip44PathIndices(app.bip44Path, {
+                account: accountIndex,
+                address: addressIndex,
+              })
+
+              const address = await ledgerService.getAccountAddress(derivedPath, app.ss58Prefix, false)
+              if (address) {
+                addresses.push({ ...address, path: derivedPath } as Address)
+              }
+            } catch (error) {
+              console.warn(`Failed to get address for account ${accountIndex}, address ${addressIndex} on ${app.name}:`, error)
+              // Continue with next address even if this one fails
+            }
+          }
+        }
+
+        return { result: addresses }
+      },
+      {
+        errorCode: InternalErrorType.SYNC_ERROR,
+        operation: 'synchronizeAccountsWithIndices',
+        context: { appId: app.id, accountIndices, addressIndices },
+      }
+    )
+  },
+
   async getAccountAddress(bip44Path: string, index: number, ss58Prefix: number): Promise<{ result?: Address }> {
     return withErrorHandling(
       async () => {
         // get address
-        const derivedPath = getBip44Path(bip44Path, index)
+        const derivedPath = updateBip44PathIndices(bip44Path, { address: index })
         const genericAddress = await ledgerService.getAccountAddress(derivedPath, ss58Prefix, true)
         const address: Address = {
           ...genericAddress,
@@ -121,7 +164,7 @@ export const ledgerClient = {
     return withErrorHandling(
       async () => {
         const { balances, senderAddress, senderPath, appConfig, multisigInfo, accountType } = validation
-        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
         if (!api) {
           throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
@@ -180,13 +223,13 @@ export const ledgerClient = {
 
   async unstakeBalance(appId: AppId, address: string, path: string, amount: BN, updateTxStatus: UpdateTransactionStatus) {
     const appConfig = appsConfigs.get(appId)
-    if (!appConfig?.rpcEndpoint) {
+    if (!appConfig?.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
       throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
     }
 
     return withErrorHandling(
       async () => {
-        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
         if (!api) {
           throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
@@ -231,14 +274,14 @@ export const ledgerClient = {
 
   async getUnstakeFee(appId: AppId, address: string, amount: BN): Promise<BN | undefined> {
     const appConfig = appsConfigs.get(appId)
-    if (!appConfig?.rpcEndpoint) {
+    if (!appConfig?.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
       return undefined
     }
 
     try {
       return await withErrorHandling(
         async () => {
-          const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+          const { api } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
           if (!api) {
             throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
           }
@@ -261,13 +304,13 @@ export const ledgerClient = {
 
   async withdrawBalance(appId: AppId, address: string, path: string, updateTxStatus: UpdateTransactionStatus) {
     const appConfig = appsConfigs.get(appId)
-    if (!appConfig?.rpcEndpoint) {
+    if (!appConfig?.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
       throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
     }
 
     return withErrorHandling(
       async () => {
-        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
         if (!api) {
           throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
@@ -310,14 +353,14 @@ export const ledgerClient = {
 
   async getWithdrawFee(appId: AppId, address: string): Promise<BN | undefined> {
     const appConfig = appsConfigs.get(appId)
-    if (!appConfig?.rpcEndpoint) {
+    if (!appConfig?.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
       return undefined
     }
 
     try {
       return await withErrorHandling(
         async () => {
-          const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+          const { api } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
           if (!api) {
             throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
           }
@@ -338,13 +381,13 @@ export const ledgerClient = {
 
   async removeIdentity(appId: AppId, address: string, path: string, updateTxStatus: UpdateTransactionStatus) {
     const appConfig = appsConfigs.get(appId)
-    if (!appConfig?.rpcEndpoint) {
+    if (!appConfig?.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
       throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
     }
 
     return withErrorHandling(
       async () => {
-        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
         if (!api) {
           throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
@@ -389,14 +432,14 @@ export const ledgerClient = {
 
   async getRemoveIdentityFee(appId: AppId, address: string): Promise<BN | undefined> {
     const appConfig = appsConfigs.get(appId)
-    if (!appConfig?.rpcEndpoint) {
+    if (!appConfig?.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
       return undefined
     }
 
     try {
       return await withErrorHandling(
         async () => {
-          const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+          const { api } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
           if (!api) {
             throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
           }
@@ -424,7 +467,7 @@ export const ledgerClient = {
       return await withErrorHandling(
         async () => {
           const { balances, senderAddress, appConfig, multisigInfo } = validation
-          const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+          const { api } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
           if (!api) {
             throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
           }
@@ -483,7 +526,7 @@ export const ledgerClient = {
 
     return withErrorHandling(
       async () => {
-        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
         if (!api) {
           throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
@@ -603,7 +646,7 @@ export const ledgerClient = {
 
     return withErrorHandling(
       async () => {
-        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
         if (!api) {
           throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
@@ -701,13 +744,13 @@ export const ledgerClient = {
   async validateCallDataMatchesHash(appId: AppId, callData: string, expectedCallHash: string): Promise<boolean> {
     try {
       const appConfig = appsConfigs.get(appId)
-      if (!appConfig?.rpcEndpoint) {
+      if (!appConfig?.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
         return false
       }
 
       return await withErrorHandling(
         async () => {
-          const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+          const { api } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
           if (!api) {
             throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
           }
@@ -733,7 +776,7 @@ export const ledgerClient = {
     updateTxStatus: UpdateTransactionStatus
   ) {
     const appConfig = appsConfigs.get(appId)
-    if (!appConfig?.rpcEndpoint) {
+    if (!appConfig?.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
       throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
     }
 
@@ -754,7 +797,7 @@ export const ledgerClient = {
 
     return withErrorHandling(
       async () => {
-        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
         if (!api) {
           throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
@@ -837,13 +880,13 @@ export const ledgerClient = {
 
   async removeProxies(appId: AppId, address: string, path: string, updateTxStatus: UpdateTransactionStatus) {
     const appConfig = appsConfigs.get(appId)
-    if (!appConfig?.rpcEndpoint) {
+    if (!appConfig?.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
       throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
     }
 
     return withErrorHandling(
       async () => {
-        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
         if (!api) {
           throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
@@ -888,14 +931,14 @@ export const ledgerClient = {
 
   async getRemoveProxiesFee(appId: AppId, address: string): Promise<BN | undefined> {
     const appConfig = appsConfigs.get(appId)
-    if (!appConfig?.rpcEndpoint) {
+    if (!appConfig?.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
       return undefined
     }
 
     try {
       return await withErrorHandling(
         async () => {
-          const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+          const { api } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
           if (!api) {
             throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
           }
@@ -918,13 +961,13 @@ export const ledgerClient = {
 
   async removeAccountIndex(appId: AppId, address: string, accountIndex: string, path: string, updateTxStatus: UpdateTransactionStatus) {
     const appConfig = appsConfigs.get(appId)
-    if (!appConfig?.rpcEndpoint) {
+    if (!appConfig?.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
       throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
     }
 
     return withErrorHandling(
       async () => {
-        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
         if (!api) {
           throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
@@ -972,14 +1015,14 @@ export const ledgerClient = {
 
   async getRemoveAccountIndexFee(appId: AppId, address: string, accountIndex: string): Promise<BN | undefined> {
     const appConfig = appsConfigs.get(appId)
-    if (!appConfig?.rpcEndpoint) {
+    if (!appConfig?.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
       return undefined
     }
 
     try {
       return await withErrorHandling(
         async () => {
-          const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+          const { api } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
           if (!api) {
             throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
           }
@@ -1011,13 +1054,13 @@ export const ledgerClient = {
     updateTxStatus: UpdateTransactionStatus
   ) {
     const appConfig = appsConfigs.get(appId)
-    if (!appConfig?.rpcEndpoint) {
+    if (!appConfig?.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
       throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
     }
 
     return withErrorHandling(
       async () => {
-        const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
         if (!api) {
           throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
@@ -1114,14 +1157,14 @@ export const ledgerClient = {
     actions: Array<{ type: 'removeVote' | 'undelegate' | 'unlock'; trackId: number; referendumIndex?: number }>
   ): Promise<BN | undefined> {
     const appConfig = appsConfigs.get(appId)
-    if (!appConfig?.rpcEndpoint) {
+    if (!appConfig?.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
       return undefined
     }
 
     try {
       return await withErrorHandling(
         async () => {
-          const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+          const { api } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
           if (!api) {
             throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
           }
@@ -1188,14 +1231,14 @@ export const ledgerClient = {
 
   async getGovernanceActivity(appId: AppId, address: string) {
     const appConfig = appsConfigs.get(appId)
-    if (!appConfig?.rpcEndpoint) {
+    if (!appConfig?.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
       return undefined
     }
 
     try {
       return await withErrorHandling(
         async () => {
-          const { api } = await getApiAndProvider(appConfig.rpcEndpoint ?? '')
+          const { api } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
           if (!api) {
             throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
           }

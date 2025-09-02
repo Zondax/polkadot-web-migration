@@ -54,7 +54,7 @@ vi.mock('@/config/apps', () => ({
         id: 'polkadot',
         name: 'Polkadot',
         token: { symbol: 'DOT', decimals: 10 },
-        rpcEndpoint: 'wss://rpc.polkadot.io',
+        rpcEndpoints: ['wss://rpc.polkadot.io'],
       },
     ],
     [
@@ -63,7 +63,7 @@ vi.mock('@/config/apps', () => ({
         id: 'kusama',
         name: 'Kusama',
         token: { symbol: 'KSM', decimals: 12 },
-        rpcEndpoint: 'wss://kusama-rpc.polkadot.io',
+        rpcEndpoints: ['wss://kusama-rpc.polkadot.io'],
       },
     ],
     [
@@ -72,7 +72,7 @@ vi.mock('@/config/apps', () => ({
         id: 'westend',
         name: 'Westend',
         token: { symbol: 'WND', decimals: 12 },
-        // No rpcEndpoint - should be filtered out
+        // No rpcEndpoints - should be filtered out
       },
     ],
   ]),
@@ -80,7 +80,7 @@ vi.mock('@/config/apps', () => ({
     id: 'polkadot',
     name: 'Polkadot',
     token: { symbol: 'DOT', decimals: 10 },
-    rpcEndpoint: 'wss://rpc.polkadot.io',
+    rpcEndpoints: ['wss://rpc.polkadot.io'],
   },
   getChainName: vi.fn((id: string) => {
     const names: Record<string, string> = {

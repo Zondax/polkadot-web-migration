@@ -45,7 +45,7 @@ function getAppsToSync(): AppConfig[] {
       appsToSync = appsToSyncInDev.map(appId => appsConfigs.get(appId as AppId))
     }
   }
-  return appsToSync.filter(appConfig => appConfig?.rpcEndpoint) as AppConfig[]
+  return appsToSync.filter(appConfig => appConfig?.rpcEndpoints && appConfig.rpcEndpoints.length > 0) as AppConfig[]
 }
 
 /**
@@ -106,7 +106,7 @@ export async function synchronizeAppAccounts(
     // Fetch addresses from Ledger
     const addresses = await fetchAddressesFromLedger(appConfig)
 
-    if (!appConfig.rpcEndpoint) {
+    if (!appConfig.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
       throw new InternalError(InternalErrorType.SYNC_ERROR, {
         operation: 'synchronizeAppAccounts',
         context: { appId: appConfig.id, reason: 'RPC endpoint not configured' },
@@ -114,12 +114,12 @@ export async function synchronizeAppAccounts(
     }
 
     // Get API connection
-    const { api, provider } = await getApiAndProvider(appConfig.rpcEndpoint)
+    const { api, provider } = await getApiAndProvider(appConfig.rpcEndpoints)
 
     if (!api) {
       throw new InternalError(InternalErrorType.FAILED_TO_CONNECT_TO_BLOCKCHAIN, {
         operation: 'synchronizeAppAccounts',
-        context: { appId: appConfig.id, rpcEndpoint: appConfig.rpcEndpoint },
+        context: { appId: appConfig.id, rpcEndpoints: appConfig.rpcEndpoints },
       })
     }
 
@@ -246,7 +246,7 @@ export async function synchronizePolkadotAccounts(): Promise<App> {
       })
     }
 
-    if (!appConfig.rpcEndpoint) {
+    if (!appConfig.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
       notifications$.push(noAccountsNotification)
       throw new InternalError(InternalErrorType.SYNC_ERROR, {
         operation: 'synchronizePolkadotAccounts',
@@ -257,12 +257,12 @@ export async function synchronizePolkadotAccounts(): Promise<App> {
     const accounts = response.result
 
     // Test API connection
-    const { api, provider } = await getApiAndProvider(appConfig.rpcEndpoint)
+    const { api, provider } = await getApiAndProvider(appConfig.rpcEndpoints)
 
     if (!api) {
       throw new InternalError(InternalErrorType.FAILED_TO_CONNECT_TO_BLOCKCHAIN, {
         operation: 'synchronizePolkadotAccounts',
-        context: { rpcEndpoint: appConfig.rpcEndpoint },
+        context: { rpcEndpoints: appConfig.rpcEndpoints },
       })
     }
 
@@ -337,6 +337,116 @@ export async function synchronizeSingleApp(
   return {
     app,
     polkadotAddresses: polkadotAddressesForApp,
+  }
+}
+
+/**
+ * Synchronizes a single blockchain application with custom account/address indices.
+ *
+ * @description This function performs deep scanning of blockchain accounts using custom
+ * index configurations. It uses the enhanced ledger client to fetch addresses from specific
+ * account and address indices, then processes them through the standard account processing pipeline.
+ *
+ * @param {AppConfig} appConfig - The blockchain application configuration
+ * @param {string[]} polkadotAddresses - Array of Polkadot addresses for cross-chain migration
+ * @param {number[]} accountIndices - Array of account indices to scan
+ * @param {number[]} addressIndices - Array of address indices to scan per account
+ * @param {boolean} [filterByBalance=true] - Whether to filter out accounts with zero balance
+ * @returns {Promise<App>} Complete app object with synchronized account data
+ * @throws {InternalError} When the scanning process fails
+ */
+export async function scanAppWithCustomIndices(
+  appConfig: AppConfig,
+  polkadotAddresses: string[],
+  accountIndices: number[],
+  addressIndices: number[],
+  filterByBalance = true
+): Promise<App> {
+  try {
+    // Fetch addresses from Ledger using custom indices
+    const addresses = await ledgerClient.synchronizeAccountsWithIndices(appConfig, accountIndices, addressIndices)
+
+    if (!addresses.result || addresses.result.length === 0) {
+      return {
+        name: appConfig.name,
+        id: appConfig.id,
+        token: appConfig.token,
+        status: AppStatus.SYNCHRONIZED,
+        accounts: [],
+        multisigAccounts: [],
+      }
+    }
+
+    if (!appConfig.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
+      throw new InternalError(InternalErrorType.SYNC_ERROR, {
+        operation: 'scanAppWithCustomIndices',
+        context: { appId: appConfig.id, reason: 'RPC endpoint not configured' },
+      })
+    }
+
+    // Get API connection
+    const { api, provider } = await getApiAndProvider(appConfig.rpcEndpoints)
+
+    if (!api) {
+      throw new InternalError(InternalErrorType.FAILED_TO_CONNECT_TO_BLOCKCHAIN, {
+        operation: 'scanAppWithCustomIndices',
+        context: { appId: appConfig.id, rpcEndpoints: appConfig.rpcEndpoints },
+      })
+    }
+
+    try {
+      // Process accounts using the standard account processing service
+      const { success, data, error } = await processAccountsForApp(addresses.result, appConfig, api, polkadotAddresses, filterByBalance)
+
+      if (!success || !data) {
+        throw new InternalError(InternalErrorType.SYNC_ERROR, {
+          operation: 'scanAppWithCustomIndices',
+          context: {
+            appId: appConfig.id,
+            error: error?.description || 'Failed to process accounts',
+          },
+        })
+      }
+
+      const { accounts, multisigAccounts, collections } = data
+
+      return {
+        name: appConfig.name,
+        id: appConfig.id,
+        token: appConfig.token,
+        status: AppStatus.SYNCHRONIZED,
+        accounts,
+        multisigAccounts,
+        collections,
+      }
+    } finally {
+      // Always disconnect the API
+      if (api) {
+        await api.disconnect()
+      } else if (provider) {
+        await provider.disconnect()
+      }
+    }
+  } catch (error) {
+    console.debug('Error scanning app with custom indices:', appConfig.id, error)
+
+    if (error instanceof InternalError) {
+      return {
+        name: appConfig.name,
+        id: appConfig.id,
+        token: appConfig.token,
+        status: AppStatus.ERROR,
+        error: {
+          source: 'synchronization',
+          description: error.description || 'Custom index scanning failed',
+        },
+      }
+    }
+
+    throw new InternalError(InternalErrorType.SYNC_ERROR, {
+      operation: 'scanAppWithCustomIndices',
+      context: { appId: appConfig.id, error },
+    })
   }
 }
 

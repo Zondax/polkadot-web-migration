@@ -4,7 +4,7 @@
     "name": "Acala",
     "bip44Path": "m/44'/787'/0'/0'/0'",
     "ss58Prefix": 10,
-    "rpcEndpoint": "wss://acala-rpc.aca-api.network",
+    "rpcEndpoints": ["wss://acala-rpc.aca-api.network", "wss://acala-rpc.dwellir.com"],
     "token": {
       "symbol": "ACA",
       "decimals": 12
@@ -20,7 +20,7 @@
     "name": "Ajuna",
     "bip44Path": "m/44'/354'/0'/0'/0'",
     "ss58Prefix": 1328,
-    "rpcEndpoint": "wss://ajuna.ibp.network",
+    "rpcEndpoints": ["wss://ajuna.ibp.network", "wss://rpc-para.ajuna.network"],
     "token": {
       "symbol": "AJUN",
       "decimals": 12
@@ -36,7 +36,7 @@
     "name": "Astar",
     "bip44Path": "m/44'/810'/0'/0'/0'",
     "ss58Prefix": 5,
-    "rpcEndpoint": "wss://rpc.astar.network",
+    "rpcEndpoints": ["wss://rpc.astar.network", "wss://astar-rpc.dwellir.com"],
     "token": {
       "symbol": "ASTR",
       "decimals": 18
@@ -52,7 +52,7 @@
     "name": "Bifrost",
     "bip44Path": "m/44'/788'/0'/0'/0'",
     "ss58Prefix": 6,
-    "rpcEndpoint": "wss://public-01.mainnet.bifrostnetwork.com/wss",
+    "rpcEndpoints": ["wss://public-01.mainnet.bifrostnetwork.com/wss", "wss://bifrost-polkadot.ibp.network"],
     "token": {
       "symbol": "BNC",
       "decimals": 12
@@ -68,7 +68,7 @@
     "name": "Centrifuge",
     "bip44Path": "m/44'/747'/0'/0'/0'",
     "ss58Prefix": 36,
-    "rpcEndpoint": "wss://centrifuge-parachain.api.onfinality.io/public-ws",
+    "rpcEndpoints": ["wss://centrifuge-parachain.api.onfinality.io/public-ws", "wss://fullnode.centrifuge.io"],
     "token": {
       "symbol": "CFG",
       "decimals": 18
@@ -84,7 +84,7 @@
     "name": "Darwinia",
     "bip44Path": "m/44'/354'/0'/0'/0'",
     "ss58Prefix": 18,
-    "rpcEndpoint": "wss://darwinia-rpc.dwellir.com",
+    "rpcEndpoints": ["wss://darwinia-rpc.dwellir.com", "wss://rpc.darwinia.network"],
     "token": {
       "symbol": "RING",
       "decimals": 9
@@ -100,7 +100,7 @@
     "name": "Edgeware",
     "bip44Path": "m/44'/523'/0'/0'/0'",
     "ss58Prefix": 7,
-    "rpcEndpoint": "wss://edgeware-rpc1.jelliedowl.net",
+    "rpcEndpoints": ["wss://edgeware-rpc3.jelliedowl.net", "wss://edgeware-rpc2.jelliedowl.net"],
     "token": {
       "symbol": "EDG",
       "decimals": 18
@@ -116,7 +116,7 @@
     "name": "HydraDX",
     "bip44Path": "m/44'/354'/0'/0'/0'",
     "ss58Prefix": 63,
-    "rpcEndpoint": "wss://hydradx-rpc.dwellir.com",
+    "rpcEndpoints": ["wss://hydradx-rpc.dwellir.com", "wss://hydration.dotters.network"],
     "token": {
       "symbol": "HDX",
       "decimals": 12
@@ -132,7 +132,7 @@
     "name": "Karura",
     "bip44Path": "m/44'/686'/0'/0'/0'",
     "ss58Prefix": 8,
-    "rpcEndpoint": "wss://karura-rpc-0.aca-api.network",
+    "rpcEndpoints": ["wss://karura-rpc-0.aca-api.network", "wss://karura-rpc-1.aca-api.network"],
     "token": {
       "symbol": "KAR",
       "decimals": 12
@@ -163,7 +163,7 @@
     "name": "Kusama",
     "bip44Path": "m/44'/434'/0'/0'/0'",
     "ss58Prefix": 2,
-    "rpcEndpoint": "wss://kusama-rpc.polkadot.io",
+    "rpcEndpoints": ["wss://kusama-rpc.polkadot.io", "wss://kusama-rpc.dwellir.com"],
     "token": {
       "symbol": "KSM",
       "decimals": 12
@@ -179,7 +179,7 @@
     "name": "People Kusama",
     "bip44Path": "m/44'/434'/0'/0'/0'",
     "ss58Prefix": 2,
-    "rpcEndpoint": "wss://people-kusama.api.onfinality.io/public-ws",
+    "rpcEndpoints": ["wss://people-kusama.api.onfinality.io/public-ws", "wss://people-kusama-rpc.dwellir.com"],
     "token": {
       "symbol": "KSM",
       "decimals": 12,
@@ -196,7 +196,7 @@
     "name": "Nodle",
     "bip44Path": "m/44'/1003'/0'/0'/0'",
     "ss58Prefix": 37,
-    "rpcEndpoint": "wss://nodle-rpc.dwellir.com",
+    "rpcEndpoints": ["wss://nodle-rpc.dwellir.com", "wss://nodle-parachain.api.onfinality.io/public-ws"],
     "token": {
       "symbol": "NODL",
       "decimals": 11
@@ -223,7 +223,7 @@
     "name": "Pendulum",
     "bip44Path": "m/44'/354'/0'/0'/0'",
     "ss58Prefix": 56,
-    "rpcEndpoint": "wss://rpc-pendulum.prd.pendulumchain.tech",
+    "rpcEndpoints": ["wss://rpc-pendulum.prd.pendulumchain.tech"],
     "token": {
       "symbol": "PEN",
       "decimals": 12
@@ -239,7 +239,7 @@
     "name": "Phala",
     "bip44Path": "m/44'/354'/0'/0'/0'",
     "ss58Prefix": 30,
-    "rpcEndpoint": "wss://phala-rpc.dwellir.com",
+    "rpcEndpoints": ["wss://phala-rpc.dwellir.com", "wss://phala.api.onfinality.io/public-ws"],
     "token": {
       "symbol": "PHA",
       "decimals": 12
@@ -255,7 +255,10 @@
     "name": "Polkadex",
     "bip44Path": "m/44'/799'/0'/0'/0'",
     "ss58Prefix": 88,
-    "rpcEndpoint": "wss://polkadex.api.onfinality.io/public-ws",
+    "rpcEndpoints": [
+      "wss://polkadex.api.onfinality.io/public-ws",
+      "wss://api-polkadex-mainnet.dwellir.com/63708dfe-972e-4f49-b0cb-2b8676052a14"
+    ],
     "token": {
       "symbol": "PDEX",
       "decimals": 12
@@ -271,7 +274,7 @@
     "name": "Kusama Asset Hub",
     "bip44Path": "m/44'/434'/0'/0'/0'",
     "ss58Prefix": 2,
-    "rpcEndpoint": "wss://asset-hub-kusama-rpc.dwellir.com",
+    "rpcEndpoints": ["wss://asset-hub-kusama-rpc.dwellir.com", "wss://sys.ibp.network/asset-hub-polkadot"],
     "token": {
       "symbol": "KSM",
       "decimals": 12,
@@ -303,7 +306,7 @@
     "name": "XXNetwork",
     "bip44Path": "m/44'/1955'/0'/0'/0'",
     "ss58Prefix": 55,
-    "rpcEndpoint": "wss://xxnetwork-rpc.dwellir.com",
+    "rpcEndpoints": ["wss://xxnetwork-rpc.dwellir.com"],
     "token": {
       "symbol": "XX",
       "decimals": 9

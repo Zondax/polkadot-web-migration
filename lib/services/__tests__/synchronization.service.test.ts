@@ -3,12 +3,18 @@ import type { AppConfig } from 'config/apps'
 import { AppStatus } from 'state/ledger'
 import type { Address } from 'state/types/ledger'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { synchronizeAllApps, synchronizeAppAccounts, synchronizePolkadotAccounts } from '../synchronization.service'
+import {
+  scanAppWithCustomIndices,
+  synchronizeAllApps,
+  synchronizeAppAccounts,
+  synchronizePolkadotAccounts,
+} from '../synchronization.service'
 
 // Mock dependencies
 vi.mock('state/client/ledger', () => ({
   ledgerClient: {
     synchronizeAccounts: vi.fn(),
+    synchronizeAccountsWithIndices: vi.fn(),
   },
 }))
 
@@ -58,7 +64,7 @@ vi.mock('config/apps', () => ({
       {
         id: 'polkadot',
         name: 'Polkadot',
-        rpcEndpoint: 'wss://rpc.polkadot.io',
+        rpcEndpoints: ['wss://rpc.polkadot.io'],
         token: { symbol: 'DOT', decimals: 10 },
         bip44Path: "m/44'/354'/0'/0/0",
         ss58Prefix: 0,
@@ -69,7 +75,7 @@ vi.mock('config/apps', () => ({
       {
         id: 'kusama',
         name: 'Kusama',
-        rpcEndpoint: 'wss://kusama-rpc.polkadot.io',
+        rpcEndpoints: ['wss://kusama-rpc.polkadot.io'],
         token: { symbol: 'KSM', decimals: 12 },
         bip44Path: "m/44'/434'/0'/0/0",
         ss58Prefix: 2,
@@ -79,7 +85,7 @@ vi.mock('config/apps', () => ({
   polkadotAppConfig: {
     id: 'polkadot',
     name: 'Polkadot',
-    rpcEndpoint: 'wss://rpc.polkadot.io',
+    rpcEndpoints: ['wss://rpc.polkadot.io'],
     token: { symbol: 'DOT', decimals: 10 },
     bip44Path: "m/44'/354'/0'/0/0",
     ss58Prefix: 0,
@@ -112,7 +118,7 @@ describe('Synchronization Service', () => {
   const mockApp: AppConfig = {
     id: 'polkadot',
     name: 'Polkadot',
-    rpcEndpoint: 'wss://rpc.polkadot.io',
+    rpcEndpoints: ['wss://rpc.polkadot.io'],
     token: { symbol: 'DOT', decimals: 10 },
     bip44Path: "m/44'/354'/0'/0/0",
     ss58Prefix: 0,
@@ -217,6 +223,114 @@ describe('Synchronization Service', () => {
       expect(result.app.status).toBe(AppStatus.ERROR)
       expect(result.app.error).toBeDefined()
       expect(result.app.error?.description).toContain('Test error description')
+    })
+  })
+
+  describe('scanAppWithCustomIndices', () => {
+    it('should scan app with custom indices successfully', async () => {
+      const { ledgerClient } = await import('state/client/ledger')
+      const { processAccountsForApp } = await import('../account-processing.service')
+
+      const mockSyncResult = {
+        result: [{ address: mockAddress.address, path: mockAddress.path, pubKey: mockAddress.pubKey }],
+      }
+
+      const mockProcessResult = {
+        success: true,
+        data: {
+          accounts: [mockAddress],
+          multisigAccounts: [],
+          collections: { uniques: new Map(), nfts: new Map() },
+          polkadotAddressesForApp: [],
+        },
+      }
+
+      vi.mocked(ledgerClient.synchronizeAccountsWithIndices).mockResolvedValueOnce(mockSyncResult)
+      vi.mocked(processAccountsForApp).mockResolvedValueOnce(mockProcessResult)
+
+      const polkadotAddresses = ['5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty']
+      const accountIndices = [0, 1]
+      const addressIndices = [0, 1, 2]
+
+      const result = await scanAppWithCustomIndices(mockApp, polkadotAddresses, accountIndices, addressIndices, true)
+
+      expect(result.id).toBe(mockApp.id)
+      expect(result.name).toBe(mockApp.name)
+      expect(result.status).toBe(AppStatus.SYNCHRONIZED)
+      expect(ledgerClient.synchronizeAccountsWithIndices).toHaveBeenCalledWith(mockApp, accountIndices, addressIndices)
+      expect(processAccountsForApp).toHaveBeenCalledWith(
+        mockSyncResult.result,
+        mockApp,
+        expect.any(Object), // api
+        polkadotAddresses,
+        true
+      )
+    })
+
+    it('should handle empty result from ledger client', async () => {
+      const { ledgerClient } = await import('state/client/ledger')
+
+      const mockSyncResult = { result: [] }
+
+      vi.mocked(ledgerClient.synchronizeAccountsWithIndices).mockResolvedValueOnce(mockSyncResult)
+
+      const result = await scanAppWithCustomIndices(mockApp, [], [0], [0])
+
+      expect(result.id).toBe(mockApp.id)
+      expect(result.status).toBe(AppStatus.SYNCHRONIZED)
+      expect(result.accounts).toEqual([])
+      expect(result.multisigAccounts).toEqual([])
+    })
+
+    it('should handle ledger client errors gracefully', async () => {
+      const { ledgerClient } = await import('state/client/ledger')
+
+      const error = new Error('Ledger connection failed')
+      vi.mocked(ledgerClient.synchronizeAccountsWithIndices).mockRejectedValueOnce(error)
+
+      await expect(scanAppWithCustomIndices(mockApp, [], [0], [0])).rejects.toThrow()
+    })
+
+    it('should handle processing service errors', async () => {
+      const { ledgerClient } = await import('state/client/ledger')
+      const { processAccountsForApp } = await import('../account-processing.service')
+
+      const mockSyncResult = {
+        result: [{ address: mockAddress.address, path: mockAddress.path, pubKey: mockAddress.pubKey }],
+      }
+
+      const mockProcessResult = {
+        success: false,
+        error: { description: 'Processing failed' },
+      }
+
+      vi.mocked(ledgerClient.synchronizeAccountsWithIndices).mockResolvedValueOnce(mockSyncResult)
+      vi.mocked(processAccountsForApp).mockResolvedValueOnce(mockProcessResult)
+
+      const result = await scanAppWithCustomIndices(mockApp, [], [0], [0])
+
+      expect(result.status).toBe(AppStatus.ERROR)
+      expect(result.error?.description).toContain('Test error description')
+    })
+
+    it('should handle missing RPC endpoints', async () => {
+      const { ledgerClient } = await import('state/client/ledger')
+
+      const mockSyncResult = {
+        result: [{ address: mockAddress.address, path: mockAddress.path, pubKey: mockAddress.pubKey }],
+      }
+
+      const appConfigWithoutRpc = {
+        ...mockApp,
+        rpcEndpoints: [],
+      }
+
+      vi.mocked(ledgerClient.synchronizeAccountsWithIndices).mockResolvedValueOnce(mockSyncResult)
+
+      const result = await scanAppWithCustomIndices(appConfigWithoutRpc, [], [0], [0])
+
+      expect(result.status).toBe(AppStatus.ERROR)
+      expect(result.error?.description).toContain('Test error description')
     })
   })
 

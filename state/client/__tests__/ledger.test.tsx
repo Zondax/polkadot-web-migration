@@ -48,7 +48,7 @@ vi.mock('config/apps', () => ({
       {
         id: 'polkadot',
         name: 'Polkadot',
-        rpcEndpoint: 'wss://rpc.polkadot.io',
+        rpcEndpoints: ['wss://rpc.polkadot.io'],
         token: { symbol: 'DOT', decimals: 10 },
         bip44Path: "m/44'/354'/0'/0'/0'",
         ss58Prefix: 0,
@@ -58,7 +58,7 @@ vi.mock('config/apps', () => ({
   polkadotAppConfig: {
     id: 'polkadot',
     name: 'Polkadot',
-    rpcEndpoint: 'wss://rpc.polkadot.io',
+    rpcEndpoints: ['wss://rpc.polkadot.io'],
     token: { symbol: 'DOT', decimals: 10 },
     bip44Path: "m/44'/354'/0'/0'/0'",
     ss58Prefix: 0,
@@ -121,7 +121,7 @@ describe('Ledger Client', () => {
   const mockAppConfig: AppConfig = {
     id: 'polkadot',
     name: 'Polkadot',
-    rpcEndpoint: 'wss://rpc.polkadot.io',
+    rpcEndpoints: ['wss://rpc.polkadot.io'],
     token: { symbol: 'DOT', decimals: 10 },
     bip44Path: "m/44'/354'/0'/0'/0'",
     ss58Prefix: 0,
@@ -248,15 +248,15 @@ describe('Ledger Client', () => {
       }
       vi.mocked(ledgerService.getAccountAddress).mockResolvedValueOnce(mockGenericAddress)
 
-      const result = await ledgerClient.getAccountAddress("m/44'/354'/0'/0'", 5, 0)
+      const result = await ledgerClient.getAccountAddress("m/44'/354'/0'/0'/0'", 5, 0)
 
       expect(result).toEqual({
         result: {
           ...mockGenericAddress,
-          path: "m/44'/354'/0'/5'",
+          path: "m/44'/354'/0'/0'/5'",
         },
       })
-      expect(ledgerService.getAccountAddress).toHaveBeenCalledWith("m/44'/354'/0'/5'", 0, true)
+      expect(ledgerService.getAccountAddress).toHaveBeenCalledWith("m/44'/354'/0'/0'/5'", 0, true)
     })
 
     it('should handle ledger service error', async () => {
@@ -294,7 +294,7 @@ describe('Ledger Client', () => {
       expect(result).toBeDefined()
       expect(result?.txPromise).toBeInstanceOf(Promise)
       expect(validateMigrationParams).toHaveBeenCalledWith('polkadot', mockAddress)
-      expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
+      expect(getApiAndProvider).toHaveBeenCalledWith(['wss://rpc.polkadot.io'])
       expect(prepareTransaction).toHaveBeenCalled()
       expect(ledgerService.signTransaction).toHaveBeenCalled()
       expect(createSignedExtrinsic).toHaveBeenCalled()
@@ -379,7 +379,7 @@ describe('Ledger Client', () => {
 
       await ledgerClient.unstakeBalance('polkadot', mockAddress.address, mockAddress.path, amount, mockUpdateTxStatus)
 
-      expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
+      expect(getApiAndProvider).toHaveBeenCalledWith(['wss://rpc.polkadot.io'])
       expect(prepareUnstakeTransaction).toHaveBeenCalledWith(mockApi, amount)
       expect(prepareTransactionPayload).toHaveBeenCalledWith(
         mockApi,
@@ -461,7 +461,7 @@ describe('Ledger Client', () => {
       const result = await ledgerClient.getUnstakeFee('polkadot', mockAddress.address, amount)
 
       expect(result).toStrictEqual(expectedFee)
-      expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
+      expect(getApiAndProvider).toHaveBeenCalledWith(['wss://rpc.polkadot.io'])
       expect(prepareUnstakeTransaction).toHaveBeenCalledWith(mockApi, amount)
       expect(getTxFee).toHaveBeenCalledWith(mockApiTransfer, mockAddress.address)
     })
@@ -520,7 +520,7 @@ describe('Ledger Client', () => {
 
       await ledgerClient.withdrawBalance('polkadot', mockAddress.address, mockAddress.path, mockUpdateTxStatus)
 
-      expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
+      expect(getApiAndProvider).toHaveBeenCalledWith(['wss://rpc.polkadot.io'])
       expect(prepareWithdrawTransaction).toHaveBeenCalledWith(mockApi)
       expect(prepareTransactionPayload).toHaveBeenCalledWith(mockApi, mockAddress.address, mockAppConfig, mockApiTransfer)
       expect(ledgerService.signTransaction).toHaveBeenCalledWith(
@@ -580,7 +580,7 @@ describe('Ledger Client', () => {
       const result = await ledgerClient.getWithdrawFee('polkadot', mockAddress.address)
 
       expect(result).toStrictEqual(expectedFee)
-      expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
+      expect(getApiAndProvider).toHaveBeenCalledWith(['wss://rpc.polkadot.io'])
       expect(prepareWithdrawTransaction).toHaveBeenCalledWith(mockApi)
       expect(getTxFee).toHaveBeenCalledWith(mockApiTransfer, mockAddress.address)
     })
@@ -615,7 +615,7 @@ describe('Ledger Client', () => {
 
       await ledgerClient.removeIdentity('polkadot', mockAddress.address, mockAddress.path, mockUpdateTxStatus)
 
-      expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
+      expect(getApiAndProvider).toHaveBeenCalledWith(['wss://rpc.polkadot.io'])
       expect(prepareRemoveIdentityTransaction).toHaveBeenCalledWith(mockApi, mockAddress.address)
       expect(prepareTransactionPayload).toHaveBeenCalledWith(mockApi, mockAddress.address, mockAppConfig, mockApiTransfer)
       expect(ledgerService.signTransaction).toHaveBeenCalledWith(
@@ -653,7 +653,7 @@ describe('Ledger Client', () => {
       const result = await ledgerClient.getRemoveIdentityFee('polkadot', mockAddress.address)
 
       expect(result).toStrictEqual(expectedFee)
-      expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
+      expect(getApiAndProvider).toHaveBeenCalledWith(['wss://rpc.polkadot.io'])
       expect(prepareRemoveIdentityTransaction).toHaveBeenCalledWith(mockApi, mockAddress.address)
       expect(getTxFee).toHaveBeenCalledWith(mockApiTransfer, mockAddress.address)
     })
@@ -699,7 +699,7 @@ describe('Ledger Client', () => {
         callHash: expectedCallHash,
       })
       expect(validateMigrationParams).toHaveBeenCalledWith('polkadot', mockAddress)
-      expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
+      expect(getApiAndProvider).toHaveBeenCalledWith(['wss://rpc.polkadot.io'])
     })
 
     it('should return undefined for invalid migration params', async () => {
@@ -776,7 +776,7 @@ describe('Ledger Client', () => {
         mockFormData.signatoryAddress,
         undefined
       )
-      expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
+      expect(getApiAndProvider).toHaveBeenCalledWith(['wss://rpc.polkadot.io'])
       expect(prepareApproveAsMultiTx).toHaveBeenCalled()
       expect(ledgerService.signTransaction).toHaveBeenCalledWith(
         "m/44'/354'/0'/0/1",
@@ -867,7 +867,7 @@ describe('Ledger Client', () => {
         mockFormData.signatoryAddress,
         undefined
       )
-      expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
+      expect(getApiAndProvider).toHaveBeenCalledWith(['wss://rpc.polkadot.io'])
       expect(prepareAsMultiTx).toHaveBeenCalled()
       expect(ledgerService.signTransaction).toHaveBeenCalledWith(
         "m/44'/354'/0'/0/1",
@@ -918,7 +918,7 @@ describe('Ledger Client', () => {
       const result = await ledgerClient.validateCallDataMatchesHash('polkadot', '0xcalldata', '0xhash')
 
       expect(result).toBe(true)
-      expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
+      expect(getApiAndProvider).toHaveBeenCalledWith(['wss://rpc.polkadot.io'])
       expect(validateCallDataMatchesHash).toHaveBeenCalledWith(mockApi, '0xcalldata', '0xhash')
     })
 
@@ -961,7 +961,7 @@ describe('Ledger Client', () => {
 
       await ledgerClient.removeProxies('polkadot', mockAddress.address, mockAddress.path, mockUpdateTxStatus)
 
-      expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
+      expect(getApiAndProvider).toHaveBeenCalledWith(['wss://rpc.polkadot.io'])
       expect(prepareRemoveProxiesTransaction).toHaveBeenCalledWith(mockApi)
       expect(prepareTransactionPayload).toHaveBeenCalledWith(mockApi, mockAddress.address, mockAppConfig, mockApi.tx.balances.transfer)
       expect(ledgerService.signTransaction).toHaveBeenCalledWith(
@@ -991,7 +991,7 @@ describe('Ledger Client', () => {
       const result = await ledgerClient.getRemoveProxiesFee('polkadot', mockAddress.address)
 
       expect(result).toStrictEqual(expectedFee)
-      expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
+      expect(getApiAndProvider).toHaveBeenCalledWith(['wss://rpc.polkadot.io'])
       expect(prepareRemoveProxiesTransaction).toHaveBeenCalledWith(mockApi)
       expect(getTxFee).toHaveBeenCalledWith(mockApi.tx.balances.transfer, mockAddress.address)
     })
@@ -1018,7 +1018,7 @@ describe('Ledger Client', () => {
 
       await ledgerClient.removeAccountIndex('polkadot', mockAddress.address, '5GTest', mockAddress.path, mockUpdateTxStatus)
 
-      expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
+      expect(getApiAndProvider).toHaveBeenCalledWith(['wss://rpc.polkadot.io'])
       expect(prepareRemoveAccountIndexTransaction).toHaveBeenCalledWith(mockApi, '5GTest')
       expect(prepareTransactionPayload).toHaveBeenCalledWith(mockApi, mockAddress.address, mockAppConfig, mockApi.tx.balances.transfer)
       expect(ledgerService.signTransaction).toHaveBeenCalledWith(
@@ -1048,7 +1048,7 @@ describe('Ledger Client', () => {
       const result = await ledgerClient.getRemoveAccountIndexFee('polkadot', mockAddress.address, '5GTest')
 
       expect(result).toStrictEqual(expectedFee)
-      expect(getApiAndProvider).toHaveBeenCalledWith('wss://rpc.polkadot.io')
+      expect(getApiAndProvider).toHaveBeenCalledWith(['wss://rpc.polkadot.io'])
       expect(prepareRemoveAccountIndexTransaction).toHaveBeenCalledWith(mockApi, '5GTest')
       expect(getTxFee).toHaveBeenCalledWith(mockApi.tx.balances.transfer, mockAddress.address)
     })
