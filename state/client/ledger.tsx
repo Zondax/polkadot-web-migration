@@ -29,7 +29,7 @@ import {
 import { ledgerService } from '@/lib/ledger/ledgerService'
 import type { ConnectionResponse } from '@/lib/ledger/types'
 import { InternalError, withErrorHandling } from '@/lib/utils'
-import { getBip44Path } from '@/lib/utils/address'
+import { updateBip44PathIndices } from '@/lib/utils/address'
 import { getAccountTransferableBalance } from '@/lib/utils/balance'
 import {
   type Address,
@@ -71,7 +71,7 @@ export const ledgerClient = {
         const addresses: Address[] = []
         for (let i = 0; i < maxAddressesToFetch; i++) {
           try {
-            const derivedPath = getBip44Path(app.bip44Path, i)
+            const derivedPath = updateBip44PathIndices(app.bip44Path, { address: i })
             const address = await ledgerService.getAccountAddress(derivedPath, app.ss58Prefix, false)
             if (address) {
               addresses.push({ ...address, path: derivedPath } as Address)
@@ -94,11 +94,54 @@ export const ledgerClient = {
     )
   },
 
+  /**
+   * Synchronize accounts with custom account and address indices for deep scanning
+   */
+  async synchronizeAccountsWithIndices(
+    app: AppConfig,
+    accountIndices: number[],
+    addressIndices: number[]
+  ): Promise<{ result?: Address[] }> {
+    return withErrorHandling(
+      async () => {
+        const addresses: Address[] = []
+
+        // Process accounts and addresses sequentially with small delays to avoid overwhelming Ledger
+        for (const accountIndex of accountIndices) {
+          for (const addressIndex of addressIndices) {
+            try {
+              // Build the derivation path with both account and address indices using the robust utility
+              const derivedPath = updateBip44PathIndices(app.bip44Path, {
+                account: accountIndex,
+                address: addressIndex,
+              })
+
+              const address = await ledgerService.getAccountAddress(derivedPath, app.ss58Prefix, false)
+              if (address) {
+                addresses.push({ ...address, path: derivedPath } as Address)
+              }
+            } catch (error) {
+              console.warn(`Failed to get address for account ${accountIndex}, address ${addressIndex} on ${app.name}:`, error)
+              // Continue with next address even if this one fails
+            }
+          }
+        }
+
+        return { result: addresses }
+      },
+      {
+        errorCode: InternalErrorType.SYNC_ERROR,
+        operation: 'synchronizeAccountsWithIndices',
+        context: { appId: app.id, accountIndices, addressIndices },
+      }
+    )
+  },
+
   async getAccountAddress(bip44Path: string, index: number, ss58Prefix: number): Promise<{ result?: Address }> {
     return withErrorHandling(
       async () => {
         // get address
-        const derivedPath = getBip44Path(bip44Path, index)
+        const derivedPath = updateBip44PathIndices(bip44Path, { address: index })
         const genericAddress = await ledgerService.getAccountAddress(derivedPath, ss58Prefix, true)
         const address: Address = {
           ...genericAddress,

@@ -1,5 +1,6 @@
 import { type LedgerError, ResponseError } from '@zondax/ledger-js'
 import { errorDetails, InternalErrorType, ledgerErrorToInternalErrorMap } from 'config/errors'
+import { Bip44PathError } from './address'
 
 /**
  * Internal error class for application-specific errors
@@ -99,6 +100,18 @@ export function interpretLedgerClientError(error: unknown): InternalError {
   // Handle our internal errors
   if (error instanceof InternalError) {
     return error
+  }
+
+  // Handle BIP44 path validation errors
+  if (error instanceof Bip44PathError) {
+    return new InternalError(InternalErrorType.INVALID_STATE_ERROR, {
+      operation: 'BIP44 path validation',
+      context: {
+        path: error.path,
+        component: error.component,
+        originalMessage: error.message,
+      },
+    })
   }
 
   // Handle @zondax/ledger-js errors
