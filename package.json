@@ -40,7 +40,7 @@
     "@ledgerhq/errors": "^6.23.0",
     "@ledgerhq/hw-transport": "^6.31.8",
     "@ledgerhq/hw-transport-mocker": "^6.29.8",
-    "@ledgerhq/hw-transport-webhid": "^6.30.4",
+    "@ledgerhq/hw-transport-webhid": "^6.30.5",
     "@ledgerhq/types-live": "^6.80.0",
     "@legendapp/state": "^3.0.0-beta.31",
     "@polkadot-api/merkleize-metadata": "^1.1.20",
