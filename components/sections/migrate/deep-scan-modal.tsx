@@ -216,7 +216,7 @@ export function DeepScanModal({
       {/* Scanning Apps Grid */}
       {scanningApps && scanningApps.length > 0 && (
         <div className="pt-2 mb-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             {scanningApps.map(app => (
               <DeepScanAppItem key={app.id} app={app} />
             ))}
@@ -274,18 +274,22 @@ export function DeepScanModal({
 
     return (
       <CustomTooltip tooltipBody={statusText}>
-        <div className={cn('flex flex-col items-center p-4 rounded-lg border transition-all min-h-[80px]', statusClass)}>
+        <div className={cn('flex flex-col items-center p-3 rounded-lg border transition-all', statusClass)}>
           <div className="relative mb-2">
             <TokenIcon icon={icon} symbol={appName.substring(0, 3)} size="md" />
             {displayBadge && (
               <div className="absolute -right-2 -bottom-2">
-                <Badge variant="outline" className="bg-white h-5 min-w-5 px-0 justify-center rounded-full text-xs">
+                <Badge
+                  variant="outline"
+                  className="bg-white h-5 min-w-5 px-0 justify-center rounded-full text-xs"
+                  data-testid="app-sync-badge"
+                >
                   {statusIcon}
                 </Badge>
               </div>
             )}
           </div>
-          <span className="text-xs font-medium text-center leading-tight">{appName}</span>
+          <span className="text-xs font-medium truncate max-w-full">{appName}</span>
         </div>
       </CustomTooltip>
     )
