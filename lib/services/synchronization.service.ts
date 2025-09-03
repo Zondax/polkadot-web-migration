@@ -508,7 +508,7 @@ export async function synchronizeAllApps(
 
     // Get apps to synchronize
     const appsToSync = getAppsToSync()
-    const totalApps = appsToSync.length + 1 // +1 for Polkadot
+    const totalApps = appsToSync.length
     let syncedApps = 0
 
     // Update initial progress
