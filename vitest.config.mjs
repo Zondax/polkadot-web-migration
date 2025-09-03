@@ -66,10 +66,10 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './'),
-      config: path.resolve(__dirname, './config'),
-      state: path.resolve(__dirname, './state'),
-      lib: path.resolve(__dirname, './lib'),
+      '@': path.resolve(process.cwd(), './'),
+      config: path.resolve(process.cwd(), './config'),
+      state: path.resolve(process.cwd(), './state'),
+      lib: path.resolve(process.cwd(), './lib'),
     },
   },
 })
