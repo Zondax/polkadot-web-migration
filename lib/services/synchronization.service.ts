@@ -506,10 +506,14 @@ export async function synchronizeAllApps(
       autoHideDuration: 5000,
     })
 
-    // Get apps to synchronize
-    const appsToSync = getAppsToSync()
-    const totalApps = appsToSync.length
-    let syncedApps = 0
+    // Synchronize Polkadot accounts first
+    const polkadotApp = await synchronizePolkadotAccounts()
+    const polkadotAddresses = polkadotApp.accounts?.map(account => account.address) || []
+
+    // Get apps to synchronize (exclude Polkadot since it's handled separately)
+    const appsToSync = getAppsToSync().filter(app => app.id !== 'polkadot')
+    const totalApps = appsToSync.length + 1 // +1 for Polkadot (already processed)
+    let syncedApps = 1 // Start at 1 since Polkadot is already done
 
     // Update initial progress
     onProgress?.({
@@ -518,12 +522,7 @@ export async function synchronizeAllApps(
       percentage: 0,
     })
 
-    // Synchronize Polkadot accounts first
-    const polkadotApp = await synchronizePolkadotAccounts()
-    const polkadotAddresses = polkadotApp.accounts?.map(account => account.address) || []
-
-    // Update progress after Polkadot
-    syncedApps++
+    // Update progress after Polkadot (already included in initial syncedApps = 1)
     onProgress?.({
       scanned: syncedApps,
       total: totalApps,
@@ -586,6 +585,9 @@ export async function synchronizeAllApps(
         percentage: progress,
       })
     }
+
+    // Add the Polkadot app to the final results
+    synchronizedApps.push(polkadotApp)
 
     return {
       success: true,

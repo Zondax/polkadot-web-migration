@@ -163,7 +163,7 @@ describe('DeepScanModal', () => {
       render(<DeepScanModal isOpen={true} onClose={mockOnClose} onScan={mockOnScan} />)
 
       // Find and update account index input
-      const accountInput = document.getElementById('account-index') as HTMLInputElement
+      const accountInput = screen.getByLabelText('Account Index') as HTMLInputElement
       fireEvent.change(accountInput, { target: { value: '5' } })
 
       // Check updated derivation path
@@ -361,7 +361,7 @@ describe('DeepScanModal', () => {
       fireEvent.click(addressRangeTab)
 
       await waitFor(() => {
-        const accountInput = document.getElementById('account-index') as HTMLInputElement
+        const accountInput = screen.getByLabelText('Account Index') as HTMLInputElement
         fireEvent.change(accountInput, { target: { value: '3' } })
 
         const startInputs = screen.getAllByLabelText('Start Index')
