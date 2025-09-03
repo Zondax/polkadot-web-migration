@@ -2,7 +2,6 @@
 
 import { use$ } from '@legendapp/state/react'
 import { AlertCircle, Loader2 } from 'lucide-react'
-import Image from 'next/image'
 import { useMemo, useState } from 'react'
 import { AppStatus } from 'state/ledger'
 import { uiState$ } from 'state/ui'
@@ -15,14 +14,13 @@ import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { AppId } from '@/config/apps'
 import { appsConfigs, getChainName, polkadotAppConfig } from '@/config/apps'
+import type { RangeField, ScanType } from '@/lib/types/scan'
+import { RangeFieldEnum, SCAN_LIMITS, ScanTypeEnum } from '@/lib/types/scan'
 import { cn, getAppTotalAccounts } from '@/lib/utils'
+import { formatIndexDisplay, parseIndexConfig, validateIndexConfig } from '@/lib/utils/scan-indices'
 import type { App } from '@/state/ledger'
 import { IndexInputSection } from './index-input-section'
 import { LedgerUnlockReminder } from './ledger-unlock-reminder'
-
-import type { ScanType, RangeField } from '@/lib/types/scan'
-import { ScanTypeEnum, RangeFieldEnum, SCAN_LIMITS } from '@/lib/types/scan'
-import { parseIndexConfig, validateIndexConfig, formatIndexDisplay } from '@/lib/utils/scan-indices'
 
 interface DeepScanModalProps {
   isOpen: boolean
@@ -66,6 +64,7 @@ export function DeepScanModal({
   onCancel,
   onDone,
 }: DeepScanModalProps) {
+  const icons = use$(uiState$.icons)
   const [accountScanType, setAccountScanType] = useState<ScanType>(ScanTypeEnum.SINGLE)
   const [addressScanType, setAddressScanType] = useState<ScanType>(ScanTypeEnum.SINGLE)
   const [accountIndex, setAccountIndex] = useState<string>(SCAN_LIMITS.DEFAULT_SINGLE.toString())
@@ -340,37 +339,18 @@ export function DeepScanModal({
                 <span>All Chains</span>
               </div>
             </SelectItem>
-            {availableChains.map(chain => (
-              <SelectItem key={chain.id} value={chain.id}>
-                <div className="flex items-center gap-2">
-                  {chain.token.logoId ? (
-                    <Image
-                      src={`/images/logos/${chain.token.logoId}.svg`}
-                      alt={chain.name}
-                      width={20}
-                      height={20}
-                      className="w-5 h-5"
-                      onError={e => {
-                        e.currentTarget.style.display = 'none'
-                      }}
-                    />
-                  ) : (
-                    <Image
-                      src={`/images/logos/${chain.id}.svg`}
-                      alt={chain.name}
-                      width={20}
-                      height={20}
-                      className="w-5 h-5"
-                      onError={e => {
-                        e.currentTarget.style.display = 'none'
-                      }}
-                    />
-                  )}
-                  <span>{chain.name}</span>
-                  <span className="text-xs text-gray-500">({chain.token.symbol})</span>
-                </div>
-              </SelectItem>
-            ))}
+            {availableChains.map(chain => {
+              const icon = icons[chain.id]
+              return (
+                <SelectItem key={chain.id} value={chain.id}>
+                  <div className="flex items-center gap-2">
+                    <TokenIcon icon={icon} symbol={chain.name.substring(0, 3)} size="sm" />
+                    <span>{chain.name}</span>
+                    <span className="text-xs text-gray-500">({chain.token.symbol})</span>
+                  </div>
+                </SelectItem>
+              )
+            })}
           </SelectContent>
         </Select>
       </div>
