@@ -38,40 +38,27 @@ describe('LedgerUnlockReminder', () => {
     expect(screen.getByText('Keep your Ledger device unlocked')).toBeInTheDocument()
   })
 
-  it('should hide reminder after display timeout', async () => {
+  it('should keep reminder visible after it appears', async () => {
     render(<LedgerUnlockReminder isVisible={true} />)
 
-    // Fast-forward to when reminder appears
-    act(() => {
-      vi.advanceTimersByTime(50000) // 50 seconds
-    })
-    expect(screen.getByText('Keep your Ledger device unlocked')).toBeInTheDocument()
-
-    // Fast-forward by the display time (10 seconds)
-    act(() => {
-      vi.advanceTimersByTime(10000)
-    })
+    // Initially should not be visible
     expect(screen.queryByText('Keep your Ledger device unlocked')).not.toBeInTheDocument()
-  })
 
-  it('should show reminder repeatedly at intervals', async () => {
-    render(<LedgerUnlockReminder isVisible={true} />)
-
-    // First reminder at 50 seconds
+    // Fast-forward to when reminder appears (50 seconds)
     act(() => {
       vi.advanceTimersByTime(50000)
     })
     expect(screen.getByText('Keep your Ledger device unlocked')).toBeInTheDocument()
 
-    // Hide after 10 seconds
+    // Fast-forward by 10 seconds (old behavior would hide it here)
     act(() => {
       vi.advanceTimersByTime(10000)
     })
-    expect(screen.queryByText('Keep your Ledger device unlocked')).not.toBeInTheDocument()
+    expect(screen.getByText('Keep your Ledger device unlocked')).toBeInTheDocument()
 
-    // Second reminder should appear after another 60 seconds (total 120 seconds)
+    // Fast-forward by much longer time - should still be visible
     act(() => {
-      vi.advanceTimersByTime(60000)
+      vi.advanceTimersByTime(120000) // 2 more minutes
     })
     expect(screen.getByText('Keep your Ledger device unlocked')).toBeInTheDocument()
   })
