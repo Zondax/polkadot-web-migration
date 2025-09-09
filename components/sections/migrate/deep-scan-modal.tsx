@@ -148,7 +148,9 @@ export function DeepScanModal({
 
   const handleClose = () => {
     if (isCompleted) {
-      onDone?.()
+      if (typeof onDone === 'function') {
+        onDone()
+      }
       return
     }
     // Just close the modal without canceling the scan
@@ -399,13 +401,7 @@ export function DeepScanModal({
 
         <DialogFooter>
           {isCompleted ? (
-            <Button
-              onClick={() => {
-                onDone?.()
-              }}
-            >
-              Done
-            </Button>
+            <Button onClick={onDone}>Done</Button>
           ) : isScanning ? (
             <Button variant="outline" onClick={onCancel} disabled={isCancelling}>
               {isCancelling ? 'Cancelling...' : 'Cancel Scan'}
