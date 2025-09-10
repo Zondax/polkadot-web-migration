@@ -21,8 +21,8 @@ importers:
         specifier: ^6.29.8
         version: 6.29.9
       '@ledgerhq/hw-transport-webhid':
-        specifier: ^6.30.4
-        version: 6.30.5
+        specifier: ^6.30.6
+        version: 6.30.6
       '@ledgerhq/types-live':
         specifier: ^6.80.0
         version: 6.82.0
@@ -756,8 +756,8 @@ packages:
   '@ledgerhq/hw-transport-mocker@6.29.9':
     resolution: {integrity: sha512-2AsI2cc1JpEfJritBljKoOG7NGZAi3eXupvT0y+5i7t1EDzKODEFRqJAo1/Ffanvwo24oe8rqcVkpUoCAutuPQ==}
 
-  '@ledgerhq/hw-transport-webhid@6.30.5':
-    resolution: {integrity: sha512-dEUrV7afbw1HIAz4NrcstihtiVEZ7osmigjWhHR1kcBvkP9JKFUjplQkCGshfhocgTVasA8RzUF9lgTDMR6VOw==}
+  '@ledgerhq/hw-transport-webhid@6.30.6':
+    resolution: {integrity: sha512-AOzjFv5n1OTMfvEInAZRfLO11G5zfG8pB5zhmjK5d/mVQfFNcKsLZNAC2h4OZZMBtUy8UTT3n03z93e6k6n4pQ==}
 
   '@ledgerhq/hw-transport@6.31.10':
     resolution: {integrity: sha512-ruNtkTPMO3rFCaSM+oPTOXXerzxWFZF43pAHVAHhsjiQGhLWzLSkMc7qBEpWIpZPubKRAbWSXR2zXBIJPNy8oQ==}
@@ -3515,10 +3515,10 @@ snapshots:
       '@ledgerhq/logs': 6.13.0
       rxjs: 7.8.2
 
-  '@ledgerhq/hw-transport-webhid@6.30.5':
+  '@ledgerhq/hw-transport-webhid@6.30.6':
     dependencies:
-      '@ledgerhq/devices': 8.5.0
-      '@ledgerhq/errors': 6.24.0
+      '@ledgerhq/devices': 8.5.1
+      '@ledgerhq/errors': 6.25.0
       '@ledgerhq/hw-transport': 6.31.10
       '@ledgerhq/logs': 6.13.0
 
