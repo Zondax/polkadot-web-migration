@@ -303,7 +303,10 @@ describe('Synchronization Service', () => {
 
       const mockProcessResult = {
         success: false,
-        error: { description: 'Processing failed' },
+        error: { 
+          source: 'synchronization' as const,
+          description: 'Processing failed' 
+        },
       }
 
       vi.mocked(ledgerClient.synchronizeAccountsWithIndices).mockResolvedValueOnce(mockSyncResult)
