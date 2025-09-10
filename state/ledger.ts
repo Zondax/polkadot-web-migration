@@ -381,7 +381,9 @@ export const ledgerState$ = observable({
       const polkadotAccounts = ledgerState$.apps.polkadotApp.get().accounts || []
       const polkadotAddresses = polkadotAccounts.map(account => account.address)
 
-      const { app, polkadotAddressesForApp } = await synchronizeAppAccounts(appConfig, polkadotAddresses)
+      const { app, polkadotAddressesForApp } = await synchronizeAppAccounts(appConfig, polkadotAddresses, true, () =>
+        ledgerState$.apps.isSyncCancelRequested.get()
+      )
       if (app) {
         updateApp(appId, app)
         ledgerState$.polkadotAddresses[appId].set(polkadotAddressesForApp)

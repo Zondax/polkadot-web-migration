@@ -209,7 +209,7 @@ describe('Synchronization Service', () => {
 
       const result = await synchronizeAppAccounts(mockApp, [], true)
 
-      expect(ledgerClient.synchronizeAccounts).toHaveBeenCalledWith(mockApp)
+      expect(ledgerClient.synchronizeAccounts).toHaveBeenCalledWith(mockApp, undefined)
       expect(result.app.status).toBe(AppStatus.SYNCHRONIZED)
     })
 
@@ -258,7 +258,7 @@ describe('Synchronization Service', () => {
       expect(result.app.name).toBe(mockApp.name)
       expect(result.app.status).toBe(AppStatus.SYNCHRONIZED)
       expect(result.polkadotAddressesForApp).toBeDefined()
-      expect(ledgerClient.synchronizeAccountsWithIndices).toHaveBeenCalledWith(mockApp, accountIndices, addressIndices)
+      expect(ledgerClient.synchronizeAccountsWithIndices).toHaveBeenCalledWith(mockApp, accountIndices, addressIndices, undefined)
       expect(processAccountsForApp).toHaveBeenCalledWith(
         mockSyncResult.result,
         mockApp,
@@ -303,7 +303,10 @@ describe('Synchronization Service', () => {
 
       const mockProcessResult = {
         success: false,
-        error: { description: 'Processing failed' },
+        error: {
+          source: 'synchronization' as const,
+          description: 'Processing failed',
+        },
       }
 
       vi.mocked(ledgerClient.synchronizeAccountsWithIndices).mockResolvedValueOnce(mockSyncResult)
@@ -365,7 +368,7 @@ describe('Synchronization Service', () => {
       expect(result.id).toBe('polkadot')
       expect(result.name).toBe('Polkadot')
       expect(result.status).toBe(AppStatus.SYNCHRONIZED)
-      expect(ledgerClient.synchronizeAccounts).toHaveBeenCalledWith(mockApp)
+      expect(ledgerClient.synchronizeAccounts).toHaveBeenCalledWith(mockApp, undefined)
     })
 
     it('should handle errors during Polkadot synchronization', async () => {

@@ -25,7 +25,7 @@ export interface SyncProgress {
  */
 function checkCancellation(onCancel?: () => boolean): void {
   if (onCancel?.()) {
-    throw new Error('Scan was cancelled')
+    throw new InternalError(InternalErrorType.OPERATION_CANCELLED)
   }
 }
 
@@ -66,12 +66,13 @@ function getAppsToSync(): AppConfig[] {
  * for the specified blockchain application. This is the first step in the synchronization process.
  *
  * @param {AppConfig} appConfig - The blockchain application configuration
+ * @param {() => boolean} [onCancel] - Optional cancellation callback function
  * @returns {Promise<Address[]>} Array of addresses retrieved from the Ledger device
  * @throws {InternalError} When Ledger communication fails or returns no results
  */
-async function fetchAddressesFromLedger(appConfig: AppConfig): Promise<Address[]> {
+async function fetchAddressesFromLedger(appConfig: AppConfig, onCancel?: () => boolean): Promise<Address[]> {
   try {
-    const response = await ledgerClient.synchronizeAccounts(appConfig)
+    const response = await ledgerClient.synchronizeAccounts(appConfig, onCancel)
 
     if (!response.result) {
       throw new InternalError(InternalErrorType.SYNC_ERROR, {
@@ -108,14 +109,21 @@ async function fetchAddressesFromLedger(appConfig: AppConfig): Promise<Address[]
 export async function synchronizeAppAccounts(
   appConfig: AppConfig,
   polkadotAddresses: string[],
-  filterByBalance = true
+  filterByBalance = true,
+  onCancel?: () => boolean
 ): Promise<{
   app: App
   polkadotAddressesForApp: string[]
 }> {
   try {
+    // Check for cancellation before starting
+    checkCancellation(onCancel)
+
     // Fetch addresses from Ledger
-    const addresses = await fetchAddressesFromLedger(appConfig)
+    const addresses = await fetchAddressesFromLedger(appConfig, onCancel)
+
+    // Check for cancellation after fetching addresses
+    checkCancellation(onCancel)
 
     if (!appConfig.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
       throw new InternalError(InternalErrorType.SYNC_ERROR, {
@@ -236,10 +244,10 @@ export async function synchronizeAppAccounts(
  * const destinationAddresses = polkadotApp.accounts?.map(acc => acc.address) || []
  * ```
  */
-export async function synchronizePolkadotAccounts(): Promise<App> {
+export async function synchronizePolkadotAccounts(onCancel?: () => boolean): Promise<App> {
   try {
     const appConfig = polkadotAppConfig
-    const response = await ledgerClient.synchronizeAccounts(appConfig)
+    const response = await ledgerClient.synchronizeAccounts(appConfig, onCancel)
 
     const noAccountsNotification = {
       title: 'No Polkadot accounts found',
@@ -339,12 +347,13 @@ export async function synchronizePolkadotAccounts(): Promise<App> {
 export async function synchronizeSingleApp(
   appConfig: AppConfig,
   polkadotAddresses: string[],
-  filterByBalance = true
+  filterByBalance = true,
+  onCancel?: () => boolean
 ): Promise<{
   app: App
   polkadotAddresses: string[]
 }> {
-  const { app, polkadotAddressesForApp } = await synchronizeAppAccounts(appConfig, polkadotAddresses, filterByBalance)
+  const { app, polkadotAddressesForApp } = await synchronizeAppAccounts(appConfig, polkadotAddresses, filterByBalance, onCancel)
   return {
     app,
     polkadotAddresses: polkadotAddressesForApp,
@@ -382,7 +391,7 @@ export async function scanAppWithCustomIndices(
     checkCancellation(onCancel)
 
     // Fetch addresses from Ledger using custom indices
-    const addresses = await ledgerClient.synchronizeAccountsWithIndices(appConfig, accountIndices, addressIndices)
+    const addresses = await ledgerClient.synchronizeAccountsWithIndices(appConfig, accountIndices, addressIndices, onCancel)
 
     // Check for cancellation after Ledger interaction
     checkCancellation(onCancel)
@@ -519,7 +528,7 @@ export async function synchronizeAllApps(
     })
 
     // Synchronize Polkadot accounts first
-    const polkadotApp = await synchronizePolkadotAccounts()
+    const polkadotApp = await synchronizePolkadotAccounts(onCancel)
     const polkadotAddresses = polkadotApp.accounts?.map(account => account.address) || []
 
     // Get apps to synchronize (exclude Polkadot since it's handled separately)
@@ -564,13 +573,23 @@ export async function synchronizeAllApps(
       onAppStart?.(loadingApp)
 
       try {
-        const { app, polkadotAddressesForApp: appPolkadotAddresses } = await synchronizeAppAccounts(appConfig, polkadotAddresses)
+        const { app, polkadotAddressesForApp: appPolkadotAddresses } = await synchronizeAppAccounts(
+          appConfig,
+          polkadotAddresses,
+          true,
+          onCancel
+        )
         synchronizedApps.push(app)
         polkadotAddressesForApp[app.id] = appPolkadotAddresses
 
         // Notify that app synchronization is complete
         onAppComplete?.(app)
-      } catch {
+      } catch (error) {
+        if (error instanceof InternalError && error.errorType === InternalErrorType.OPERATION_CANCELLED) {
+          // This is a cancellation, not an error. Break the loop.
+          break
+        }
+
         const errorApp: App = {
           name: appConfig.name,
           id: appConfig.id,

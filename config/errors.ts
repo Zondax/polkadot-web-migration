@@ -83,6 +83,7 @@ export enum InternalErrorType {
   NO_ACTIVE_VOTES = 'no_active_votes',
   NO_ACTIVE_DELEGATION = 'no_active_delegation',
   CONVICTION_LOCK_ACTIVE = 'conviction_lock_active',
+  OPERATION_CANCELLED = 'operation_cancelled',
 }
 
 /**
@@ -515,5 +516,10 @@ export const errorDetails: ErrorDetailsMap = {
     title: 'Tokens Still Locked',
     description: 'Your tokens are still locked due to conviction voting.',
     content: 'Please wait for the lock period to expire before attempting to unlock your tokens.',
+  },
+  operation_cancelled: {
+    title: 'Operation Cancelled',
+    description: 'The operation was cancelled by the user.',
+    content: 'The synchronization or scanning operation was stopped at your request.',
   },
 }

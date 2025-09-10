@@ -206,7 +206,7 @@ describe('Ledger Client', () => {
         .mockResolvedValueOnce(mockAddresses[1])
         .mockResolvedValueOnce(mockAddresses[2])
 
-      const result = await ledgerClient.synchronizeAccounts(mockAppConfig)
+      const result = await ledgerClient.synchronizeAccounts(mockAppConfig, undefined)
 
       expect(result).toEqual({
         result: [
@@ -226,7 +226,7 @@ describe('Ledger Client', () => {
         .mockResolvedValueOnce(undefined)
         .mockRejectedValueOnce(new Error('Address fetch failed'))
 
-      const result = await ledgerClient.synchronizeAccounts(mockAppConfig)
+      const result = await ledgerClient.synchronizeAccounts(mockAppConfig, undefined)
 
       expect(result).toEqual({
         result: [{ ...mockAddress, path: "m/44'/354'/0'/0'/0'" }],
@@ -236,7 +236,7 @@ describe('Ledger Client', () => {
     it('should handle ledger service errors', async () => {
       vi.mocked(ledgerService.getAccountAddress).mockRejectedValue(new Error('Ledger error'))
 
-      await expect(ledgerClient.synchronizeAccounts(mockAppConfig)).rejects.toThrow(InternalError)
+      await expect(ledgerClient.synchronizeAccounts(mockAppConfig, undefined)).rejects.toThrow(InternalError)
     })
   })
 
