@@ -72,7 +72,7 @@ export const ledgerClient = {
         for (let i = 0; i < maxAddressesToFetch; i++) {
           // Check for cancellation before fetching each address
           if (onCancel?.()) {
-            return { result: undefined }
+            throw new InternalError(InternalErrorType.OPERATION_CANCELLED)
           }
 
           try {
@@ -118,7 +118,7 @@ export const ledgerClient = {
           for (const addressIndex of addressIndices) {
             // Check for cancellation before fetching each address
             if (onCancel?.()) {
-              throw new Error('Synchronization was cancelled')
+              throw new InternalError(InternalErrorType.OPERATION_CANCELLED)
             }
 
             try {

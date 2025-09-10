@@ -25,7 +25,7 @@ export interface SyncProgress {
  */
 function checkCancellation(onCancel?: () => boolean): void {
   if (onCancel?.()) {
-    throw new Error('Scan was cancelled')
+    throw new InternalError(InternalErrorType.OPERATION_CANCELLED)
   }
 }
 
@@ -584,7 +584,12 @@ export async function synchronizeAllApps(
 
         // Notify that app synchronization is complete
         onAppComplete?.(app)
-      } catch {
+      } catch (error) {
+        if (error instanceof InternalError && error.errorType === InternalErrorType.OPERATION_CANCELLED) {
+          // This is a cancellation, not an error. Break the loop.
+          break
+        }
+
         const errorApp: App = {
           name: appConfig.name,
           id: appConfig.id,

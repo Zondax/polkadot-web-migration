@@ -258,7 +258,7 @@ describe('Synchronization Service', () => {
       expect(result.app.name).toBe(mockApp.name)
       expect(result.app.status).toBe(AppStatus.SYNCHRONIZED)
       expect(result.polkadotAddressesForApp).toBeDefined()
-      expect(ledgerClient.synchronizeAccountsWithIndices).toHaveBeenCalledWith(mockApp, accountIndices, addressIndices)
+      expect(ledgerClient.synchronizeAccountsWithIndices).toHaveBeenCalledWith(mockApp, accountIndices, addressIndices, undefined)
       expect(processAccountsForApp).toHaveBeenCalledWith(
         mockSyncResult.result,
         mockApp,
