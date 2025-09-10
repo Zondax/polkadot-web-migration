@@ -396,7 +396,7 @@ export function DeepScanModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className={cn('max-h-[100vh] overflow-y-auto', isScanning || isCompleted ? 'max-w-2xl' : 'sm:max-w-lg')}>
+      <DialogContent className={cn('max-h-[90vh] overflow-y-auto', isScanning || isCompleted ? 'max-w-2xl' : 'sm:max-w-lg')}>
         {isScanning || isCompleted ? renderProgressView() : renderConfigView()}
 
         <DialogFooter>
