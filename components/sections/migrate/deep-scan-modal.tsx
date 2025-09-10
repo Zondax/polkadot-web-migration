@@ -147,6 +147,12 @@ export function DeepScanModal({
   }
 
   const handleClose = () => {
+    if (isCompleted) {
+      if (typeof onDone === 'function') {
+        onDone()
+      }
+      return
+    }
     // Just close the modal without canceling the scan
     // Let the scan continue in background
     onClose()
