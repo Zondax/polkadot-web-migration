@@ -51,6 +51,7 @@ function getIndicesToScan(options: DeepScanOptions): { accountIndices: number[];
 interface SingleAppScanResult {
   newAccounts: Address[]
   newMultisigAccounts: MultisigAddress[]
+  polkadotAddressesForApp: string[]
 }
 
 /**
@@ -67,11 +68,12 @@ async function scanSingleApp(
   const result: SingleAppScanResult = {
     newAccounts: [],
     newMultisigAccounts: [],
+    polkadotAddressesForApp: [],
   }
 
   try {
     // Use the service layer for scanning
-    const scannedApp = await scanAppWithCustomIndices(
+    const scannedAppResult = await scanAppWithCustomIndices(
       appConfig,
       polkadotAddresses,
       accountIndices,
@@ -79,6 +81,8 @@ async function scanSingleApp(
       true, // Filter by balance
       onCancel // Pass cancellation callback
     )
+
+    const { app: scannedApp, polkadotAddressesForApp } = scannedAppResult
 
     if (scannedApp.accounts || scannedApp.multisigAccounts) {
       // Check for existing addresses to avoid duplicates
@@ -90,6 +94,7 @@ async function scanSingleApp(
       // Only add accounts that don't already exist
       result.newAccounts = (scannedApp.accounts || []).filter(acc => !existingAddresses.has(acc.address))
       result.newMultisigAccounts = (scannedApp.multisigAccounts || []).filter(acc => !existingAddresses.has(acc.address))
+      result.polkadotAddressesForApp = polkadotAddressesForApp
     }
   } catch (error) {
     console.warn(`Failed to scan app ${app.name}:`, error)
@@ -335,7 +340,7 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
           )
 
           // Create empty result to continue with other chains
-          scanResult = { newAccounts: [], newMultisigAccounts: [] }
+          scanResult = { newAccounts: [], newMultisigAccounts: [], polkadotAddressesForApp: [] }
         }
 
         // Merge results with existing app data
@@ -368,6 +373,11 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
           }
 
           newAccountsFound += scanResult.newAccounts.length + scanResult.newMultisigAccounts.length
+
+          // Store polkadot addresses for this app to enable destination address verification
+          if (scanResult.polkadotAddressesForApp.length > 0) {
+            ledgerState$.polkadotAddresses[appConfig.id].set(scanResult.polkadotAddressesForApp)
+          }
         }
       }
 

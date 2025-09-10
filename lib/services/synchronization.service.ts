@@ -382,7 +382,10 @@ export async function scanAppWithCustomIndices(
   addressIndices: number[],
   filterByBalance = true,
   onCancel?: () => boolean
-): Promise<App> {
+): Promise<{
+  app: App
+  polkadotAddressesForApp: string[]
+}> {
   try {
     // Check for cancellation before starting
     checkCancellation(onCancel)
@@ -395,12 +398,15 @@ export async function scanAppWithCustomIndices(
 
     if (!addresses.result || addresses.result.length === 0) {
       return {
-        name: appConfig.name,
-        id: appConfig.id,
-        token: appConfig.token,
-        status: AppStatus.SYNCHRONIZED,
-        accounts: [],
-        multisigAccounts: [],
+        app: {
+          name: appConfig.name,
+          id: appConfig.id,
+          token: appConfig.token,
+          status: AppStatus.SYNCHRONIZED,
+          accounts: [],
+          multisigAccounts: [],
+        },
+        polkadotAddressesForApp: [],
       }
     }
 
@@ -441,16 +447,19 @@ export async function scanAppWithCustomIndices(
         })
       }
 
-      const { accounts, multisigAccounts, collections } = data
+      const { accounts, multisigAccounts, collections, polkadotAddressesForApp } = data
 
       return {
-        name: appConfig.name,
-        id: appConfig.id,
-        token: appConfig.token,
-        status: AppStatus.SYNCHRONIZED,
-        accounts,
-        multisigAccounts,
-        collections,
+        app: {
+          name: appConfig.name,
+          id: appConfig.id,
+          token: appConfig.token,
+          status: AppStatus.SYNCHRONIZED,
+          accounts,
+          multisigAccounts,
+          collections,
+        },
+        polkadotAddressesForApp,
       }
     } finally {
       // Always disconnect the API
@@ -465,14 +474,17 @@ export async function scanAppWithCustomIndices(
 
     if (error instanceof InternalError) {
       return {
-        name: appConfig.name,
-        id: appConfig.id,
-        token: appConfig.token,
-        status: AppStatus.ERROR,
-        error: {
-          source: 'synchronization',
-          description: error.description || 'Custom index scanning failed',
+        app: {
+          name: appConfig.name,
+          id: appConfig.id,
+          token: appConfig.token,
+          status: AppStatus.ERROR,
+          error: {
+            source: 'synchronization',
+            description: error.description || 'Custom index scanning failed',
+          },
         },
+        polkadotAddressesForApp: [],
       }
     }
 

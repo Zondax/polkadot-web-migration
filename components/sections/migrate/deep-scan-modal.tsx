@@ -147,6 +147,12 @@ export function DeepScanModal({
   }
 
   const handleClose = () => {
+    if (isCompleted) {
+      if (typeof onDone === 'function') {
+        onDone()
+      }
+      return
+    }
     // Just close the modal without canceling the scan
     // Let the scan continue in background
     onClose()
@@ -390,7 +396,7 @@ export function DeepScanModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className={isScanning || isCompleted ? 'max-w-2xl' : 'sm:max-w-lg'}>
+      <DialogContent className={cn('max-h-[90vh] overflow-y-auto', isScanning || isCompleted ? 'max-w-2xl' : 'sm:max-w-lg')}>
         {isScanning || isCompleted ? renderProgressView() : renderConfigView()}
 
         <DialogFooter>
