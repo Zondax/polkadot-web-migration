@@ -154,8 +154,8 @@ describe('DeepScanModal', () => {
     it('should generate correct path for single account + single address', () => {
       render(<DeepScanModal isOpen={true} onClose={mockOnClose} onScan={mockOnScan} />)
 
-      // Check initial derivation path (defaults: account 1, address 0)
-      const pathDisplay = screen.getByText(/m\/44'\/354'\/1'\/0'\/0'/i)
+      // Check initial derivation path (defaults: account 0, address 0)
+      const pathDisplay = screen.getByText(/m\/44'\/354'\/0'\/0'\/0'/i)
       expect(pathDisplay).toBeInTheDocument()
     })
 
@@ -163,7 +163,7 @@ describe('DeepScanModal', () => {
       render(<DeepScanModal isOpen={true} onClose={mockOnClose} onScan={mockOnScan} />)
 
       // Find and update account index input
-      const accountInput = screen.getByDisplayValue('1') as HTMLInputElement
+      const accountInput = screen.getByLabelText('Account Index') as HTMLInputElement
       fireEvent.change(accountInput, { target: { value: '5' } })
 
       // Check updated derivation path
@@ -179,7 +179,7 @@ describe('DeepScanModal', () => {
       fireEvent.change(addressInput, { target: { value: '3' } })
 
       // Check updated derivation path
-      const pathDisplay = screen.getByText(/m\/44'\/354'\/1'\/0'\/3'/i)
+      const pathDisplay = screen.getByText(/m\/44'\/354'\/0'\/0'\/3'/i)
       expect(pathDisplay).toBeInTheDocument()
     })
 
@@ -199,7 +199,7 @@ describe('DeepScanModal', () => {
       // Wait for re-render
       await waitFor(() => {
         // Check for range notation in path
-        expect(screen.getByText(/m\/44'\/354'\/\{1\.\.\.5\}'\/0'\/\{0\.\.\.5\}'/i)).toBeInTheDocument()
+        expect(screen.getByText(/m\/44'\/354'\/\{0\.\.\.5\}'\/0'\/\{0\.\.\.5\}'/i)).toBeInTheDocument()
       })
     })
 
@@ -361,7 +361,7 @@ describe('DeepScanModal', () => {
       fireEvent.click(addressRangeTab)
 
       await waitFor(() => {
-        const accountInput = screen.getByDisplayValue('1') as HTMLInputElement
+        const accountInput = screen.getByLabelText('Account Index') as HTMLInputElement
         fireEvent.change(accountInput, { target: { value: '3' } })
 
         const startInputs = screen.getAllByLabelText('Start Index')

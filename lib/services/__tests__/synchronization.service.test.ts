@@ -209,7 +209,7 @@ describe('Synchronization Service', () => {
 
       const result = await synchronizeAppAccounts(mockApp, [], true)
 
-      expect(ledgerClient.synchronizeAccounts).toHaveBeenCalledWith(mockApp)
+      expect(ledgerClient.synchronizeAccounts).toHaveBeenCalledWith(mockApp, undefined)
       expect(result.app.status).toBe(AppStatus.SYNCHRONIZED)
     })
 
@@ -254,10 +254,11 @@ describe('Synchronization Service', () => {
 
       const result = await scanAppWithCustomIndices(mockApp, polkadotAddresses, accountIndices, addressIndices, true)
 
-      expect(result.id).toBe(mockApp.id)
-      expect(result.name).toBe(mockApp.name)
-      expect(result.status).toBe(AppStatus.SYNCHRONIZED)
-      expect(ledgerClient.synchronizeAccountsWithIndices).toHaveBeenCalledWith(mockApp, accountIndices, addressIndices)
+      expect(result.app.id).toBe(mockApp.id)
+      expect(result.app.name).toBe(mockApp.name)
+      expect(result.app.status).toBe(AppStatus.SYNCHRONIZED)
+      expect(result.polkadotAddressesForApp).toBeDefined()
+      expect(ledgerClient.synchronizeAccountsWithIndices).toHaveBeenCalledWith(mockApp, accountIndices, addressIndices, undefined)
       expect(processAccountsForApp).toHaveBeenCalledWith(
         mockSyncResult.result,
         mockApp,
@@ -276,10 +277,11 @@ describe('Synchronization Service', () => {
 
       const result = await scanAppWithCustomIndices(mockApp, [], [0], [0])
 
-      expect(result.id).toBe(mockApp.id)
-      expect(result.status).toBe(AppStatus.SYNCHRONIZED)
-      expect(result.accounts).toEqual([])
-      expect(result.multisigAccounts).toEqual([])
+      expect(result.app.id).toBe(mockApp.id)
+      expect(result.app.status).toBe(AppStatus.SYNCHRONIZED)
+      expect(result.app.accounts).toEqual([])
+      expect(result.app.multisigAccounts).toEqual([])
+      expect(result.polkadotAddressesForApp).toEqual([])
     })
 
     it('should handle ledger client errors gracefully', async () => {
@@ -301,7 +303,10 @@ describe('Synchronization Service', () => {
 
       const mockProcessResult = {
         success: false,
-        error: { description: 'Processing failed' },
+        error: {
+          source: 'synchronization' as const,
+          description: 'Processing failed',
+        },
       }
 
       vi.mocked(ledgerClient.synchronizeAccountsWithIndices).mockResolvedValueOnce(mockSyncResult)
@@ -309,8 +314,9 @@ describe('Synchronization Service', () => {
 
       const result = await scanAppWithCustomIndices(mockApp, [], [0], [0])
 
-      expect(result.status).toBe(AppStatus.ERROR)
-      expect(result.error?.description).toContain('Test error description')
+      expect(result.app.status).toBe(AppStatus.ERROR)
+      expect(result.app.error?.description).toContain('Test error description')
+      expect(result.polkadotAddressesForApp).toEqual([])
     })
 
     it('should handle missing RPC endpoints', async () => {
@@ -329,8 +335,9 @@ describe('Synchronization Service', () => {
 
       const result = await scanAppWithCustomIndices(appConfigWithoutRpc, [], [0], [0])
 
-      expect(result.status).toBe(AppStatus.ERROR)
-      expect(result.error?.description).toContain('Test error description')
+      expect(result.app.status).toBe(AppStatus.ERROR)
+      expect(result.app.error?.description).toContain('Test error description')
+      expect(result.polkadotAddressesForApp).toEqual([])
     })
   })
 
@@ -361,7 +368,7 @@ describe('Synchronization Service', () => {
       expect(result.id).toBe('polkadot')
       expect(result.name).toBe('Polkadot')
       expect(result.status).toBe(AppStatus.SYNCHRONIZED)
-      expect(ledgerClient.synchronizeAccounts).toHaveBeenCalledWith(mockApp)
+      expect(ledgerClient.synchronizeAccounts).toHaveBeenCalledWith(mockApp, undefined)
     })
 
     it('should handle errors during Polkadot synchronization', async () => {

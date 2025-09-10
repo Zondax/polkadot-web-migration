@@ -3,9 +3,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import type { ScanType, RangeField } from '@/lib/types/scan'
-import { SCAN_LIMITS, ScanTypeEnum, RangeFieldEnum } from '@/lib/types/scan'
-import { adjustIndexValue, getIndexCount, isRangeExceedsLimit, getPluralForm } from '@/lib/utils/scan-indices'
+import type { RangeField, ScanType } from '@/lib/types/scan'
+import { RangeFieldEnum, SCAN_LIMITS, ScanTypeEnum } from '@/lib/types/scan'
+import { adjustIndexValue, getIndexCount, getPluralForm, isRangeExceedsLimit } from '@/lib/utils/scan-indices'
 
 interface IndexInputSectionProps {
   title: string

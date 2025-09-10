@@ -51,6 +51,7 @@ function getIndicesToScan(options: DeepScanOptions): { accountIndices: number[];
 interface SingleAppScanResult {
   newAccounts: Address[]
   newMultisigAccounts: MultisigAddress[]
+  polkadotAddressesForApp: string[]
 }
 
 /**
@@ -61,22 +62,27 @@ async function scanSingleApp(
   accountIndices: number[],
   addressIndices: number[],
   appConfig: AppConfig,
-  polkadotAddresses: string[]
+  polkadotAddresses: string[],
+  onCancel?: () => boolean
 ): Promise<SingleAppScanResult> {
   const result: SingleAppScanResult = {
     newAccounts: [],
     newMultisigAccounts: [],
+    polkadotAddressesForApp: [],
   }
 
   try {
     // Use the service layer for scanning
-    const scannedApp = await scanAppWithCustomIndices(
+    const scannedAppResult = await scanAppWithCustomIndices(
       appConfig,
       polkadotAddresses,
       accountIndices,
       addressIndices,
-      true // Filter by balance
+      true, // Filter by balance
+      onCancel // Pass cancellation callback
     )
+
+    const { app: scannedApp, polkadotAddressesForApp } = scannedAppResult
 
     if (scannedApp.accounts || scannedApp.multisigAccounts) {
       // Check for existing addresses to avoid duplicates
@@ -88,6 +94,7 @@ async function scanSingleApp(
       // Only add accounts that don't already exist
       result.newAccounts = (scannedApp.accounts || []).filter(acc => !existingAddresses.has(acc.address))
       result.newMultisigAccounts = (scannedApp.multisigAccounts || []).filter(acc => !existingAddresses.has(acc.address))
+      result.polkadotAddressesForApp = polkadotAddressesForApp
     }
   } catch (error) {
     console.warn(`Failed to scan app ${app.name}:`, error)
@@ -170,10 +177,9 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
     currentChain: '',
   })
   const [deepScanApps, setDeepScanApps] = useState<App[]>([])
-  const [deepScanCancelled, setDeepScanCancelled] = useState(false)
   const [isDeepScanCancelling, setIsDeepScanCancelling] = useState(false)
   const [isDeepScanCompleted, setIsDeepScanCompleted] = useState(false)
-  const deepScanCancelledRef = useRef(false)
+  const deepScanCancelRequestedRef = useRef(false)
   const modalClosedManuallyRef = useRef(false)
 
   const handleMigrate = () => {
@@ -182,10 +188,9 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
 
   const handleDeepScan = async (options: DeepScanOptions) => {
     setIsDeepScanning(true)
-    setDeepScanCancelled(false)
     setIsDeepScanCancelling(false)
     setIsDeepScanCompleted(false)
-    deepScanCancelledRef.current = false
+    deepScanCancelRequestedRef.current = false
     modalClosedManuallyRef.current = false
     try {
       // Extract indices to scan from options
@@ -238,9 +243,28 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
       let newAccountsFound = 0
 
       for (let i = 0; i < appsToScan.length; i++) {
-        // Check if scan was cancelled (using both ref for immediate detection and state)
-        if (deepScanCancelledRef.current || deepScanCancelled) {
-          throw new Error('Deep scan was cancelled')
+        // Check if scan was cancelled
+        if (deepScanCancelRequestedRef.current) {
+          // Before breaking, preserve partial results
+          await updateStateWithScanResults(updatedApps, newAccountsFound)
+
+          // Show notification with partial results
+          const chainInfo = options.selectedChain === 'all' ? 'all networks' : appsToScan[0]?.name || 'selected network'
+          const message =
+            newAccountsFound > 0
+              ? `Found ${newAccountsFound} account${newAccountsFound === 1 ? '' : 's'} before cancellation on ${chainInfo}.`
+              : 'No new accounts were found before cancellation.'
+
+          notifications$.push({
+            title: 'Deep Scan Cancelled',
+            description: message,
+            type: 'info',
+            autoHideDuration: 5000,
+          })
+
+          // Auto-close modal after cancellation and show results in main interface
+          setIsDeepScanModalOpen(false)
+          return // Exit the function early
         }
 
         const appConfig = appsToScan[i]
@@ -273,7 +297,14 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
         // Scan the single app for new accounts (with individual error handling)
         let scanResult: SingleAppScanResult
         try {
-          scanResult = await scanSingleApp(appForScanning, accountIndices, addressIndices, appConfig, polkadotAddressesArray)
+          scanResult = await scanSingleApp(
+            appForScanning,
+            accountIndices,
+            addressIndices,
+            appConfig,
+            polkadotAddressesArray,
+            () => deepScanCancelRequestedRef.current
+          )
 
           // Update app status based on scan result
           setDeepScanApps(prev =>
@@ -309,7 +340,7 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
           )
 
           // Create empty result to continue with other chains
-          scanResult = { newAccounts: [], newMultisigAccounts: [] }
+          scanResult = { newAccounts: [], newMultisigAccounts: [], polkadotAddressesForApp: [] }
         }
 
         // Merge results with existing app data
@@ -342,6 +373,11 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
           }
 
           newAccountsFound += scanResult.newAccounts.length + scanResult.newMultisigAccounts.length
+
+          // Store polkadot addresses for this app to enable destination address verification
+          if (scanResult.polkadotAddressesForApp.length > 0) {
+            ledgerState$.polkadotAddresses[appConfig.id].set(scanResult.polkadotAddressesForApp)
+          }
         }
       }
 
@@ -365,73 +401,26 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
     } catch (error) {
       console.error('Deep scan failed with critical error:', error)
 
-      // Check if this was a cancellation vs a critical system error
-      if (error instanceof Error && error.message === 'Deep scan was cancelled') {
-        // Show cancellation notification
-        notifications$.push({
-          title: 'Deep Scan Cancelled',
-          description: 'The deep scan was cancelled by the user.',
-          type: 'info',
-          autoHideDuration: 3000,
-        })
-      } else {
-        // Show critical system error notification (not individual chain failures)
-        notifications$.push({
-          title: 'Deep Scan System Error',
-          description: error instanceof Error ? error.message : 'A critical system error occurred during deep scan.',
-          type: 'error',
-          autoHideDuration: 5000,
-        })
-      }
+      // Show critical system error notification (cancellation is handled in the loop)
+      notifications$.push({
+        title: 'Deep Scan System Error',
+        description: error instanceof Error ? error.message : 'A critical system error occurred during deep scan.',
+        type: 'error',
+        autoHideDuration: 5000,
+      })
     } finally {
-      // Clean up scanning state but preserve results if completed successfully
+      // Clean up scanning state
       setIsDeepScanning(false)
-      setDeepScanCancelled(false)
       setIsDeepScanCancelling(false)
-      deepScanCancelledRef.current = false
-
-      // Only clear results and close modal if scan was cancelled or had critical errors
-      // Individual chain failures are handled gracefully and should not close the modal
-      if (!isDeepScanCompleted) {
-        // Check if this was a user cancellation
-        const wasCancelled = deepScanCancelled || deepScanCancelledRef.current
-
-        if (wasCancelled) {
-          // User cancelled - clear everything and close modal
-          setDeepScanProgress({ scanned: 0, total: 0, percentage: 0, currentChain: '' })
-          setDeepScanApps([])
-
-          // Close modal only if user didn't manually close it during scanning
-          if (!modalClosedManuallyRef.current) {
-            setIsDeepScanModalOpen(false)
-          }
-        } else {
-          // Critical system error occurred - show completion state with any results
-          // This allows users to see which chains succeeded before the critical error
-          setIsDeepScanCompleted(true)
-        }
-      }
+      deepScanCancelRequestedRef.current = false
       modalClosedManuallyRef.current = false
     }
   }
 
   const handleCancelDeepScan = () => {
-    // Set both ref (for immediate detection) and state (for UI updates)
-    deepScanCancelledRef.current = true
-    setDeepScanCancelled(true)
+    // Set ref for immediate access in async context and state for UI
+    deepScanCancelRequestedRef.current = true
     setIsDeepScanCancelling(true)
-
-    // Add backup timeout in case cancellation doesn't complete properly
-    setTimeout(() => {
-      if (isDeepScanning) {
-        console.warn('Deep scan cancellation timed out, forcing cleanup')
-        setIsDeepScanning(false)
-        setIsDeepScanCancelling(false)
-        setDeepScanCancelled(false)
-        setIsDeepScanModalOpen(false)
-        deepScanCancelledRef.current = false
-      }
-    }, 5000) // 5 second timeout
   }
 
   const handleDeepScanDone = () => {

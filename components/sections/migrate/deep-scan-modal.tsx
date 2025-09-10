@@ -2,7 +2,6 @@
 
 import { use$ } from '@legendapp/state/react'
 import { AlertCircle, Loader2 } from 'lucide-react'
-import Image from 'next/image'
 import { useMemo, useState } from 'react'
 import { AppStatus } from 'state/ledger'
 import { uiState$ } from 'state/ui'
@@ -15,14 +14,13 @@ import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { AppId } from '@/config/apps'
 import { appsConfigs, getChainName, polkadotAppConfig } from '@/config/apps'
+import type { RangeField, ScanType } from '@/lib/types/scan'
+import { RangeFieldEnum, SCAN_LIMITS, ScanTypeEnum } from '@/lib/types/scan'
 import { cn, getAppTotalAccounts } from '@/lib/utils'
+import { formatIndexDisplay, parseIndexConfig, validateIndexConfig } from '@/lib/utils/scan-indices'
 import type { App } from '@/state/ledger'
 import { IndexInputSection } from './index-input-section'
 import { LedgerUnlockReminder } from './ledger-unlock-reminder'
-
-import type { ScanType, RangeField } from '@/lib/types/scan'
-import { ScanTypeEnum, RangeFieldEnum } from '@/lib/types/scan'
-import { parseIndexConfig, validateIndexConfig, formatIndexDisplay } from '@/lib/utils/scan-indices'
 
 interface DeepScanModalProps {
   isOpen: boolean
@@ -66,14 +64,15 @@ export function DeepScanModal({
   onCancel,
   onDone,
 }: DeepScanModalProps) {
+  const icons = use$(uiState$.icons)
   const [accountScanType, setAccountScanType] = useState<ScanType>(ScanTypeEnum.SINGLE)
   const [addressScanType, setAddressScanType] = useState<ScanType>(ScanTypeEnum.SINGLE)
-  const [accountIndex, setAccountIndex] = useState<string>('1')
-  const [accountStartIndex, setAccountStartIndex] = useState<string>('1')
-  const [accountEndIndex, setAccountEndIndex] = useState<string>('5')
-  const [addressIndex, setAddressIndex] = useState<string>('0')
-  const [addressStartIndex, setAddressStartIndex] = useState<string>('0')
-  const [addressEndIndex, setAddressEndIndex] = useState<string>('5')
+  const [accountIndex, setAccountIndex] = useState<string>(SCAN_LIMITS.DEFAULT_SINGLE.toString())
+  const [accountStartIndex, setAccountStartIndex] = useState<string>(SCAN_LIMITS.DEFAULT_RANGE_START.toString())
+  const [accountEndIndex, setAccountEndIndex] = useState<string>(SCAN_LIMITS.DEFAULT_RANGE_END.toString())
+  const [addressIndex, setAddressIndex] = useState<string>(SCAN_LIMITS.DEFAULT_SINGLE.toString())
+  const [addressStartIndex, setAddressStartIndex] = useState<string>(SCAN_LIMITS.DEFAULT_RANGE_START.toString())
+  const [addressEndIndex, setAddressEndIndex] = useState<string>(SCAN_LIMITS.DEFAULT_RANGE_END.toString())
   const [selectedChain, setSelectedChain] = useState<AppId | 'all'>('all')
 
   // Get available chains from config
@@ -148,6 +147,12 @@ export function DeepScanModal({
   }
 
   const handleClose = () => {
+    if (isCompleted) {
+      if (typeof onDone === 'function') {
+        onDone()
+      }
+      return
+    }
     // Just close the modal without canceling the scan
     // Let the scan continue in background
     onClose()
@@ -216,7 +221,7 @@ export function DeepScanModal({
       {/* Scanning Apps Grid */}
       {scanningApps && scanningApps.length > 0 && (
         <div className="pt-2 mb-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             {scanningApps.map(app => (
               <DeepScanAppItem key={app.id} app={app} />
             ))}
@@ -274,18 +279,22 @@ export function DeepScanModal({
 
     return (
       <CustomTooltip tooltipBody={statusText}>
-        <div className={cn('flex flex-col items-center p-4 rounded-lg border transition-all min-h-[80px]', statusClass)}>
+        <div className={cn('flex flex-col items-center p-3 rounded-lg border transition-all', statusClass)}>
           <div className="relative mb-2">
             <TokenIcon icon={icon} symbol={appName.substring(0, 3)} size="md" />
             {displayBadge && (
               <div className="absolute -right-2 -bottom-2">
-                <Badge variant="outline" className="bg-white h-5 min-w-5 px-0 justify-center rounded-full text-xs">
+                <Badge
+                  variant="outline"
+                  className="bg-white h-5 min-w-5 px-0 justify-center rounded-full text-xs"
+                  data-testid="app-sync-badge"
+                >
                   {statusIcon}
                 </Badge>
               </div>
             )}
           </div>
-          <span className="text-xs font-medium text-center leading-tight">{appName}</span>
+          <span className="text-xs font-medium truncate max-w-full">{appName}</span>
         </div>
       </CustomTooltip>
     )
@@ -336,37 +345,18 @@ export function DeepScanModal({
                 <span>All Chains</span>
               </div>
             </SelectItem>
-            {availableChains.map(chain => (
-              <SelectItem key={chain.id} value={chain.id}>
-                <div className="flex items-center gap-2">
-                  {chain.token.logoId ? (
-                    <Image
-                      src={`/images/logos/${chain.token.logoId}.svg`}
-                      alt={chain.name}
-                      width={20}
-                      height={20}
-                      className="w-5 h-5"
-                      onError={e => {
-                        e.currentTarget.style.display = 'none'
-                      }}
-                    />
-                  ) : (
-                    <Image
-                      src={`/images/logos/${chain.id}.svg`}
-                      alt={chain.name}
-                      width={20}
-                      height={20}
-                      className="w-5 h-5"
-                      onError={e => {
-                        e.currentTarget.style.display = 'none'
-                      }}
-                    />
-                  )}
-                  <span>{chain.name}</span>
-                  <span className="text-xs text-gray-500">({chain.token.symbol})</span>
-                </div>
-              </SelectItem>
-            ))}
+            {availableChains.map(chain => {
+              const icon = icons[chain.id]
+              return (
+                <SelectItem key={chain.id} value={chain.id}>
+                  <div className="flex items-center gap-2">
+                    <TokenIcon icon={icon} symbol={chain.name.substring(0, 3)} size="sm" />
+                    <span>{chain.name}</span>
+                    <span className="text-xs text-gray-500">({chain.token.symbol})</span>
+                  </div>
+                </SelectItem>
+              )
+            })}
           </SelectContent>
         </Select>
       </div>
@@ -406,7 +396,7 @@ export function DeepScanModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className={isScanning || isCompleted ? 'max-w-2xl' : 'sm:max-w-lg'}>
+      <DialogContent className={cn('max-h-[90vh] overflow-y-auto', isScanning || isCompleted ? 'max-w-2xl' : 'sm:max-w-lg')}>
         {isScanning || isCompleted ? renderProgressView() : renderConfigView()}
 
         <DialogFooter>

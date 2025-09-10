@@ -64,16 +64,22 @@ export const ledgerClient = {
     })
   },
 
-  async synchronizeAccounts(app: AppConfig): Promise<{ result?: Address[] }> {
+  async synchronizeAccounts(app: AppConfig, onCancel?: () => boolean): Promise<{ result?: Address[] }> {
     return withErrorHandling(
       async () => {
         // fetch addresses
         const addresses: Address[] = []
         for (let i = 0; i < maxAddressesToFetch; i++) {
+          // Check for cancellation before fetching each address
+          if (onCancel?.()) {
+            throw new InternalError(InternalErrorType.OPERATION_CANCELLED)
+          }
+
           try {
             const derivedPath = updateBip44PathIndices(app.bip44Path, { address: i })
             const address = await ledgerService.getAccountAddress(derivedPath, app.ss58Prefix, false)
-            if (address) {
+            if (address && !onCancel?.()) {
+              // Double-check cancellation before adding
               addresses.push({ ...address, path: derivedPath } as Address)
             }
           } catch {
@@ -100,7 +106,8 @@ export const ledgerClient = {
   async synchronizeAccountsWithIndices(
     app: AppConfig,
     accountIndices: number[],
-    addressIndices: number[]
+    addressIndices: number[],
+    onCancel?: () => boolean
   ): Promise<{ result?: Address[] }> {
     return withErrorHandling(
       async () => {
@@ -109,6 +116,11 @@ export const ledgerClient = {
         // Process accounts and addresses sequentially
         for (const accountIndex of accountIndices) {
           for (const addressIndex of addressIndices) {
+            // Check for cancellation before fetching each address
+            if (onCancel?.()) {
+              throw new InternalError(InternalErrorType.OPERATION_CANCELLED)
+            }
+
             try {
               // Build the derivation path with both account and address indices using the robust utility
               const derivedPath = updateBip44PathIndices(app.bip44Path, {
@@ -117,7 +129,8 @@ export const ledgerClient = {
               })
 
               const address = await ledgerService.getAccountAddress(derivedPath, app.ss58Prefix, false)
-              if (address) {
+              if (address && !onCancel?.()) {
+                // Double-check cancellation before adding
                 addresses.push({ ...address, path: derivedPath } as Address)
               }
             } catch (error) {
