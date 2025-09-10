@@ -1,5 +1,5 @@
 import type { IndexConfig, RangeField, RangeIndexConfig, ScanType, SingleIndexConfig, ValidationResult } from '@/lib/types/scan'
-import { SCAN_LIMITS, ScanTypeEnum, RangeFieldEnum } from '@/lib/types/scan'
+import { RangeFieldEnum, SCAN_LIMITS, ScanTypeEnum } from '@/lib/types/scan'
 
 /**
  * Type guard to check if scan type is 'single'
