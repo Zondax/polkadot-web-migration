@@ -303,9 +303,9 @@ describe('Synchronization Service', () => {
 
       const mockProcessResult = {
         success: false,
-        error: { 
+        error: {
           source: 'synchronization' as const,
-          description: 'Processing failed' 
+          description: 'Processing failed',
         },
       }
 
