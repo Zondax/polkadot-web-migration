@@ -4,7 +4,7 @@ import { LedgerError, processErrorResponse, ResponseError } from '@zondax/ledger
 import { PolkadotGenericApp } from '@zondax/ledger-substrate'
 import type { GenericeResponseAddress } from '@zondax/ledger-substrate/dist/common'
 import type { ConnectionResponse, DeviceConnectionProps } from '@/lib/ledger/types'
-import { addressCache } from './addressCacheUtil'
+import { addressCache } from '@/state/stores'
 import { openApp } from './openApp'
 
 /**

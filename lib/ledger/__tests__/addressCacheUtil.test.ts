@@ -1,5 +1,5 @@
 import { encodeAddress } from '@polkadot/keyring'
-import { addressCache } from '../addressCacheUtil'
+import { addressCache } from '@/state/stores'
 
 describe('AddressCacheUtil', () => {
   const testPath = "m/44'/354'/0'/0'/0'"

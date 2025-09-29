@@ -3,7 +3,6 @@ import type { GenericeResponseAddress } from '@zondax/ledger-substrate/dist/comm
 
 interface CachedPublicKey {
   publicKey: Uint8Array // Raw public key from Ledger
-  path: string // BIP44 path as cache key
 }
 
 /**
@@ -53,7 +52,7 @@ class AddressCache {
    * @param publicKey Raw public key from Ledger device
    */
   set(path: string, publicKey: Uint8Array): void {
-    this.cache.set(path, { publicKey, path })
+    this.cache.set(path, { publicKey })
   }
 
   /**
