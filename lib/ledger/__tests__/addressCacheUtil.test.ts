@@ -61,20 +61,22 @@ describe('AddressCacheUtil', () => {
     it('should generate Polkadot addresses (SS58=0)', () => {
       const result = addressCache.get(testPath, 0)
       const expectedAddress = encodeAddress(testPublicKey, 0)
+      const expectedPubKeyHex = Buffer.from(testPublicKey).toString('hex')
 
       expect(result).not.toBeNull()
       expect(result?.address).toBe(expectedAddress)
-      expect(result?.pubKey).toEqual(testPublicKey)
+      expect(result?.pubKey).toBe(expectedPubKeyHex)
       expect(result?.path).toBe(testPath)
     })
 
     it('should generate Kusama addresses (SS58=2)', () => {
       const result = addressCache.get(testPath, 2)
       const expectedAddress = encodeAddress(testPublicKey, 2)
+      const expectedPubKeyHex = Buffer.from(testPublicKey).toString('hex')
 
       expect(result).not.toBeNull()
       expect(result?.address).toBe(expectedAddress)
-      expect(result?.pubKey).toEqual(testPublicKey)
+      expect(result?.pubKey).toBe(expectedPubKeyHex)
       expect(result?.path).toBe(testPath)
     })
 
@@ -83,7 +85,7 @@ describe('AddressCacheUtil', () => {
       const kusamaResult = addressCache.get(testPath, 2)
 
       expect(polkadotResult?.address).not.toBe(kusamaResult?.address)
-      expect(polkadotResult?.pubKey).toEqual(kusamaResult?.pubKey)
+      expect(polkadotResult?.pubKey).toBe(kusamaResult?.pubKey)
     })
 
     it('should generate Generic Substrate addresses (SS58=42)', () => {
@@ -118,8 +120,8 @@ describe('AddressCacheUtil', () => {
       const result2 = addressCache.get(path2, 0)
 
       expect(result1?.address).not.toBe(result2?.address)
-      expect(result1?.pubKey).toEqual(pubKey1)
-      expect(result2?.pubKey).toEqual(pubKey2)
+      expect(result1?.pubKey).toBe(Buffer.from(pubKey1).toString('hex'))
+      expect(result2?.pubKey).toBe(Buffer.from(pubKey2).toString('hex'))
     })
   })
 })

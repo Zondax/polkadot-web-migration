@@ -38,9 +38,11 @@ class AddressCache {
 
     // Generate address with requested SS58 prefix using cached public key
     const address = encodeAddress(cached.publicKey, ss58Prefix)
+    // Convert public key back to hex string format expected by GenericeResponseAddress
+    const pubKeyHex = Buffer.from(cached.publicKey).toString('hex')
     return {
       address,
-      pubKey: cached.publicKey,
+      pubKey: pubKeyHex,
       path,
     } as GenericeResponseAddress
   }
