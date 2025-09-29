@@ -108,6 +108,8 @@ async function fetchAllAppAddresses(
   onCancel?: () => boolean
 ): Promise<Map<AppConfig, Address[]>> {
   const addressMap = new Map<AppConfig, Address[]>()
+  console.log('🔄 [SYNC] Starting sequential Ledger address fetching for', appsToSync.length, 'apps')
+  const startTime = Date.now()
 
   for (const appConfig of appsToSync) {
     // Check for cancellation
@@ -115,16 +117,24 @@ async function fetchAllAppAddresses(
       break
     }
 
+    const appStartTime = Date.now()
+    console.log(`  📱 [SYNC] Fetching addresses from Ledger for ${appConfig.id}...`)
+
     try {
       const addresses = await fetchAddressesFromLedger(appConfig, onCancel)
       addressMap.set(appConfig, addresses)
+      const appDuration = Date.now() - appStartTime
+      console.log(`  ✅ [SYNC] ${appConfig.id} addresses fetched: ${addresses.length} addresses in ${appDuration}ms`)
     } catch (error) {
-      console.debug(`Failed to fetch addresses for ${appConfig.id}:`, error)
+      const appDuration = Date.now() - appStartTime
+      console.log(`  ❌ [SYNC] ${appConfig.id} address fetch failed after ${appDuration}ms:`, error)
       // Continue with other apps even if one fails
       // The app will be handled as an error in the synchronization phase
     }
   }
 
+  const totalDuration = Date.now() - startTime
+  console.log(`✅ [SYNC] Ledger address fetching complete: ${addressMap.size}/${appsToSync.length} successful in ${totalDuration}ms`)
   return addressMap
 }
 
@@ -165,7 +175,10 @@ export async function synchronizeAppAccountsWithAddresses(
     }
 
     // Get API connection
+    console.log(`    🔌 [ASYNC] ${appConfig.id}: Connecting to blockchain API...`)
+    const apiStartTime = Date.now()
     const { api, provider } = await getApiAndProvider(appConfig.rpcEndpoints)
+    console.log(`    ✓ [ASYNC] ${appConfig.id}: API connected in ${Date.now() - apiStartTime}ms`)
 
     if (!api) {
       throw new InternalError(InternalErrorType.FAILED_TO_CONNECT_TO_BLOCKCHAIN, {
@@ -176,7 +189,10 @@ export async function synchronizeAppAccountsWithAddresses(
 
     try {
       // Process accounts using the account processing service
+      console.log(`    📊 [ASYNC] ${appConfig.id}: Processing ${addresses.length} accounts (fetching balances, identities, etc.)...`)
+      const processStartTime = Date.now()
       const { success, data, error } = await processAccountsForApp(addresses, appConfig, api, polkadotAddresses, filterByBalance)
+      console.log(`    ✓ [ASYNC] ${appConfig.id}: Account processing completed in ${Date.now() - processStartTime}ms`)
 
       if (!success || !data) {
         throw new InternalError(InternalErrorType.SYNC_ERROR, {
@@ -228,10 +244,13 @@ export async function synchronizeAppAccountsWithAddresses(
       }
     } finally {
       // Always disconnect the API
+      const disconnectStartTime = Date.now()
       if (api) {
         await api.disconnect()
+        console.log(`    🔌 [ASYNC] ${appConfig.id}: API disconnected in ${Date.now() - disconnectStartTime}ms`)
       } else if (provider) {
         await provider.disconnect()
+        console.log(`    🔌 [ASYNC] ${appConfig.id}: Provider disconnected in ${Date.now() - disconnectStartTime}ms`)
       }
     }
   } catch (error) {
@@ -531,10 +550,13 @@ export async function scanAppWithCustomIndices(
       }
     } finally {
       // Always disconnect the API
+      const disconnectStartTime = Date.now()
       if (api) {
         await api.disconnect()
+        console.log(`    🔌 [ASYNC] ${appConfig.id}: API disconnected in ${Date.now() - disconnectStartTime}ms`)
       } else if (provider) {
         await provider.disconnect()
+        console.log(`    🔌 [ASYNC] ${appConfig.id}: Provider disconnected in ${Date.now() - disconnectStartTime}ms`)
       }
     }
   } catch (error) {
@@ -587,6 +609,9 @@ export async function synchronizeAllApps(
   onAppComplete?: (app: App) => void
 ): Promise<SyncResult> {
   try {
+    const totalStartTime = Date.now()
+    console.log('\n🚀 ========== STARTING FULL SYNCHRONIZATION PROCESS ==========')
+
     // Show initial notification
     notifications$.push({
       title: 'Synchronizing accounts',
@@ -596,7 +621,11 @@ export async function synchronizeAllApps(
     })
 
     // Synchronize Polkadot accounts first
+    console.log('\n📍 [SYNC] Phase 0: Fetching Polkadot accounts (required for destination addresses)...')
+    const polkadotStartTime = Date.now()
     const polkadotApp = await synchronizePolkadotAccounts(onCancel)
+    const polkadotDuration = Date.now() - polkadotStartTime
+    console.log(`✅ [SYNC] Polkadot accounts fetched in ${polkadotDuration}ms`)
     const polkadotAddresses = polkadotApp.accounts?.map(account => account.address) || []
 
     // Get apps to synchronize (exclude Polkadot since it's handled separately)
@@ -604,7 +633,7 @@ export async function synchronizeAllApps(
     const totalApps = appsToSync.length + 1 // +1 for Polkadot (already processed)
     let syncedApps = 1 // Start at 1 since Polkadot is already done
 
-    console.log('appsToSync', appsToSync)
+    console.log(`\n📊 Apps to synchronize: ${appsToSync.map(a => a.id).join(', ')}`)
 
     // Update initial progress
     onProgress?.({
@@ -633,10 +662,15 @@ export async function synchronizeAllApps(
     }
 
     // Phase 1: Fetch all addresses from Ledger (sequential, as required by Ledger)
+    console.log('\n📍 [SYNC] Phase 1: Fetching addresses from Ledger (SEQUENTIAL - required by hardware)...')
+    const ledgerFetchStartTime = Date.now()
     const addressMap = await fetchAllAppAddresses(appsToSync, onCancel)
+    const ledgerFetchDuration = Date.now() - ledgerFetchStartTime
+    console.log(`✅ [SYNC] Phase 1 complete in ${ledgerFetchDuration}ms\n`)
 
     // Check for cancellation after fetching addresses
     if (onCancel?.()) {
+      console.log('⚠️ Operation cancelled by user')
       return {
         success: false,
         apps: [polkadotApp],
@@ -647,11 +681,15 @@ export async function synchronizeAllApps(
     }
 
     // Phase 2: Synchronize all apps in parallel
+    console.log('📍 [ASYNC] Phase 2: Synchronizing all apps with blockchain data (PARALLEL)...')
+    const parallelSyncStartTime = Date.now()
     const synchronizedApps: App[] = []
     const polkadotAddressesForApp: Record<AppId, string[]> = {}
 
     // Create promises for parallel synchronization
     const syncPromises = appsToSync.map(async (appConfig) => {
+      const appSyncStartTime = Date.now()
+      console.log(`  ⚡ [ASYNC] Starting parallel sync for ${appConfig.id}...`)
       // Check if we have addresses for this app
       const addresses = addressMap.get(appConfig)
 
@@ -679,13 +717,18 @@ export async function synchronizeAllApps(
           true,
           onCancel
         )
+        const appSyncDuration = Date.now() - appSyncStartTime
+        console.log(`  ✅ [ASYNC] ${appConfig.id} sync completed in ${appSyncDuration}ms`)
         return result
       } catch (error) {
+        const appSyncDuration = Date.now() - appSyncStartTime
         if (error instanceof InternalError && error.errorType === InternalErrorType.OPERATION_CANCELLED) {
+          console.log(`  ⚠️ [ASYNC] ${appConfig.id} cancelled after ${appSyncDuration}ms`)
           // This is a cancellation, not an error
           throw error
         }
 
+        console.log(`  ❌ [ASYNC] ${appConfig.id} sync failed after ${appSyncDuration}ms:`, error)
         const errorApp: App = {
           name: appConfig.name,
           id: appConfig.id,
@@ -701,7 +744,10 @@ export async function synchronizeAllApps(
     })
 
     // Wait for all synchronizations to complete
+    console.log(`\n⏳ [ASYNC] Waiting for all ${syncPromises.length} parallel synchronizations to complete...`)
     const results = await Promise.allSettled(syncPromises)
+    const parallelSyncDuration = Date.now() - parallelSyncStartTime
+    console.log(`✅ [ASYNC] Phase 2 complete: All apps synchronized in ${parallelSyncDuration}ms\n`)
 
     // Process results and update progress
     results.forEach((result, index) => {
@@ -741,6 +787,17 @@ export async function synchronizeAllApps(
 
     // Add the Polkadot app to the final results
     synchronizedApps.push(polkadotApp)
+
+    const totalDuration = Date.now() - totalStartTime
+    console.log('\n🎉 ========== SYNCHRONIZATION COMPLETE ==========')
+    console.log('📊 Summary:')
+    console.log(`  - Total time: ${totalDuration}ms`)
+    console.log(`  - Polkadot fetch: ${polkadotDuration}ms`)
+    console.log(`  - Ledger address fetching (sequential): ${ledgerFetchDuration}ms`)
+    console.log(`  - Blockchain sync (parallel): ${parallelSyncDuration}ms`)
+    console.log(`  - Apps synchronized: ${synchronizedApps.length}/${totalApps}`)
+    console.log(`  - Time saved by parallel execution: ~${Math.max(0, (ledgerFetchDuration + parallelSyncDuration * appsToSync.length) - (ledgerFetchDuration + parallelSyncDuration))}ms (estimate)`)
+    console.log('================================================\n')
 
     return {
       success: true,
