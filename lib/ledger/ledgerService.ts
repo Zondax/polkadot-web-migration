@@ -197,8 +197,8 @@ export class LedgerService implements ILedgerService {
 
     // Cache the public key if not showing on device and we have a valid response
     if (!showAddrInDevice && address?.pubKey) {
-      // Convert pubKey to Uint8Array if it's a string
-      const publicKey = typeof address.pubKey === 'string' ? new Uint8Array(Buffer.from(address.pubKey, 'hex')) : address.pubKey
+      // Convert hex string pubKey to Uint8Array for caching
+      const publicKey = new Uint8Array(Buffer.from(address.pubKey, 'hex'))
       addressCache.set(bip44Path, publicKey)
       console.debug(`[ledgerService] Cached public key for path: ${bip44Path}`)
     }

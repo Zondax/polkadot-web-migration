@@ -1,7 +1,7 @@
 import { encodeAddress } from '@polkadot/keyring'
-import { addressCache } from '@/state/stores'
+import { addressCache } from '../addressCache'
 
-describe('AddressCacheUtil', () => {
+describe('AddressCache (Observable)', () => {
   const testPath = "m/44'/354'/0'/0'/0'"
   const testPublicKey = new Uint8Array([
     0x46, 0xeb, 0xdd, 0xef, 0x8c, 0xd9, 0xbb, 0x16, 0x7d, 0xc3, 0x08, 0x78, 0xd7, 0x11, 0x3b, 0x7e, 0x16, 0x8e, 0x6f, 0x06, 0x46, 0xbe,
