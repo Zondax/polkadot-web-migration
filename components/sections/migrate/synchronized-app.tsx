@@ -1,15 +1,15 @@
-import { observer, use$ } from '@legendapp/state/react'
-import { BN } from '@polkadot/util'
-import { ChevronDown, Info } from 'lucide-react'
-import { useMemo, useState } from 'react'
-import { type App, ledgerState$ } from 'state/ledger'
-import { type Address, BalanceType } from 'state/types/ledger'
 import { CustomTooltip } from '@/components/CustomTooltip'
 import type { ToggleAccountSelection, UpdateTransaction } from '@/components/hooks/useSynchronization'
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
 import { isNativeBalance } from '@/lib/utils/balance'
 import { formatBalance } from '@/lib/utils/format'
 import { muifyHtml } from '@/lib/utils/html'
+import { observer, use$ } from '@legendapp/state/react'
+import { BN } from '@polkadot/util'
+import { ChevronDown, Info } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { ledgerState$, type App } from 'state/ledger'
+import { BalanceType, NativeBalance, type Address } from 'state/types/ledger'
 import { BalanceTypeFlag } from './balance-detail-card'
 import InvalidSynchronizedAccountsTable from './invalid-synchronized-accounts-table'
 import SynchronizedAccountsTable from './synchronized-accounts-table'
@@ -46,7 +46,7 @@ function SynchronizedApp({
     if (failedSync) return null
     const balance = accounts?.reduce((total: BN, account: Address) => {
       const balances = account.balances ?? []
-      const nativeBalance = balances.find(b => isNativeBalance(b))?.balance.total ?? new BN(0)
+      const nativeBalance = (balances.find(b => isNativeBalance(b)) as NativeBalance)?.balance.total ?? new BN(0)
       return total.add(nativeBalance)
     }, new BN(0))
 
