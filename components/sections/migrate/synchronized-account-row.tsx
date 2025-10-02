@@ -580,13 +580,23 @@ const SynchronizedAccountRow = ({
     )
   }
 
+  const checkboxElement = (
+    <Checkbox checked={effectiveIsSelected} onCheckedChange={handleCheckboxChange} disabled={isCheckboxDisabled} />
+  )
+
   return (
     <TableRow key={`${account.address ?? accountIndex}-${balance?.type}`}>
       {/* Source Address */}
       {isFirst && (
         <TableCell className="py-2 text-sm" rowSpan={rowSpan}>
           <div className="flex items-center gap-2">
-            <Checkbox checked={effectiveIsSelected} onCheckedChange={handleCheckboxChange} disabled={isCheckboxDisabled} />
+            {isCheckboxDisabled ? (
+              <CustomTooltip tooltipBody="Cannot select this account because there are pending multisig calls that need approval from external signers">
+                <div>{checkboxElement}</div>
+              </CustomTooltip>
+            ) : (
+              checkboxElement
+            )}
 
             <ExplorerLink
               value={account.address ?? ''}
