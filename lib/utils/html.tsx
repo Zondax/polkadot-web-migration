@@ -1,5 +1,12 @@
-import HTMLReactParser, { type DOMNode, domToReact, type HTMLReactParserOptions } from 'html-react-parser'
-import DOMPurify from 'isomorphic-dompurify'
+import HTMLReactParser, { domToReact, type DOMNode, type HTMLReactParserOptions } from 'html-react-parser'
+
+// The `isomorphic-dompurify` package relies on `jsdom` to work in the server-side rendering context of Next.js.
+// However, `jsdom` is not available in the Next.js build/SSR contexts, which causes the error.
+// To resolve this issue, we dynamically import `isomorphic-dompurify` only when the code is running in the client-side rendering context.
+let DOMPurify: typeof import('isomorphic-dompurify').default
+if (typeof window !== 'undefined') {
+  DOMPurify = require('isomorphic-dompurify')
+}
 
 /**
  * Configuration options for HTML to React transformation
