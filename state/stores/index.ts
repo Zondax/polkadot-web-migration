@@ -8,11 +8,11 @@
 
 // Address cache store for Ledger public keys (Legend State observable)
 export {
+  type AddressCacheAdapter,
+  addressCache,
   addressCache$,
   addressCacheActions,
-  addressCache,
   useAddressCache,
-  type AddressCacheAdapter,
 } from './addressCache'
 
 // Future observable stores can be added here

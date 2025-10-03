@@ -32,6 +32,7 @@ export function MigrateTabContent({ onBack }: MigrateTabContentProps) {
     migratingItem,
     getCollectionsByAppId,
     destinationAddressesByApp,
+    migrateSelected,
   } = useMigration()
   const userDismissedDialog = useRef(false)
 
@@ -47,6 +48,7 @@ export function MigrateTabContent({ onBack }: MigrateTabContentProps) {
 
   const handleMigrate = async () => {
     setMigrationStatus('loading')
+    await migrateSelected()
     setShowSuccessDialog(true)
     setMigrationStatus('finished')
   }
