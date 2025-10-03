@@ -9,7 +9,7 @@ import { BN } from '@polkadot/util'
 import { ChevronDown, Info } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { ledgerState$, type App } from 'state/ledger'
-import { BalanceType, type Address, type NativeBalance } from 'state/types/ledger'
+import { BalanceType, type Address } from 'state/types/ledger'
 import { BalanceTypeFlag } from './balance-detail-card'
 import InvalidSynchronizedAccountsTable from './invalid-synchronized-accounts-table'
 import SynchronizedAccountsTable from './synchronized-accounts-table'
@@ -46,7 +46,8 @@ function SynchronizedApp({
     if (failedSync) return null
     const balance = accounts?.reduce((total: BN, account: Address) => {
       const balances = account.balances ?? []
-      const nativeBalance = (balances.find(b => isNativeBalance(b)) as NativeBalance)?.balance.total ?? new BN(0)
+      const nativeBalance = balances.find(isNativeBalance)?.balance.total ?? new BN(0)
+
       return total.add(nativeBalance)
     }, new BN(0))
 
