@@ -1,9 +1,3 @@
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Info } from 'lucide-react'
-import { useMemo } from 'react'
-import { Controller, useForm } from 'react-hook-form'
-import type { MultisigAddress, MultisigMember, TransactionDetails, TransactionStatus } from 'state/types/ledger'
-import { z } from 'zod'
 import { CustomTooltip } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
@@ -13,6 +7,12 @@ import type { AppId, Token } from '@/config/apps'
 import { MULTISIG_TRANSFER_AMOUNT } from '@/config/config'
 import { ExplorerItemType } from '@/config/explorers'
 import { ledgerState$ } from '@/state/ledger'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Info } from 'lucide-react'
+import { useMemo } from 'react'
+import { Controller, useForm } from 'react-hook-form'
+import type { MultisigAddress, MultisigMember, TransactionDetails, TransactionStatus } from 'state/types/ledger'
+import { z } from 'zod'
 import { DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
@@ -149,12 +149,10 @@ function TransferMultisigForm({
       </DialogField>
 
       {/* Info about multisig approval process */}
-      <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-md">
-        <Info className="h-4 w-4 text-muted-foreground mt-0.5" />
-        <div className="text-xs text-muted-foreground">
-          This will create a multisig transaction that requires {account.threshold} of {account.members.length} signatures to complete.
-          After submitting, other signers will need to approve the transaction.
-        </div>
+      <div className="p-3 bg-muted/50 rounded-md text-xs text-muted-foreground">
+        <Info className="text-muted-foreground h-3.5 w-3.5 inline mr-1" />
+        This will create a multisig transaction that requires {account.threshold} of {account.members.length} signatures to complete. After
+        submitting, other signers will need to approve the transaction.
       </div>
     </form>
   )

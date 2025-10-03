@@ -9,7 +9,7 @@ import { BN } from '@polkadot/util'
 import { ChevronDown, Info } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { ledgerState$, type App } from 'state/ledger'
-import { BalanceType, NativeBalance, type Address } from 'state/types/ledger'
+import { BalanceType, type Address, type NativeBalance } from 'state/types/ledger'
 import { BalanceTypeFlag } from './balance-detail-card'
 import InvalidSynchronizedAccountsTable from './invalid-synchronized-accounts-table'
 import SynchronizedAccountsTable from './synchronized-accounts-table'
@@ -35,7 +35,7 @@ function SynchronizedApp({
   const [isExpanded, setIsExpanded] = useState(true)
 
   const icon = useTokenLogo(id)
-  const polkadotAddresses = useMemo(() => ledgerState$.polkadotAddresses[id].get(), [id])
+  const polkadotAddresses = use$(() => ledgerState$.polkadotAddresses[id].get())
   const isAccountsNotEmpty = useMemo(() => Boolean(accounts && accounts.length !== 0), [accounts])
 
   const toggleExpand = () => {

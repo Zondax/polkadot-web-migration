@@ -580,9 +580,7 @@ const SynchronizedAccountRow = ({
     )
   }
 
-  const checkboxElement = (
-    <Checkbox checked={effectiveIsSelected} onCheckedChange={handleCheckboxChange} disabled={isCheckboxDisabled} />
-  )
+  const checkboxElement = <Checkbox checked={effectiveIsSelected} onCheckedChange={handleCheckboxChange} disabled={isCheckboxDisabled} />
 
   return (
     <TableRow key={`${account.address ?? accountIndex}-${balance?.type}`}>

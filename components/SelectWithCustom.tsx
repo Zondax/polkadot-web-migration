@@ -1,11 +1,11 @@
 'use client'
 
-import { Check, Plus, X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
+import { Check, Plus, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { Badge } from './ui/badge'
 
 interface Option {
@@ -90,6 +90,9 @@ export function SelectWithCustom({
     if (selectedValue && !options.find(option => option.value === selectedValue)) {
       setCustomValue(selectedValue)
       setIsCustomMode(true)
+    } else {
+      setIsCustomMode(false)
+      setCustomValue('')
     }
   }, [selectedValue, options])
 
