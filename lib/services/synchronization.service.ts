@@ -602,6 +602,19 @@ export async function synchronizeAllApps(
       } catch (error) {
         console.error(`[SYNC] Failed to fetch addresses for ${appConfig.name}:`, error)
         addressesByApp.set(appConfig.id, [])
+
+        // Notify that app synchronization has failed for this app
+        const errorApp: App = {
+          name: appConfig.name,
+          id: appConfig.id,
+          token: appConfig.token,
+          status: AppStatus.ERROR,
+          error: {
+            source: 'synchronization',
+            description: 'Failed to fetch addresses from Ledger',
+          },
+        }
+        onAppComplete?.(errorApp, [])
       }
 
       fetchedApps++
