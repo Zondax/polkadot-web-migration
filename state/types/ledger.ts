@@ -340,3 +340,13 @@ export interface ConvictionVotingInfo {
     unlockAt?: number
   }[]
 }
+
+/**
+ * Information about the progress of a synchronization operation
+ */
+export interface SyncProgress {
+  scanned: number
+  total: number
+  percentage: number
+  phase?: 'fetching_addresses' | 'processing_accounts'
+}

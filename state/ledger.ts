@@ -21,6 +21,7 @@ import {
   type Collection,
   type MigratingItem,
   type MultisigAddress,
+  type SyncProgress,
   type UpdateMigratedStatusFn,
 } from './types/ledger'
 
@@ -28,6 +29,7 @@ export enum AppStatus {
   MIGRATED = 'migrated',
   SYNCHRONIZED = 'synchronized',
   LOADING = 'loading',
+  ADDRESSES_FETCHED = 'addresses_fetched',
   ERROR = 'error',
   RESCANNING = 'rescanning',
 }
@@ -68,11 +70,7 @@ interface LedgerState {
     polkadotApp: App
     status?: AppStatus
     error?: string
-    syncProgress: {
-      scanned: number
-      total: number
-      percentage: number
-    }
+    syncProgress: SyncProgress
     isSyncCancelRequested: boolean
     migrationResult: {
       [key in MigrationResultKey]: number
@@ -97,6 +95,7 @@ const initialLedgerState: LedgerState = {
       scanned: 0,
       total: 0,
       percentage: 0,
+      phase: undefined,
     },
     isSyncCancelRequested: false,
     migrationResult: {
@@ -331,6 +330,7 @@ export const ledgerState$ = observable({
         scanned: 0,
         total: 0,
         percentage: 0,
+        phase: undefined,
       },
       isSyncCancelRequested: false,
       migrationResult: {
@@ -420,6 +420,7 @@ export const ledgerState$ = observable({
               scanned: 0,
               total: 0,
               percentage: 0,
+              phase: undefined,
             },
           })
           return
@@ -433,6 +434,7 @@ export const ledgerState$ = observable({
           scanned: 0,
           total: 0,
           percentage: 0,
+          phase: undefined,
         },
       })
 
@@ -447,6 +449,14 @@ export const ledgerState$ = observable({
         // App start callback - add app with loading status
         loadingApp => {
           ledgerState$.apps.apps.push(loadingApp)
+        },
+        // Processing accounts start callback
+        () => {
+          ledgerState$.apps.status.set(AppStatus.ADDRESSES_FETCHED)
+          for (const app of ledgerState$.apps.apps.get()) {
+            if (app.id === appsConfigs.get('polkadot')?.id) continue
+            app.status = AppStatus.LOADING
+          }
         },
         // App complete callback - replace loading app with completed app, and update polkadot addresses
         (completedApp, polkadotAddresses) => {
