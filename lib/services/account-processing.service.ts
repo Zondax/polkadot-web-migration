@@ -1,25 +1,25 @@
-import type { ApiPromise } from '@polkadot/api'
-import { BN } from '@polkadot/util'
-import type { AppConfig } from 'config/apps'
-import { InternalErrorType } from 'config/errors'
-import { errorApps } from 'config/mockData'
 import { getBalance, getIdentityInfo, getIndexInfo, getMultisigAddresses, getProxyInfo } from '@/lib/account'
 import { convertSS58Format } from '@/lib/utils/address'
 import { hasAddressBalance, hasBalance, hasNegativeBalance, validateReservedBreakdown } from '@/lib/utils/balance'
 import { InternalError } from '@/lib/utils/error'
 import { filterAccountsForApps, setDefaultDestinationAddress } from '@/lib/utils/ledger'
 import {
+  AddressStatus,
+  BalanceType,
   type AccountIndex,
   type AccountProxy,
   type Address,
   type AddressBalance,
-  AddressStatus,
-  BalanceType,
   type Collection,
   type MultisigAddress,
   type Native,
   type Registration,
 } from '@/state/types/ledger'
+import type { ApiPromise } from '@polkadot/api'
+import { BN } from '@polkadot/util'
+import type { AppConfig } from 'config/apps'
+import { InternalErrorType } from 'config/errors'
+import { errorApps } from 'config/mockData'
 
 export interface ProcessedAccountData {
   accounts: Address[]
@@ -340,10 +340,13 @@ async function getBlockchainDataForMultisigAccounts(
           getIndexInfo(multisigAddress.address, api),
         ])
 
+        // Find first internal member address
+        const internalMemberAddress = multisigAddress.members.find(member => foundAccounts.includes(member.address))?.address
+
         // Process balances with signatory address
         multisigAddress.balances = multisigBalances.map(balance => ({
           ...balance,
-          transaction: { ...balance.transaction, signatoryAddress: multisigAddress.members[0].address },
+          transaction: { ...balance.transaction, signatoryAddress: internalMemberAddress },
         }))
 
         // Set multisig account properties

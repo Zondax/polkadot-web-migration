@@ -1,15 +1,15 @@
+import { getApiAndProvider } from '@/lib/account'
+import { isDevelopment } from '@/lib/utils/env'
+import { InternalError } from '@/lib/utils/error'
+import { ledgerClient } from '@/state/client/ledger'
+import { AppStatus, type App } from '@/state/ledger'
+import { notifications$ } from '@/state/notifications'
+import type { Address } from '@/state/types/ledger'
 import type { AppConfig, AppId } from 'config/apps'
 import { appsConfigs, polkadotAppConfig } from 'config/apps'
 import { maxAddressesToFetch } from 'config/config'
 import { InternalErrorType } from 'config/errors'
 import { syncApps } from 'config/mockData'
-import { getApiAndProvider } from '@/lib/account'
-import { isDevelopment } from '@/lib/utils/env'
-import { InternalError } from '@/lib/utils/error'
-import { ledgerClient } from '@/state/client/ledger'
-import { type App, AppStatus } from '@/state/ledger'
-import { notifications$ } from '@/state/notifications'
-import type { Address } from '@/state/types/ledger'
 import { processAccountsForApp } from './account-processing.service'
 
 export interface SyncProgress {
@@ -33,7 +33,6 @@ export interface SyncResult {
   success: boolean
   apps: App[]
   polkadotApp?: App
-  polkadotAddressesForApp?: Record<AppId, string[]>
   error?: string
 }
 
@@ -516,7 +515,7 @@ export async function synchronizeAllApps(
   onProgress?: (progress: SyncProgress) => void,
   onCancel?: () => boolean,
   onAppStart?: (app: App) => void,
-  onAppComplete?: (app: App) => void
+  onAppComplete?: (app: App, polkadotAddresses: string[]) => void
 ): Promise<SyncResult> {
   try {
     // Show initial notification
@@ -551,7 +550,6 @@ export async function synchronizeAllApps(
     })
 
     const synchronizedApps: App[] = []
-    const polkadotAddressesForApp: Record<AppId, string[]> = {}
 
     // Synchronize each blockchain app
     for (const appConfig of appsToSync) {
@@ -580,10 +578,9 @@ export async function synchronizeAllApps(
           onCancel
         )
         synchronizedApps.push(app)
-        polkadotAddressesForApp[app.id] = appPolkadotAddresses
 
         // Notify that app synchronization is complete
-        onAppComplete?.(app)
+        onAppComplete?.(app, appPolkadotAddresses)
       } catch (error) {
         if (error instanceof InternalError && error.errorType === InternalErrorType.OPERATION_CANCELLED) {
           // This is a cancellation, not an error. Break the loop.
@@ -604,7 +601,7 @@ export async function synchronizeAllApps(
         synchronizedApps.push(errorApp)
 
         // Notify that app synchronization is complete (with error)
-        onAppComplete?.(errorApp)
+        onAppComplete?.(errorApp, [])
       }
 
       // Update progress
@@ -624,7 +621,6 @@ export async function synchronizeAllApps(
       success: true,
       apps: synchronizedApps,
       polkadotApp,
-      polkadotAddressesForApp,
     }
   } catch (error) {
     console.debug('Error during synchronization:', error)
@@ -634,7 +630,6 @@ export async function synchronizeAllApps(
         success: false,
         apps: [],
         error: error.description || 'Synchronization failed',
-        polkadotAddressesForApp: {},
       }
     }
 

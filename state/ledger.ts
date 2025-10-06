@@ -1,26 +1,26 @@
-import { observable } from '@legendapp/state'
-import type { BN } from '@polkadot/util'
-import { type AppId, appsConfigs, polkadotAppConfig } from 'config/apps'
-import { errorDetails, InternalErrorType } from 'config/errors'
 import type { MultisigCallFormData } from '@/components/sections/migrate/dialogs/approve-multisig-call-dialog'
 import type { Token } from '@/config/apps'
 import { getApiAndProvider, getBalance, type UpdateTransactionStatus } from '@/lib/account'
 import type { DeviceConnectionProps } from '@/lib/ledger/types'
 import { synchronizeAllApps, synchronizeAppAccounts } from '@/lib/services/synchronization.service'
-import { type InternalError, interpretError } from '@/lib/utils'
+import { interpretError, type InternalError } from '@/lib/utils'
 import { isMultisigAddress } from '@/lib/utils/address'
 import { hasAddressBalance } from '@/lib/utils/balance'
+import { observable } from '@legendapp/state'
+import type { BN } from '@polkadot/util'
+import { appsConfigs, polkadotAppConfig, type AppId } from 'config/apps'
+import { InternalErrorType, errorDetails } from 'config/errors'
 import { ledgerClient } from './client/ledger'
 import { errorsToStopSync } from './config/ledger'
 import { notifications$ } from './notifications'
 import {
   AccountType,
-  type Address,
   AddressStatus,
+  TransactionStatus,
+  type Address,
   type Collection,
   type MigratingItem,
   type MultisigAddress,
-  TransactionStatus,
   type UpdateMigratedStatusFn,
 } from './types/ledger'
 
@@ -120,6 +120,11 @@ function updateApp(appId: AppId, update: Partial<App>) {
   } else {
     console.warn(`App with id ${appId} not found for UI update.`)
   }
+}
+
+// Update Polkadot Addresses
+function updatePolkadotAddresses(appId: AppId, addresses: string[]) {
+  ledgerState$.polkadotAddresses[appId].set(addresses)
 }
 
 // Update Account
@@ -386,7 +391,7 @@ export const ledgerState$ = observable({
       )
       if (app) {
         updateApp(appId, app)
-        ledgerState$.polkadotAddresses[appId].set(polkadotAddressesForApp)
+        updatePolkadotAddresses(appId, polkadotAddressesForApp)
       }
     } catch (_error) {
       updateApp(appId, {
@@ -443,9 +448,10 @@ export const ledgerState$ = observable({
         loadingApp => {
           ledgerState$.apps.apps.push(loadingApp)
         },
-        // App complete callback - replace loading app with completed app
-        completedApp => {
+        // App complete callback - replace loading app with completed app, and update polkadot addresses
+        (completedApp, polkadotAddresses) => {
           updateApp(completedApp.id, completedApp)
+          ledgerState$.polkadotAddresses[completedApp.id].set(polkadotAddresses)
         }
       )
 
@@ -460,13 +466,6 @@ export const ledgerState$ = observable({
 
         // Set the synchronized apps
         ledgerState$.apps.apps.set(result.apps)
-
-        // Set the polkadot addresses for each app
-        if (result.polkadotAddressesForApp) {
-          for (const [appId, addresses] of Object.entries(result.polkadotAddressesForApp)) {
-            ledgerState$.polkadotAddresses[appId].set(addresses)
-          }
-        }
 
         // Reset cancel flag when synchronization completes successfully
         ledgerState$.apps.isSyncCancelRequested.set(false)
