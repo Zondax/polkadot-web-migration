@@ -516,8 +516,6 @@ export async function synchronizeAllApps(
   onProcessingAccountsStart?: () => void,
   onAppComplete?: (app: App, polkadotAddresses: string[]) => void
 ): Promise<SyncResult> {
-  const syncStartTime = performance.now()
-
   try {
     // Show initial notification
     notifications$.push({
@@ -532,11 +530,9 @@ export async function synchronizeAllApps(
     const totalApps = appsToSync.length + 1 // +1 for Polkadot
 
     // ===== PHASE 1: Fetch all addresses from Ledger =====
-    console.log('[SYNC] 📥 Phase 1: Fetching addresses from Ledger for all apps')
     const addressesByApp = new Map<AppId, Address[]>()
 
     // Fetch Polkadot addresses first
-    console.log('[SYNC] 📍 Fetching Polkadot addresses from Ledger')
     onProgress?.({
       scanned: 0,
       total: totalApps,
@@ -569,7 +565,6 @@ export async function synchronizeAllApps(
     for (const appConfig of appsToSync) {
       if (onCancel?.()) break
 
-      console.log(`[SYNC] 📍 Fetching ${appConfig.name} addresses from Ledger`)
       // Notify that addresses have been fetched for this app
       const addressesFetchedApp: App = {
         id: appConfig.id,
@@ -613,14 +608,10 @@ export async function synchronizeAllApps(
       fetchedApps++
     }
 
-    console.log(`[SYNC] ✅ Phase 1 complete: Fetched addresses for ${addressesByApp.size + 1} apps`)
-
     // ===== PHASE 2: Process accounts (fetch balances, multisig, etc.) =====
-    console.log('[SYNC] 💾 Phase 2: Processing accounts (balances, multisig, etc.) - ALL IN PARALLEL')
     onProcessingAccountsStart?.()
 
     // Process Polkadot accounts first
-    console.log('[SYNC] 📍 Processing Polkadot accounts')
     const polkadotApp = await synchronizePolkadotAccounts(onCancel, polkadotAddressesFromLedger)
 
     onProgress?.({
@@ -631,18 +622,14 @@ export async function synchronizeAllApps(
     })
     // // Update all apps to LOADING before starting parallel processing
     // Process all apps in parallel
-    console.log(`[SYNC] 🚀 Starting parallel processing for ${appsToSync.length} apps`)
     let processedAppsCount = 0
 
     const appProcessingPromises = []
     for (const appConfig of appsToSync) {
       const promise = (async () => {
-        console.log(`[SYNC] 📍 Processing ${appConfig.name} accounts in parallel`)
-
         try {
           const preloadedAddresses = addressesByApp.get(appConfig.id)
           const result = await synchronizeAppAccounts(appConfig, polkadotAddresses, true, onCancel, preloadedAddresses)
-          console.log(`[SYNC] ✅ ${appConfig.name} processing complete`)
 
           // Update progress
           processedAppsCount++
@@ -658,8 +645,6 @@ export async function synchronizeAllApps(
 
           return { ...result, success: true }
         } catch (error) {
-          console.error(`[SYNC] ❌ ${appConfig.name} processing failed:`, error)
-
           if (error instanceof InternalError && error.errorType === InternalErrorType.OPERATION_CANCELLED) {
             // This is a cancellation, not an error. Re-throw to stop all processing.
             throw error
@@ -707,13 +692,7 @@ export async function synchronizeAllApps(
     // Add the Polkadot app to the final results
     synchronizedApps.push(polkadotApp)
 
-    console.log(`[SYNC] ✅ Phase 2 complete: Processed ${synchronizedApps.length} apps in parallel`)
-
-    const syncEndTime = performance.now()
-    const totalTimeSeconds = ((syncEndTime - syncStartTime) / 1000).toFixed(2)
-    console.debug(
-      `[SYNC] Synchronization completed at ${new Date().toISOString()}. Total synchronization time: ${totalTimeSeconds}s. Total apps synchronized: ${synchronizedApps.length}.`
-    )
+    console.debug(`[SYNC] Synchronization completed at ${new Date().toISOString()}. Total apps synchronized: ${synchronizedApps.length}.`)
 
     return {
       success: true,
@@ -721,9 +700,7 @@ export async function synchronizeAllApps(
       polkadotApp,
     }
   } catch (error) {
-    const syncEndTime = performance.now()
-    const totalTimeSeconds = ((syncEndTime - syncStartTime) / 1000).toFixed(2)
-    console.debug(`[SYNC] ❌ Synchronization failed at ${new Date().toISOString()}. Time until failure: ${totalTimeSeconds}s`)
+    console.debug(`[SYNC] Synchronization failed at ${new Date().toISOString()}.`)
 
     if (error instanceof InternalError) {
       return {
