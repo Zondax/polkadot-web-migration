@@ -601,6 +601,26 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
     )
   }
 
+  const syncStatusLabel = useMemo(() => {
+    let statusLabel = ''
+    switch (syncProgress.phase) {
+      case 'fetching_addresses':
+        statusLabel = '📥 Fetching addresses from Ledger'
+        break
+      case 'processing_accounts':
+        statusLabel = '💾 Processing accounts (balances, multisig and more)'
+        break
+      default:
+        statusLabel = 'Synchronizing apps'
+    }
+
+    return (
+      <span className="text-sm text-gray-600">
+        {statusLabel + (syncProgress.total > 0 ? ` (${syncProgress.scanned} / ${syncProgress.total})` : '')}
+      </span>
+    )
+  }, [syncProgress.phase, syncProgress.scanned, syncProgress.total])
+
   return (
     <div>
       <div className="flex flex-col md:flex-row justify-between items-start gap-6 md:gap-4 mb-6 md:mb-4">
@@ -618,9 +638,7 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
         <div className="space-y-2 mb-4">
           <div className="flex justify-between items-center">
             <span className="text-sm text-gray-600" data-testid="">
-              {syncProgress.phase === 'fetching_addresses' && '📥 Fetching addresses from Ledger'}
-              {syncProgress.phase === 'processing_accounts' && '💾 Processing accounts (balances, multisig and more)'}
-              {!syncProgress.phase && 'Synchronizing apps'} {syncProgress.total > 0 && `(${syncProgress.scanned} / ${syncProgress.total})`}
+              {syncStatusLabel}
             </span>
             <span className="text-sm text-gray-600">{syncProgress.percentage}%</span>
           </div>

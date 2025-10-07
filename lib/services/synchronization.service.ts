@@ -632,7 +632,7 @@ export async function synchronizeAllApps(
 
     onProgress?.({
       scanned: 0,
-      total: totalApps,
+      total: appsToSync.length,
       percentage: 50,
       phase: 'processing_accounts',
     })
