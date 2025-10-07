@@ -1,10 +1,10 @@
 import { use$, useObservable } from '@legendapp/state/react'
 import { useCallback, useState } from 'react'
-import { type App, AppStatus, ledgerState$ } from 'state/ledger'
+import { AppStatus, ledgerState$, type App } from 'state/ledger'
 
 import type { AppId } from '@/config/apps'
 import { filterInvalidSyncedApps, filterValidSyncedAppsWithBalances, hasAccountsWithErrors } from '@/lib/utils'
-import { AccountType, type Address, type MultisigAddress, type TransactionSettings } from '@/state/types/ledger'
+import { AccountType, type Address, type MultisigAddress, type SyncProgress, type TransactionSettings } from '@/state/types/ledger'
 
 export type UpdateTransaction = (
   transaction: Partial<TransactionSettings>,
@@ -35,11 +35,7 @@ interface UseSynchronizationReturn {
 
   // State
   status: AppStatus | undefined
-  syncProgress: {
-    scanned: number
-    total: number
-    percentage: number
-  }
+  syncProgress: SyncProgress
   isLedgerConnected: boolean
   isRescaning: boolean
   isSyncCancelRequested: boolean

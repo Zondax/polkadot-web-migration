@@ -1,15 +1,15 @@
 'use client'
 
 import { observer, use$ } from '@legendapp/state/react'
-import { AlertCircle, Loader2 } from 'lucide-react'
-import { type App, AppStatus } from 'state/ledger'
+import { AlertCircle, Check, Loader2 } from 'lucide-react'
+import { AppStatus, type App } from 'state/ledger'
 import { uiState$ } from 'state/ui'
 
 import { CustomTooltip } from '@/components/CustomTooltip'
 import { useSynchronization } from '@/components/hooks/useSynchronization'
 import TokenIcon from '@/components/TokenIcon'
 import { Badge } from '@/components/ui/badge'
-import { type AppConfig, appsConfigs, getChainName } from '@/config/apps'
+import { appsConfigs, getChainName, type AppConfig } from '@/config/apps'
 import { cn, getAppTotalAccounts, hasAppAccounts } from '@/lib/utils'
 
 interface AppScanItemProps {
@@ -47,6 +47,11 @@ const AppScanItem = ({ app }: AppScanItemProps) => {
       statusIcon = <AlertCircle data-testid="error-icon" className="h-3.5 w-3.5 text-red-500" />
       statusClass = 'border-red-200 bg-red-50 opacity-100'
       statusText = 'Failed synchronization'
+      break
+    case AppStatus.ADDRESSES_FETCHED:
+      statusIcon = <Check data-testid="addresses-fetched-icon" className="h-3.5 w-3.5 text-blue-500" />
+      statusClass = 'border-blue-200 bg-blue-50 opacity-100'
+      statusText = 'Addresses fetched, processing accounts...'
       break
     case AppStatus.LOADING:
       statusIcon = <Loader2 data-testid="loading-icon" className="h-3.5 w-3.5 animate-spin text-indigo-500" />

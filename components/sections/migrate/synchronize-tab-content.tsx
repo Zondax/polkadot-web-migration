@@ -1,9 +1,5 @@
 'use client'
 
-import type { CheckedState } from '@radix-ui/react-checkbox'
-import { FolderSync, Info, Loader2, RefreshCw, Search, User, Users, X } from 'lucide-react'
-import { useCallback, useMemo, useRef, useState } from 'react'
-import { type App, AppStatus } from 'state/ledger'
 import { CustomTooltip } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { useSynchronization } from '@/components/hooks/useSynchronization'
@@ -11,13 +7,17 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Progress } from '@/components/ui/progress'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { type AppConfig, appsConfigs, polkadotAppConfig } from '@/config/apps'
+import { appsConfigs, polkadotAppConfig, type AppConfig } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { scanAppWithCustomIndices } from '@/lib/services/synchronization.service'
 import { generateIndicesArray } from '@/lib/utils/scan-indices'
 import { ledgerState$ } from '@/state/ledger'
 import { notifications$ } from '@/state/notifications'
-import type { Address, MultisigAddress } from '@/state/types/ledger'
+import { FetchingAddressesPhase, type Address, type MultisigAddress } from '@/state/types/ledger'
+import type { CheckedState } from '@radix-ui/react-checkbox'
+import { FolderSync, Info, Loader2, RefreshCw, Search, User, Users, X } from 'lucide-react'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import { AppStatus, type App } from 'state/ledger'
 import AppScanningGrid from './app-scanning-grid'
 import { DeepScanModal, type DeepScanOptions } from './deep-scan-modal'
 import EmptyStateRow from './empty-state-row'
@@ -523,11 +523,12 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
     )
   }
 
-  const isLoading = status === AppStatus.LOADING
+  const isLoading = status && [AppStatus.LOADING, AppStatus.ADDRESSES_FETCHED].includes(status)
+  const isFetchingAddresses = status === AppStatus.LOADING
   const isSynchronized = status === AppStatus.SYNCHRONIZED
 
   const renderRestartSynchronizationButton = () => {
-    if (status === AppStatus.LOADING) {
+    if (isLoading) {
       return null
     }
 
@@ -600,6 +601,26 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
     )
   }
 
+  const syncStatusLabel = useMemo(() => {
+    let statusLabel = ''
+    switch (syncProgress.phase) {
+      case FetchingAddressesPhase.FETCHING_ADDRESSES:
+        statusLabel = '📥 Fetching addresses from Ledger'
+        break
+      case FetchingAddressesPhase.PROCESSING_ACCOUNTS:
+        statusLabel = '💾 Processing accounts (balances, multisig and more)'
+        break
+      default:
+        statusLabel = 'Synchronizing apps'
+    }
+
+    return (
+      <span className="text-sm text-gray-600">
+        {statusLabel + (syncProgress.total > 0 ? ` (${syncProgress.scanned} / ${syncProgress.total})` : '')}
+      </span>
+    )
+  }, [syncProgress.phase, syncProgress.scanned, syncProgress.total])
+
   return (
     <div>
       <div className="flex flex-col md:flex-row justify-between items-start gap-6 md:gap-4 mb-6 md:mb-4">
@@ -617,12 +638,12 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
         <div className="space-y-2 mb-4">
           <div className="flex justify-between items-center">
             <span className="text-sm text-gray-600" data-testid="">
-              Synchronizing apps {syncProgress.total > 0 && `(${syncProgress.scanned} / ${syncProgress.total})`}
+              {syncStatusLabel}
             </span>
             <span className="text-sm text-gray-600">{syncProgress.percentage}%</span>
           </div>
           <Progress value={syncProgress.percentage} data-testid="app-sync-progress-bar" />
-          <LedgerUnlockReminder isVisible={isLoading} />
+          <LedgerUnlockReminder isVisible={isFetchingAddresses} />
           <div className="pt-2">
             <AppScanningGrid />
           </div>

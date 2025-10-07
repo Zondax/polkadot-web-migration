@@ -4,19 +4,13 @@ import { InternalError } from '@/lib/utils/error'
 import { ledgerClient } from '@/state/client/ledger'
 import { AppStatus, type App } from '@/state/ledger'
 import { notifications$ } from '@/state/notifications'
-import type { Address } from '@/state/types/ledger'
+import { FetchingAddressesPhase, type Address, type SyncProgress } from '@/state/types/ledger'
 import type { AppConfig, AppId } from 'config/apps'
 import { appsConfigs, polkadotAppConfig } from 'config/apps'
 import { maxAddressesToFetch } from 'config/config'
 import { InternalErrorType } from 'config/errors'
 import { syncApps } from 'config/mockData'
 import { processAccountsForApp } from './account-processing.service'
-
-export interface SyncProgress {
-  scanned: number
-  total: number
-  percentage: number
-}
 
 /**
  * Checks if cancellation is requested and throws an error if so
@@ -109,7 +103,8 @@ export async function synchronizeAppAccounts(
   appConfig: AppConfig,
   polkadotAddresses: string[],
   filterByBalance = true,
-  onCancel?: () => boolean
+  onCancel?: () => boolean,
+  preloadedAddresses?: Address[]
 ): Promise<{
   app: App
   polkadotAddressesForApp: string[]
@@ -118,8 +113,8 @@ export async function synchronizeAppAccounts(
     // Check for cancellation before starting
     checkCancellation(onCancel)
 
-    // Fetch addresses from Ledger
-    const addresses = await fetchAddressesFromLedger(appConfig, onCancel)
+    // Use preloaded addresses if provided, otherwise fetch from Ledger
+    const addresses = preloadedAddresses || (await fetchAddressesFromLedger(appConfig, onCancel))
 
     // Check for cancellation after fetching addresses
     checkCancellation(onCancel)
@@ -243,10 +238,12 @@ export async function synchronizeAppAccounts(
  * const destinationAddresses = polkadotApp.accounts?.map(acc => acc.address) || []
  * ```
  */
-export async function synchronizePolkadotAccounts(onCancel?: () => boolean): Promise<App> {
+export async function synchronizePolkadotAccounts(onCancel?: () => boolean, preloadedAddresses?: Address[]): Promise<App> {
   try {
     const appConfig = polkadotAppConfig
-    const response = await ledgerClient.synchronizeAccounts(appConfig, onCancel)
+
+    // Use preloaded addresses if provided, otherwise fetch from Ledger
+    const addresses = preloadedAddresses || (await ledgerClient.synchronizeAccounts(appConfig, onCancel)).result
 
     const noAccountsNotification = {
       title: 'No Polkadot accounts found',
@@ -256,7 +253,7 @@ export async function synchronizePolkadotAccounts(onCancel?: () => boolean): Pro
       autoHideDuration: 5000,
     }
 
-    if (!response.result) {
+    if (!addresses) {
       notifications$.push(noAccountsNotification)
       throw new InternalError(InternalErrorType.SYNC_ERROR, {
         operation: 'synchronizePolkadotAccounts',
@@ -272,7 +269,7 @@ export async function synchronizePolkadotAccounts(onCancel?: () => boolean): Pro
       })
     }
 
-    const accounts = response.result
+    const accounts = addresses
 
     // Test API connection
     const { api, provider } = await getApiAndProvider(appConfig.rpcEndpoints)
@@ -507,6 +504,7 @@ export async function scanAppWithCustomIndices(
  * @param {(progress: SyncProgress) => void} [onProgress] - Callback for progress updates
  * @param {() => boolean} [onCancel] - Function that returns true if cancellation is requested
  * @param {(app: App) => void} [onAppStart] - Callback when an app starts synchronizing
+ * @param {() => void} [onProcessingAccountsStart] - Callback when processing accounts starts
  * @param {(app: App) => void} [onAppComplete] - Callback when an app completes synchronization
  * @returns {Promise<SyncResult>} Result containing all synchronized apps and success status
  * @throws {InternalError} When the overall synchronization process fails
@@ -515,6 +513,7 @@ export async function synchronizeAllApps(
   onProgress?: (progress: SyncProgress) => void,
   onCancel?: () => boolean,
   onAppStart?: (app: App) => void,
+  onProcessingAccountsStart?: () => void,
   onAppComplete?: (app: App, polkadotAddresses: string[]) => void
 ): Promise<SyncResult> {
   try {
@@ -526,67 +525,73 @@ export async function synchronizeAllApps(
       autoHideDuration: 5000,
     })
 
-    // Synchronize Polkadot accounts first
-    const polkadotApp = await synchronizePolkadotAccounts(onCancel)
-    const polkadotAddresses = polkadotApp.accounts?.map(account => account.address) || []
-
     // Get apps to synchronize (exclude Polkadot since it's handled separately)
     const appsToSync = getAppsToSync().filter(app => app.id !== 'polkadot')
-    const totalApps = appsToSync.length + 1 // +1 for Polkadot (already processed)
-    let syncedApps = 1 // Start at 1 since Polkadot is already done
+    const totalApps = appsToSync.length + 1 // +1 for Polkadot
 
-    // Update initial progress
+    // ===== PHASE 1: Fetch all addresses from Ledger =====
+    const addressesByApp = new Map<AppId, Address[]>()
+
+    // Fetch Polkadot addresses first
     onProgress?.({
-      scanned: syncedApps,
+      scanned: 0,
       total: totalApps,
       percentage: 0,
+      phase: FetchingAddressesPhase.FETCHING_ADDRESSES,
     })
 
-    // Update progress after Polkadot (already included in initial syncedApps = 1)
+    const polkadotAddressesFromLedger = await fetchAddressesFromLedger(polkadotAppConfig, onCancel)
+    const polkadotAddresses = polkadotAddressesFromLedger.map(account => account.address)
+
+    // Notify that addresses have been fetched for this app
+    const polkadotAddressesFetchedApp: App = {
+      id: polkadotAppConfig.id,
+      name: polkadotAppConfig.name,
+      token: polkadotAppConfig.token,
+      status: AppStatus.ADDRESSES_FETCHED,
+    }
+    onAppStart?.(polkadotAddressesFetchedApp)
+
+    let fetchedApps = 1 // Start at 1 (Polkadot already fetched)
+
     onProgress?.({
-      scanned: syncedApps,
+      scanned: fetchedApps,
       total: totalApps,
-      percentage: Math.round((syncedApps / totalApps) * 100),
+      percentage: Math.round((fetchedApps / totalApps) * 50), // First phase is 0-50%
+      phase: FetchingAddressesPhase.FETCHING_ADDRESSES,
     })
 
-    const synchronizedApps: App[] = []
-
-    // Synchronize each blockchain app
+    // Fetch addresses for all other apps
     for (const appConfig of appsToSync) {
-      // Check for cancellation
-      if (onCancel?.()) {
-        break
-      }
+      if (onCancel?.()) break
 
-      // Add app with loading status before synchronization
-      const loadingApp: App = {
+      // Notify that addresses have been fetched for this app
+      const addressesFetchedApp: App = {
         id: appConfig.id,
         name: appConfig.name,
         token: appConfig.token,
         status: AppStatus.LOADING,
-        error: undefined,
       }
-
-      // Notify that app synchronization has started
-      onAppStart?.(loadingApp)
+      onAppStart?.(addressesFetchedApp)
+      onProgress?.({
+        scanned: fetchedApps,
+        total: totalApps,
+        percentage: Math.round((fetchedApps / totalApps) * 50), // First phase is 0-50%
+        phase: FetchingAddressesPhase.FETCHING_ADDRESSES,
+      })
 
       try {
-        const { app, polkadotAddressesForApp: appPolkadotAddresses } = await synchronizeAppAccounts(
-          appConfig,
-          polkadotAddresses,
-          true,
-          onCancel
-        )
-        synchronizedApps.push(app)
+        const addresses = await fetchAddressesFromLedger(appConfig, onCancel)
+        addressesByApp.set(appConfig.id, addresses)
 
-        // Notify that app synchronization is complete
-        onAppComplete?.(app, appPolkadotAddresses)
+        // Notify that addresses have been fetched for this app
+        addressesFetchedApp.status = AppStatus.ADDRESSES_FETCHED
+        onAppComplete?.(addressesFetchedApp, polkadotAddresses)
       } catch (error) {
-        if (error instanceof InternalError && error.errorType === InternalErrorType.OPERATION_CANCELLED) {
-          // This is a cancellation, not an error. Break the loop.
-          break
-        }
+        console.error(`[SYNC] Failed to fetch addresses for ${appConfig.name}:`, error)
+        addressesByApp.set(appConfig.id, [])
 
+        // Notify that app synchronization has failed for this app
         const errorApp: App = {
           name: appConfig.name,
           id: appConfig.id,
@@ -594,28 +599,100 @@ export async function synchronizeAllApps(
           status: AppStatus.ERROR,
           error: {
             source: 'synchronization',
-            description: 'Failed to synchronize accounts',
+            description: 'Failed to fetch addresses from Ledger',
           },
         }
-
-        synchronizedApps.push(errorApp)
-
-        // Notify that app synchronization is complete (with error)
         onAppComplete?.(errorApp, [])
       }
 
-      // Update progress
-      syncedApps++
-      const progress = Math.round((syncedApps / totalApps) * 100)
-      onProgress?.({
-        scanned: syncedApps,
-        total: totalApps,
-        percentage: progress,
-      })
+      fetchedApps++
     }
+
+    // ===== PHASE 2: Process accounts (fetch balances, multisig, etc.) =====
+    onProcessingAccountsStart?.()
+
+    // Process Polkadot accounts first
+    const polkadotApp = await synchronizePolkadotAccounts(onCancel, polkadotAddressesFromLedger)
+
+    onProgress?.({
+      scanned: 0,
+      total: appsToSync.length,
+      percentage: 50,
+      phase: FetchingAddressesPhase.PROCESSING_ACCOUNTS,
+    })
+    // // Update all apps to LOADING before starting parallel processing
+    // Process all apps in parallel
+    let processedAppsCount = 0
+
+    const appProcessingPromises = []
+    for (const appConfig of appsToSync) {
+      const promise = (async () => {
+        try {
+          const preloadedAddresses = addressesByApp.get(appConfig.id)
+          const result = await synchronizeAppAccounts(appConfig, polkadotAddresses, true, onCancel, preloadedAddresses)
+
+          // Update progress
+          processedAppsCount++
+          onProgress?.({
+            scanned: processedAppsCount,
+            total: appsToSync.length,
+            percentage: 50 + Math.round((processedAppsCount / appsToSync.length) * 50), // 50-100%
+            phase: FetchingAddressesPhase.PROCESSING_ACCOUNTS,
+          })
+
+          // Notify completion immediately after this app finishes
+          onAppComplete?.(result.app, result.polkadotAddressesForApp)
+
+          return { ...result, success: true }
+        } catch (error) {
+          if (error instanceof InternalError && error.errorType === InternalErrorType.OPERATION_CANCELLED) {
+            // This is a cancellation, not an error. Re-throw to stop all processing.
+            throw error
+          }
+
+          const errorApp: App = {
+            name: appConfig.name,
+            id: appConfig.id,
+            token: appConfig.token,
+            status: AppStatus.ERROR,
+            error: {
+              source: 'synchronization' as const,
+              description: 'Failed to synchronize accounts',
+            },
+          }
+
+          // Update progress
+          processedAppsCount++
+          onProgress?.({
+            scanned: processedAppsCount,
+            total: appsToSync.length,
+            percentage: 50 + Math.round((processedAppsCount / appsToSync.length) * 50), // 50-100%
+            phase: FetchingAddressesPhase.PROCESSING_ACCOUNTS,
+          })
+
+          // Notify completion with error
+          onAppComplete?.(errorApp, [])
+
+          return {
+            app: errorApp,
+            polkadotAddressesForApp: [],
+            success: false,
+          }
+        }
+      })()
+      appProcessingPromises.push(promise)
+    }
+
+    // Wait for all apps to complete
+    const results = await Promise.all(appProcessingPromises)
+
+    // Collect results (apps have already been notified individually)
+    const synchronizedApps: App[] = results.map(result => result.app)
 
     // Add the Polkadot app to the final results
     synchronizedApps.push(polkadotApp)
+
+    console.debug(`[SYNC] Synchronization completed at ${new Date().toISOString()}. Total apps synchronized: ${synchronizedApps.length}.`)
 
     return {
       success: true,
@@ -623,7 +700,7 @@ export async function synchronizeAllApps(
       polkadotApp,
     }
   } catch (error) {
-    console.debug('Error during synchronization:', error)
+    console.debug(`[SYNC] Synchronization failed at ${new Date().toISOString()}.`)
 
     if (error instanceof InternalError) {
       return {
