@@ -13,7 +13,7 @@ import { scanAppWithCustomIndices } from '@/lib/services/synchronization.service
 import { generateIndicesArray } from '@/lib/utils/scan-indices'
 import { ledgerState$ } from '@/state/ledger'
 import { notifications$ } from '@/state/notifications'
-import type { Address, MultisigAddress } from '@/state/types/ledger'
+import { FetchingAddressesPhase, type Address, type MultisigAddress } from '@/state/types/ledger'
 import type { CheckedState } from '@radix-ui/react-checkbox'
 import { FolderSync, Info, Loader2, RefreshCw, Search, User, Users, X } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState } from 'react'
@@ -604,10 +604,10 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
   const syncStatusLabel = useMemo(() => {
     let statusLabel = ''
     switch (syncProgress.phase) {
-      case 'fetching_addresses':
+      case FetchingAddressesPhase.FETCHING_ADDRESSES:
         statusLabel = '📥 Fetching addresses from Ledger'
         break
-      case 'processing_accounts':
+      case FetchingAddressesPhase.PROCESSING_ACCOUNTS:
         statusLabel = '💾 Processing accounts (balances, multisig and more)'
         break
       default:

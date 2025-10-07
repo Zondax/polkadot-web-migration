@@ -4,20 +4,13 @@ import { InternalError } from '@/lib/utils/error'
 import { ledgerClient } from '@/state/client/ledger'
 import { AppStatus, type App } from '@/state/ledger'
 import { notifications$ } from '@/state/notifications'
-import type { Address } from '@/state/types/ledger'
+import { FetchingAddressesPhase, type Address, type SyncProgress } from '@/state/types/ledger'
 import type { AppConfig, AppId } from 'config/apps'
 import { appsConfigs, polkadotAppConfig } from 'config/apps'
 import { maxAddressesToFetch } from 'config/config'
 import { InternalErrorType } from 'config/errors'
 import { syncApps } from 'config/mockData'
 import { processAccountsForApp } from './account-processing.service'
-
-export interface SyncProgress {
-  scanned: number
-  total: number
-  percentage: number
-  phase?: 'fetching_addresses' | 'processing_accounts'
-}
 
 /**
  * Checks if cancellation is requested and throws an error if so
@@ -548,7 +541,7 @@ export async function synchronizeAllApps(
       scanned: 0,
       total: totalApps,
       percentage: 0,
-      phase: 'fetching_addresses',
+      phase: FetchingAddressesPhase.FETCHING_ADDRESSES,
     })
 
     const polkadotAddressesFromLedger = await fetchAddressesFromLedger(polkadotAppConfig, onCancel)
@@ -569,7 +562,7 @@ export async function synchronizeAllApps(
       scanned: fetchedApps,
       total: totalApps,
       percentage: Math.round((fetchedApps / totalApps) * 50), // First phase is 0-50%
-      phase: 'fetching_addresses',
+      phase: FetchingAddressesPhase.FETCHING_ADDRESSES,
     })
 
     // Fetch addresses for all other apps
@@ -589,7 +582,7 @@ export async function synchronizeAllApps(
         scanned: fetchedApps,
         total: totalApps,
         percentage: Math.round((fetchedApps / totalApps) * 50), // First phase is 0-50%
-        phase: 'fetching_addresses',
+        phase: FetchingAddressesPhase.FETCHING_ADDRESSES,
       })
 
       try {
@@ -634,7 +627,7 @@ export async function synchronizeAllApps(
       scanned: 0,
       total: appsToSync.length,
       percentage: 50,
-      phase: 'processing_accounts',
+      phase: FetchingAddressesPhase.PROCESSING_ACCOUNTS,
     })
     // // Update all apps to LOADING before starting parallel processing
     // Process all apps in parallel
@@ -657,7 +650,7 @@ export async function synchronizeAllApps(
             scanned: processedAppsCount,
             total: appsToSync.length,
             percentage: 50 + Math.round((processedAppsCount / appsToSync.length) * 50), // 50-100%
-            phase: 'processing_accounts',
+            phase: FetchingAddressesPhase.PROCESSING_ACCOUNTS,
           })
 
           // Notify completion immediately after this app finishes
@@ -689,7 +682,7 @@ export async function synchronizeAllApps(
             scanned: processedAppsCount,
             total: appsToSync.length,
             percentage: 50 + Math.round((processedAppsCount / appsToSync.length) * 50), // 50-100%
-            phase: 'processing_accounts',
+            phase: FetchingAddressesPhase.PROCESSING_ACCOUNTS,
           })
 
           // Notify completion with error

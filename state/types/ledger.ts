@@ -341,6 +341,11 @@ export interface ConvictionVotingInfo {
   }[]
 }
 
+export enum FetchingAddressesPhase {
+  FETCHING_ADDRESSES = 'fetching_addresses',
+  PROCESSING_ACCOUNTS = 'processing_accounts',
+}
+
 /**
  * Information about the progress of a synchronization operation
  */
@@ -348,5 +353,5 @@ export interface SyncProgress {
   scanned: number
   total: number
   percentage: number
-  phase?: 'fetching_addresses' | 'processing_accounts'
+  phase?: FetchingAddressesPhase
 }
