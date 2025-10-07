@@ -2,7 +2,7 @@ import type { MultisigCallFormData } from '@/components/sections/migrate/dialogs
 import type { Token } from '@/config/apps'
 import { getApiAndProvider, getBalance, type UpdateTransactionStatus } from '@/lib/account'
 import type { DeviceConnectionProps } from '@/lib/ledger/types'
-import { synchronizeAllApps, synchronizeAppAccounts } from '@/lib/services/synchronization.service'
+import { deepScanAllApps, synchronizeAllApps, synchronizeAppAccounts } from '@/lib/services/synchronization.service'
 import { interpretError, type InternalError } from '@/lib/utils'
 import { isMultisigAddress } from '@/lib/utils/address'
 import { hasAddressBalance } from '@/lib/utils/balance'
@@ -16,6 +16,7 @@ import { notifications$ } from './notifications'
 import {
   AccountType,
   AddressStatus,
+  FetchingAddressesPhase,
   TransactionStatus,
   type Address,
   type Collection,
@@ -57,6 +58,15 @@ export interface App {
   }
 }
 
+export interface DeepScan {
+  isScanning: boolean
+  isCancelling: boolean
+  isCompleted: boolean
+  cancelRequested: boolean
+  progress: SyncProgress
+  apps: (App & { originalAccountCount: number })[]
+}
+
 type MigrationResultKey = 'success' | 'fails' | 'total'
 
 interface LedgerState {
@@ -77,6 +87,7 @@ interface LedgerState {
     }
     currentMigratedItem?: MigratingItem
   }
+  deepScan: DeepScan
   polkadotAddresses: Partial<Record<AppId, string[]>>
 }
 
@@ -104,6 +115,19 @@ const initialLedgerState: LedgerState = {
       total: 0,
     },
     currentMigratedItem: undefined,
+  },
+  deepScan: {
+    isScanning: false,
+    isCancelling: false,
+    isCompleted: false,
+    cancelRequested: false,
+    progress: {
+      scanned: 0,
+      total: 0,
+      percentage: 0,
+      phase: undefined,
+    },
+    apps: [],
   },
   polkadotAddresses: {},
 }
@@ -938,6 +962,189 @@ export const ledgerState$ = observable({
     } catch (error) {
       console.warn('[ledgerState$] Failed to get governance activity:', error)
       return undefined
+    }
+  },
+
+  // Deep Scan functionality
+  cancelDeepScan() {
+    ledgerState$.deepScan.cancelRequested.set(true)
+    ledgerState$.deepScan.isCancelling.set(true)
+    ledgerClient.abortCall()
+  },
+
+  resetDeepScan() {
+    ledgerState$.deepScan.assign({
+      isScanning: false,
+      isCancelling: false,
+      isCompleted: false,
+      cancelRequested: false,
+      progress: {
+        scanned: 0,
+        total: 0,
+        percentage: 0,
+        phase: undefined,
+      },
+      apps: [],
+    })
+  },
+
+  async deepScanApp(
+    selectedChain: AppId | 'all',
+    accountIndices: number[],
+    addressIndices: number[]
+  ): Promise<{
+    success: boolean
+    newAccountsFound: number
+  }> {
+    // Reset state
+    ledgerState$.deepScan.assign({
+      isScanning: true,
+      isCancelling: false,
+      isCompleted: false,
+      cancelRequested: false,
+      progress: {
+        scanned: 0,
+        total: 0,
+        percentage: 0,
+        phase: undefined,
+      },
+      apps: [],
+    })
+
+    try {
+      // Get current synchronized apps
+      const currentApps = ledgerState$.apps.apps.get()
+
+      // Use the synchronization service to handle the deep scan process
+      const result = await deepScanAllApps(
+        selectedChain,
+        accountIndices,
+        addressIndices,
+        currentApps,
+        // Progress callback
+        progress => {
+          ledgerState$.deepScan.progress.set(progress)
+        },
+        // Cancel callback
+        () => ledgerState$.deepScan.cancelRequested.get(),
+        // App start callback - initialize apps for scanning grid
+        app => {
+          const currentDeepScanApps = ledgerState$.deepScan.apps.get()
+          // Add app if not already present
+          if (!currentDeepScanApps.find(a => a.id === app.id)) {
+            ledgerState$.deepScan.apps.push(app)
+          }
+        },
+        // Processing accounts start callback
+        () => {
+          ledgerState$.deepScan.progress.phase.set(FetchingAddressesPhase.PROCESSING_ACCOUNTS)
+
+          for (const app of ledgerState$.deepScan.apps.get()) {
+            if (app.id === appsConfigs.get('polkadot')?.id) continue
+            app.status = AppStatus.LOADING
+          }
+        },
+        // App update callback - update app status in scanning grid
+        app => {
+          const currentDeepScanApps = ledgerState$.deepScan.apps.get()
+          ledgerState$.deepScan.apps.set(
+            currentDeepScanApps.map(scanApp =>
+              scanApp.id === app.id
+                ? {
+                    ...app,
+                    originalAccountCount: scanApp.originalAccountCount,
+                  }
+                : scanApp
+            )
+          )
+        }
+      )
+
+      if (!result.success) {
+        // If cancelled, show cancellation notification
+        if (ledgerState$.deepScan.cancelRequested.get()) {
+          notifications$.push({
+            title: 'Deep Scan Cancelled',
+            description: 'The scan was cancelled.',
+            type: 'info',
+            autoHideDuration: 5000,
+          })
+        }
+
+        return { success: false, newAccountsFound: 0 }
+      }
+
+      // Update state with results (only update apps that have new accounts)
+      if (result.newAccountsFound > 0) {
+        const currentApps = ledgerState$.apps.apps.get()
+        const updatedApps = [...currentApps]
+
+        for (const scannedApp of result.apps) {
+          const existingAppIndex = updatedApps.findIndex(app => app.id === scannedApp.id)
+          if (existingAppIndex !== -1) {
+            updatedApps[existingAppIndex] = {
+              ...updatedApps[existingAppIndex],
+              accounts: scannedApp.accounts,
+              multisigAccounts: scannedApp.multisigAccounts,
+              status: scannedApp.status,
+            }
+          } else if (scannedApp.accounts && scannedApp.accounts.length > 0) {
+            // Add new app if it has accounts
+            updatedApps.push({
+              id: scannedApp.id,
+              name: scannedApp.name,
+              token: scannedApp.token,
+              status: scannedApp.status,
+              accounts: scannedApp.accounts,
+              multisigAccounts: scannedApp.multisigAccounts,
+            } as App)
+          }
+        }
+
+        ledgerState$.apps.apps.set(updatedApps)
+      }
+
+      // Show appropriate notifications
+      const chainInfo = selectedChain === 'all' ? 'all networks' : result.apps[0]?.name || 'selected network'
+      if (result.newAccountsFound > 0) {
+        notifications$.push({
+          title: 'Deep Scan Complete',
+          description: `Found ${result.newAccountsFound} new account${result.newAccountsFound === 1 ? '' : 's'} with balances on ${chainInfo}.`,
+          type: 'success',
+          autoHideDuration: 5000,
+        })
+      } else {
+        notifications$.push({
+          title: 'Deep Scan Complete',
+          description: 'No new accounts with balances were found in the specified range.',
+          type: 'info',
+          autoHideDuration: 5000,
+        })
+      }
+
+      // Mark scan as completed
+      ledgerState$.deepScan.isCompleted.set(true)
+
+      return { success: true, newAccountsFound: result.newAccountsFound }
+    } catch (error) {
+      console.error('Deep scan failed with critical error:', error)
+
+      const internalError = interpretError(error, InternalErrorType.SYNC_ERROR)
+
+      // Show critical system error notification
+      notifications$.push({
+        title: 'Deep Scan System Error',
+        description: internalError.description || 'A critical system error occurred during deep scan.',
+        type: 'error',
+        autoHideDuration: 5000,
+      })
+
+      return { success: false, newAccountsFound: 0 }
+    } finally {
+      // Clean up scanning state
+      ledgerState$.deepScan.isScanning.set(false)
+      ledgerState$.deepScan.isCancelling.set(false)
+      ledgerState$.deepScan.cancelRequested.set(false)
     }
   },
 })

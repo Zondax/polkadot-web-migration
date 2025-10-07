@@ -4,7 +4,9 @@ import { AppStatus } from 'state/ledger'
 import type { Address } from 'state/types/ledger'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  scanAppWithCustomIndices,
+  getAppsToSync,
+  getValidApps,
+  isValidApp,
   synchronizeAllApps,
   synchronizeAppAccounts,
   synchronizePolkadotAccounts,
@@ -112,6 +114,10 @@ vi.mock('@/lib/account', () => ({
       disconnect: vi.fn(),
     },
   }),
+}))
+
+vi.mock('@/lib/utils/env', () => ({
+  isDevelopment: vi.fn(() => false),
 }))
 
 describe('Synchronization Service', () => {
@@ -223,121 +229,6 @@ describe('Synchronization Service', () => {
       expect(result.app.status).toBe(AppStatus.ERROR)
       expect(result.app.error).toBeDefined()
       expect(result.app.error?.description).toContain('Test error description')
-    })
-  })
-
-  describe('scanAppWithCustomIndices', () => {
-    it('should scan app with custom indices successfully', async () => {
-      const { ledgerClient } = await import('state/client/ledger')
-      const { processAccountsForApp } = await import('../account-processing.service')
-
-      const mockSyncResult = {
-        result: [{ address: mockAddress.address, path: mockAddress.path, pubKey: mockAddress.pubKey }],
-      }
-
-      const mockProcessResult = {
-        success: true,
-        data: {
-          accounts: [mockAddress],
-          multisigAccounts: [],
-          collections: { uniques: new Map(), nfts: new Map() },
-          polkadotAddressesForApp: [],
-        },
-      }
-
-      vi.mocked(ledgerClient.synchronizeAccountsWithIndices).mockResolvedValueOnce(mockSyncResult)
-      vi.mocked(processAccountsForApp).mockResolvedValueOnce(mockProcessResult)
-
-      const polkadotAddresses = ['5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty']
-      const accountIndices = [0, 1]
-      const addressIndices = [0, 1, 2]
-
-      const result = await scanAppWithCustomIndices(mockApp, polkadotAddresses, accountIndices, addressIndices, true)
-
-      expect(result.app.id).toBe(mockApp.id)
-      expect(result.app.name).toBe(mockApp.name)
-      expect(result.app.status).toBe(AppStatus.SYNCHRONIZED)
-      expect(result.polkadotAddressesForApp).toBeDefined()
-      expect(ledgerClient.synchronizeAccountsWithIndices).toHaveBeenCalledWith(mockApp, accountIndices, addressIndices, undefined)
-      expect(processAccountsForApp).toHaveBeenCalledWith(
-        mockSyncResult.result,
-        mockApp,
-        expect.any(Object), // api
-        polkadotAddresses,
-        true
-      )
-    })
-
-    it('should handle empty result from ledger client', async () => {
-      const { ledgerClient } = await import('state/client/ledger')
-
-      const mockSyncResult = { result: [] }
-
-      vi.mocked(ledgerClient.synchronizeAccountsWithIndices).mockResolvedValueOnce(mockSyncResult)
-
-      const result = await scanAppWithCustomIndices(mockApp, [], [0], [0])
-
-      expect(result.app.id).toBe(mockApp.id)
-      expect(result.app.status).toBe(AppStatus.SYNCHRONIZED)
-      expect(result.app.accounts).toEqual([])
-      expect(result.app.multisigAccounts).toEqual([])
-      expect(result.polkadotAddressesForApp).toEqual([])
-    })
-
-    it('should handle ledger client errors gracefully', async () => {
-      const { ledgerClient } = await import('state/client/ledger')
-
-      const error = new Error('Ledger connection failed')
-      vi.mocked(ledgerClient.synchronizeAccountsWithIndices).mockRejectedValueOnce(error)
-
-      await expect(scanAppWithCustomIndices(mockApp, [], [0], [0])).rejects.toThrow()
-    })
-
-    it('should handle processing service errors', async () => {
-      const { ledgerClient } = await import('state/client/ledger')
-      const { processAccountsForApp } = await import('../account-processing.service')
-
-      const mockSyncResult = {
-        result: [{ address: mockAddress.address, path: mockAddress.path, pubKey: mockAddress.pubKey }],
-      }
-
-      const mockProcessResult = {
-        success: false,
-        error: {
-          source: 'synchronization' as const,
-          description: 'Processing failed',
-        },
-      }
-
-      vi.mocked(ledgerClient.synchronizeAccountsWithIndices).mockResolvedValueOnce(mockSyncResult)
-      vi.mocked(processAccountsForApp).mockResolvedValueOnce(mockProcessResult)
-
-      const result = await scanAppWithCustomIndices(mockApp, [], [0], [0])
-
-      expect(result.app.status).toBe(AppStatus.ERROR)
-      expect(result.app.error?.description).toContain('Test error description')
-      expect(result.polkadotAddressesForApp).toEqual([])
-    })
-
-    it('should handle missing RPC endpoints', async () => {
-      const { ledgerClient } = await import('state/client/ledger')
-
-      const mockSyncResult = {
-        result: [{ address: mockAddress.address, path: mockAddress.path, pubKey: mockAddress.pubKey }],
-      }
-
-      const appConfigWithoutRpc = {
-        ...mockApp,
-        rpcEndpoints: [],
-      }
-
-      vi.mocked(ledgerClient.synchronizeAccountsWithIndices).mockResolvedValueOnce(mockSyncResult)
-
-      const result = await scanAppWithCustomIndices(appConfigWithoutRpc, [], [0], [0])
-
-      expect(result.app.status).toBe(AppStatus.ERROR)
-      expect(result.app.error?.description).toContain('Test error description')
-      expect(result.polkadotAddressesForApp).toEqual([])
     })
   })
 
@@ -466,6 +357,102 @@ describe('Synchronization Service', () => {
       expect(result.success).toBe(false)
       expect(result.apps).toEqual([])
       expect(result.error).toBeDefined()
+    })
+  })
+
+  describe('App Validation Functions', () => {
+    describe('isValidApp', () => {
+      it('should return true for valid app config with RPC endpoints', () => {
+        const validApp: AppConfig = {
+          id: 'polkadot',
+          name: 'Polkadot',
+          rpcEndpoints: ['wss://rpc.polkadot.io'],
+          token: { symbol: 'DOT', decimals: 10 },
+          bip44Path: "m/44'/354'/0'/0/0",
+          ss58Prefix: 0,
+        }
+        expect(isValidApp(validApp)).toBe(true)
+      })
+
+      it('should return false for app config without RPC endpoints', () => {
+        const invalidApp: AppConfig = {
+          id: 'test',
+          name: 'Test',
+          rpcEndpoints: [],
+          token: { symbol: 'TEST', decimals: 10 },
+          bip44Path: "m/44'/0'/0'/0/0",
+          ss58Prefix: 0,
+        }
+        expect(isValidApp(invalidApp)).toBe(false)
+      })
+
+      it('should return false for undefined app config', () => {
+        expect(isValidApp(undefined)).toBe(false)
+      })
+
+      it('should return false for app config with null RPC endpoints', () => {
+        const invalidApp = {
+          id: 'test',
+          name: 'Test',
+          rpcEndpoints: null,
+          token: { symbol: 'TEST', decimals: 10 },
+          bip44Path: "m/44'/0'/0'/0/0",
+          ss58Prefix: 0,
+        } as any
+        expect(isValidApp(invalidApp)).toBe(false)
+      })
+    })
+
+    describe('getValidApps', () => {
+      it('should return all apps with valid RPC endpoints', () => {
+        const validApps = getValidApps()
+        expect(validApps).toHaveLength(2) // polkadot and kusama from mock
+        expect(validApps.every(app => app.rpcEndpoints && app.rpcEndpoints.length > 0)).toBe(true)
+      })
+
+      it('should filter out apps without RPC endpoints', () => {
+        const validApps = getValidApps()
+        expect(validApps.every(app => isValidApp(app))).toBe(true)
+      })
+
+      it('should only return apps from appsConfigs', () => {
+        const validApps = getValidApps()
+        // All returned apps should be from the mocked appsConfigs
+        expect(validApps.every(app => ['polkadot', 'kusama'].includes(app.id))).toBe(true)
+      })
+    })
+
+    describe('getAppsToSync', () => {
+      it('should return all valid apps in production mode', async () => {
+        const { isDevelopment } = await import('@/lib/utils/env')
+        vi.mocked(isDevelopment).mockReturnValue(false)
+
+        const appsToSync = getAppsToSync()
+        expect(appsToSync).toHaveLength(2) // polkadot and kusama
+        expect(appsToSync.every(app => isValidApp(app))).toBe(true)
+      })
+
+      it('should return only specified apps in development mode', async () => {
+        const { isDevelopment } = await import('@/lib/utils/env')
+        vi.mocked(isDevelopment).mockReturnValue(true)
+
+        const appsToSync = getAppsToSync()
+        expect(appsToSync).toHaveLength(2) // Based on syncApps mock ['polkadot', 'kusama']
+        expect(appsToSync.every(app => isValidApp(app))).toBe(true)
+      })
+
+      it('should filter out invalid apps', () => {
+        const appsToSync = getAppsToSync()
+        // All returned apps should have valid configurations
+        expect(appsToSync.every(app => isValidApp(app))).toBe(true)
+      })
+
+      it('should only return configured apps', () => {
+        const appsToSync = getAppsToSync()
+        // Should only return apps that are in the config
+        expect(appsToSync.every(app => ['polkadot', 'kusama'].includes(app.id))).toBe(true)
+        expect(appsToSync.length).toBeGreaterThan(0)
+      })
     })
   })
 })

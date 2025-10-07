@@ -7,17 +7,14 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Progress } from '@/components/ui/progress'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { appsConfigs, polkadotAppConfig, type AppConfig } from '@/config/apps'
+import { polkadotAppConfig } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
-import { scanAppWithCustomIndices } from '@/lib/services/synchronization.service'
 import { generateIndicesArray } from '@/lib/utils/scan-indices'
-import { ledgerState$ } from '@/state/ledger'
-import { notifications$ } from '@/state/notifications'
-import { FetchingAddressesPhase, type Address, type MultisigAddress } from '@/state/types/ledger'
+import { getSyncStatusLabel } from '@/lib/utils/sync-status'
 import type { CheckedState } from '@radix-ui/react-checkbox'
 import { FolderSync, Info, Loader2, RefreshCw, Search, User, Users, X } from 'lucide-react'
-import { useCallback, useMemo, useRef, useState } from 'react'
-import { AppStatus, type App } from 'state/ledger'
+import { useCallback, useMemo, useState } from 'react'
+import { AppStatus } from 'state/ledger'
 import AppScanningGrid from './app-scanning-grid'
 import { DeepScanModal, type DeepScanOptions } from './deep-scan-modal'
 import EmptyStateRow from './empty-state-row'
@@ -45,103 +42,6 @@ function getIndicesToScan(options: DeepScanOptions): { accountIndices: number[];
   return { accountIndices, addressIndices }
 }
 
-/**
- * Result of scanning a single app for new accounts
- */
-interface SingleAppScanResult {
-  newAccounts: Address[]
-  newMultisigAccounts: MultisigAddress[]
-  polkadotAddressesForApp: string[]
-}
-
-/**
- * Scan a single app for new accounts using the service layer
- */
-async function scanSingleApp(
-  app: App,
-  accountIndices: number[],
-  addressIndices: number[],
-  appConfig: AppConfig,
-  polkadotAddresses: string[],
-  onCancel?: () => boolean
-): Promise<SingleAppScanResult> {
-  const result: SingleAppScanResult = {
-    newAccounts: [],
-    newMultisigAccounts: [],
-    polkadotAddressesForApp: [],
-  }
-
-  try {
-    // Use the service layer for scanning
-    const scannedAppResult = await scanAppWithCustomIndices(
-      appConfig,
-      polkadotAddresses,
-      accountIndices,
-      addressIndices,
-      true, // Filter by balance
-      onCancel // Pass cancellation callback
-    )
-
-    const { app: scannedApp, polkadotAddressesForApp } = scannedAppResult
-
-    if (scannedApp.accounts || scannedApp.multisigAccounts) {
-      // Check for existing addresses to avoid duplicates
-      const existingAddresses = new Set([
-        ...(app.accounts || []).map(acc => acc.address),
-        ...(app.multisigAccounts || []).map(acc => acc.address),
-      ])
-
-      // Only add accounts that don't already exist
-      result.newAccounts = (scannedApp.accounts || []).filter(acc => !existingAddresses.has(acc.address))
-      result.newMultisigAccounts = (scannedApp.multisigAccounts || []).filter(acc => !existingAddresses.has(acc.address))
-      result.polkadotAddressesForApp = polkadotAddressesForApp
-    }
-  } catch (error) {
-    console.warn(`Failed to scan app ${app.name}:`, error)
-    // Return empty result on error - let the caller handle the error
-  }
-
-  return result
-}
-
-/**
- * Update the application state with the results from the deep scan
- */
-async function updateStateWithScanResults(updatedApps: App[], newAccountsFound: number): Promise<void> {
-  if (newAccountsFound > 0) {
-    // Import the ledger state to update it
-    ledgerState$.apps.apps.set(updatedApps)
-  }
-}
-
-/**
- * Show appropriate notifications based on scan results
- */
-async function showScanNotifications(newAccountsFound: number, chainInfo: string, error?: Error): Promise<void> {
-  if (error) {
-    notifications$.push({
-      title: 'Deep Scan Failed',
-      description: error.message || 'An error occurred during deep scan.',
-      type: 'error',
-      autoHideDuration: 5000,
-    })
-  } else if (newAccountsFound > 0) {
-    notifications$.push({
-      title: 'Deep Scan Complete',
-      description: `Found ${newAccountsFound} new account${newAccountsFound === 1 ? '' : 's'} with balances on ${chainInfo}.`,
-      type: 'success',
-      autoHideDuration: 5000,
-    })
-  } else {
-    notifications$.push({
-      title: 'Deep Scan Complete',
-      description: 'No new accounts with balances were found in the specified range.',
-      type: 'info',
-      autoHideDuration: 5000,
-    })
-  }
-}
-
 export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps) {
   const {
     // State
@@ -149,6 +49,13 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
     syncProgress,
     isRescaning,
     isSyncCancelRequested,
+
+    // Deep scan state
+    isDeepScanning,
+    isDeepScanCancelling,
+    isDeepScanCompleted,
+    deepScanProgress,
+    deepScanApps,
 
     // Computed values
     hasAccountsWithErrors: accountsWithErrors,
@@ -162,6 +69,11 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
     cancelSynchronization,
     updateTransaction,
 
+    // Deep scan actions
+    deepScanApp,
+    cancelDeepScan,
+    resetDeepScan,
+
     // Selection actions
     toggleAllAccounts,
     toggleAccountSelection,
@@ -169,265 +81,29 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
 
   const [activeView, setActiveView] = useState<AccountViewType>(AccountViewType.ALL)
   const [isDeepScanModalOpen, setIsDeepScanModalOpen] = useState(false)
-  const [isDeepScanning, setIsDeepScanning] = useState(false)
-  const [deepScanProgress, setDeepScanProgress] = useState({
-    scanned: 0,
-    total: 0,
-    percentage: 0,
-    currentChain: '',
-  })
-  const [deepScanApps, setDeepScanApps] = useState<App[]>([])
-  const [isDeepScanCancelling, setIsDeepScanCancelling] = useState(false)
-  const [isDeepScanCompleted, setIsDeepScanCompleted] = useState(false)
-  const deepScanCancelRequestedRef = useRef(false)
-  const modalClosedManuallyRef = useRef(false)
 
   const handleMigrate = () => {
     onContinue()
   }
 
   const handleDeepScan = async (options: DeepScanOptions) => {
-    setIsDeepScanning(true)
-    setIsDeepScanCancelling(false)
-    setIsDeepScanCompleted(false)
-    deepScanCancelRequestedRef.current = false
-    modalClosedManuallyRef.current = false
     try {
       // Extract indices to scan from options
       const { accountIndices, addressIndices } = getIndicesToScan(options)
 
-      if (accountIndices.length === 0 || addressIndices.length === 0) {
-        throw new Error('No valid account or address indices to scan')
-      }
-
-      // Get polkadot addresses for cross-chain migration
-      // Look for Polkadot app in both successful and failed apps
-      const allSyncedApps = [...appsWithoutErrors, ...appsWithErrors]
-      const polkadotApp = allSyncedApps.find(app => app.id === 'polkadot')
-      const polkadotAddressesArray = polkadotApp?.accounts?.map(account => account.address) || polkadotAddresses || []
-
-      // Get all available apps from config that have RPC endpoints (scannable chains)
-      const allApps = Array.from(appsConfigs.values())
-      const scannableApps = allApps.filter(appConfig => appConfig?.rpcEndpoints && appConfig.rpcEndpoints.length > 0)
-
-      // Determine which apps to scan based on selection
-      const appsToScan =
-        options.selectedChain === 'all' ? scannableApps : scannableApps.filter(appConfig => appConfig.id === options.selectedChain)
-
-      // Initialize progress tracking
-      const totalApps = appsToScan.length
-      setDeepScanProgress({ scanned: 0, total: totalApps, percentage: 0, currentChain: '' })
-
-      // Initialize apps for scanning grid display (create App objects from AppConfig)
-      const initialDeepScanApps = appsToScan.map(appConfig => {
-        // Check if we have existing synchronized data for this app (in both successful and failed apps)
-        const existingApp = allSyncedApps.find(app => app.id === appConfig.id)
-        const originalAccountCount = (existingApp?.accounts?.length || 0) + (existingApp?.multisigAccounts?.length || 0)
-
-        return {
-          id: appConfig.id,
-          name: appConfig.name,
-          token: appConfig.token,
-          accounts: existingApp?.accounts || [],
-          multisigAccounts: existingApp?.multisigAccounts || [],
-          status: AppStatus.LOADING,
-          // Store original count for calculating new accounts found
-          originalAccountCount,
-        } as App & { originalAccountCount: number }
-      })
-      setDeepScanApps(initialDeepScanApps)
-
-      // Scan additional accounts for selected apps
-      // Include all apps (both successful and failed) so deep scan can recover failed chains
-      const updatedApps = [...allSyncedApps]
-      let newAccountsFound = 0
-
-      for (let i = 0; i < appsToScan.length; i++) {
-        // Check if scan was cancelled
-        if (deepScanCancelRequestedRef.current) {
-          // Before breaking, preserve partial results
-          await updateStateWithScanResults(updatedApps, newAccountsFound)
-
-          // Show notification with partial results
-          const chainInfo = options.selectedChain === 'all' ? 'all networks' : appsToScan[0]?.name || 'selected network'
-          const message =
-            newAccountsFound > 0
-              ? `Found ${newAccountsFound} account${newAccountsFound === 1 ? '' : 's'} before cancellation on ${chainInfo}.`
-              : 'No new accounts were found before cancellation.'
-
-          notifications$.push({
-            title: 'Deep Scan Cancelled',
-            description: message,
-            type: 'info',
-            autoHideDuration: 5000,
-          })
-
-          // Auto-close modal after cancellation and show results in main interface
-          setIsDeepScanModalOpen(false)
-          return // Exit the function early
-        }
-
-        const appConfig = appsToScan[i]
-
-        // Find existing app data or create a minimal app object for scanning
-        // Look in all synced apps, not just successful ones
-        const existingSyncedApp = allSyncedApps.find(app => app.id === appConfig.id)
-        const appForScanning =
-          existingSyncedApp ||
-          ({
-            id: appConfig.id,
-            name: appConfig.name,
-            token: appConfig.token,
-            accounts: [],
-            multisigAccounts: [],
-          } as App)
-
-        // Update progress
-        const progress = {
-          scanned: i,
-          total: totalApps,
-          percentage: Math.round((i / totalApps) * 100),
-          currentChain: appConfig.name || appConfig.id,
-        }
-        setDeepScanProgress(progress)
-
-        // Update app status in the scanning grid
-        setDeepScanApps(prev => prev.map(scanApp => (scanApp.id === appConfig.id ? { ...scanApp, status: AppStatus.LOADING } : scanApp)))
-
-        // Scan the single app for new accounts (with individual error handling)
-        let scanResult: SingleAppScanResult
-        try {
-          scanResult = await scanSingleApp(
-            appForScanning,
-            accountIndices,
-            addressIndices,
-            appConfig,
-            polkadotAddressesArray,
-            () => deepScanCancelRequestedRef.current
-          )
-
-          // Update app status based on scan result
-          setDeepScanApps(prev =>
-            prev.map(scanApp =>
-              scanApp.id === appConfig.id
-                ? {
-                    ...scanApp,
-                    status: AppStatus.SYNCHRONIZED,
-                    accounts: [...(scanApp.accounts || []), ...scanResult.newAccounts],
-                    multisigAccounts: [...(scanApp.multisigAccounts || []), ...scanResult.newMultisigAccounts],
-                    // Preserve original count for new accounts calculation
-                    originalAccountCount: (scanApp as any).originalAccountCount,
-                  }
-                : scanApp
-            )
-          )
-        } catch (chainError) {
-          // Handle individual chain failures gracefully
-          console.warn(`Deep scan failed for chain ${appConfig.name || appConfig.id}:`, chainError)
-
-          // Mark this chain as failed in the scanning grid
-          setDeepScanApps(prev =>
-            prev.map(scanApp =>
-              scanApp.id === appConfig.id
-                ? {
-                    ...scanApp,
-                    status: AppStatus.ERROR,
-                    // Preserve original count for new accounts calculation
-                    originalAccountCount: (scanApp as any).originalAccountCount,
-                  }
-                : scanApp
-            )
-          )
-
-          // Create empty result to continue with other chains
-          scanResult = { newAccounts: [], newMultisigAccounts: [], polkadotAddressesForApp: [] }
-        }
-
-        // Merge results with existing app data
-        const hasNewAccounts = scanResult.newAccounts.length > 0 || scanResult.newMultisigAccounts.length > 0
-        if (hasNewAccounts) {
-          // Find the app in the updated apps array
-          let existingAppInUpdated = updatedApps.find(a => a.id === appConfig.id)
-
-          // If the app doesn't exist in updatedApps, create it
-          if (!existingAppInUpdated) {
-            existingAppInUpdated = {
-              id: appConfig.id,
-              name: appConfig.name,
-              token: appConfig.token,
-              status: AppStatus.SYNCHRONIZED, // Set to synchronized since we found accounts
-              accounts: [],
-              multisigAccounts: [],
-            } as App
-            updatedApps.push(existingAppInUpdated)
-          }
-
-          // Add the new accounts
-          existingAppInUpdated.accounts = [...(existingAppInUpdated.accounts || []), ...scanResult.newAccounts]
-          existingAppInUpdated.multisigAccounts = [...(existingAppInUpdated.multisigAccounts || []), ...scanResult.newMultisigAccounts]
-
-          // Clear any error status since we successfully found accounts
-          if (existingAppInUpdated.status === AppStatus.ERROR) {
-            existingAppInUpdated.status = AppStatus.SYNCHRONIZED
-            delete existingAppInUpdated.error
-          }
-
-          newAccountsFound += scanResult.newAccounts.length + scanResult.newMultisigAccounts.length
-
-          // Store polkadot addresses for this app to enable destination address verification
-          if (scanResult.polkadotAddressesForApp.length > 0) {
-            ledgerState$.polkadotAddresses[appConfig.id].set(scanResult.polkadotAddressesForApp)
-          }
-        }
-      }
-
-      // Final progress update
-      setDeepScanProgress({
-        scanned: totalApps,
-        total: totalApps,
-        percentage: 100,
-        currentChain: '',
-      })
-
-      // Update state with results
-      await updateStateWithScanResults(updatedApps, newAccountsFound)
-
-      // Show appropriate notifications
-      const chainInfo = options.selectedChain === 'all' ? 'all networks' : appsToScan[0]?.name || 'selected network'
-      await showScanNotifications(newAccountsFound, chainInfo)
-
-      // Mark scan as completed instead of closing modal
-      setIsDeepScanCompleted(true)
+      // Call the deep scan function from the hook
+      await deepScanApp(options.selectedChain || 'all', accountIndices, addressIndices)
     } catch (error) {
       console.error('Deep scan failed with critical error:', error)
-
-      // Show critical system error notification (cancellation is handled in the loop)
-      notifications$.push({
-        title: 'Deep Scan System Error',
-        description: error instanceof Error ? error.message : 'A critical system error occurred during deep scan.',
-        type: 'error',
-        autoHideDuration: 5000,
-      })
-    } finally {
-      // Clean up scanning state
-      setIsDeepScanning(false)
-      setIsDeepScanCancelling(false)
-      deepScanCancelRequestedRef.current = false
-      modalClosedManuallyRef.current = false
     }
   }
 
   const handleCancelDeepScan = () => {
-    // Set ref for immediate access in async context and state for UI
-    deepScanCancelRequestedRef.current = true
-    setIsDeepScanCancelling(true)
+    cancelDeepScan()
   }
 
   const handleDeepScanDone = () => {
-    // Reset all deep scan states and close modal
-    setIsDeepScanCompleted(false)
-    setDeepScanProgress({ scanned: 0, total: 0, percentage: 0, currentChain: '' })
-    setDeepScanApps([])
+    resetDeepScan()
     setIsDeepScanModalOpen(false)
   }
 
@@ -601,25 +277,7 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
     )
   }
 
-  const syncStatusLabel = useMemo(() => {
-    let statusLabel = ''
-    switch (syncProgress.phase) {
-      case FetchingAddressesPhase.FETCHING_ADDRESSES:
-        statusLabel = '📥 Fetching addresses from Ledger'
-        break
-      case FetchingAddressesPhase.PROCESSING_ACCOUNTS:
-        statusLabel = '💾 Processing accounts (balances, multisig and more)'
-        break
-      default:
-        statusLabel = 'Synchronizing apps'
-    }
-
-    return (
-      <span className="text-sm text-gray-600">
-        {statusLabel + (syncProgress.total > 0 ? ` (${syncProgress.scanned} / ${syncProgress.total})` : '')}
-      </span>
-    )
-  }, [syncProgress.phase, syncProgress.scanned, syncProgress.total])
+  const syncStatusLabel = useMemo(() => getSyncStatusLabel(syncProgress, 'Synchronizing apps'), [syncProgress])
 
   return (
     <div>
@@ -743,10 +401,6 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
       <DeepScanModal
         isOpen={isDeepScanModalOpen}
         onClose={() => {
-          // Track if modal was closed manually during scanning
-          if (isDeepScanning && !isDeepScanCancelling) {
-            modalClosedManuallyRef.current = true
-          }
           setIsDeepScanModalOpen(false)
         }}
         onScan={handleDeepScan}

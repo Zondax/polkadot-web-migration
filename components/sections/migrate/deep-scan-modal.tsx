@@ -1,10 +1,5 @@
 'use client'
 
-import { use$ } from '@legendapp/state/react'
-import { AlertCircle, Loader2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
-import { AppStatus } from 'state/ledger'
-import { uiState$ } from 'state/ui'
 import { CustomTooltip } from '@/components/CustomTooltip'
 import TokenIcon from '@/components/TokenIcon'
 import { Badge } from '@/components/ui/badge'
@@ -13,12 +8,20 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { AppId } from '@/config/apps'
-import { appsConfigs, getChainName, polkadotAppConfig } from '@/config/apps'
+import { getChainName, polkadotAppConfig } from '@/config/apps'
+import { getValidApps } from '@/lib/services/synchronization.service'
 import type { RangeField, ScanType } from '@/lib/types/scan'
 import { RangeFieldEnum, SCAN_LIMITS, ScanTypeEnum } from '@/lib/types/scan'
 import { cn, getAppTotalAccounts } from '@/lib/utils'
 import { formatIndexDisplay, parseIndexConfig, validateIndexConfig } from '@/lib/utils/scan-indices'
+import { getSyncStatusLabel } from '@/lib/utils/sync-status'
 import type { App } from '@/state/ledger'
+import type { SyncProgress } from '@/state/types/ledger'
+import { use$ } from '@legendapp/state/react'
+import { AlertCircle, Check, Loader2 } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { AppStatus } from 'state/ledger'
+import { uiState$ } from 'state/ui'
 import { IndexInputSection } from './index-input-section'
 import { LedgerUnlockReminder } from './ledger-unlock-reminder'
 
@@ -29,12 +32,7 @@ interface DeepScanModalProps {
   isScanning?: boolean
   isCancelling?: boolean
   isCompleted?: boolean
-  progress?: {
-    scanned: number
-    total: number
-    percentage: number
-    currentChain: string
-  }
+  progress?: SyncProgress
   scanningApps?: App[]
   onCancel?: () => void
   onDone?: () => void
@@ -77,9 +75,9 @@ export function DeepScanModal({
 
   // Get available chains from config
   const availableChains = useMemo(() => {
-    const chains = Array.from(appsConfigs.values())
+    const chains = getValidApps()
     // Add polkadot if not already in the list
-    const hasPolkadot = chains.some(c => c.id === 'polkadot')
+    const hasPolkadot = chains.filter(c => c.id === 'polkadot')
     if (!hasPolkadot) {
       chains.unshift(polkadotAppConfig)
     }
@@ -201,14 +199,15 @@ export function DeepScanModal({
       {progress && (
         <div className="space-y-2 mb-4">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">
-              {isCompleted
-                ? `Scanned ${progress.total} chain${progress.total !== 1 ? 's' : ''} successfully`
-                : isCancelling
-                  ? 'Cancelling deep scan...'
-                  : `Deep scanning chains ${progress.total > 0 ? `(${progress.scanned} / ${progress.total})` : ''}`}
-              {!isCancelling && !isCompleted && progress.currentChain && ` - ${progress.currentChain}`}
-            </span>
+            {isCompleted ? (
+              <span className="text-sm text-gray-600">
+                Scanned {progress.total} chain{progress.total !== 1 ? 's' : ''} successfully
+              </span>
+            ) : isCancelling ? (
+              <span className="text-sm text-gray-600">Cancelling deep scan...</span>
+            ) : (
+              getSyncStatusLabel(progress, 'Deep scanning')
+            )}
             <span className="text-sm text-gray-600">{progress.percentage}%</span>
           </div>
           <Progress value={progress.percentage} />
@@ -263,6 +262,11 @@ export function DeepScanModal({
         statusIcon = <AlertCircle className="h-3.5 w-3.5 text-red-500" />
         statusClass = 'border-red-200 bg-red-50 opacity-100'
         statusText = 'Deep scan failed'
+        break
+      case AppStatus.ADDRESSES_FETCHED:
+        statusIcon = <Check data-testid="addresses-fetched-icon" className="h-3.5 w-3.5 text-blue-500" />
+        statusClass = 'border-blue-200 bg-blue-50 opacity-100'
+        statusText = 'Addresses fetched, processing accounts...'
         break
       case AppStatus.LOADING:
         statusIcon = <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-500" />
