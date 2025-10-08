@@ -204,7 +204,7 @@ describe('getSyncStatusLabel', () => {
         { scanned: 99, total: 100, expected: '(99 / 100)' },
       ]
 
-      testCases.forEach(({ scanned, total, expected }) => {
+      for (const { scanned, total, expected } of testCases) {
         const progress: SyncProgress = {
           scanned,
           total,
@@ -214,7 +214,7 @@ describe('getSyncStatusLabel', () => {
 
         const { container } = render(getSyncStatusLabel(progress))
         expect(container.textContent).toContain(expected)
-      })
+      }
     })
   })
 })
