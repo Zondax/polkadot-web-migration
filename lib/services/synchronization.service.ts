@@ -807,18 +807,7 @@ export async function synchronizeAllApps(
 
     const totalApps = appsToSync.length + 1 // +1 for Polkadot
 
-    // ===== PHASE 0: Skip apps that don't need synchronization =====
-    const appsToBeSkipped = getAppsToSkipMigration()
-    for (const appConfig of appsToBeSkipped) {
-      onAppStart?.({
-        id: appConfig.id,
-        name: appConfig.name,
-        token: appConfig.token,
-        status: AppStatus.NO_NEED_MIGRATION,
-      })
-    }
-
-    // ===== PHASE 1: Fetch all addresses from Ledger =====
+    // ===== PHASE 0: Get Polkadot addresses and skip apps that don't need synchronization =====
     const addressesByApp = new Map<AppId, Address[]>()
 
     // Fetch Polkadot addresses first
@@ -832,6 +821,17 @@ export async function synchronizeAllApps(
     const polkadotAddressesFromLedger = await fetchAddressesFromLedger(polkadotAppConfig, onCancel)
     const polkadotAddresses = polkadotAddressesFromLedger.map(account => account.address)
 
+    const appsToBeSkipped = getAppsToSkipMigration()
+    for (const appConfig of appsToBeSkipped) {
+      onAppStart?.({
+        id: appConfig.id,
+        name: appConfig.name,
+        token: appConfig.token,
+        status: AppStatus.NO_NEED_MIGRATION,
+      })
+    }
+
+    // ===== PHASE 1: Fetch all addresses from Ledger ====
     let fetchedApps = 1 // Start at 1 (Polkadot already fetched)
 
     onProgress?.({
