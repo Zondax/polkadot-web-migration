@@ -1,27 +1,24 @@
 'use client'
 
-import { CustomTooltip } from '@/components/CustomTooltip'
 import TokenIcon from '@/components/TokenIcon'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { AppId } from '@/config/apps'
-import { getChainName, polkadotAppConfig } from '@/config/apps'
-import { getValidApps } from '@/lib/services/synchronization.service'
+import { polkadotAppConfig } from '@/config/apps'
+import { getAppsToSkipMigration, getValidApps } from '@/lib/services/synchronization.service'
 import type { RangeField, ScanType } from '@/lib/types/scan'
 import { RangeFieldEnum, SCAN_LIMITS, ScanTypeEnum } from '@/lib/types/scan'
-import { cn, getAppTotalAccounts } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { formatIndexDisplay, parseIndexConfig, validateIndexConfig } from '@/lib/utils/scan-indices'
 import { getSyncStatusLabel } from '@/lib/utils/sync-status'
 import type { App } from '@/state/ledger'
 import type { SyncProgress } from '@/state/types/ledger'
 import { use$ } from '@legendapp/state/react'
-import { AlertCircle, Check, Loader2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { AppStatus } from 'state/ledger'
 import { uiState$ } from 'state/ui'
+import { AppScanItem } from './app-scan-item'
 import { IndexInputSection } from './index-input-section'
 import { LedgerUnlockReminder } from './ledger-unlock-reminder'
 
@@ -222,7 +219,7 @@ export function DeepScanModal({
         <div className="pt-2 mb-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             {scanningApps.map(app => (
-              <DeepScanAppItem key={app.id} app={app} />
+              <AppScanItem key={app.id} app={app} mode="deep-scan" />
             ))}
           </div>
         </div>
@@ -230,79 +227,7 @@ export function DeepScanModal({
     </>
   )
 
-  // Deep scan app item component with proper icons and status
-  const DeepScanAppItem = ({ app }: { app: App & { originalAccountCount?: number } }) => {
-    const icons = use$(uiState$.icons)
-    const icon = icons[app.id]
-    const appName = app.name || getChainName(app.id) || app.id
-    const { status } = app
-    const totalAccounts = getAppTotalAccounts(app)
-    const originalCount = app.originalAccountCount || 0
-    const newAccountsFound = Math.max(0, totalAccounts - originalCount)
-
-    let displayBadge = true
-    let statusIcon: React.ReactNode
-    let statusClass = 'border-gray-200 bg-white'
-    let statusText = 'Waiting'
-
-    // Define different app states for UI
-    switch (status) {
-      case AppStatus.SYNCHRONIZED:
-        if (newAccountsFound > 0) {
-          statusIcon = newAccountsFound
-          statusClass = 'border-green-200 bg-green-50 opacity-100'
-          statusText = `Deep scan complete (${newAccountsFound} new ${newAccountsFound === 1 ? 'account' : 'accounts'} found)`
-        } else {
-          statusIcon = 0
-          statusClass = 'border-gray-200 bg-white opacity-80'
-          statusText = 'Deep scan complete - no new accounts found'
-        }
-        break
-      case AppStatus.ERROR:
-        statusIcon = <AlertCircle className="h-3.5 w-3.5 text-red-500" />
-        statusClass = 'border-red-200 bg-red-50 opacity-100'
-        statusText = 'Deep scan failed'
-        break
-      case AppStatus.ADDRESSES_FETCHED:
-        statusIcon = <Check data-testid="addresses-fetched-icon" className="h-3.5 w-3.5 text-blue-500" />
-        statusClass = 'border-blue-200 bg-blue-50 opacity-100'
-        statusText = 'Addresses fetched, processing accounts...'
-        break
-      case AppStatus.LOADING:
-        statusIcon = <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-500" />
-        statusClass = 'border-indigo-200 bg-indigo-50 opacity-100 animate-pulse'
-        statusText = 'Deep scanning...'
-        break
-      default:
-        statusIcon = undefined
-        statusClass = 'border-gray-200 bg-white opacity-20'
-        statusText = 'Waiting to scan'
-        displayBadge = false
-        break
-    }
-
-    return (
-      <CustomTooltip tooltipBody={statusText}>
-        <div className={cn('flex flex-col items-center p-3 rounded-lg border transition-all', statusClass)}>
-          <div className="relative mb-2">
-            <TokenIcon icon={icon} symbol={appName.substring(0, 3)} size="md" />
-            {displayBadge && (
-              <div className="absolute -right-2 -bottom-2">
-                <Badge
-                  variant="outline"
-                  className="bg-white h-5 min-w-5 px-0 justify-center rounded-full text-xs"
-                  data-testid="app-sync-badge"
-                >
-                  {statusIcon}
-                </Badge>
-              </div>
-            )}
-          </div>
-          <span className="text-xs font-medium truncate max-w-full">{appName}</span>
-        </div>
-      </CustomTooltip>
-    )
-  }
+  const disabledApps = useMemo(() => getAppsToSkipMigration().map(app => app.id), [])
 
   // Render configuration form
   const renderConfigView = () => (
@@ -352,7 +277,7 @@ export function DeepScanModal({
             {availableChains.map(chain => {
               const icon = icons[chain.id]
               return (
-                <SelectItem key={chain.id} value={chain.id}>
+                <SelectItem key={chain.id} value={chain.id} disabled={disabledApps.includes(chain.id)}>
                   <div className="flex items-center gap-2">
                     <TokenIcon icon={icon} symbol={chain.name.substring(0, 3)} size="sm" />
                     <span>{chain.name}</span>

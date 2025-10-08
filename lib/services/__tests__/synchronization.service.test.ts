@@ -423,21 +423,21 @@ describe('Synchronization Service', () => {
     })
 
     describe('getAppsToSync', () => {
-      it('should return all valid apps in production mode', async () => {
+      it('should return all valid apps in production mode that needs to be synchronized', async () => {
         const { isDevelopment } = await import('@/lib/utils/env')
         vi.mocked(isDevelopment).mockReturnValue(false)
 
         const appsToSync = getAppsToSync()
-        expect(appsToSync).toHaveLength(2) // polkadot and kusama
+        expect(appsToSync).toHaveLength(1) // kusama
         expect(appsToSync.every(app => isValidApp(app))).toBe(true)
       })
 
-      it('should return only specified apps in development mode', async () => {
+      it('should return only specified apps in development mode that needs to be synchronized', async () => {
         const { isDevelopment } = await import('@/lib/utils/env')
         vi.mocked(isDevelopment).mockReturnValue(true)
 
         const appsToSync = getAppsToSync()
-        expect(appsToSync).toHaveLength(2) // Based on syncApps mock ['polkadot', 'kusama']
+        expect(appsToSync).toHaveLength(1) // Based on syncApps mock ['kusama']
         expect(appsToSync.every(app => isValidApp(app))).toBe(true)
       })
 

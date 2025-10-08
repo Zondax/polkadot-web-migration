@@ -31,14 +31,21 @@ vi.mock('lucide-react', () => ({
   ),
 }))
 
-// Mock useConnection hook
+// Create stable mock functions and state
 const mockConnectDevice = vi.fn()
+const mockUseConnectionReturn = {
+  get isLedgerConnected() {
+    return mockIsLedgerConnected
+  },
+  get isAppOpen() {
+    return mockIsAppOpen
+  },
+  connectDevice: mockConnectDevice,
+}
+
+// Mock useConnection hook with stable references
 vi.mock('@/components/hooks/useConnection', () => ({
-  useConnection: () => ({
-    isLedgerConnected: mockIsLedgerConnected,
-    isAppOpen: mockIsAppOpen,
-    connectDevice: mockConnectDevice,
-  }),
+  useConnection: () => mockUseConnectionReturn,
 }))
 
 // Mock Button component
@@ -169,9 +176,9 @@ describe('ConnectTabContent', () => {
       const stepContainers = container.querySelectorAll('.rounded-xl')
 
       // No steps should be highlighted
-      for (const container of stepContainers) {
-        expect(container).not.toHaveClass('border-polkadot-green')
-        expect(container).not.toHaveClass('bg-polkadot-green/10')
+      for (const stepContainer of Array.from(stepContainers)) {
+        expect(stepContainer).not.toHaveClass('border-polkadot-green')
+        expect(stepContainer).not.toHaveClass('bg-polkadot-green/10')
       }
     })
   })
