@@ -77,7 +77,7 @@ export function DeepScanModal({
   const availableChains = useMemo(() => {
     const chains = getValidApps()
     // Add polkadot if not already in the list
-    const hasPolkadot = chains.filter(c => c.id === 'polkadot')
+    const hasPolkadot = chains.some(c => c.id === 'polkadot')
     if (!hasPolkadot) {
       chains.unshift(polkadotAppConfig)
     }

@@ -716,7 +716,7 @@ export async function deepScanAllApps(
       const updatedApp = updatedApps.find(app => app.id === initialApp.id)
       return {
         ...initialApp,
-        ...updatedApp,
+        ...(updatedApp || {}),
         originalAccountCount: initialApp.originalAccountCount,
       } as App & { originalAccountCount: number }
     })

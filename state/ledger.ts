@@ -1087,6 +1087,7 @@ export const ledgerState$ = observable({
               accounts: scannedApp.accounts,
               multisigAccounts: scannedApp.multisigAccounts,
               status: scannedApp.status,
+              error: undefined,
             }
           } else if (scannedApp.accounts && scannedApp.accounts.length > 0) {
             // Add new app if it has accounts
