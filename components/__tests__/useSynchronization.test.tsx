@@ -30,6 +30,13 @@ vi.mock('@/state/ledger', () => {
         isSyncCancelRequested: { get: vi.fn() },
         polkadotApp: { accounts: [] },
       },
+      deepScan: {
+        isScanning: { get: vi.fn().mockReturnValue(false) },
+        isCancelling: { get: vi.fn().mockReturnValue(false) },
+        isCompleted: { get: vi.fn().mockReturnValue(false) },
+        progress: { get: vi.fn().mockReturnValue({ scanned: 0, total: 0, percentage: 0, phase: undefined }) },
+        apps: { get: vi.fn().mockReturnValue([]) },
+      },
       polkadotAddresses: {
         polkadot: { get: vi.fn() },
       },
@@ -38,6 +45,9 @@ vi.mock('@/state/ledger', () => {
       synchronizeAccounts: vi.fn(),
       cancelSynchronization: vi.fn(),
       clearSynchronization: vi.fn(),
+      deepScanApp: vi.fn(),
+      cancelDeepScan: vi.fn(),
+      resetDeepScan: vi.fn(),
     },
     AppStatus: {
       LOADING: 'loading',
