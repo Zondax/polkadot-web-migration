@@ -31,6 +31,16 @@ export interface SyncResult {
 }
 
 /**
+ * Checks if an app needs to be migrated based on its bip44 path.
+ *
+ * @param {AppConfig} appConfig - The app configuration to check
+ * @returns {boolean} True if the app needs to be migrated, false otherwise
+ */
+export function needsMigration(appConfig: AppConfig): boolean {
+  return appConfig.bip44Path !== polkadotAppConfig.bip44Path
+}
+
+/**
  * Determines if an app is valid based on its configuration.
  *
  * @param {AppConfig} appConfig - The app configuration to check
@@ -74,7 +84,21 @@ export function getAppsToSync(): AppConfig[] {
       appsToSync = appsToSyncInDev.map(appId => appsConfigs.get(appId as AppId))
     }
   }
-  return appsToSync.filter(isValidApp)
+  return appsToSync.filter((app): app is AppConfig => Boolean(app && isValidApp(app) && needsMigration(app)))
+}
+
+/**
+ * Get the list of apps that do not need to be migrated.
+ *
+ * @description This function returns all the apps that do not need to be migrated.
+ * It is used to determine which apps do not need to be synchronized.
+ *
+ * @returns {AppConfig[]} An array of app configurations that do not need to be migrated.
+ */
+export function getAppsToSkipMigration(): AppConfig[] {
+  const appsToSync: (AppConfig | undefined)[] = getValidApps()
+
+  return appsToSync.filter((app): app is AppConfig => Boolean(app && !needsMigration(app)))
 }
 
 /**
@@ -492,10 +516,11 @@ export async function deepScanAllApps(
     }
 
     // Get all scannable apps (apps with valid RPC endpoints)
-    const scannableApps = getValidApps()
+    const scannableApps = getAppsToSync()
 
     // Determine which apps to scan based on selection
-    const appsToScan = selectedChain === 'all' ? scannableApps : scannableApps.filter(appConfig => appConfig.id === selectedChain)
+    const syncAllChains = selectedChain === 'all'
+    const appsToScan = syncAllChains ? scannableApps : scannableApps.filter(appConfig => appConfig.id === selectedChain)
 
     if (appsToScan.length === 0) {
       throw new InternalError(InternalErrorType.SYNC_ERROR, {
@@ -534,6 +559,20 @@ export async function deepScanAllApps(
     // Notify initial apps
     for (const app of initialApps) {
       onAppStart?.(app)
+    }
+
+    // ===== PHASE 0: Skip apps that don't need synchronization =====
+    if (syncAllChains) {
+      const appsToBeSkipped = getAppsToSkipMigration()
+      for (const appConfig of appsToBeSkipped) {
+        onAppStart?.({
+          id: appConfig.id,
+          name: appConfig.name,
+          token: appConfig.token,
+          status: AppStatus.NO_NEED_MIGRATION,
+          originalAccountCount: 0,
+        })
+      }
     }
 
     // ===== PHASE 1: Fetch addresses from Ledger for all apps =====
@@ -764,8 +803,20 @@ export async function synchronizeAllApps(
     })
 
     // Get apps to synchronize (exclude Polkadot since it's handled separately)
-    const appsToSync = getAppsToSync().filter(app => app.id !== 'polkadot')
+    const appsToSync = getAppsToSync()
+
     const totalApps = appsToSync.length + 1 // +1 for Polkadot
+
+    // ===== PHASE 0: Skip apps that don't need synchronization =====
+    const appsToBeSkipped = getAppsToSkipMigration()
+    for (const appConfig of appsToBeSkipped) {
+      onAppStart?.({
+        id: appConfig.id,
+        name: appConfig.name,
+        token: appConfig.token,
+        status: AppStatus.NO_NEED_MIGRATION,
+      })
+    }
 
     // ===== PHASE 1: Fetch all addresses from Ledger =====
     const addressesByApp = new Map<AppId, Address[]>()
@@ -780,15 +831,6 @@ export async function synchronizeAllApps(
 
     const polkadotAddressesFromLedger = await fetchAddressesFromLedger(polkadotAppConfig, onCancel)
     const polkadotAddresses = polkadotAddressesFromLedger.map(account => account.address)
-
-    // Notify that addresses have been fetched for this app
-    const polkadotAddressesFetchedApp: App = {
-      id: polkadotAppConfig.id,
-      name: polkadotAppConfig.name,
-      token: polkadotAppConfig.token,
-      status: AppStatus.ADDRESSES_FETCHED,
-    }
-    onAppStart?.(polkadotAddressesFetchedApp)
 
     let fetchedApps = 1 // Start at 1 (Polkadot already fetched)
 
@@ -824,6 +866,7 @@ export async function synchronizeAllApps(
 
         // Notify that addresses have been fetched for this app
         addressesFetchedApp.status = AppStatus.ADDRESSES_FETCHED
+
         onAppComplete?.(addressesFetchedApp, polkadotAddresses)
       } catch (error) {
         console.error(`[SYNC] Failed to fetch addresses for ${appConfig.name}:`, error)

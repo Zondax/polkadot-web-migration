@@ -1,100 +1,11 @@
 'use client'
 
-import { observer, use$ } from '@legendapp/state/react'
-import { AlertCircle, Check, Loader2 } from 'lucide-react'
-import { AppStatus, type App } from 'state/ledger'
-import { uiState$ } from 'state/ui'
+import { observer } from '@legendapp/state/react'
+import type { App } from 'state/ledger'
 
-import { CustomTooltip } from '@/components/CustomTooltip'
 import { useSynchronization } from '@/components/hooks/useSynchronization'
-import TokenIcon from '@/components/TokenIcon'
-import { Badge } from '@/components/ui/badge'
-import { getChainName } from '@/config/apps'
 import { getValidApps } from '@/lib/services/synchronization.service'
-import { cn, getAppTotalAccounts, hasAppAccounts } from '@/lib/utils'
-
-interface AppScanItemProps {
-  app: App
-}
-
-const AppScanItem = ({ app }: AppScanItemProps) => {
-  const icons = use$(uiState$.icons)
-  const icon = icons[app.id]
-  const appName = app.name || getChainName(app.id) || app.id
-  const { status } = app
-  const hasAccounts = hasAppAccounts(app)
-  const totalAccounts = getAppTotalAccounts(app)
-
-  let displayBadge = true
-  let statusIcon: React.ReactNode
-  let statusClass = 'border-gray-200 bg-white'
-  let statusText = 'Waiting'
-
-  // Define different app states for UI
-  switch (status) {
-    case AppStatus.SYNCHRONIZED:
-    case AppStatus.MIGRATED:
-      if (hasAccounts) {
-        statusIcon = totalAccounts
-        statusClass = 'border-green-200 bg-green-50 opacity-100'
-        statusText = `Ready to migrate (${totalAccounts} ${totalAccounts === 1 ? 'account' : 'accounts'})`
-      } else {
-        statusIcon = totalAccounts
-        statusClass = 'border-gray-200 bg-white opacity-80'
-        statusText = 'No accounts with funds to migrate'
-      }
-      break
-    case AppStatus.ERROR:
-      statusIcon = <AlertCircle data-testid="error-icon" className="h-3.5 w-3.5 text-red-500" />
-      statusClass = 'border-red-200 bg-red-50 opacity-100'
-      statusText = 'Failed synchronization'
-      break
-    case AppStatus.ADDRESSES_FETCHED:
-      statusIcon = <Check data-testid="addresses-fetched-icon" className="h-3.5 w-3.5 text-blue-500" />
-      statusClass = 'border-blue-200 bg-blue-50 opacity-100'
-      statusText = 'Addresses fetched, processing accounts...'
-      break
-    case AppStatus.LOADING:
-      statusIcon = <Loader2 data-testid="loading-icon" className="h-3.5 w-3.5 animate-spin text-indigo-500" />
-      statusClass = 'border-indigo-200 bg-indigo-50 opacity-100 animate-pulse'
-      statusText = 'Synchronizing'
-      break
-    case AppStatus.RESCANNING:
-      statusIcon = <Loader2 data-testid="loading-icon" className="h-3.5 w-3.5 animate-spin text-yellow-500" />
-      statusClass = 'border-yellow-200 bg-yellow-50 opacity-50'
-      statusText = 'Rescanning'
-      displayBadge = false
-      break
-    default:
-      statusIcon = undefined
-      statusClass = 'border-gray-200 bg-white opacity-20'
-      statusText = 'Not synchronized'
-      displayBadge = false
-      break
-  }
-
-  return (
-    <CustomTooltip tooltipBody={statusText}>
-      <div className={cn('flex flex-col items-center p-3 rounded-lg border transition-all', statusClass)} data-testid="app-sync-grid-item">
-        <div className="relative mb-2">
-          <TokenIcon icon={icon} symbol={appName.substring(0, 3)} size="md" data-testid="app-sync-icon" />
-          {displayBadge && (
-            <div className="absolute -right-2 -bottom-2">
-              <Badge
-                variant="outline"
-                className="bg-white h-5 min-w-5 px-0 justify-center rounded-full text-xs"
-                data-testid="app-sync-badge"
-              >
-                {statusIcon}
-              </Badge>
-            </div>
-          )}
-        </div>
-        <span className="text-xs font-medium truncate max-w-full">{appName}</span>
-      </div>
-    </CustomTooltip>
-  )
-}
+import { AppScanItem } from './app-scan-item'
 
 const AppScanningGrid = observer(() => {
   const { apps: scannedApps } = useSynchronization()
