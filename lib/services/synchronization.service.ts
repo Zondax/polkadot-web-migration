@@ -654,7 +654,7 @@ export async function deepScanAllApps(
           const newMultisigAccounts = (result.app.multisigAccounts || []).filter(acc => !existingAddresses.has(acc.address))
 
           const newAccountCount = newAccounts.length + newMultisigAccounts.length
-          console.debug(`[DEEP_SCAN] ${appConfig.name}: Found ${newAccountCount} new accounts`)
+          console.debug(`[deepScanAllApps] ${appConfig.name}: Found ${newAccountCount} new accounts`)
 
           // Update the app in the scanned apps list
           const originalCount = originalAccountCounts.get(appConfig.id) || 0
@@ -760,7 +760,7 @@ export async function deepScanAllApps(
       } as App & { originalAccountCount: number }
     })
 
-    console.debug(`[DEEP_SCAN] Scan completed. Total new accounts found: ${newAccountsFound}`)
+    console.debug(`[deepScanAllApps] Scan completed. Total new accounts found: ${newAccountsFound}`)
 
     return {
       success: true,
@@ -768,8 +768,6 @@ export async function deepScanAllApps(
       newAccountsFound,
     }
   } catch (error) {
-    console.error('[DEEP_SCAN] Critical error:', error)
-
     if (error instanceof InternalError) {
       return {
         success: false,
@@ -973,7 +971,9 @@ export async function synchronizeAllApps(
     // Add the Polkadot app to the final results
     synchronizedApps.push(polkadotApp)
 
-    console.debug(`[SYNC] Synchronization completed at ${new Date().toISOString()}. Total apps synchronized: ${synchronizedApps.length}.`)
+    console.debug(
+      `[synchronizeAllApps] Synchronization completed at ${new Date().toISOString()}. Total apps synchronized: ${synchronizedApps.length}.`
+    )
 
     return {
       success: true,
@@ -981,8 +981,6 @@ export async function synchronizeAllApps(
       polkadotApp,
     }
   } catch (error) {
-    console.debug(`[SYNC] Synchronization failed at ${new Date().toISOString()}.`)
-
     if (error instanceof InternalError) {
       return {
         success: false,
