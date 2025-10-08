@@ -4,6 +4,7 @@ import { LedgerError, processErrorResponse, ResponseError } from '@zondax/ledger
 import { PolkadotGenericApp } from '@zondax/ledger-substrate'
 import type { GenericeResponseAddress } from '@zondax/ledger-substrate/dist/common'
 import type { ConnectionResponse, DeviceConnectionProps } from '@/lib/ledger/types'
+import { addressCache } from '@/state/stores'
 import { openApp } from './openApp'
 
 /**
@@ -23,6 +24,7 @@ export interface ILedgerService {
     proof1: Uint8Array
   ): Promise<{ signature?: Buffer<ArrayBufferLike> }>
   clearConnection(): void
+  clearAddressCache(): void
   disconnect(): void
   isConnected(): boolean
   abortCall(): void
@@ -172,7 +174,7 @@ export class LedgerService implements ILedgerService {
   }
 
   /**
-   * Gets an account address from the Ledger device
+   * Gets an account address from the Ledger device or cache
    * @param bip44Path - The BIP44 derivation path for the account
    * @param ss58prefix - The SS58 address format prefix to use
    * @param showAddrInDevice - Whether to display the address on the Ledger device for verification
@@ -180,6 +182,43 @@ export class LedgerService implements ILedgerService {
    * @throws {ResponseError} If transport is not available or app is not open
    */
   async getAccountAddress(bip44Path: string, ss58prefix: number, showAddrInDevice: boolean): Promise<GenericeResponseAddress | undefined> {
+    // Skip cache when showing on device (user verification required)
+    if (!showAddrInDevice) {
+      // Try cache first
+      const cached = addressCache.get(bip44Path, ss58prefix)
+      if (cached) {
+        console.debug(`[ledgerService] Cache hit for path: ${bip44Path}`)
+        return cached
+      }
+    }
+
+    // Fetch from Ledger device
+    const address = await this.getAccountAddressFromDevice(bip44Path, ss58prefix, showAddrInDevice)
+
+    // Cache the public key if not showing on device and we have a valid response
+    if (!showAddrInDevice && address?.pubKey) {
+      // Convert hex string pubKey to Uint8Array for caching
+      const publicKey = new Uint8Array(Buffer.from(address.pubKey, 'hex'))
+      addressCache.set(bip44Path, publicKey)
+      console.debug(`[ledgerService] Cached public key for path: ${bip44Path}`)
+    }
+
+    return address
+  }
+
+  /**
+   * Gets an account address directly from the Ledger device (bypassing cache)
+   * @param bip44Path - The BIP44 derivation path for the account
+   * @param ss58prefix - The SS58 address format prefix to use
+   * @param showAddrInDevice - Whether to display the address on the Ledger device for verification
+   * @returns A promise that resolves to a GenericeResponseAddress object containing the address
+   * @throws {ResponseError} If transport is not available or app is not open
+   */
+  private async getAccountAddressFromDevice(
+    bip44Path: string,
+    ss58prefix: number,
+    showAddrInDevice: boolean
+  ): Promise<GenericeResponseAddress | undefined> {
     if (!this.deviceConnection?.transport) {
       throw new ResponseError(LedgerError.UnknownTransportError, 'Transport not available')
     }
@@ -200,7 +239,7 @@ export class LedgerService implements ILedgerService {
     this.call = rejectFn
 
     try {
-      console.debug(`[ledgerService] Getting address for path: ${bip44Path}`)
+      console.debug(`[ledgerService] Getting address from device for path: ${bip44Path}`)
       const address = await abortablePromise
       console.debug(`[ledgerService] Found address: ${address.address} for path: ${bip44Path}`)
       return address
@@ -242,6 +281,14 @@ export class LedgerService implements ILedgerService {
       genericApp: undefined,
       isAppOpen: false,
     }
+  }
+
+  /**
+   * Clears the address cache
+   */
+  clearAddressCache() {
+    console.debug('[ledgerService] Clearing address cache')
+    addressCache.clear()
   }
 
   /**

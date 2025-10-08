@@ -340,3 +340,29 @@ export interface ConvictionVotingInfo {
     unlockAt?: number
   }[]
 }
+
+export enum FetchingAddressesPhase {
+  FETCHING_ADDRESSES = 'fetching_addresses',
+  PROCESSING_ACCOUNTS = 'processing_accounts',
+}
+
+/**
+ * Information about the progress of a synchronization operation
+ */
+export interface SyncProgress {
+  scanned: number
+  total: number
+  percentage: number
+  phase?: FetchingAddressesPhase
+}
+
+/**
+ * Information about the progress of a deep scan operation
+ */
+export interface DeepScanProgress {
+  scanned: number
+  total: number
+  percentage: number
+  currentChain: string
+  phase?: FetchingAddressesPhase
+}

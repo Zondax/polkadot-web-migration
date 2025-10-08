@@ -1,10 +1,10 @@
 import { use$, useObservable } from '@legendapp/state/react'
 import { useCallback, useState } from 'react'
-import { type App, AppStatus, ledgerState$ } from 'state/ledger'
+import { AppStatus, ledgerState$, type App } from 'state/ledger'
 
 import type { AppId } from '@/config/apps'
 import { filterInvalidSyncedApps, filterValidSyncedAppsWithBalances, hasAccountsWithErrors } from '@/lib/utils'
-import { AccountType, type Address, type MultisigAddress, type TransactionSettings } from '@/state/types/ledger'
+import { AccountType, type Address, type MultisigAddress, type SyncProgress, type TransactionSettings } from '@/state/types/ledger'
 
 export type UpdateTransaction = (
   transaction: Partial<TransactionSettings>,
@@ -35,14 +35,17 @@ interface UseSynchronizationReturn {
 
   // State
   status: AppStatus | undefined
-  syncProgress: {
-    scanned: number
-    total: number
-    percentage: number
-  }
+  syncProgress: SyncProgress
   isLedgerConnected: boolean
   isRescaning: boolean
   isSyncCancelRequested: boolean
+
+  // Deep scan state
+  isDeepScanning: boolean
+  isDeepScanCancelling: boolean
+  isDeepScanCompleted: boolean
+  deepScanProgress: SyncProgress
+  deepScanApps: (App & { originalAccountCount: number })[]
 
   // Computed values
   hasAccountsWithErrors: boolean
@@ -56,6 +59,18 @@ interface UseSynchronizationReturn {
   restartSynchronization: () => void
   cancelSynchronization: () => void
   updateTransaction: UpdateTransaction
+
+  // Deep scan actions
+  deepScanApp: (
+    selectedChain: AppId | 'all',
+    accountIndices: number[],
+    addressIndices: number[]
+  ) => Promise<{
+    success: boolean
+    newAccountsFound: number
+  }>
+  cancelDeepScan: () => void
+  resetDeepScan: () => void
 
   // Selection actions
   toggleAccountSelection: ToggleAccountSelection
@@ -71,6 +86,13 @@ export const useSynchronization = (): UseSynchronizationReturn => {
   const syncProgress = use$(ledgerState$.apps.syncProgress)
   const isSyncCancelRequested = use$(ledgerState$.apps.isSyncCancelRequested)
   const [isRescaning, setIsRescaning] = useState<boolean>(false)
+
+  // Deep scan state
+  const isDeepScanning = use$(ledgerState$.deepScan.isScanning)
+  const isDeepScanCancelling = use$(ledgerState$.deepScan.isCancelling)
+  const isDeepScanCompleted = use$(ledgerState$.deepScan.isCompleted)
+  const deepScanProgress = use$(ledgerState$.deepScan.progress)
+  const deepScanApps = use$(ledgerState$.deepScan.apps)
 
   // Check if Ledger is connected
   const isLedgerConnected = use$(() => Boolean(ledgerState$.device.connection?.transport && ledgerState$.device.connection?.genericApp))
@@ -153,6 +175,20 @@ export const useSynchronization = (): UseSynchronizationReturn => {
     ledgerState$.cancelSynchronization()
   }, [])
 
+  // ---- Deep scan functions ----
+
+  const deepScanApp = useCallback(async (selectedChain: AppId | 'all', accountIndices: number[], addressIndices: number[]) => {
+    return await ledgerState$.deepScanApp(selectedChain, accountIndices, addressIndices)
+  }, [])
+
+  const cancelDeepScan = useCallback(() => {
+    ledgerState$.cancelDeepScan()
+  }, [])
+
+  const resetDeepScan = useCallback(() => {
+    ledgerState$.resetDeepScan()
+  }, [])
+
   // ---- Account selection functions ----
 
   /**
@@ -214,6 +250,13 @@ export const useSynchronization = (): UseSynchronizationReturn => {
     isRescaning,
     isSyncCancelRequested,
 
+    // Deep scan state
+    isDeepScanning,
+    isDeepScanCancelling,
+    isDeepScanCompleted,
+    deepScanProgress,
+    deepScanApps,
+
     // Computed values
     hasAccountsWithErrors: accountsWithErrors,
     filteredAppsWithoutErrors: appsWithoutErrors,
@@ -226,6 +269,11 @@ export const useSynchronization = (): UseSynchronizationReturn => {
     restartSynchronization,
     cancelSynchronization,
     updateTransaction,
+
+    // Deep scan actions
+    deepScanApp,
+    cancelDeepScan,
+    resetDeepScan,
 
     // Selection actions
     toggleAccountSelection,

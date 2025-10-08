@@ -74,6 +74,10 @@ vi.mock('../notifications', () => ({
   },
 }))
 
+vi.mock('@/lib/services/synchronization.service', () => ({
+  deepScanAllApps: vi.fn(),
+}))
+
 vi.mock('config/apps', () => ({
   appsConfigs: new Map([
     ['polkadot', { id: 'polkadot', name: 'Polkadot', rpcEndpoints: ['wss://rpc.polkadot.io'], token: { symbol: 'DOT', decimals: 10 } }],
@@ -927,6 +931,263 @@ describe('Ledger State', () => {
       expect(ledgerClient.removeIdentity).toHaveBeenCalled()
       expect(ledgerClient.removeProxies).toHaveBeenCalled()
       expect(ledgerClient.removeAccountIndex).toHaveBeenCalled()
+    })
+  })
+
+  describe('Deep Scan functionality', () => {
+    beforeEach(() => {
+      // Reset deep scan state before each test
+      ledgerState$.resetDeepScan()
+    })
+
+    describe('cancelDeepScan', () => {
+      it('should set cancel flags and abort call', async () => {
+        const { ledgerClient } = await import('../client/ledger')
+
+        // Verify initial state
+        expect(ledgerState$.deepScan.cancelRequested.get()).toBe(false)
+        expect(ledgerState$.deepScan.isCancelling.get()).toBe(false)
+
+        // Call cancel
+        ledgerState$.cancelDeepScan()
+
+        // Verify cancel flags are set
+        expect(ledgerState$.deepScan.cancelRequested.get()).toBe(true)
+        expect(ledgerState$.deepScan.isCancelling.get()).toBe(true)
+
+        // Verify abort was called
+        expect(ledgerClient.abortCall).toHaveBeenCalled()
+      })
+
+      it('should allow multiple cancel calls', async () => {
+        const { ledgerClient } = await import('../client/ledger')
+
+        // Call cancel multiple times
+        ledgerState$.cancelDeepScan()
+        ledgerState$.cancelDeepScan()
+        ledgerState$.cancelDeepScan()
+
+        // State should remain consistent
+        expect(ledgerState$.deepScan.cancelRequested.get()).toBe(true)
+        expect(ledgerState$.deepScan.isCancelling.get()).toBe(true)
+
+        // Abort should be called each time
+        expect(ledgerClient.abortCall).toHaveBeenCalledTimes(3)
+      })
+    })
+
+    describe('resetDeepScan', () => {
+      it('should reset all deep scan state to initial values', () => {
+        // Set some state first
+        ledgerState$.deepScan.isScanning.set(true)
+        ledgerState$.deepScan.isCancelling.set(true)
+        ledgerState$.deepScan.isCompleted.set(true)
+        ledgerState$.deepScan.cancelRequested.set(true)
+        ledgerState$.deepScan.progress.set({ scanned: 5, total: 10, percentage: 50, phase: undefined })
+        ledgerState$.deepScan.apps.set([
+          {
+            id: 'polkadot',
+            name: 'Polkadot',
+            token: { symbol: 'DOT', decimals: 10 },
+            status: AppStatus.LOADING,
+            originalAccountCount: 0,
+          } as any,
+        ])
+
+        // Reset
+        ledgerState$.resetDeepScan()
+
+        // Verify all state is reset
+        expect(ledgerState$.deepScan.isScanning.get()).toBe(false)
+        expect(ledgerState$.deepScan.isCancelling.get()).toBe(false)
+        expect(ledgerState$.deepScan.isCompleted.get()).toBe(false)
+        expect(ledgerState$.deepScan.cancelRequested.get()).toBe(false)
+        expect(ledgerState$.deepScan.progress.get()).toEqual({
+          scanned: 0,
+          total: 0,
+          percentage: 0,
+          phase: undefined,
+        })
+        expect(ledgerState$.deepScan.apps.get()).toEqual([])
+      })
+
+      it('should be idempotent', () => {
+        // Reset multiple times
+        ledgerState$.resetDeepScan()
+        ledgerState$.resetDeepScan()
+        ledgerState$.resetDeepScan()
+
+        // State should remain in initial values
+        expect(ledgerState$.deepScan.isScanning.get()).toBe(false)
+        expect(ledgerState$.deepScan.apps.get()).toEqual([])
+      })
+    })
+
+    describe('deepScanApp', () => {
+      beforeEach(() => {
+        // Mock the deepScanAllApps service function
+        vi.mock('@/lib/services/synchronization.service', () => ({
+          deepScanAllApps: vi.fn(),
+        }))
+      })
+
+      it('should initialize state when starting deep scan', async () => {
+        const { deepScanAllApps } = await import('@/lib/services/synchronization.service')
+
+        // Mock successful scan
+        vi.mocked(deepScanAllApps).mockResolvedValueOnce({
+          success: true,
+          apps: [],
+          newAccountsFound: 0,
+        })
+
+        // Start deep scan
+        const promise = ledgerState$.deepScanApp('polkadot', [0, 1], [0, 1, 2])
+
+        // Check initial state
+        expect(ledgerState$.deepScan.isScanning.get()).toBe(true)
+        expect(ledgerState$.deepScan.isCancelling.get()).toBe(false)
+        expect(ledgerState$.deepScan.isCompleted.get()).toBe(false)
+        expect(ledgerState$.deepScan.cancelRequested.get()).toBe(false)
+
+        await promise
+      })
+
+      it('should clean up state after successful scan', async () => {
+        const { deepScanAllApps } = await import('@/lib/services/synchronization.service')
+
+        vi.mocked(deepScanAllApps).mockResolvedValueOnce({
+          success: true,
+          apps: [],
+          newAccountsFound: 0,
+        })
+
+        const result = await ledgerState$.deepScanApp('polkadot', [0], [0])
+
+        expect(result.success).toBe(true)
+        expect(ledgerState$.deepScan.isScanning.get()).toBe(false)
+        expect(ledgerState$.deepScan.isCancelling.get()).toBe(false)
+        expect(ledgerState$.deepScan.cancelRequested.get()).toBe(false)
+        expect(ledgerState$.deepScan.isCompleted.get()).toBe(true)
+      })
+
+      it('should handle scan with new accounts found', async () => {
+        const { deepScanAllApps } = await import('@/lib/services/synchronization.service')
+        const { notifications$ } = await import('../notifications')
+
+        vi.mocked(deepScanAllApps).mockResolvedValueOnce({
+          success: true,
+          apps: [
+            {
+              id: 'kusama',
+              name: 'Kusama',
+              token: { symbol: 'KSM', decimals: 12 },
+              status: AppStatus.SYNCHRONIZED,
+              accounts: [mockAddress1],
+              multisigAccounts: [],
+            },
+          ],
+          newAccountsFound: 1,
+        })
+
+        const result = await ledgerState$.deepScanApp('kusama', [0], [0])
+
+        expect(result.success).toBe(true)
+        expect(result.newAccountsFound).toBe(1)
+        expect(notifications$.push).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: 'Deep Scan Complete',
+            type: 'success',
+          })
+        )
+      })
+
+      it('should handle scan with no new accounts', async () => {
+        const { deepScanAllApps } = await import('@/lib/services/synchronization.service')
+        const { notifications$ } = await import('../notifications')
+
+        vi.mocked(deepScanAllApps).mockResolvedValueOnce({
+          success: true,
+          apps: [],
+          newAccountsFound: 0,
+        })
+
+        const result = await ledgerState$.deepScanApp('polkadot', [0], [0])
+
+        expect(result.success).toBe(true)
+        expect(result.newAccountsFound).toBe(0)
+        expect(notifications$.push).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: 'Deep Scan Complete',
+            description: 'No new accounts with balances were found in the specified range.',
+            type: 'info',
+          })
+        )
+      })
+
+      it('should handle failed scan result', async () => {
+        const { deepScanAllApps } = await import('@/lib/services/synchronization.service')
+
+        // Mock failed scan
+        vi.mocked(deepScanAllApps).mockResolvedValueOnce({
+          success: false,
+          apps: [],
+          newAccountsFound: 0,
+        })
+
+        const result = await ledgerState$.deepScanApp('polkadot', [0], [0])
+
+        expect(result.success).toBe(false)
+        expect(result.newAccountsFound).toBe(0)
+        // State should be cleaned up even on failure
+        expect(ledgerState$.deepScan.isScanning.get()).toBe(false)
+        expect(ledgerState$.deepScan.isCancelling.get()).toBe(false)
+      })
+
+      it('should handle errors gracefully', async () => {
+        const { deepScanAllApps } = await import('@/lib/services/synchronization.service')
+        const { notifications$ } = await import('../notifications')
+
+        vi.mocked(deepScanAllApps).mockRejectedValueOnce(new Error('Scan failed'))
+
+        const result = await ledgerState$.deepScanApp('polkadot', [0], [0])
+
+        expect(result.success).toBe(false)
+        expect(result.newAccountsFound).toBe(0)
+        expect(notifications$.push).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: 'Deep Scan System Error',
+            type: 'error',
+          })
+        )
+
+        // State should be cleaned up
+        expect(ledgerState$.deepScan.isScanning.get()).toBe(false)
+      })
+
+      it('should handle all chains scan', async () => {
+        const { deepScanAllApps } = await import('@/lib/services/synchronization.service')
+
+        vi.mocked(deepScanAllApps).mockResolvedValueOnce({
+          success: true,
+          apps: [],
+          newAccountsFound: 0,
+        })
+
+        await ledgerState$.deepScanApp('all', [0, 1], [0, 1, 2])
+
+        expect(deepScanAllApps).toHaveBeenCalledWith(
+          'all',
+          [0, 1],
+          [0, 1, 2],
+          expect.any(Array),
+          expect.any(Function),
+          expect.any(Function),
+          expect.any(Function),
+          expect.any(Function),
+          expect.any(Function)
+        )
+      })
     })
   })
 })

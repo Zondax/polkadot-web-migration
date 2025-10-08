@@ -24,8 +24,8 @@ importers:
         specifier: ^6.30.6
         version: 6.30.6
       '@ledgerhq/types-live':
-        specifier: ^6.80.0
-        version: 6.82.0
+        specifier: ^6.86.0
+        version: 6.86.0
       '@legendapp/state':
         specifier: ^3.0.0-beta.31
         version: 3.0.0-beta.32(react@19.1.1)
@@ -108,8 +108,8 @@ importers:
         specifier: ^1.1.2
         version: 1.1.2
       axios:
-        specifier: ^1.11.0
-        version: 1.11.0
+        specifier: ^1.12.0
+        version: 1.12.0
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -129,8 +129,8 @@ importers:
         specifier: ^26.1.0
         version: 26.1.0
       lucide-react:
-        specifier: ^0.539.0
-        version: 0.539.0(react@19.1.1)
+        specifier: ^0.545.0
+        version: 0.545.0(react@19.1.1)
       next:
         specifier: 15.4.7
         version: 15.4.7(@babel/core@7.28.3)(@playwright/test@1.55.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -162,14 +162,14 @@ importers:
         specifier: ^3.3.1
         version: 3.3.1
       tailwindcss:
-        specifier: ^4.1.11
-        version: 4.1.12
+        specifier: ^4.1.14
+        version: 4.1.14
       tailwindcss-animate:
         specifier: ^1.0.7
-        version: 1.0.7(tailwindcss@4.1.12)
+        version: 1.0.7(tailwindcss@4.1.14)
       uuid:
-        specifier: ^11.1.0
-        version: 11.1.0
+        specifier: ^13.0.0
+        version: 13.0.0
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -205,8 +205,8 @@ importers:
         specifier: ^10.4.21
         version: 10.4.21(postcss@8.5.6)
       globals:
-        specifier: ^16.3.0
-        version: 16.3.0
+        specifier: ^16.4.0
+        version: 16.4.0
       postcss-nested:
         specifier: ^7.0.2
         version: 7.0.2(postcss@8.5.6)
@@ -771,8 +771,8 @@ packages:
   '@ledgerhq/logs@6.13.0':
     resolution: {integrity: sha512-4+qRW2Pc8V+btL0QEmdB2X+uyx0kOWMWE1/LWsq5sZy3Q5tpi4eItJS6mB0XL3wGW59RQ+8bchNQQ1OW/va8Og==}
 
-  '@ledgerhq/types-live@6.82.0':
-    resolution: {integrity: sha512-+Sn+pwgMxrMpX/8hvwCNKpRLgJvBHeBozAnNvis4O+okBjQ8P4SGVNMr6I/2m3eNKbTzOGtEnGVi9+PWOjEOxQ==}
+  '@ledgerhq/types-live@6.86.0':
+    resolution: {integrity: sha512-uWnDroQC2qH36OjTttWiVFZ6CMnrCwr94XLFSmSKe/dKLnuFVUnB07xBW7gMi6AyX+P3w0cir+yi9xrxPC1k7w==}
 
   '@legendapp/state@3.0.0-beta.32':
     resolution: {integrity: sha512-rQ9q8qAQ1/llNc5+8QG3besV9NoKL/4Md7pDwoS/Fvvag4cmRlzoSsXHPrgT+JdzXyec7kDxvgYIf7WIEmY6dQ==}
@@ -1885,8 +1885,8 @@ packages:
     peerDependencies:
       postcss: ^8.1.0
 
-  axios@1.11.0:
-    resolution: {integrity: sha512-1Lx3WLFQWm3ooKDYZD1eXmoGO9fxYQjrycfHFC8P0sCfQVXyROp0p9PFWBehewBOdCwHc+f/b8I0fMto5eSfwA==}
+  axios@1.12.0:
+    resolution: {integrity: sha512-oXTDccv8PcfjZmPGlWsPSwtOJCZ/b6W5jAMCNcfwJbCzDckwG0jrYJFaWH1yvivfCXjVzV/SPDEhMB3Q+DSurg==}
 
   balanced-match@1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
@@ -2204,8 +2204,8 @@ packages:
     resolution: {integrity: sha512-7Bv8RF0k6xjo7d4A/PxYLbUCfb6c+Vpd2/mB2yRDlew7Jb5hEXiCD9ibfO7wpk8i4sevK6DFny9h7EYbM3/sHg==}
     hasBin: true
 
-  globals@16.3.0:
-    resolution: {integrity: sha512-bqWEnJ1Nt3neqx2q5SFfGS8r/ahumIakg3HcwtNlrVlwXIeNumWn/c7Pn/wKzGhf6SaW6H6uWXLqC30STCMchQ==}
+  globals@16.4.0:
+    resolution: {integrity: sha512-ob/2LcVVaVGCYN+r14cnwnoDPUufjiYgSqRhiFD0Q1iI4Odora5RE8Iv1D24hAz5oMophRGkGz+yuvQmmUMnMw==}
     engines: {node: '>=18'}
 
   gopd@1.2.0:
@@ -2421,8 +2421,8 @@ packages:
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
 
-  lucide-react@0.539.0:
-    resolution: {integrity: sha512-VVISr+VF2krO91FeuCrm1rSOLACQUYVy7NQkzrOty52Y8TlTPcXcMdQFj9bYzBgXbWCiywlwSZ3Z8u6a+6bMlg==}
+  lucide-react@0.545.0:
+    resolution: {integrity: sha512-7r1/yUuflQDSt4f1bpn5ZAocyIxcTyVyBBChSVtBKn5M+392cPmI5YJMWOJKk/HUWGm5wg83chlAZtCcGbEZtw==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
@@ -2829,6 +2829,9 @@ packages:
   tailwindcss@4.1.12:
     resolution: {integrity: sha512-DzFtxOi+7NsFf7DBtI3BJsynR+0Yp6etH+nRPTbpWnS2pZBaSksv/JGctNwSWzbFjp0vxSqknaUylseZqMDGrA==}
 
+  tailwindcss@4.1.14:
+    resolution: {integrity: sha512-b7pCxjGO98LnxVkKjaZSDeNuljC4ueKUddjENJOADtubtdo8llTaJy7HwBMeLNSSo2N5QIAgklslK1+Ir8r6CA==}
+
   tapable@2.2.3:
     resolution: {integrity: sha512-ZL6DDuAlRlLGghwcfmSn9sK3Hr6ArtyudlSAiCqQ6IfE+b+HHbydbYDIG15IfS5do+7XQQBdBiubF/cV2dnDzg==}
     engines: {node: '>=6'}
@@ -2926,8 +2929,8 @@ packages:
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
 
-  uuid@11.1.0:
-    resolution: {integrity: sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A==}
+  uuid@13.0.0:
+    resolution: {integrity: sha512-XQegIaBTVUjSHliKqcnFqYypAd4S+WCYt5NIeRs6w/UAry7z8Y9j5ZwRRL4kzq9U3sD6v+85er9FvkEaBpji2w==}
     hasBin: true
 
   vite-node@3.2.4:
@@ -3545,7 +3548,7 @@ snapshots:
 
   '@ledgerhq/logs@6.13.0': {}
 
-  '@ledgerhq/types-live@6.82.0':
+  '@ledgerhq/types-live@6.86.0':
     dependencies:
       bignumber.js: 9.3.1
       rxjs: 7.8.2
@@ -4724,7 +4727,7 @@ snapshots:
     dependencies:
       '@ledgerhq/hw-transport': 6.31.4
       '@zondax/ledger-js': 1.3.1
-      axios: 1.11.0
+      axios: 1.12.0
     transitivePeerDependencies:
       - debug
 
@@ -4772,7 +4775,7 @@ snapshots:
       postcss: 8.5.6
       postcss-value-parser: 4.2.0
 
-  axios@1.11.0:
+  axios@1.12.0:
     dependencies:
       follow-redirects: 1.15.11
       form-data: 4.0.4
@@ -5081,7 +5084,7 @@ snapshots:
       package-json-from-dist: 1.0.1
       path-scurry: 1.11.1
 
-  globals@16.3.0: {}
+  globals@16.4.0: {}
 
   gopd@1.2.0: {}
 
@@ -5293,7 +5296,7 @@ snapshots:
     dependencies:
       yallist: 3.1.1
 
-  lucide-react@0.539.0(react@19.1.1):
+  lucide-react@0.545.0(react@19.1.1):
     dependencies:
       react: 19.1.1
 
@@ -5698,11 +5701,13 @@ snapshots:
 
   tailwind-merge@3.3.1: {}
 
-  tailwindcss-animate@1.0.7(tailwindcss@4.1.12):
+  tailwindcss-animate@1.0.7(tailwindcss@4.1.14):
     dependencies:
-      tailwindcss: 4.1.12
+      tailwindcss: 4.1.14
 
   tailwindcss@4.1.12: {}
+
+  tailwindcss@4.1.14: {}
 
   tapable@2.2.3: {}
 
@@ -5787,7 +5792,7 @@ snapshots:
 
   util-deprecate@1.0.2: {}
 
-  uuid@11.1.0: {}
+  uuid@13.0.0: {}
 
   vite-node@3.2.4(@types/node@24.3.1)(jiti@2.5.1)(lightningcss@1.30.1):
     dependencies:
