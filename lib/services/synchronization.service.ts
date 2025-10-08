@@ -31,6 +31,31 @@ export interface SyncResult {
 }
 
 /**
+ * Determines if an app is valid based on its configuration.
+ *
+ * @param {AppConfig} appConfig - The app configuration to check
+ * @returns {boolean} True if the app is valid, false otherwise
+ */
+export function isValidApp(appConfig: AppConfig | undefined): appConfig is AppConfig {
+  return Boolean(appConfig?.rpcEndpoints && appConfig.rpcEndpoints.length > 0)
+}
+
+/**
+ * Get the list of apps to synchronize.
+ *
+ * @description This function returns all the apps that have valid RPC endpoints.
+ * It is used to determine which apps should be synchronized.
+ *
+ * @returns {AppConfig[]} An array of app configurations with valid RPC endpoints.
+ */
+
+export function getValidApps(): AppConfig[] {
+  const appsToSync: (AppConfig | undefined)[] = Array.from(appsConfigs.values())
+
+  return appsToSync.filter(isValidApp) as AppConfig[]
+}
+
+/**
  * Determines which blockchain applications should be synchronized based on configuration.
  *
  * @description Filters the available app configurations to only include those with valid RPC endpoints.
@@ -39,7 +64,7 @@ export interface SyncResult {
  * @returns {AppConfig[]} Array of app configurations that should be synchronized
  * @throws {InternalError} When environment variable parsing fails in development mode
  */
-function getAppsToSync(): AppConfig[] {
+export function getAppsToSync(): AppConfig[] {
   let appsToSync: (AppConfig | undefined)[] = Array.from(appsConfigs.values())
 
   // If in development environment, use apps specified in environment variable
@@ -49,7 +74,7 @@ function getAppsToSync(): AppConfig[] {
       appsToSync = appsToSyncInDev.map(appId => appsConfigs.get(appId as AppId))
     }
   }
-  return appsToSync.filter(appConfig => appConfig?.rpcEndpoints && appConfig.rpcEndpoints.length > 0) as AppConfig[]
+  return appsToSync.filter(isValidApp)
 }
 
 /**
@@ -81,6 +106,44 @@ async function fetchAddressesFromLedger(appConfig: AppConfig, onCancel?: () => b
     }
     throw new InternalError(InternalErrorType.SYNC_ERROR, {
       operation: 'fetchAddressesFromLedger',
+      context: { appId: appConfig.id, error },
+    })
+  }
+}
+
+/**
+ * Fetches account addresses from the Ledger device using custom indices.
+ *
+ * @description Similar to fetchAddressesFromLedger but allows specifying custom account
+ * and address indices for deep scanning.
+ *
+ * @param {AppConfig} appConfig - The blockchain application configuration
+ * @param {number[]} accountIndices - Array of account indices to scan
+ * @param {number[]} addressIndices - Array of address indices to scan per account
+ * @param {() => boolean} [onCancel] - Optional cancellation callback function
+ * @returns {Promise<Address[]>} Array of addresses retrieved from the Ledger device
+ * @throws {InternalError} When Ledger communication fails or returns no results
+ */
+async function fetchAddressesFromLedgerWithIndices(
+  appConfig: AppConfig,
+  accountIndices: number[],
+  addressIndices: number[],
+  onCancel?: () => boolean
+): Promise<Address[]> {
+  try {
+    const response = await ledgerClient.synchronizeAccountsWithIndices(appConfig, accountIndices, addressIndices, onCancel)
+
+    if (!response.result) {
+      return []
+    }
+
+    return response.result
+  } catch (error) {
+    if (error instanceof InternalError) {
+      throw error
+    }
+    throw new InternalError(InternalErrorType.SYNC_ERROR, {
+      operation: 'fetchAddressesFromLedgerWithIndices',
       context: { appId: appConfig.id, error },
     })
   }
@@ -357,141 +420,6 @@ export async function synchronizeSingleApp(
 }
 
 /**
- * Synchronizes a single blockchain application with custom account/address indices.
- *
- * @description This function performs deep scanning of blockchain accounts using custom
- * index configurations. It uses the enhanced ledger client to fetch addresses from specific
- * account and address indices, then processes them through the standard account processing pipeline.
- *
- * @param {AppConfig} appConfig - The blockchain application configuration
- * @param {string[]} polkadotAddresses - Array of Polkadot addresses for cross-chain migration
- * @param {number[]} accountIndices - Array of account indices to scan
- * @param {number[]} addressIndices - Array of address indices to scan per account
- * @param {boolean} [filterByBalance=true] - Whether to filter out accounts with zero balance
- * @returns {Promise<App>} Complete app object with synchronized account data
- * @throws {InternalError} When the scanning process fails
- */
-export async function scanAppWithCustomIndices(
-  appConfig: AppConfig,
-  polkadotAddresses: string[],
-  accountIndices: number[],
-  addressIndices: number[],
-  filterByBalance = true,
-  onCancel?: () => boolean
-): Promise<{
-  app: App
-  polkadotAddressesForApp: string[]
-}> {
-  try {
-    // Check for cancellation before starting
-    checkCancellation(onCancel)
-
-    // Fetch addresses from Ledger using custom indices
-    const addresses = await ledgerClient.synchronizeAccountsWithIndices(appConfig, accountIndices, addressIndices, onCancel)
-
-    // Check for cancellation after Ledger interaction
-    checkCancellation(onCancel)
-
-    if (!addresses.result || addresses.result.length === 0) {
-      return {
-        app: {
-          name: appConfig.name,
-          id: appConfig.id,
-          token: appConfig.token,
-          status: AppStatus.SYNCHRONIZED,
-          accounts: [],
-          multisigAccounts: [],
-        },
-        polkadotAddressesForApp: [],
-      }
-    }
-
-    if (!appConfig.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
-      throw new InternalError(InternalErrorType.SYNC_ERROR, {
-        operation: 'scanAppWithCustomIndices',
-        context: { appId: appConfig.id, reason: 'RPC endpoint not configured' },
-      })
-    }
-
-    // Get API connection
-    const { api, provider } = await getApiAndProvider(appConfig.rpcEndpoints)
-
-    if (!api) {
-      throw new InternalError(InternalErrorType.FAILED_TO_CONNECT_TO_BLOCKCHAIN, {
-        operation: 'scanAppWithCustomIndices',
-        context: { appId: appConfig.id, rpcEndpoints: appConfig.rpcEndpoints },
-      })
-    }
-
-    try {
-      // Check for cancellation before processing accounts
-      checkCancellation(onCancel)
-
-      // Process accounts using the standard account processing service
-      const { success, data, error } = await processAccountsForApp(addresses.result, appConfig, api, polkadotAddresses, filterByBalance)
-
-      // Check for cancellation after account processing
-      checkCancellation(onCancel)
-
-      if (!success || !data) {
-        throw new InternalError(InternalErrorType.SYNC_ERROR, {
-          operation: 'scanAppWithCustomIndices',
-          context: {
-            appId: appConfig.id,
-            error: error?.description || 'Failed to process accounts',
-          },
-        })
-      }
-
-      const { accounts, multisigAccounts, collections, polkadotAddressesForApp } = data
-
-      return {
-        app: {
-          name: appConfig.name,
-          id: appConfig.id,
-          token: appConfig.token,
-          status: AppStatus.SYNCHRONIZED,
-          accounts,
-          multisigAccounts,
-          collections,
-        },
-        polkadotAddressesForApp,
-      }
-    } finally {
-      // Always disconnect the API
-      if (api) {
-        await api.disconnect()
-      } else if (provider) {
-        await provider.disconnect()
-      }
-    }
-  } catch (error) {
-    console.debug('Error scanning app with custom indices:', appConfig.id, error)
-
-    if (error instanceof InternalError) {
-      return {
-        app: {
-          name: appConfig.name,
-          id: appConfig.id,
-          token: appConfig.token,
-          status: AppStatus.ERROR,
-          error: {
-            source: 'synchronization',
-            description: error.description || 'Custom index scanning failed',
-          },
-        },
-        polkadotAddressesForApp: [],
-      }
-    }
-
-    throw new InternalError(InternalErrorType.SYNC_ERROR, {
-      operation: 'scanAppWithCustomIndices',
-      context: { appId: appConfig.id, error },
-    })
-  }
-}
-
-/**
  * Orchestrates the complete synchronization process for all configured blockchain applications.
  *
  * @description This is the main entry point for the synchronization process. It:
@@ -509,6 +437,316 @@ export async function scanAppWithCustomIndices(
  * @returns {Promise<SyncResult>} Result containing all synchronized apps and success status
  * @throws {InternalError} When the overall synchronization process fails
  */
+/**
+ * Result of a deep scan operation
+ */
+export interface DeepScanResult {
+  success: boolean
+  apps: (App & { originalAccountCount: number })[]
+  newAccountsFound: number
+  error?: string
+}
+
+/**
+ * Orchestrates the deep scan process for selected blockchain applications with custom account and address indices.
+ *
+ * @description Similar to synchronizeAllApps but allows scanning custom account/address indices.
+ * Uses the same two-phase approach: fetch addresses from Ledger sequentially, then process in parallel.
+ * This function enables users to discover accounts at non-standard indices (beyond the default scan range).
+ *
+ * @param {AppId | 'all'} selectedChain - Either a specific chain ID or 'all' to scan all chains
+ * @param {number[]} accountIndices - Array of account indices to scan (e.g., [0, 1, 2, 10, 20])
+ * @param {number[]} addressIndices - Array of address indices to scan per account (e.g., [0, 1, 2])
+ * @param {App[]} currentApps - Currently synchronized apps to merge new accounts with
+ * @param {(progress: SyncProgress) => void} [onProgress] - Progress callback
+ * @param {() => boolean} [onCancel] - Cancellation check callback
+ * @param {(app: App & { originalAccountCount: number }) => void} [onAppStart] - Callback when app starts
+ * @param {(app: App & { originalAccountCount: number }) => void} [onAppUpdate] - Callback when app completes
+ * @returns {Promise<DeepScanResult>} Result containing updated apps and count of new accounts found
+ */
+export async function deepScanAllApps(
+  selectedChain: AppId | 'all',
+  accountIndices: number[],
+  addressIndices: number[],
+  currentApps: App[],
+  onProgress?: (progress: SyncProgress) => void,
+  onCancel?: () => boolean,
+  onAppStart?: (app: App & { originalAccountCount: number }) => void,
+  onProcessingAccountsStart?: () => void,
+  onAppUpdate?: (app: App & { originalAccountCount: number }) => void
+): Promise<DeepScanResult> {
+  try {
+    // Validate inputs
+    if (accountIndices.length === 0 || addressIndices.length === 0) {
+      throw new InternalError(InternalErrorType.SYNC_ERROR, {
+        operation: 'deepScanAllApps',
+        context: { reason: 'No valid account or address indices to scan' },
+      })
+    }
+
+    // Get polkadot addresses for cross-chain migration
+    const polkadotAddresses: string[] = []
+    const polkadotApp = currentApps.find(app => app.id === 'polkadot')
+    if (polkadotApp?.accounts) {
+      polkadotAddresses.push(...polkadotApp.accounts.map(account => account.address))
+    }
+
+    // Get all scannable apps (apps with valid RPC endpoints)
+    const scannableApps = getValidApps()
+
+    // Determine which apps to scan based on selection
+    const appsToScan = selectedChain === 'all' ? scannableApps : scannableApps.filter(appConfig => appConfig.id === selectedChain)
+
+    if (appsToScan.length === 0) {
+      throw new InternalError(InternalErrorType.SYNC_ERROR, {
+        operation: 'deepScanAllApps',
+        context: { reason: 'No valid apps to scan' },
+      })
+    }
+
+    // Initialize progress tracking
+    const totalApps = appsToScan.length
+
+    // Save original account counts for each app to track new accounts
+    const originalAccountCounts = new Map<AppId, number>()
+    for (const appConfig of appsToScan) {
+      const existingApp = currentApps.find(app => app.id === appConfig.id)
+      const originalCount = (existingApp?.accounts?.length || 0) + (existingApp?.multisigAccounts?.length || 0)
+      originalAccountCounts.set(appConfig.id, originalCount)
+    }
+
+    // Initialize apps for progress tracking
+    const initialApps = appsToScan.map(appConfig => {
+      const existingApp = currentApps.find(app => app.id === appConfig.id)
+      const originalCount = originalAccountCounts.get(appConfig.id) || 0
+      const app: App & { originalAccountCount: number } = {
+        id: appConfig.id,
+        name: appConfig.name,
+        token: appConfig.token,
+        accounts: existingApp?.accounts || [],
+        multisigAccounts: existingApp?.multisigAccounts || [],
+        status: AppStatus.LOADING,
+        originalAccountCount: originalCount,
+      }
+      return app
+    })
+
+    // Notify initial apps
+    for (const app of initialApps) {
+      onAppStart?.(app)
+    }
+
+    // ===== PHASE 1: Fetch addresses from Ledger for all apps =====
+    const addressesByApp = new Map<AppId, Address[]>()
+
+    for (let i = 0; i < appsToScan.length; i++) {
+      // Check for cancellation
+      checkCancellation(onCancel)
+
+      const appConfig = appsToScan[i]
+
+      // Update progress
+      onProgress?.({
+        scanned: i,
+        total: totalApps,
+        percentage: Math.round((i / totalApps) * 50), // Phase 1 is 0-50%
+        phase: FetchingAddressesPhase.FETCHING_ADDRESSES,
+      })
+
+      // Fetch addresses from Ledger with custom indices
+      try {
+        const addresses = await fetchAddressesFromLedgerWithIndices(appConfig, accountIndices, addressIndices, onCancel)
+        addressesByApp.set(appConfig.id, addresses)
+
+        const currentApp = initialApps.find(app => app.id === appConfig.id)
+        if (currentApp) {
+          currentApp.status = AppStatus.ADDRESSES_FETCHED
+          onAppUpdate?.(currentApp)
+        }
+      } catch (error) {
+        console.error(`[DEEP_SCAN] Failed to fetch addresses for ${appConfig.name}:`, error)
+        addressesByApp.set(appConfig.id, [])
+
+        // Update app with error status
+        const appWithError = initialApps.find(app => app.id === appConfig.id)
+        if (appWithError) {
+          appWithError.status = AppStatus.ERROR
+          appWithError.error = {
+            source: 'synchronization',
+            description: 'Failed to fetch addresses from Ledger',
+          }
+          onAppUpdate?.(appWithError)
+        }
+      }
+    }
+
+    // ===== PHASE 2: Process accounts (fetch balances, multisig, etc.) in parallel =====
+    onProcessingAccountsStart?.()
+
+    let processedAppsCount = 0
+    const updatedApps = [...currentApps]
+    let newAccountsFound = 0
+
+    const appProcessingPromises = []
+    for (const appConfig of appsToScan) {
+      const promise = (async () => {
+        try {
+          const preloadedAddresses = addressesByApp.get(appConfig.id)
+          const result = await synchronizeAppAccounts(appConfig, polkadotAddresses, true, onCancel, preloadedAddresses)
+
+          // Update progress
+          processedAppsCount++
+          onProgress?.({
+            scanned: processedAppsCount,
+            total: appsToScan.length,
+            percentage: 50 + Math.round((processedAppsCount / appsToScan.length) * 50), // 50-100%
+            phase: FetchingAddressesPhase.PROCESSING_ACCOUNTS,
+          })
+
+          // Check for existing addresses to avoid duplicates
+          const existingApp = currentApps.find(app => app.id === appConfig.id)
+          const existingAddresses = new Set([
+            ...(existingApp?.accounts || []).map(acc => acc.address),
+            ...(existingApp?.multisigAccounts || []).map(acc => acc.address),
+          ])
+
+          // Only add accounts that don't already exist
+          const newAccounts = (result.app.accounts || []).filter(acc => !existingAddresses.has(acc.address))
+          const newMultisigAccounts = (result.app.multisigAccounts || []).filter(acc => !existingAddresses.has(acc.address))
+
+          const newAccountCount = newAccounts.length + newMultisigAccounts.length
+          console.debug(`[DEEP_SCAN] ${appConfig.name}: Found ${newAccountCount} new accounts`)
+
+          // Update the app in the scanned apps list
+          const originalCount = originalAccountCounts.get(appConfig.id) || 0
+          const updatedApp: App & { originalAccountCount: number } = {
+            ...result.app,
+            status: AppStatus.SYNCHRONIZED,
+            accounts: [...(existingApp?.accounts || []), ...newAccounts],
+            multisigAccounts: [...(existingApp?.multisigAccounts || []), ...newMultisigAccounts],
+            originalAccountCount: originalCount,
+          }
+
+          // Notify completion
+          onAppUpdate?.(updatedApp)
+
+          // Merge results with existing app data if there are new accounts
+          const hasNewAccounts = newAccountCount > 0
+          if (hasNewAccounts) {
+            // Find the app in the updated apps array
+            let existingAppInUpdated = updatedApps.find((a: App) => a.id === appConfig.id)
+
+            // If the app doesn't exist in updatedApps, create it
+            if (!existingAppInUpdated) {
+              existingAppInUpdated = {
+                id: appConfig.id,
+                name: appConfig.name,
+                token: appConfig.token,
+                status: AppStatus.SYNCHRONIZED,
+                accounts: [],
+                multisigAccounts: [],
+              } as App
+              updatedApps.push(existingAppInUpdated)
+            }
+
+            // Add the new accounts
+            existingAppInUpdated.accounts = [...(existingAppInUpdated.accounts || []), ...newAccounts]
+            existingAppInUpdated.multisigAccounts = [...(existingAppInUpdated.multisigAccounts || []), ...newMultisigAccounts]
+
+            // Clear any error status since we successfully found accounts
+            if (existingAppInUpdated.status === AppStatus.ERROR) {
+              existingAppInUpdated.status = AppStatus.SYNCHRONIZED
+              delete existingAppInUpdated.error
+            }
+
+            newAccountsFound += newAccountCount
+          }
+
+          return { ...result, success: true, newAccounts: newAccountCount }
+        } catch (error) {
+          if (error instanceof InternalError && error.errorType === InternalErrorType.OPERATION_CANCELLED) {
+            throw error // Re-throw cancellation errors
+          }
+
+          console.error(`[DEEP_SCAN] ${appConfig.name} processing failed:`, error)
+
+          // Update progress
+          processedAppsCount++
+          onProgress?.({
+            scanned: processedAppsCount,
+            total: appsToScan.length,
+            percentage: 50 + Math.round((processedAppsCount / appsToScan.length) * 50),
+            phase: FetchingAddressesPhase.PROCESSING_ACCOUNTS,
+          })
+
+          // Update app with error status
+          const originalCount = originalAccountCounts.get(appConfig.id) || 0
+          const errorApp: App & { originalAccountCount: number } = {
+            id: appConfig.id,
+            name: appConfig.name,
+            token: appConfig.token,
+            status: AppStatus.ERROR,
+            error: {
+              source: 'synchronization',
+              description: 'Failed to process accounts',
+            },
+            originalAccountCount: originalCount,
+          }
+
+          onAppUpdate?.(errorApp)
+
+          return { success: false, newAccounts: 0 }
+        }
+      })()
+      appProcessingPromises.push(promise)
+    }
+
+    await Promise.all(appProcessingPromises)
+
+    // Final progress update
+    onProgress?.({
+      scanned: totalApps,
+      total: totalApps,
+      percentage: 100,
+      phase: FetchingAddressesPhase.PROCESSING_ACCOUNTS,
+    })
+
+    // Create result with updated apps including originalAccountCount
+    const resultApps = initialApps.map(initialApp => {
+      const updatedApp = updatedApps.find(app => app.id === initialApp.id)
+      return {
+        ...initialApp,
+        ...(updatedApp || {}),
+        originalAccountCount: initialApp.originalAccountCount,
+      } as App & { originalAccountCount: number }
+    })
+
+    console.debug(`[DEEP_SCAN] Scan completed. Total new accounts found: ${newAccountsFound}`)
+
+    return {
+      success: true,
+      apps: resultApps,
+      newAccountsFound,
+    }
+  } catch (error) {
+    console.error('[DEEP_SCAN] Critical error:', error)
+
+    if (error instanceof InternalError) {
+      return {
+        success: false,
+        apps: [],
+        newAccountsFound: 0,
+        error: error.description || 'Deep scan failed',
+      }
+    }
+
+    throw new InternalError(InternalErrorType.SYNC_ERROR, {
+      operation: 'deepScanAllApps',
+      context: { error },
+    })
+  }
+}
+
 export async function synchronizeAllApps(
   onProgress?: (progress: SyncProgress) => void,
   onCancel?: () => boolean,

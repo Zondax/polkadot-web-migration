@@ -9,7 +9,8 @@ import { CustomTooltip } from '@/components/CustomTooltip'
 import { useSynchronization } from '@/components/hooks/useSynchronization'
 import TokenIcon from '@/components/TokenIcon'
 import { Badge } from '@/components/ui/badge'
-import { appsConfigs, getChainName, type AppConfig } from '@/config/apps'
+import { getChainName } from '@/config/apps'
+import { getValidApps } from '@/lib/services/synchronization.service'
 import { cn, getAppTotalAccounts, hasAppAccounts } from '@/lib/utils'
 
 interface AppScanItemProps {
@@ -99,8 +100,7 @@ const AppScanningGrid = observer(() => {
   const { apps: scannedApps } = useSynchronization()
 
   // Show all available apps (from config), including those still loading
-  const allApps: AppConfig[] = Array.from(appsConfigs.values())
-  const appsToSync = allApps.filter(appConfig => appConfig?.rpcEndpoints && appConfig.rpcEndpoints.length > 0) as AppConfig[]
+  const appsToSync = getValidApps()
 
   // Create display apps with enhanced information
   const displayApps: App[] = appsToSync.map(config => {

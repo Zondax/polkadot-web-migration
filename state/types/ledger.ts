@@ -355,3 +355,14 @@ export interface SyncProgress {
   percentage: number
   phase?: FetchingAddressesPhase
 }
+
+/**
+ * Information about the progress of a deep scan operation
+ */
+export interface DeepScanProgress {
+  scanned: number
+  total: number
+  percentage: number
+  currentChain: string
+  phase?: FetchingAddressesPhase
+}

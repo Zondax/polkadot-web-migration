@@ -88,6 +88,46 @@ vi.mock('@/components/ui/alert', () => ({
 vi.mock('lucide-react', () => ({
   Plus: () => <span>+</span>,
   Minus: () => <span>-</span>,
+  Loader2: () => <span>Loading...</span>,
+  AlertCircle: () => <span>!</span>,
+  Check: () => <span>✓</span>,
+}))
+
+// Mock synchronization service
+vi.mock('@/lib/services/synchronization.service', () => ({
+  getValidApps: vi.fn(() => [
+    {
+      id: 'polkadot',
+      name: 'Polkadot',
+      bip44Path: "m/44'/354'/0'/0'/0'",
+      ss58Prefix: 0,
+      rpcEndpoints: ['wss://polkadot-rpc.polkadot.io'],
+      token: {
+        symbol: 'DOT',
+        decimals: 10,
+      },
+    },
+    {
+      id: 'kusama',
+      name: 'Kusama',
+      bip44Path: "m/44'/434'/0'/0'/0'",
+      ss58Prefix: 2,
+      rpcEndpoints: ['wss://kusama-rpc.polkadot.io'],
+      token: {
+        symbol: 'KSM',
+        decimals: 12,
+      },
+    },
+  ]),
+}))
+
+// Mock sync-status utility
+vi.mock('@/lib/utils/sync-status', () => ({
+  getSyncStatusLabel: vi.fn((progress, label) => (
+    <span className="text-sm text-gray-600">
+      {label} {progress.total > 0 ? `(${progress.scanned} / ${progress.total})` : ''}
+    </span>
+  )),
 }))
 
 // Mock appsConfigs
