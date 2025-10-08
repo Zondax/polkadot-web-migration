@@ -18,6 +18,13 @@ vi.mock('@/state/ledger', () => ({
       isSyncCancelRequested: { get: vi.fn() },
       polkadotApp: { accounts: [] },
     },
+    deepScan: {
+      isScanning: { get: vi.fn() },
+      isCancelling: { get: vi.fn() },
+      isCompleted: { get: vi.fn() },
+      progress: { get: vi.fn() },
+      apps: { get: vi.fn() },
+    },
     polkadotAddresses: {
       polkadot: { get: vi.fn() },
     },
@@ -26,6 +33,9 @@ vi.mock('@/state/ledger', () => ({
     synchronizeAccounts: vi.fn(),
     cancelSynchronization: vi.fn(),
     clearSynchronization: vi.fn(),
+    deepScanApp: vi.fn(),
+    cancelDeepScan: vi.fn(),
+    resetDeepScan: vi.fn(),
   },
   AppStatus: {
     LOADING: 'loading',
@@ -53,14 +63,20 @@ describe('useSynchronization hook', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     // Reset default mock implementations
-    vi.mocked(ledgerState$.device.connection.transport.get).mockReturnValue(null)
-    vi.mocked(ledgerState$.device.connection.genericApp.get).mockReturnValue(null)
-    vi.mocked(ledgerState$.device.connection.get).mockReturnValue(null)
+    vi.mocked(ledgerState$.device.connection.transport.get).mockReturnValue(undefined)
+    vi.mocked(ledgerState$.device.connection.genericApp.get).mockReturnValue(undefined)
+    vi.mocked(ledgerState$.device.connection.get).mockReturnValue(undefined)
     vi.mocked(ledgerState$.apps.apps.get).mockReturnValue([])
     vi.mocked(ledgerState$.apps.status.get).mockReturnValue(undefined)
     vi.mocked(ledgerState$.apps.syncProgress.get).mockReturnValue({ scanned: 0, total: 0, percentage: 0 })
     vi.mocked(ledgerState$.apps.isSyncCancelRequested.get).mockReturnValue(false)
     vi.mocked(ledgerState$.polkadotAddresses.polkadot.get).mockReturnValue([])
+    // Deep scan state
+    vi.mocked(ledgerState$.deepScan.isScanning.get).mockReturnValue(false)
+    vi.mocked(ledgerState$.deepScan.isCancelling.get).mockReturnValue(false)
+    vi.mocked(ledgerState$.deepScan.isCompleted.get).mockReturnValue(false)
+    vi.mocked(ledgerState$.deepScan.progress.get).mockReturnValue({ scanned: 0, total: 0, percentage: 0, phase: undefined })
+    vi.mocked(ledgerState$.deepScan.apps.get).mockReturnValue([])
   })
 
   describe('basic functionality', () => {
@@ -179,7 +195,7 @@ describe('useSynchronization hook', () => {
       // Test calling it with valid parameters doesn't throw
       expect(() => {
         result.current.updateTransaction(
-          { status: 'completed' },
+          { destinationAddress: 'DESTINATION_TEST_ADDRESS' },
           'polkadot',
           0, // accountIndex
           0, // balanceIndex
