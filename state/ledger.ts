@@ -487,7 +487,9 @@ export const ledgerState$ = observable({
         // App complete callback - replace loading app with completed app, and update polkadot addresses
         (completedApp, polkadotAddresses) => {
           updateApp(completedApp.id, completedApp)
-          ledgerState$.polkadotAddresses[completedApp.id].set(polkadotAddresses)
+          if (polkadotAddresses) {
+            updatePolkadotAddresses(completedApp.id, polkadotAddresses)
+          }
         }
       )
 
@@ -1042,7 +1044,7 @@ export const ledgerState$ = observable({
           ledgerState$.deepScan.progress.phase.set(FetchingAddressesPhase.PROCESSING_ACCOUNTS)
 
           const appsToBeSkipped = getAppsToSkipMigration().map(app => app.id)
-          for (const app of ledgerState$.apps.apps.get()) {
+          for (const app of ledgerState$.deepScan.apps.get()) {
             if (appsToBeSkipped.includes(app.id)) continue
             app.status = AppStatus.LOADING
           }

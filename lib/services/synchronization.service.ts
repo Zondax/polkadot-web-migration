@@ -411,57 +411,6 @@ export async function synchronizePolkadotAccounts(onCancel?: () => boolean, prel
 }
 
 /**
- * Synchronizes accounts for a single blockchain application.
- *
- * @description This is a convenience wrapper around synchronizeAppAccounts for single app operations.
- * It maintains the same interface for backward compatibility and single-app use cases.
- *
- * @param {AppConfig} appConfig - The blockchain application configuration
- * @param {string[]} polkadotAddresses - Array of Polkadot addresses for cross-chain migration
- * @param {boolean} [filterByBalance=true] - Whether to filter out accounts with zero balance
- * @returns {Promise<App>} Complete app object with synchronized account data
- * @throws {InternalError} When synchronization fails
- *
- * @example
- * ```typescript
- * const app = await synchronizeSingleApp(kusamaConfig, polkadotAddresses)
- * ```
- */
-export async function synchronizeSingleApp(
-  appConfig: AppConfig,
-  polkadotAddresses: string[],
-  filterByBalance = true,
-  onCancel?: () => boolean
-): Promise<{
-  app: App
-  polkadotAddresses: string[]
-}> {
-  const { app, polkadotAddressesForApp } = await synchronizeAppAccounts(appConfig, polkadotAddresses, filterByBalance, onCancel)
-  return {
-    app,
-    polkadotAddresses: polkadotAddressesForApp,
-  }
-}
-
-/**
- * Orchestrates the complete synchronization process for all configured blockchain applications.
- *
- * @description This is the main entry point for the synchronization process. It:
- * 1. Synchronizes Polkadot accounts first (for destination addresses)
- * 2. Iterates through all configured apps
- * 3. Provides real-time progress updates via callbacks
- * 4. Handles cancellation requests
- * 5. Manages loading states for UI feedback
- *
- * @param {(progress: SyncProgress) => void} [onProgress] - Callback for progress updates
- * @param {() => boolean} [onCancel] - Function that returns true if cancellation is requested
- * @param {(app: App) => void} [onAppStart] - Callback when an app starts synchronizing
- * @param {() => void} [onProcessingAccountsStart] - Callback when processing accounts starts
- * @param {(app: App) => void} [onAppComplete] - Callback when an app completes synchronization
- * @returns {Promise<SyncResult>} Result containing all synchronized apps and success status
- * @throws {InternalError} When the overall synchronization process fails
- */
-/**
  * Result of a deep scan operation
  */
 export interface DeepScanResult {
@@ -784,12 +733,30 @@ export async function deepScanAllApps(
   }
 }
 
+/**
+ * Orchestrates the complete synchronization process for all configured blockchain applications.
+ *
+ * @description This is the main entry point for the synchronization process. It:
+ * 1. Synchronizes Polkadot accounts first (for destination addresses)
+ * 2. Iterates through all configured apps
+ * 3. Provides real-time progress updates via callbacks
+ * 4. Handles cancellation requests
+ * 5. Manages loading states for UI feedback
+ *
+ * @param {(progress: SyncProgress) => void} [onProgress] - Callback for progress updates
+ * @param {() => boolean} [onCancel] - Function that returns true if cancellation is requested
+ * @param {(app: App) => void} [onAppStart] - Callback when an app starts synchronizing
+ * @param {() => void} [onProcessingAccountsStart] - Callback when processing accounts starts
+ * @param {(app: App) => void} [onUpdateApp] - Callback when an app needs to be updated
+ * @returns {Promise<SyncResult>} Result containing all synchronized apps and success status
+ * @throws {InternalError} When the overall synchronization process fails
+ */
 export async function synchronizeAllApps(
   onProgress?: (progress: SyncProgress) => void,
   onCancel?: () => boolean,
   onAppStart?: (app: App) => void,
   onProcessingAccountsStart?: () => void,
-  onAppComplete?: (app: App, polkadotAddresses: string[]) => void
+  onUpdateApp?: (app: App, polkadotAddresses?: string[]) => void
 ): Promise<SyncResult> {
   try {
     // Show initial notification
@@ -865,7 +832,7 @@ export async function synchronizeAllApps(
         // Notify that addresses have been fetched for this app
         addressesFetchedApp.status = AppStatus.ADDRESSES_FETCHED
 
-        onAppComplete?.(addressesFetchedApp, polkadotAddresses)
+        onUpdateApp?.(addressesFetchedApp)
       } catch (error) {
         console.error(`[SYNC] Failed to fetch addresses for ${appConfig.name}:`, error)
         addressesByApp.set(appConfig.id, [])
@@ -881,7 +848,7 @@ export async function synchronizeAllApps(
             description: 'Failed to fetch addresses from Ledger',
           },
         }
-        onAppComplete?.(errorApp, [])
+        onUpdateApp?.(errorApp, [])
       }
 
       fetchedApps++
@@ -920,7 +887,7 @@ export async function synchronizeAllApps(
           })
 
           // Notify completion immediately after this app finishes
-          onAppComplete?.(result.app, result.polkadotAddressesForApp)
+          onUpdateApp?.(result.app, result.polkadotAddressesForApp)
 
           return { ...result, success: true }
         } catch (error) {
@@ -950,7 +917,7 @@ export async function synchronizeAllApps(
           })
 
           // Notify completion with error
-          onAppComplete?.(errorApp, [])
+          onUpdateApp?.(errorApp, [])
 
           return {
             app: errorApp,
