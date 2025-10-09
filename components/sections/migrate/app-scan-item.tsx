@@ -26,8 +26,8 @@ interface StatusConfig {
 /**
  * Generates a pluralized account text
  */
-function pluralizeAccounts(count: number): string {
-  return `${count} ${count === 1 ? 'account' : 'accounts'}`
+function pluralizeAccounts(count: number, newAccounts = false): string {
+  return `${count} ${newAccounts ? 'new' : ''} ${count === 1 ? 'account' : 'accounts'}`
 }
 
 /**
@@ -40,15 +40,17 @@ function getStatusConfig(
   totalAccounts: number,
   newAccountsFound: number
 ): StatusConfig {
+  const isDeepScan = mode === 'deep-scan'
+
   switch (status) {
     case AppStatus.SYNCHRONIZED:
     case AppStatus.MIGRATED:
-      if (mode === 'deep-scan') {
+      if (isDeepScan) {
         if (newAccountsFound > 0) {
           return {
             icon: newAccountsFound,
             className: 'border-green-200 bg-green-50 opacity-100',
-            text: `Deep scan complete (${pluralizeAccounts(newAccountsFound)} found)`,
+            text: `Deep scan complete (${pluralizeAccounts(newAccountsFound, isDeepScan)} found)`,
             showBadge: true,
           }
         }
@@ -79,7 +81,7 @@ function getStatusConfig(
       return {
         icon: <AlertCircle data-testid="error-icon" className="h-3.5 w-3.5 text-red-500" />,
         className: 'border-red-200 bg-red-50 opacity-100',
-        text: mode === 'deep-scan' ? 'Deep scan failed' : 'Failed synchronization',
+        text: isDeepScan ? 'Deep scan failed' : 'Failed synchronization',
         showBadge: true,
       }
 
@@ -95,7 +97,7 @@ function getStatusConfig(
       return {
         icon: <Loader2 data-testid="loading-icon" className="h-3.5 w-3.5 animate-spin text-indigo-500" />,
         className: 'border-indigo-200 bg-indigo-50 opacity-100 animate-pulse',
-        text: mode === 'deep-scan' ? 'Deep scanning...' : 'Synchronizing',
+        text: isDeepScan ? 'Deep scanning...' : 'Synchronizing',
         showBadge: true,
       }
 
@@ -119,7 +121,7 @@ function getStatusConfig(
       return {
         icon: undefined,
         className: 'border-gray-200 bg-white opacity-20',
-        text: mode === 'deep-scan' ? 'Waiting to scan' : 'Not synchronized',
+        text: isDeepScan ? 'Waiting to scan' : 'Not synchronized',
         showBadge: false,
       }
   }
