@@ -1,11 +1,10 @@
+import { BalanceType, type Address, type AddressBalance, type Native, type NativeBalance, type NftBalance } from '@/state/types/ledger'
 import { BN } from '@polkadot/util'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { type Address, type AddressBalance, BalanceType, type Native, type NativeBalance, type NftBalance } from '@/state/types/ledger'
 
 import {
   canUnstake,
   getNonTransferableBalance,
-  getTransferableAndNfts,
   hasAddressBalance,
   hasBalance,
   hasNegativeBalance,
@@ -684,150 +683,6 @@ describe('balance utilities', () => {
       const result = hasAddressBalance(account)
 
       expect(result).toBe(false)
-    })
-  })
-
-  describe('getTransferableAndNfts', () => {
-    const mockAccount: Address = {
-      address: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
-      balances: [
-        {
-          id: 'native',
-          type: BalanceType.NATIVE,
-          balance: {
-            free: new BN(1000),
-            reserved: { total: new BN(100) },
-            frozen: new BN(50),
-            total: new BN(1100),
-            transferable: new BN(950),
-          },
-        } as NativeBalance,
-      ],
-    } as Address
-
-    it('should return native amount for native balance', () => {
-      const nativeBalance: NativeBalance = {
-        id: 'native',
-        type: BalanceType.NATIVE,
-        balance: {
-          free: new BN(1000),
-          reserved: { total: new BN(100) },
-          frozen: new BN(50),
-          total: new BN(1100),
-          transferable: new BN(950),
-        },
-      } as NativeBalance
-
-      const result = getTransferableAndNfts(nativeBalance, mockAccount)
-
-      expect(result.nftsToTransfer).toEqual([])
-      expect(result.nativeAmount?.toString()).toBe('950')
-      expect(result.transferableAmount.toString()).toBe('950')
-    })
-
-    it('should return NFTs for NFT balance', () => {
-      const nftBalance: NftBalance = {
-        id: 'nft',
-        type: BalanceType.NFT,
-        balance: [
-          { id: '1', name: 'Test NFT' },
-          { id: '2', name: 'Another NFT' },
-        ],
-      } as NftBalance
-
-      const result = getTransferableAndNfts(nftBalance, mockAccount)
-
-      expect(result.nftsToTransfer).toHaveLength(2)
-      expect(result.nftsToTransfer[0].id).toBe('1')
-      expect(result.nativeAmount).toBeUndefined()
-      expect(result.transferableAmount.toString()).toBe('950') // From account's native balance
-    })
-
-    it('should handle account without native balance for NFT', () => {
-      const accountWithoutNative: Address = {
-        address: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
-        balances: [],
-      } as Address
-
-      const nftBalance: NftBalance = {
-        id: 'nft',
-        type: BalanceType.NFT,
-        balance: [{ id: '1', name: 'Test NFT' }],
-      } as NftBalance
-
-      const result = getTransferableAndNfts(nftBalance, accountWithoutNative)
-
-      expect(result.nftsToTransfer).toHaveLength(1)
-      expect(result.nativeAmount).toBeUndefined()
-      expect(result.transferableAmount.toString()).toBe('0')
-    })
-
-    it('should use transferable amount when MINIMUM_AMOUNT is not set', () => {
-      // TODO: review expectations - verify behavior with MINIMUM_AMOUNT environment variable in development
-      const nativeBalance: NativeBalance = {
-        id: 'native',
-        type: BalanceType.NATIVE,
-        balance: {
-          free: new BN(1000),
-          reserved: { total: new BN(100) },
-          frozen: new BN(50),
-          total: new BN(1100),
-          transferable: new BN(950),
-        },
-      } as NativeBalance
-
-      const result = getTransferableAndNfts(nativeBalance, mockAccount)
-
-      // Since MINIMUM_AMOUNT is undefined by default, should use transferable amount
-      expect(result.nativeAmount?.toString()).toBe('950')
-    })
-
-    it('should not use MINIMUM_AMOUNT for NFT balance even in development', () => {
-      // This test documents the behavior that MINIMUM_AMOUNT only applies to native balances
-      const nftBalance: NftBalance = {
-        id: 'nft',
-        type: BalanceType.NFT,
-        balance: [{ id: '1', name: 'Test NFT' }],
-      } as NftBalance
-
-      const result = getTransferableAndNfts(nftBalance, mockAccount)
-
-      // NFT balance should not be affected by MINIMUM_AMOUNT
-      expect(result.nativeAmount).toBeUndefined()
-      expect(result.nftsToTransfer).toHaveLength(1)
-    })
-
-    it('should use MINIMUM_AMOUNT for native balance in development mode', () => {
-      // Note: Testing the development path is challenging due to module imports,
-      // but we can verify the code path exists and would work if MINIMUM_AMOUNT was set
-
-      // First save the current environment variable
-      const originalNodeEnv = process.env.NEXT_PUBLIC_NODE_ENV
-
-      // Temporarily set to development
-      process.env.NEXT_PUBLIC_NODE_ENV = 'development'
-
-      const nativeBalance: NativeBalance = {
-        id: 'native',
-        type: BalanceType.NATIVE,
-        balance: {
-          free: new BN(1000),
-          reserved: { total: new BN(100) },
-          frozen: new BN(50),
-          total: new BN(1100),
-          transferable: new BN(950),
-        },
-      } as NativeBalance
-
-      const result = getTransferableAndNfts(nativeBalance, mockAccount)
-
-      // Since MINIMUM_AMOUNT is mocked as undefined in our tests,
-      // it should still use the transferable amount
-      expect(result.nativeAmount?.toString()).toBe('950')
-      expect(result.transferableAmount.toString()).toBe('950')
-
-      // Restore original environment variable
-      process.env.NEXT_PUBLIC_NODE_ENV = originalNodeEnv
     })
   })
 

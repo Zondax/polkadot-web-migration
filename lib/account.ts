@@ -1,6 +1,8 @@
+import { merkleizeMetadata } from '@polkadot-api/merkleize-metadata'
 import { ApiPromise, WsProvider } from '@polkadot/api'
 import type { SubmittableExtrinsic } from '@polkadot/api/types'
 import type { GenericExtrinsicPayload } from '@polkadot/types'
+import type { Option, Vec, u128, u32 } from '@polkadot/types-codec'
 import type {
   AccountId32,
   Balance,
@@ -12,24 +14,23 @@ import type {
   StakingLedger,
 } from '@polkadot/types/interfaces'
 import type { ExtrinsicPayloadValue, ISubmittableResult } from '@polkadot/types/types/extrinsic'
-import type { Option, u32, u128, Vec } from '@polkadot/types-codec'
 import { BN, hexToU8a, u8aToBn } from '@polkadot/util'
 import { decodeAddress } from '@polkadot/util-crypto'
-import { merkleizeMetadata } from '@polkadot-api/merkleize-metadata'
 import type { AppConfig, AppId } from 'config/apps'
 import { DEFAULT_ERA_TIME_IN_HOURS, getEraTimeByAppId } from 'config/apps'
-import { defaultWeights, MULTISIG_WEIGHT_BUFFER } from 'config/config'
-import { errorDetails, InternalErrorType } from 'config/errors'
-import { errorAddresses, MINIMUM_AMOUNT, mockBalances } from 'config/mockData'
+import { MULTISIG_WEIGHT_BUFFER, defaultWeights } from 'config/config'
+import { InternalErrorType, errorDetails } from 'config/errors'
+import { errorAddresses, mockBalances } from 'config/mockData'
 import { getMultisigInfo } from 'lib/subscan'
 import {
+  BalanceType,
+  Conviction,
+  TransactionStatus,
   type AccountIndex,
   type AccountProxy,
   type Address,
   type AddressBalance,
-  BalanceType,
   type Collection,
-  Conviction,
   type ConvictionVotingInfo,
   type IdentityInfo,
   type MultisigAddress,
@@ -40,9 +41,9 @@ import {
   type Staking,
   type SubIdentities,
   type TransactionDetails,
-  TransactionStatus,
 } from 'state/types/ledger'
 import { InternalError } from './utils'
+import { getActualTransferAmount, isFullMigration as isFullMigrationFn } from './utils/balance'
 import { isDevelopment } from './utils/env'
 
 /**
@@ -422,7 +423,7 @@ export async function prepareTransaction(
         throw new Error('Invalid item: must provide destinationAddress for native transfer')
       }
       nativeTransfer = {
-        amount: isDevelopment() && MINIMUM_AMOUNT ? new BN(MINIMUM_AMOUNT) : balance.balance.transferable,
+        amount: getActualTransferAmount(balance),
         receiverAddress: balance.transaction.destinationAddress,
       }
     }
@@ -448,22 +449,27 @@ export async function prepareTransaction(
 
   // Handle native transfer last
   if (nativeTransfer !== undefined) {
-    // Build the transaction with the provided nativeAmount
-    const tempCalls = [...calls, api.tx.balances.transferKeepAlive(nativeTransfer.receiverAddress, nativeTransfer.amount)]
-    const tempTransfer = tempCalls.length > 1 ? api.tx.utility.batchAll(tempCalls) : tempCalls[0]
-    // Calculate the fee
-    const { partialFee: tempPartialFee } = await tempTransfer.paymentInfo(senderAddress)
-    partialFee = new BN(tempPartialFee)
+    // Determine if this is a full migration (transferring everything)
+    const isFullMigration = isFullMigrationFn(nativeTransfer.amount, transferableBalance)
 
-    // Send the max amount of native tokens
-    if (nativeTransfer.amount.eq(transferableBalance)) {
-      nativeTransfer.amount = transferableBalance.sub(partialFee)
-      if (nativeTransfer.amount.lte(new BN(0))) {
+    if (isFullMigration) {
+      // Use transferAll - it automatically deducts fees
+      calls = [...calls, api.tx.balances.transferAll(nativeTransfer.receiverAddress, false)]
+      // Calculate the fee for validation and multisig purposes
+      const tempTransfer = calls.length > 1 ? api.tx.utility.batchAll(calls) : calls[0]
+      const { partialFee: tempPartialFee } = await tempTransfer.paymentInfo(senderAddress)
+      partialFee = new BN(tempPartialFee)
+      if (transferableBalance.lte(partialFee)) {
         throw new InternalError(InternalErrorType.INSUFFICIENT_BALANCE)
       }
-      // Rebuild the calls with the adjusted amount
-      calls = [...calls, api.tx.balances.transferKeepAlive(nativeTransfer.receiverAddress, nativeTransfer.amount)]
     } else {
+      // Send a specific amount - calculate fee and use transferKeepAlive
+      // This handles: partial transfers, development mode with MINIMUM_AMOUNT
+      const tempCalls = [...calls, api.tx.balances.transferKeepAlive(nativeTransfer.receiverAddress, nativeTransfer.amount)]
+      const tempTransfer = tempCalls.length > 1 ? api.tx.utility.batchAll(tempCalls) : tempCalls[0]
+      const { partialFee: tempPartialFee } = await tempTransfer.paymentInfo(senderAddress)
+      partialFee = new BN(tempPartialFee)
+
       const totalNeeded = partialFee.add(nativeTransfer.amount)
       if (transferableBalance.lt(totalNeeded)) {
         throw new InternalError(InternalErrorType.INSUFFICIENT_BALANCE_TO_COVER_FEE)

@@ -107,16 +107,18 @@ describe('prepareTransaction', () => {
   })
 
   it('throws if not enough balance for fee (max native)', async () => {
-    const api = { ...mockApi, tx: { ...mockApi.tx }, query: { ...mockApi.query } }
-    // fee = 10, nativeAmount = transferable = 10
-    api.tx.balances.transferKeepAlive.mockReturnValue({
+    const api = { ...mockApi, tx: { ...mockApi.tx, balances: { ...mockApi.tx.balances } }, query: { ...mockApi.query } }
+    // fee = 10, nativeAmount = transferable = 10 (full migration uses transferAll)
+    api.tx.nfts.transfer.mockReturnValue({ method: mockMethod, toString: () => 'nftTransfer', paymentInfo: vi.fn() })
+    api.tx.uniques.transfer.mockReturnValue({ method: mockMethod, toString: () => 'uniqueTransfer', paymentInfo: vi.fn() })
+    api.tx.balances.transferAll.mockReturnValue({
       method: mockMethod,
-      toString: () => 'nativeTransfer:10',
+      toString: () => 'transferAll:receiver',
       paymentInfo: vi.fn().mockResolvedValue({ partialFee: new BN(10) }),
     })
     api.tx.utility.batchAll.mockReturnValue({
       method: mockMethod,
-      toString: () => 'batch:nftTransfer,uniqueTransfer,nativeTransfer:10',
+      toString: () => 'batch:nftTransfer,uniqueTransfer,transferAll:receiver',
       paymentInfo: vi.fn().mockResolvedValue({ partialFee: new BN(10) }),
     })
     const balances: AddressBalance[] = [
@@ -202,16 +204,18 @@ describe('prepareTransaction', () => {
   })
 
   it('returns payload if enough balance for max native transfer (fee covered)', async () => {
-    const api = { ...mockApi, tx: { ...mockApi.tx }, query: { ...mockApi.query } }
-    // fee = 10, nativeAmount = transferable = 110
-    api.tx.balances.transferKeepAlive.mockReturnValue({
+    const api = { ...mockApi, tx: { ...mockApi.tx, balances: { ...mockApi.tx.balances } }, query: { ...mockApi.query } }
+    // fee = 10, nativeAmount = transferable = 110 (full migration uses transferAll)
+    api.tx.nfts.transfer.mockReturnValue({ method: mockMethod, toString: () => 'nftTransfer', paymentInfo: vi.fn() })
+    api.tx.uniques.transfer.mockReturnValue({ method: mockMethod, toString: () => 'uniqueTransfer', paymentInfo: vi.fn() })
+    api.tx.balances.transferAll.mockReturnValue({
       method: mockMethod,
-      toString: () => 'nativeTransfer:110',
+      toString: () => 'transferAll:receiver',
       paymentInfo: vi.fn().mockResolvedValue({ partialFee: 10 }),
     })
     api.tx.utility.batchAll.mockReturnValue({
       method: mockMethod,
-      toString: () => 'batch:nftTransfer,uniqueTransfer,nativeTransfer:110',
+      toString: () => 'batch:nftTransfer,uniqueTransfer,transferAll:receiver',
       paymentInfo: vi.fn().mockResolvedValue({ partialFee: 10 }),
     })
     const balances: AddressBalance[] = [
