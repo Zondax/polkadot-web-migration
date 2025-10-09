@@ -16,6 +16,9 @@ import { Tabs } from '@/components/Tabs'
 type TabProps = { onContinue: () => void } | { onBack: () => void }
 
 export default function MigratePage() {
+  // The icons are loaded first
+  useLoadIcons()
+
   const controls = useAnimation()
 
   // Use our tab management hook
@@ -23,8 +26,6 @@ export default function MigratePage() {
     tabs: migrationTabs,
   })
   const { isLedgerConnected, isAppOpen } = useConnection()
-
-  useLoadIcons()
 
   // State to track tabs with completion status and disabled state
   const [tabsWithStatus, setTabsWithStatus] = useState(() =>
