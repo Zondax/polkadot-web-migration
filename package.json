@@ -72,7 +72,7 @@
     "axios": "^1.12.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "framer-motion": "^12.23.12",
+    "framer-motion": "^12.23.22",
     "html-react-parser": "^5.2.6",
     "isomorphic-dompurify": "^2.26.0",
     "jsdom": "^26.1.0",
