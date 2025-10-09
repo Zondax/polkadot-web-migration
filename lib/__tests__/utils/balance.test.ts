@@ -1,21 +1,35 @@
 import { BN } from '@polkadot/util'
 import { type Address, type AddressBalance, BalanceType, type Native, type NativeBalance } from 'state/types/ledger'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+// Mock the env module before importing balance functions
+vi.mock('../../utils/env', () => ({
+  isDevelopment: vi.fn(() => false),
+}))
+
+// Mock the mockData config
+vi.mock('../../../config/mockData', () => ({
+  MINIMUM_AMOUNT: undefined,
+}))
+
 import {
   cannotCoverFee,
   canUnstake,
   getAccountTransferableBalance,
+  getActualTransferAmount,
   getNonTransferableBalance,
   hasAddressBalance,
   hasNegativeBalance,
   hasNonTransferableBalance,
   hasStakedBalance,
+  isFullMigration,
   isNativeBalance,
   isNftBalance,
   isNftBalanceType,
   isUniqueBalanceType,
   validateReservedBreakdown,
 } from '../../utils/balance'
+import { isDevelopment } from '../../utils/env'
 import {
   mockAddress1,
   mockAddress2,
@@ -380,5 +394,171 @@ describe('cannotCoverFee', () => {
   })
   it('returns false if transferable balance is greater than fee', () => {
     expect(cannotCoverFee(new BN(300), new BN(200))).toBe(false)
+  })
+})
+
+describe('getActualTransferAmount', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  describe('Production mode', () => {
+    beforeEach(() => {
+      vi.mocked(isDevelopment).mockReturnValue(false)
+    })
+
+    it('returns full transferable balance in production mode', () => {
+      const balance: NativeBalance = {
+        type: BalanceType.NATIVE,
+        balance: { ...mockFreeNativeBalance, transferable: new BN(1000000) },
+      }
+      const result = getActualTransferAmount(balance)
+      expect(result.toString()).toBe('1000000')
+    })
+
+    it('returns full transferable balance with different amounts', () => {
+      const balance: NativeBalance = {
+        type: BalanceType.NATIVE,
+        balance: { ...mockFreeNativeBalance, transferable: new BN(5000000) },
+      }
+      const result = getActualTransferAmount(balance)
+      expect(result.toString()).toBe('5000000')
+    })
+
+    it('returns full transferable balance even when MINIMUM_AMOUNT might be set', () => {
+      // In production, MINIMUM_AMOUNT is ignored
+      const balance: NativeBalance = {
+        type: BalanceType.NATIVE,
+        balance: { ...mockFreeNativeBalance, transferable: new BN(2000000) },
+      }
+      const result = getActualTransferAmount(balance)
+      expect(result.toString()).toBe('2000000')
+    })
+  })
+
+  describe('Development mode', () => {
+    it('returns full transferable balance when isDevelopment is true but MINIMUM_AMOUNT is undefined', () => {
+      vi.mocked(isDevelopment).mockReturnValue(true)
+      const balance: NativeBalance = {
+        type: BalanceType.NATIVE,
+        balance: { ...mockFreeNativeBalance, transferable: new BN(3000000) },
+      }
+      const result = getActualTransferAmount(balance)
+      // Since MINIMUM_AMOUNT is mocked as undefined, should return full transferable
+      expect(result.toString()).toBe('3000000')
+    })
+  })
+
+  describe('Edge cases', () => {
+    beforeEach(() => {
+      vi.mocked(isDevelopment).mockReturnValue(false)
+    })
+
+    it('handles zero transferable balance', () => {
+      const balance: NativeBalance = {
+        type: BalanceType.NATIVE,
+        balance: { ...mockFreeNativeBalance, transferable: new BN(0) },
+      }
+      const result = getActualTransferAmount(balance)
+      expect(result.toString()).toBe('0')
+    })
+
+    it('handles very large transferable balance', () => {
+      const largeAmount = '999999999999999999999999'
+      const balance: NativeBalance = {
+        type: BalanceType.NATIVE,
+        balance: { ...mockFreeNativeBalance, transferable: new BN(largeAmount) },
+      }
+      const result = getActualTransferAmount(balance)
+      expect(result.toString()).toBe(largeAmount)
+    })
+  })
+})
+
+describe('isFullMigration', () => {
+  describe('Equal amounts', () => {
+    it('returns true when both amounts are equal and positive', () => {
+      expect(isFullMigration(new BN(1000), new BN(1000))).toBe(true)
+    })
+
+    it('returns true when both amounts are zero', () => {
+      expect(isFullMigration(new BN(0), new BN(0))).toBe(true)
+    })
+
+    it('returns true when both amounts are very large and equal', () => {
+      const largeAmount = new BN('999999999999999999999999')
+      expect(isFullMigration(largeAmount, largeAmount)).toBe(true)
+    })
+  })
+
+  describe('Different amounts', () => {
+    it('returns false when nativeTransferAmount is less than transferableBalance', () => {
+      expect(isFullMigration(new BN(500), new BN(1000))).toBe(false)
+    })
+
+    it('returns false when nativeTransferAmount is greater than transferableBalance', () => {
+      expect(isFullMigration(new BN(1500), new BN(1000))).toBe(false)
+    })
+
+    it('returns false when one amount is zero and the other is not', () => {
+      expect(isFullMigration(new BN(0), new BN(1000))).toBe(false)
+      expect(isFullMigration(new BN(1000), new BN(0))).toBe(false)
+    })
+
+    it('returns false when amounts differ by 1', () => {
+      expect(isFullMigration(new BN(999), new BN(1000))).toBe(false)
+      expect(isFullMigration(new BN(1001), new BN(1000))).toBe(false)
+    })
+  })
+
+  describe('Edge cases', () => {
+    it('returns false when nativeTransferAmount is undefined', () => {
+      expect(isFullMigration(undefined as unknown as BN, new BN(1000))).toBe(false)
+    })
+
+    it('returns false when transferableBalance is undefined', () => {
+      expect(isFullMigration(new BN(1000), undefined as unknown as BN)).toBe(false)
+    })
+
+    it('returns false when both amounts are undefined', () => {
+      expect(isFullMigration(undefined as unknown as BN, undefined as unknown as BN)).toBe(false)
+    })
+
+    it('returns false when nativeTransferAmount is null', () => {
+      expect(isFullMigration(null as unknown as BN, new BN(1000))).toBe(false)
+    })
+
+    it('returns false when transferableBalance is null', () => {
+      expect(isFullMigration(new BN(1000), null as unknown as BN)).toBe(false)
+    })
+  })
+
+  describe('Real-world scenarios', () => {
+    it('returns true for typical full migration scenario', () => {
+      // Typical balance: 10 DOT (10 decimals)
+      const fullBalance = new BN('100000000000')
+      expect(isFullMigration(fullBalance, fullBalance)).toBe(true)
+    })
+
+    it('returns false for partial migration with MINIMUM_AMOUNT in development', () => {
+      // Full balance: 10 DOT, but sending only MINIMUM_AMOUNT for testing
+      const transferableBalance = new BN('100000000000') // 10 DOT
+      const minimumAmount = new BN('1000000000') // 0.1 DOT
+      expect(isFullMigration(minimumAmount, transferableBalance)).toBe(false)
+    })
+
+    it('returns false when leaving existential deposit', () => {
+      // Transferable: 10.1 DOT, Sending: 10 DOT (keeping 0.1 DOT as ED)
+      const transferableBalance = new BN('101000000000')
+      const sendingAmount = new BN('100000000000')
+      expect(isFullMigration(sendingAmount, transferableBalance)).toBe(false)
+    })
+
+    it('returns true when sending all after fee calculation', () => {
+      // Scenario: User has exact transferable balance and wants to migrate all
+      const transferableBalance = new BN('5000000000000') // 500 KSM
+      const nativeAmount = transferableBalance.clone()
+      expect(isFullMigration(nativeAmount, transferableBalance)).toBe(true)
+    })
   })
 })
