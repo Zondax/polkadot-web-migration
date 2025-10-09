@@ -27,7 +27,7 @@ interface StatusConfig {
  * Generates a pluralized account text
  */
 function pluralizeAccounts(count: number, newAccounts = false): string {
-  return `${count} ${newAccounts ? 'new' : ''} ${count === 1 ? 'account' : 'accounts'}`
+  return `${count} ${newAccounts ? 'new ' : ''}${count === 1 ? 'account' : 'accounts'}`
 }
 
 /**
