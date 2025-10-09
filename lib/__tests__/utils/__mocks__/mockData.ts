@@ -562,6 +562,11 @@ export const mockApi = {
         toString: () => `nativeTransfer:${amount}`,
         paymentInfo: vi.fn().mockResolvedValue({ partialFee: { toString: () => '10' } }),
       })),
+      transferAll: vi.fn((dest: string, _keepAlive: boolean) => ({
+        method: mockMethod,
+        toString: () => `transferAll:${dest}`,
+        paymentInfo: vi.fn().mockResolvedValue({ partialFee: { toString: () => '10' } }),
+      })),
     },
     utility: {
       batchAll: vi.fn((calls: SubmittableExtrinsic<'promise', ISubmittableResult>[]) => ({

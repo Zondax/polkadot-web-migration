@@ -203,7 +203,7 @@ export function getActualTransferAmount(balance: NativeBalance): BN {
 /**
  * Checks if the actual transfer amount is equal to the available transferable balance.
  *
- * @param nativeTransfer - The native transfer amount.
+ * @param nativeTransferAmount - The native transfer amount.
  * @param transferableBalance - The available transferable balance as a BN.
  * @returns True if the actual transfer amount is equal to the available transferable balance, false otherwise.
  */

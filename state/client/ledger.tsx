@@ -226,7 +226,6 @@ export const ledgerClient = {
         updateStatus(appConfig.id, accountType, account.address, { status: TransactionStatus.SUBMITTING })
 
         const txPromise = submitAndHandleTransaction(transfer, updateTransactionStatus, api)
-        // const txPromise = simulateAndHandleTransaction(updateTransactionStatus)
 
         // Create and wait for transaction to be submitted
         return { txPromise }
