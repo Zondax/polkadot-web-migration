@@ -12,8 +12,8 @@ importers:
         specifier: ^5.2.1
         version: 5.2.1(react-hook-form@7.62.0(react@19.1.1))
       '@ledgerhq/errors':
-        specifier: ^6.23.0
-        version: 6.24.0
+        specifier: ^6.26.0
+        version: 6.26.0
       '@ledgerhq/hw-transport':
         specifier: ^6.31.10
         version: 6.31.10
@@ -749,12 +749,6 @@ packages:
 
   '@ledgerhq/devices@8.6.1':
     resolution: {integrity: sha512-PQR2fyWz7P/wMFHY9ZLz17WgFdxC/Im0RVDcWXpp24+iRQRyxhQeX2iG4mBKUzfaAW6pOIEiWt+vmJh88QP9rQ==}
-
-  '@ledgerhq/errors@6.24.0':
-    resolution: {integrity: sha512-UMy+nGH4hmlaML7vPiSwGQ/mOoq/rwExYGEZVpb9TPoG0AcSfzpG43LAdAemvCTX/gK0MUO+int4FpNkD1ZrtQ==}
-
-  '@ledgerhq/errors@6.25.0':
-    resolution: {integrity: sha512-9cU0dgUyq3Adb1bHAjJnbwl+r+4WBjuPq0k+/DbBNpuYHwcz2xKtRIjLimUJyACjHti3iWwRt1sFcbQDDdI08w==}
 
   '@ledgerhq/errors@6.26.0':
     resolution: {integrity: sha512-4OlisaDBafkn7KN5emue08lCGMVREX6T+nxj47C7W30EBA/leLAEDaVvUw5/gFOWrv8Q2A9Scb8aMM3uokyt0w==}
@@ -3517,7 +3511,7 @@ snapshots:
 
   '@ledgerhq/devices@8.5.1':
     dependencies:
-      '@ledgerhq/errors': 6.25.0
+      '@ledgerhq/errors': 6.26.0
       '@ledgerhq/logs': 6.13.0
       rxjs: 7.8.2
       semver: 7.7.2
@@ -3528,10 +3522,6 @@ snapshots:
       '@ledgerhq/logs': 6.13.0
       rxjs: 7.8.2
       semver: 7.7.3
-
-  '@ledgerhq/errors@6.24.0': {}
-
-  '@ledgerhq/errors@6.25.0': {}
 
   '@ledgerhq/errors@6.26.0': {}
 
@@ -3551,7 +3541,7 @@ snapshots:
   '@ledgerhq/hw-transport@6.31.10':
     dependencies:
       '@ledgerhq/devices': 8.5.1
-      '@ledgerhq/errors': 6.25.0
+      '@ledgerhq/errors': 6.26.0
       '@ledgerhq/logs': 6.13.0
       events: 3.3.0
 

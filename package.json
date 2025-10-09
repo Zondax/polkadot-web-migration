@@ -37,7 +37,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
-    "@ledgerhq/errors": "^6.23.0",
+    "@ledgerhq/errors": "^6.26.0",
     "@ledgerhq/hw-transport": "^6.31.10",
     "@ledgerhq/hw-transport-mocker": "^6.29.8",
     "@ledgerhq/hw-transport-webhid": "^6.30.8",
