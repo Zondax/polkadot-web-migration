@@ -1,14 +1,18 @@
-import { observer } from '@legendapp/state/react'
+import { CustomTooltip } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { BalanceHoverCard } from '@/components/sections/migrate/balance-hover-card'
 import { TransactionStatusBody } from '@/components/sections/migrate/dialogs/transaction-dialog'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { AppId } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
+import { formatBalance, isFullMigration as isFullMigrationFn, isNativeBalance } from '@/lib/utils'
 import type { Collections } from '@/state/ledger'
-import { BalanceType, type MigratingItem, TransactionStatus } from '@/state/types/ledger'
+import { TransactionStatus, type MigratingItem } from '@/state/types/ledger'
+import { observer } from '@legendapp/state/react'
+import { AlertCircle, Info } from 'lucide-react'
 import { BalanceTypeFlag } from '../balance-detail-card'
 import { DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 
@@ -30,20 +34,20 @@ export const MigrationProgressDialog = observer(function MigrationProgressDialog
   // Only show dialog if there is a migrating item, regardless of the open prop
   const shouldShowDialog = open && !!migratingItem
 
-  // Get balances for the account (native + NFTs). Replace the transferable balance with the native amount that takes into account the estimated fee.
-  const balances =
-    migratingItem.account?.balances?.map(balance =>
-      balance.type === BalanceType.NATIVE
-        ? {
-            ...balance,
-            balance: { ...balance.balance, transferable: migratingItem.transaction?.nativeAmount || balance.balance.transferable },
-          }
-        : balance
-    ) || []
+  // Get balances for the account (native + NFTs)
+  // Always show the real balance in UI, even in development mode with MINIMUM_AMOUNT
+  const balances = migratingItem.account?.balances || []
   const collections = getCollectionsByAppId(migratingItem.appId)
   const estimatedFee = migratingItem.transaction?.estimatedFee
   const fromAddress = migratingItem.account?.address
   const token = migratingItem.token
+
+  // Determine if this is a full migration (sending all transferable balance)
+  const originalNativeBalance = migratingItem.account?.balances?.find(isNativeBalance)
+  const transferableAmount = originalNativeBalance?.balance.transferable
+  const nativeTransferAmount = migratingItem.transaction?.nativeAmount
+
+  const isFullMigration = nativeTransferAmount && transferableAmount && isFullMigrationFn(nativeTransferAmount, transferableAmount)
 
   return (
     <Dialog open={shouldShowDialog} onOpenChange={onClose}>
@@ -73,7 +77,17 @@ export const MigrationProgressDialog = observer(function MigrationProgressDialog
             </DialogField>
             {/* Estimated Fee */}
             <DialogField>
-              <DialogLabel>Estimated Fee</DialogLabel>
+              <div className="flex items-center gap-1.5">
+                <DialogLabel>Estimated Fee</DialogLabel>
+                {isFullMigration && (
+                  <CustomTooltip
+                    tooltipBody="Full migration: The transaction fee will be automatically deducted from the total amount being transferred."
+                    align="start"
+                  >
+                    <Info className="w-3.5 h-3.5 text-blue-500 cursor-help" />
+                  </CustomTooltip>
+                )}
+              </div>
               <DialogEstimatedFeeContent token={token} estimatedFee={estimatedFee} loading={!estimatedFee} />
             </DialogField>
             {/* Multisig Call Data */}
@@ -131,6 +145,37 @@ export const MigrationProgressDialog = observer(function MigrationProgressDialog
                 </TableBody>
               </Table>
             </div>
+
+            {/* Existential Deposit Warning */}
+            <CustomTooltip
+              tooltipBody="Substrate-based chains require a minimum balance (existential deposit) for accounts to remain active. If the destination account doesn't exist and the transfer amount is below this minimum, the transaction will fail and funds may be lost. Ensure the destination account is already active or that your transfer amount exceeds the existential deposit."
+              className="max-w-[40vw]"
+            >
+              <Alert className="mb-4 border-amber-200 bg-amber-50">
+                <AlertCircle className="w-4 h-4" style={{ color: 'orange' }} />
+                <AlertDescription className="text-amber-900">
+                  <p className="font-medium">Existential Deposit Required</p>
+                </AlertDescription>
+              </Alert>
+            </CustomTooltip>
+
+            {/* Development Mode Indicator */}
+            {!isFullMigration && nativeTransferAmount && transferableAmount && (
+              <div className="p-3 bg-purple-50 rounded-md border border-purple-200">
+                <div className="flex gap-2">
+                  <Info className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 text-sm text-purple-800">
+                    <p className="font-semibold">Development Mode</p>
+                    <p className="text-xs mt-1">
+                      Transferring{' '}
+                      <span className="font-mono font-semibold">{formatBalance(nativeTransferAmount, token, token?.decimals, true)}</span>{' '}
+                      instead of the full balance <span className="font-mono">({formatBalance(transferableAmount, token)})</span> for
+                      testing purposes.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </DialogBody>
         {/* Transaction status */}
