@@ -113,7 +113,7 @@ export function MigrateTabContent({ onBack }: MigrateTabContentProps) {
           </>
         ) : (
           <>
-            <Button variant="outline" onClick={onBack} data-testid="migrate-back-button">
+            <Button variant="outline" onClick={onBack} data-testid="migrate-back-button" disabled={migrationStatus === 'loading'}>
               Back
             </Button>
             <Button
