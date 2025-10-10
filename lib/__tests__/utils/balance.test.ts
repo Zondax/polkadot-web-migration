@@ -1,6 +1,6 @@
 import { BN } from '@polkadot/util'
 import { type Address, type AddressBalance, BalanceType, type Native, type NativeBalance } from 'state/types/ledger'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock the env module before importing balance functions
 vi.mock('../../utils/env', () => ({
