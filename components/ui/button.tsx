@@ -44,7 +44,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ className, variant, size, asChild = false, disabled, ...props }, ref) => {
   const Comp = asChild ? Slot : 'button'
   // pointer-events-none is used so the button can be wrapped by a tooltip and still be triggered when disabled
-  return <Comp className={cn(buttonVariants({ variant, size, className }), disabled && 'opacity-50 pointer-events-none')} ref={ref} {...props} />
+  return <Comp className={cn(buttonVariants({ variant, size, className }), disabled && 'opacity-50 pointer-events-none')} ref={ref} disabled={disabled} {...props} />
 })
 Button.displayName = 'Button'
 
