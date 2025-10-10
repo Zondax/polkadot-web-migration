@@ -1115,8 +1115,12 @@ export const ledgerState$ = observable({
         ledgerState$.apps.apps.set(updatedApps)
       }
 
-      // Update Polkadot app if it was newly synchronized during deep scan
-      if (result.polkadotAppWasSynchronized && result.polkadotApp) {
+      // Update Polkadot app if it was synchronized during deep scan
+      const currentPolkadotApp = ledgerState$.apps.polkadotApp.get()
+      const hasNewPolkadotAccounts = result.polkadotApp?.accounts && result.polkadotApp.accounts.length > 0
+      const needsPolkadotUpdate = !currentPolkadotApp.accounts || currentPolkadotApp.accounts.length === 0
+
+      if (hasNewPolkadotAccounts && needsPolkadotUpdate && result.polkadotApp) {
         ledgerState$.apps.polkadotApp.set({
           ...result.polkadotApp,
           status: AppStatus.SYNCHRONIZED,
