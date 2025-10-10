@@ -119,6 +119,7 @@ vi.mock('@/lib/services/synchronization.service', () => ({
       },
     },
   ]),
+  getAppsToSkipMigration: vi.fn(() => []),
 }))
 
 // Mock sync-status utility

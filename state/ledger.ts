@@ -2,7 +2,7 @@ import type { MultisigCallFormData } from '@/components/sections/migrate/dialogs
 import type { Token } from '@/config/apps'
 import { getApiAndProvider, getBalance, type UpdateTransactionStatus } from '@/lib/account'
 import type { DeviceConnectionProps } from '@/lib/ledger/types'
-import { deepScanAllApps, synchronizeAllApps, synchronizeAppAccounts } from '@/lib/services/synchronization.service'
+import { deepScanAllApps, getAppsToSkipMigration, synchronizeAllApps, synchronizeAppAccounts } from '@/lib/services/synchronization.service'
 import { interpretError, type InternalError } from '@/lib/utils'
 import { isMultisigAddress } from '@/lib/utils/address'
 import { hasAddressBalance } from '@/lib/utils/balance'
@@ -33,6 +33,7 @@ export enum AppStatus {
   ADDRESSES_FETCHED = 'addresses_fetched',
   ERROR = 'error',
   RESCANNING = 'rescanning',
+  NO_NEED_MIGRATION = 'no_need_migration',
 }
 
 export type AppIcons = {
@@ -477,15 +478,18 @@ export const ledgerState$ = observable({
         // Processing accounts start callback
         () => {
           ledgerState$.apps.status.set(AppStatus.ADDRESSES_FETCHED)
+          const appsToBeSkipped = getAppsToSkipMigration().map(app => app.id)
           for (const app of ledgerState$.apps.apps.get()) {
-            if (app.id === appsConfigs.get('polkadot')?.id) continue
+            if (appsToBeSkipped.includes(app.id)) continue
             app.status = AppStatus.LOADING
           }
         },
         // App complete callback - replace loading app with completed app, and update polkadot addresses
         (completedApp, polkadotAddresses) => {
           updateApp(completedApp.id, completedApp)
-          ledgerState$.polkadotAddresses[completedApp.id].set(polkadotAddresses)
+          if (polkadotAddresses) {
+            updatePolkadotAddresses(completedApp.id, polkadotAddresses)
+          }
         }
       )
 
@@ -1039,13 +1043,14 @@ export const ledgerState$ = observable({
         () => {
           ledgerState$.deepScan.progress.phase.set(FetchingAddressesPhase.PROCESSING_ACCOUNTS)
 
+          const appsToBeSkipped = getAppsToSkipMigration().map(app => app.id)
           for (const app of ledgerState$.deepScan.apps.get()) {
-            if (app.id === appsConfigs.get('polkadot')?.id) continue
+            if (appsToBeSkipped.includes(app.id)) continue
             app.status = AppStatus.LOADING
           }
         },
-        // App update callback - update app status in scanning grid
-        app => {
+        // App update callback - update app status in scanning grid and update polkadot addresses
+        (app, polkadotAddresses) => {
           const currentDeepScanApps = ledgerState$.deepScan.apps.get()
           ledgerState$.deepScan.apps.set(
             currentDeepScanApps.map(scanApp =>
@@ -1057,6 +1062,11 @@ export const ledgerState$ = observable({
                 : scanApp
             )
           )
+
+          // Update polkadot addresses if provided
+          if (polkadotAddresses) {
+            updatePolkadotAddresses(app.id, polkadotAddresses)
+          }
         }
       )
 
@@ -1103,6 +1113,18 @@ export const ledgerState$ = observable({
         }
 
         ledgerState$.apps.apps.set(updatedApps)
+      }
+
+      // Update Polkadot app if it was synchronized during deep scan
+      const currentPolkadotApp = ledgerState$.apps.polkadotApp.get()
+      const hasNewPolkadotAccounts = result.polkadotApp?.accounts && result.polkadotApp.accounts.length > 0
+      const needsPolkadotUpdate = !currentPolkadotApp.accounts || currentPolkadotApp.accounts.length === 0
+
+      if (hasNewPolkadotAccounts && needsPolkadotUpdate && result.polkadotApp) {
+        ledgerState$.apps.polkadotApp.set({
+          ...result.polkadotApp,
+          status: AppStatus.SYNCHRONIZED,
+        })
       }
 
       // Show appropriate notifications

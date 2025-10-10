@@ -1,14 +1,6 @@
-import { BN } from '@polkadot/util'
 import { MINIMUM_AMOUNT } from '@/config/mockData'
-import {
-  type Address,
-  type AddressBalance,
-  BalanceType,
-  type Native,
-  type NativeBalance,
-  type Nft,
-  type NftBalance,
-} from '@/state/types/ledger'
+import { BalanceType, type Address, type AddressBalance, type Native, type NativeBalance, type NftBalance } from '@/state/types/ledger'
+import { BN } from '@polkadot/util'
 import { isDevelopment } from './env'
 
 /**
@@ -136,39 +128,6 @@ export function getAccountTransferableBalance(account: Address): BN {
 }
 
 /**
- * Determines the type of balance (native or NFT), and returns the transferable amount and NFTs to transfer.
- * Used for preparing migration transactions.
- *
- * @param balance - The balance object to inspect (AddressBalance)
- * @param account - The parent account (Address), required for NFT balances to get native transferable
- * @returns An object with nftsToTransfer (Nft[]), nativeAmount (number | undefined), and transferableAmount (number)
- */
-export function getTransferableAndNfts(
-  balance: AddressBalance,
-  account: Address
-): { nftsToTransfer: Nft[]; nativeAmount: BN | undefined; transferableAmount: BN } {
-  let nftsToTransfer: Nft[] = []
-  let nativeAmount: BN | undefined
-  let transferableAmount = new BN(0)
-
-  if (isNativeBalance(balance)) {
-    nativeAmount = balance.balance.transferable
-    transferableAmount = balance.balance.transferable
-  } else if (isNftBalance(balance)) {
-    nftsToTransfer = balance.balance
-    // Find the native balance in the account to get its transferable amount
-    transferableAmount = account.balances?.find(b => isNativeBalance(b))?.balance.transferable ?? new BN(0)
-  }
-
-  // Use minimum amount for development if needed
-  if (isDevelopment() && MINIMUM_AMOUNT && isNativeBalance(balance)) {
-    nativeAmount = new BN(MINIMUM_AMOUNT)
-  }
-
-  return { nftsToTransfer, nativeAmount, transferableAmount }
-}
-
-/**
  * Calculates the non-transferable (locked or reserved) portion of a native balance.
  * This is the difference between the total balance and the transferable balance.
  * @param balance - The native balance object.
@@ -218,4 +177,37 @@ export const validateReservedBreakdown = (
 export const cannotCoverFee = (transferableBalance: BN, fee: BN): boolean => {
   if (!transferableBalance || !fee) return false
   return transferableBalance.lt(fee)
+}
+
+/**
+ * Gets the actual amount to transfer for native tokens.
+ *
+ * @description
+ * - In production: Returns the full transferable balance to migrate everything
+ * - In development: Can be overridden via NEXT_PUBLIC_NATIVE_TRANSFER_AMOUNT env var for testing
+ *
+ * @param balance - The native balance object
+ * @returns The actual amount that will be transferred
+ */
+export function getActualTransferAmount(balance: NativeBalance): BN {
+  const fullTransferable = balance.balance.transferable
+
+  // Development override for testing with smaller amounts
+  if (isDevelopment() && MINIMUM_AMOUNT) {
+    return new BN(MINIMUM_AMOUNT)
+  }
+
+  return fullTransferable
+}
+
+/**
+ * Checks if the actual transfer amount is equal to the available transferable balance.
+ *
+ * @param nativeTransferAmount - The native transfer amount.
+ * @param transferableBalance - The available transferable balance as a BN.
+ * @returns True if the actual transfer amount is equal to the available transferable balance, false otherwise.
+ */
+export const isFullMigration = (nativeTransferAmount: BN, transferableBalance: BN): boolean => {
+  if (!nativeTransferAmount || !transferableBalance) return false
+  return nativeTransferAmount.eq(transferableBalance)
 }

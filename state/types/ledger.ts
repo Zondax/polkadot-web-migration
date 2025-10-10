@@ -35,7 +35,17 @@ export enum TransactionStatus {
 export interface Transaction extends TransactionDetails {
   status?: TransactionStatus
   statusMessage?: string
-  nativeAmount?: BN // Native amount that takes into account the estimated fee
+  /**
+   * The actual amount of native tokens to transfer.
+   *
+   * In production: Equal to the full transferable balance
+   * In development: May be overridden by NEXT_PUBLIC_NATIVE_TRANSFER_AMOUNT for testing
+   * The fee will substrate from this amount if it is full migration. Otherwise, it will be the amount to transfer.
+   */
+  nativeAmount?: BN
+  /**
+   * Estimated transaction fee in native tokens
+   */
   estimatedFee?: BN
 }
 

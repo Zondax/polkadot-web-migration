@@ -31,6 +31,16 @@ export interface SyncResult {
 }
 
 /**
+ * Checks if an app needs to be migrated based on its bip44 path.
+ *
+ * @param {AppConfig} appConfig - The app configuration to check
+ * @returns {boolean} True if the app needs to be migrated, false otherwise
+ */
+export function needsMigration(appConfig: AppConfig): boolean {
+  return appConfig.bip44Path !== polkadotAppConfig.bip44Path
+}
+
+/**
  * Determines if an app is valid based on its configuration.
  *
  * @param {AppConfig} appConfig - The app configuration to check
@@ -74,7 +84,21 @@ export function getAppsToSync(): AppConfig[] {
       appsToSync = appsToSyncInDev.map(appId => appsConfigs.get(appId as AppId))
     }
   }
-  return appsToSync.filter(isValidApp)
+  return appsToSync.filter((app): app is AppConfig => Boolean(app && isValidApp(app) && needsMigration(app)))
+}
+
+/**
+ * Get the list of apps that do not need to be migrated.
+ *
+ * @description This function returns all the apps that do not need to be migrated.
+ * It is used to determine which apps do not need to be synchronized.
+ *
+ * @returns {AppConfig[]} An array of app configurations that do not need to be migrated.
+ */
+export function getAppsToSkipMigration(): AppConfig[] {
+  const appsToSync: (AppConfig | undefined)[] = getValidApps()
+
+  return appsToSync.filter((app): app is AppConfig => Boolean(app && !needsMigration(app)))
 }
 
 /**
@@ -387,63 +411,13 @@ export async function synchronizePolkadotAccounts(onCancel?: () => boolean, prel
 }
 
 /**
- * Synchronizes accounts for a single blockchain application.
- *
- * @description This is a convenience wrapper around synchronizeAppAccounts for single app operations.
- * It maintains the same interface for backward compatibility and single-app use cases.
- *
- * @param {AppConfig} appConfig - The blockchain application configuration
- * @param {string[]} polkadotAddresses - Array of Polkadot addresses for cross-chain migration
- * @param {boolean} [filterByBalance=true] - Whether to filter out accounts with zero balance
- * @returns {Promise<App>} Complete app object with synchronized account data
- * @throws {InternalError} When synchronization fails
- *
- * @example
- * ```typescript
- * const app = await synchronizeSingleApp(kusamaConfig, polkadotAddresses)
- * ```
- */
-export async function synchronizeSingleApp(
-  appConfig: AppConfig,
-  polkadotAddresses: string[],
-  filterByBalance = true,
-  onCancel?: () => boolean
-): Promise<{
-  app: App
-  polkadotAddresses: string[]
-}> {
-  const { app, polkadotAddressesForApp } = await synchronizeAppAccounts(appConfig, polkadotAddresses, filterByBalance, onCancel)
-  return {
-    app,
-    polkadotAddresses: polkadotAddressesForApp,
-  }
-}
-
-/**
- * Orchestrates the complete synchronization process for all configured blockchain applications.
- *
- * @description This is the main entry point for the synchronization process. It:
- * 1. Synchronizes Polkadot accounts first (for destination addresses)
- * 2. Iterates through all configured apps
- * 3. Provides real-time progress updates via callbacks
- * 4. Handles cancellation requests
- * 5. Manages loading states for UI feedback
- *
- * @param {(progress: SyncProgress) => void} [onProgress] - Callback for progress updates
- * @param {() => boolean} [onCancel] - Function that returns true if cancellation is requested
- * @param {(app: App) => void} [onAppStart] - Callback when an app starts synchronizing
- * @param {() => void} [onProcessingAccountsStart] - Callback when processing accounts starts
- * @param {(app: App) => void} [onAppComplete] - Callback when an app completes synchronization
- * @returns {Promise<SyncResult>} Result containing all synchronized apps and success status
- * @throws {InternalError} When the overall synchronization process fails
- */
-/**
  * Result of a deep scan operation
  */
 export interface DeepScanResult {
   success: boolean
   apps: (App & { originalAccountCount: number })[]
   newAccountsFound: number
+  polkadotApp?: App
   error?: string
 }
 
@@ -473,7 +447,7 @@ export async function deepScanAllApps(
   onCancel?: () => boolean,
   onAppStart?: (app: App & { originalAccountCount: number }) => void,
   onProcessingAccountsStart?: () => void,
-  onAppUpdate?: (app: App & { originalAccountCount: number }) => void
+  onAppUpdate?: (app: App & { originalAccountCount: number }, polkadotAddresses?: string[]) => void
 ): Promise<DeepScanResult> {
   try {
     // Validate inputs
@@ -486,16 +460,33 @@ export async function deepScanAllApps(
 
     // Get polkadot addresses for cross-chain migration
     const polkadotAddresses: string[] = []
-    const polkadotApp = currentApps.find(app => app.id === 'polkadot')
+    let polkadotApp = currentApps.find(app => app.id === 'polkadot')
+
+    // If Polkadot addresses are not available, synchronize them first
+    if (!polkadotApp?.accounts || polkadotApp.accounts.length === 0) {
+      console.debug('[deepScanAllApps] No Polkadot addresses found in current apps. Synchronizing Polkadot accounts...')
+
+      polkadotApp = await synchronizePolkadotAccounts(onCancel)
+
+      if (polkadotApp.status === AppStatus.ERROR || !polkadotApp.accounts || polkadotApp.accounts.length === 0) {
+        throw new InternalError(InternalErrorType.SYNC_ERROR, {
+          operation: 'deepScanAllApps',
+          context: { reason: 'Cannot perform deep scan without Polkadot addresses. Please try again later.' },
+        })
+      }
+    }
+
+    // Extract addresses
     if (polkadotApp?.accounts) {
       polkadotAddresses.push(...polkadotApp.accounts.map(account => account.address))
     }
 
     // Get all scannable apps (apps with valid RPC endpoints)
-    const scannableApps = getValidApps()
+    const scannableApps = getAppsToSync()
 
     // Determine which apps to scan based on selection
-    const appsToScan = selectedChain === 'all' ? scannableApps : scannableApps.filter(appConfig => appConfig.id === selectedChain)
+    const syncAllChains = selectedChain === 'all'
+    const appsToScan = syncAllChains ? scannableApps : scannableApps.filter(appConfig => appConfig.id === selectedChain)
 
     if (appsToScan.length === 0) {
       throw new InternalError(InternalErrorType.SYNC_ERROR, {
@@ -534,6 +525,20 @@ export async function deepScanAllApps(
     // Notify initial apps
     for (const app of initialApps) {
       onAppStart?.(app)
+    }
+
+    // ===== PHASE 0: Skip apps that don't need synchronization =====
+    if (syncAllChains) {
+      const appsToBeSkipped = getAppsToSkipMigration()
+      for (const appConfig of appsToBeSkipped) {
+        onAppStart?.({
+          id: appConfig.id,
+          name: appConfig.name,
+          token: appConfig.token,
+          status: AppStatus.NO_NEED_MIGRATION,
+          originalAccountCount: 0,
+        })
+      }
     }
 
     // ===== PHASE 1: Fetch addresses from Ledger for all apps =====
@@ -615,7 +620,7 @@ export async function deepScanAllApps(
           const newMultisigAccounts = (result.app.multisigAccounts || []).filter(acc => !existingAddresses.has(acc.address))
 
           const newAccountCount = newAccounts.length + newMultisigAccounts.length
-          console.debug(`[DEEP_SCAN] ${appConfig.name}: Found ${newAccountCount} new accounts`)
+          console.debug(`[deepScanAllApps] ${appConfig.name}: Found ${newAccountCount} new accounts`)
 
           // Update the app in the scanned apps list
           const originalCount = originalAccountCounts.get(appConfig.id) || 0
@@ -628,7 +633,7 @@ export async function deepScanAllApps(
           }
 
           // Notify completion
-          onAppUpdate?.(updatedApp)
+          onAppUpdate?.(updatedApp, result.polkadotAddressesForApp)
 
           // Merge results with existing app data if there are new accounts
           const hasNewAccounts = newAccountCount > 0
@@ -721,16 +726,15 @@ export async function deepScanAllApps(
       } as App & { originalAccountCount: number }
     })
 
-    console.debug(`[DEEP_SCAN] Scan completed. Total new accounts found: ${newAccountsFound}`)
+    console.debug(`[deepScanAllApps] Scan completed. Total new accounts found: ${newAccountsFound}`)
 
     return {
       success: true,
       apps: resultApps,
       newAccountsFound,
+      polkadotApp,
     }
   } catch (error) {
-    console.error('[DEEP_SCAN] Critical error:', error)
-
     if (error instanceof InternalError) {
       return {
         success: false,
@@ -747,12 +751,30 @@ export async function deepScanAllApps(
   }
 }
 
+/**
+ * Orchestrates the complete synchronization process for all configured blockchain applications.
+ *
+ * @description This is the main entry point for the synchronization process. It:
+ * 1. Synchronizes Polkadot accounts first (for destination addresses)
+ * 2. Iterates through all configured apps
+ * 3. Provides real-time progress updates via callbacks
+ * 4. Handles cancellation requests
+ * 5. Manages loading states for UI feedback
+ *
+ * @param {(progress: SyncProgress) => void} [onProgress] - Callback for progress updates
+ * @param {() => boolean} [onCancel] - Function that returns true if cancellation is requested
+ * @param {(app: App) => void} [onAppStart] - Callback when an app starts synchronizing
+ * @param {() => void} [onProcessingAccountsStart] - Callback when processing accounts starts
+ * @param {(app: App) => void} [onUpdateApp] - Callback when an app needs to be updated
+ * @returns {Promise<SyncResult>} Result containing all synchronized apps and success status
+ * @throws {InternalError} When the overall synchronization process fails
+ */
 export async function synchronizeAllApps(
   onProgress?: (progress: SyncProgress) => void,
   onCancel?: () => boolean,
   onAppStart?: (app: App) => void,
   onProcessingAccountsStart?: () => void,
-  onAppComplete?: (app: App, polkadotAddresses: string[]) => void
+  onUpdateApp?: (app: App, polkadotAddresses?: string[]) => void
 ): Promise<SyncResult> {
   try {
     // Show initial notification
@@ -764,10 +786,11 @@ export async function synchronizeAllApps(
     })
 
     // Get apps to synchronize (exclude Polkadot since it's handled separately)
-    const appsToSync = getAppsToSync().filter(app => app.id !== 'polkadot')
+    const appsToSync = getAppsToSync()
+
     const totalApps = appsToSync.length + 1 // +1 for Polkadot
 
-    // ===== PHASE 1: Fetch all addresses from Ledger =====
+    // ===== PHASE 0: Get Polkadot addresses and skip apps that don't need synchronization =====
     const addressesByApp = new Map<AppId, Address[]>()
 
     // Fetch Polkadot addresses first
@@ -781,15 +804,17 @@ export async function synchronizeAllApps(
     const polkadotAddressesFromLedger = await fetchAddressesFromLedger(polkadotAppConfig, onCancel)
     const polkadotAddresses = polkadotAddressesFromLedger.map(account => account.address)
 
-    // Notify that addresses have been fetched for this app
-    const polkadotAddressesFetchedApp: App = {
-      id: polkadotAppConfig.id,
-      name: polkadotAppConfig.name,
-      token: polkadotAppConfig.token,
-      status: AppStatus.ADDRESSES_FETCHED,
+    const appsToBeSkipped = getAppsToSkipMigration()
+    for (const appConfig of appsToBeSkipped) {
+      onAppStart?.({
+        id: appConfig.id,
+        name: appConfig.name,
+        token: appConfig.token,
+        status: AppStatus.NO_NEED_MIGRATION,
+      })
     }
-    onAppStart?.(polkadotAddressesFetchedApp)
 
+    // ===== PHASE 1: Fetch all addresses from Ledger ====
     let fetchedApps = 1 // Start at 1 (Polkadot already fetched)
 
     onProgress?.({
@@ -824,7 +849,8 @@ export async function synchronizeAllApps(
 
         // Notify that addresses have been fetched for this app
         addressesFetchedApp.status = AppStatus.ADDRESSES_FETCHED
-        onAppComplete?.(addressesFetchedApp, polkadotAddresses)
+
+        onUpdateApp?.(addressesFetchedApp)
       } catch (error) {
         console.error(`[SYNC] Failed to fetch addresses for ${appConfig.name}:`, error)
         addressesByApp.set(appConfig.id, [])
@@ -840,7 +866,7 @@ export async function synchronizeAllApps(
             description: 'Failed to fetch addresses from Ledger',
           },
         }
-        onAppComplete?.(errorApp, [])
+        onUpdateApp?.(errorApp, [])
       }
 
       fetchedApps++
@@ -879,7 +905,7 @@ export async function synchronizeAllApps(
           })
 
           // Notify completion immediately after this app finishes
-          onAppComplete?.(result.app, result.polkadotAddressesForApp)
+          onUpdateApp?.(result.app, result.polkadotAddressesForApp)
 
           return { ...result, success: true }
         } catch (error) {
@@ -909,7 +935,7 @@ export async function synchronizeAllApps(
           })
 
           // Notify completion with error
-          onAppComplete?.(errorApp, [])
+          onUpdateApp?.(errorApp, [])
 
           return {
             app: errorApp,
@@ -930,7 +956,9 @@ export async function synchronizeAllApps(
     // Add the Polkadot app to the final results
     synchronizedApps.push(polkadotApp)
 
-    console.debug(`[SYNC] Synchronization completed at ${new Date().toISOString()}. Total apps synchronized: ${synchronizedApps.length}.`)
+    console.debug(
+      `[synchronizeAllApps] Synchronization completed at ${new Date().toISOString()}. Total apps synchronized: ${synchronizedApps.length}.`
+    )
 
     return {
       success: true,
@@ -938,8 +966,6 @@ export async function synchronizeAllApps(
       polkadotApp,
     }
   } catch (error) {
-    console.debug(`[SYNC] Synchronization failed at ${new Date().toISOString()}.`)
-
     if (error instanceof InternalError) {
       return {
         success: false,

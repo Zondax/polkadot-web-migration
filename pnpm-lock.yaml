@@ -21,8 +21,8 @@ importers:
         specifier: ^6.29.8
         version: 6.29.9
       '@ledgerhq/hw-transport-webhid':
-        specifier: ^6.30.6
-        version: 6.30.6
+        specifier: ^6.30.8
+        version: 6.30.8
       '@ledgerhq/types-live':
         specifier: ^6.86.0
         version: 6.86.0
@@ -30,8 +30,8 @@ importers:
         specifier: ^3.0.0-beta.31
         version: 3.0.0-beta.32(react@19.1.1)
       '@polkadot-api/merkleize-metadata':
-        specifier: ^1.1.24
-        version: 1.1.24
+        specifier: ^1.1.25
+        version: 1.1.25
       '@polkadot/api':
         specifier: ^16.4.3
         version: 16.4.6
@@ -117,8 +117,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       framer-motion:
-        specifier: ^12.23.12
-        version: 12.23.12(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        specifier: ^12.23.22
+        version: 12.23.22(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       html-react-parser:
         specifier: ^5.2.6
         version: 5.2.6(@types/react@19.1.12)(react@19.1.1)
@@ -747,20 +747,29 @@ packages:
   '@ledgerhq/devices@8.5.1':
     resolution: {integrity: sha512-oW75YQQiP2muHveXTuwSAze6CBxJ7jOYILhFiJbsVzmgLPVqtdw4s0bJJlOBft4Aup67yNAjboFCIU7kTYQBFg==}
 
+  '@ledgerhq/devices@8.6.1':
+    resolution: {integrity: sha512-PQR2fyWz7P/wMFHY9ZLz17WgFdxC/Im0RVDcWXpp24+iRQRyxhQeX2iG4mBKUzfaAW6pOIEiWt+vmJh88QP9rQ==}
+
   '@ledgerhq/errors@6.24.0':
     resolution: {integrity: sha512-UMy+nGH4hmlaML7vPiSwGQ/mOoq/rwExYGEZVpb9TPoG0AcSfzpG43LAdAemvCTX/gK0MUO+int4FpNkD1ZrtQ==}
 
   '@ledgerhq/errors@6.25.0':
     resolution: {integrity: sha512-9cU0dgUyq3Adb1bHAjJnbwl+r+4WBjuPq0k+/DbBNpuYHwcz2xKtRIjLimUJyACjHti3iWwRt1sFcbQDDdI08w==}
 
+  '@ledgerhq/errors@6.26.0':
+    resolution: {integrity: sha512-4OlisaDBafkn7KN5emue08lCGMVREX6T+nxj47C7W30EBA/leLAEDaVvUw5/gFOWrv8Q2A9Scb8aMM3uokyt0w==}
+
   '@ledgerhq/hw-transport-mocker@6.29.9':
     resolution: {integrity: sha512-2AsI2cc1JpEfJritBljKoOG7NGZAi3eXupvT0y+5i7t1EDzKODEFRqJAo1/Ffanvwo24oe8rqcVkpUoCAutuPQ==}
 
-  '@ledgerhq/hw-transport-webhid@6.30.6':
-    resolution: {integrity: sha512-AOzjFv5n1OTMfvEInAZRfLO11G5zfG8pB5zhmjK5d/mVQfFNcKsLZNAC2h4OZZMBtUy8UTT3n03z93e6k6n4pQ==}
+  '@ledgerhq/hw-transport-webhid@6.30.8':
+    resolution: {integrity: sha512-2Hc15GjC7BFrpMVJYJ7N2p70A6OzIdcMklwUEYpOcIVYbEWWj84+M5E5pc83ZIBc5j3C8rdtjncPCm2ExGx2LQ==}
 
   '@ledgerhq/hw-transport@6.31.10':
     resolution: {integrity: sha512-ruNtkTPMO3rFCaSM+oPTOXXerzxWFZF43pAHVAHhsjiQGhLWzLSkMc7qBEpWIpZPubKRAbWSXR2zXBIJPNy8oQ==}
+
+  '@ledgerhq/hw-transport@6.31.12':
+    resolution: {integrity: sha512-FO5LRIXYC8ELtaohlO8qK0b3TfHUNBZ3+CXKPHiHj2jJwrxPf4s5kcgBYrmzuf1C/1vfrMOjzyty6OgrMIbU6Q==}
 
   '@ledgerhq/hw-transport@6.31.4':
     resolution: {integrity: sha512-6c1ir/cXWJm5dCWdq55NPgCJ3UuKuuxRvf//Xs36Bq9BwkV2YaRQhZITAkads83l07NAdR16hkTWqqpwFMaI6A==}
@@ -841,8 +850,8 @@ packages:
     resolution: {integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==}
     engines: {node: ^14.21.3 || >=16}
 
-  '@noble/hashes@2.0.0':
-    resolution: {integrity: sha512-h8VUBlE8R42+XIDO229cgisD287im3kdY6nbNZJFjc6ZvKIXPYXe6Vc/t+kyjFdMFyt5JpapzTsEg8n63w5/lw==}
+  '@noble/hashes@2.0.1':
+    resolution: {integrity: sha512-XlOlEbQcE9fmuXxrVTXCTlG2nlRXa9Rj3rr5Ue/+tX+nmkgbX720YHh0VR3hBF9xDvwnb8D2shVGOwNx+ulArw==}
     engines: {node: '>= 20.19.0'}
 
   '@pkgjs/parseargs@0.11.0':
@@ -860,11 +869,11 @@ packages:
   '@polkadot-api/json-rpc-provider@0.0.1':
     resolution: {integrity: sha512-/SMC/l7foRjpykLTUTacIH05H3mr9ip8b5xxfwXlVezXrNVLp3Cv0GX6uItkKd+ZjzVPf3PFrDF2B2/HLSNESA==}
 
-  '@polkadot-api/merkleize-metadata@1.1.24':
-    resolution: {integrity: sha512-BEHREv5qTZIIbog64VscBUeGvXdEm1uA1wdeQcyzgyhR9W0DDWU8AaCtsB+oOaYXzlQoJThLV9ye3s57hmAUsg==}
+  '@polkadot-api/merkleize-metadata@1.1.25':
+    resolution: {integrity: sha512-deNOiMY/XvyN47/N3C+GrkM0a1i7xcy4I3F3H9wW1XtyxffAmNpoj58L7Zr2RtXYhfekmhdUZlzdD1+DOYeqvg==}
 
-  '@polkadot-api/metadata-builders@0.13.4':
-    resolution: {integrity: sha512-z98MN+sGTObq75bsZwtl83BGn3JwMgLLShVMV5cByAF89WEVe9Yufolyob+IOp8Y490uL8rMzJZigjDSFKCtyA==}
+  '@polkadot-api/metadata-builders@0.13.5':
+    resolution: {integrity: sha512-3XqLKVv3eGDOUHEeC1KkBCeb/IjnfzdGNxydXJtonr+sbu6Ds7om5sSjqqWASf1bRSO0aHzVO3upPANveCcysg==}
 
   '@polkadot-api/metadata-builders@0.3.2':
     resolution: {integrity: sha512-TKpfoT6vTb+513KDzMBTfCb/ORdgRnsS3TDFpOhAhZ08ikvK+hjHMt5plPiAX/OWkm1Wc9I3+K6W0hX5Ab7MVg==}
@@ -875,8 +884,8 @@ packages:
       '@polkadot-api/substrate-client': 0.1.4
       rxjs: '>=7.8.0'
 
-  '@polkadot-api/substrate-bindings@0.16.2':
-    resolution: {integrity: sha512-7YjFIXwQ4mwa1fOX9y300Pyh0+nvp3jFq0bMYDxXgM3kuNS9D45dO+o5NwTmd2nFAdNrc5Aufc5g6e/xitGDeA==}
+  '@polkadot-api/substrate-bindings@0.16.3':
+    resolution: {integrity: sha512-KN/nghI3SM0t7WsULwLRB3s4DnWogGCi5TuvXB0yPkkiB5GJugMPuHTTUxDkWmjZ0vLUFlmkaZ/sfFf0tvo8xQ==}
 
   '@polkadot-api/substrate-bindings@0.6.0':
     resolution: {integrity: sha512-lGuhE74NA1/PqdN7fKFdE5C1gNYX357j1tWzdlPXI0kQ7h3kN0zfxNOpPUN7dIrPcOFZ6C0tRRVrBylXkI6xPw==}
@@ -2154,8 +2163,8 @@ packages:
   fraction.js@4.3.7:
     resolution: {integrity: sha512-ZsDfxO51wGAXREY55a7la9LScWpwv9RxIrYABrlvOFBlH/ShPnrtsXeuUIfXKKOVicNxQ+o8JTbJvjS4M89yew==}
 
-  framer-motion@12.23.12:
-    resolution: {integrity: sha512-6e78rdVtnBvlEVgu6eFEAgG9v3wLnYEboM8I5O5EXvfKC8gxGQB8wXJdhkMy10iVcn05jl6CNw7/HTsTCfwcWg==}
+  framer-motion@12.23.22:
+    resolution: {integrity: sha512-ZgGvdxXCw55ZYvhoZChTlG6pUuehecgvEAJz0BHoC5pQKW1EC5xf1Mul1ej5+ai+pVY0pylyFfdl45qnM1/GsA==}
     peerDependencies:
       '@emotion/is-prop-valid': '*'
       react: ^18.0.0 || ^19.0.0
@@ -2477,8 +2486,8 @@ packages:
     resolution: {integrity: sha512-qxBgB7Qa2sEQgHFjj0dSigq7fX4k6Saisd5Nelwp2q8mlbAFh5dHV9JTTlF8viYJLSSWgMCZFUom8PJcMNBoJw==}
     engines: {node: '>= 8'}
 
-  motion-dom@12.23.12:
-    resolution: {integrity: sha512-RcR4fvMCTESQBD/uKQe49D5RUeDOokkGRmz4ceaJKDBgHYtZtntC/s2vLvY38gqGaytinij/yi3hMcWVcEF5Kw==}
+  motion-dom@12.23.21:
+    resolution: {integrity: sha512-5xDXx/AbhrfgsQmSE7YESMn4Dpo6x5/DTZ4Iyy4xqDvVHWvFVoV+V2Ri2S/ksx+D40wrZ7gPYiMWshkdoqNgNQ==}
 
   motion-utils@12.23.6:
     resolution: {integrity: sha512-eAWoPgr4eFEOFfg2WjIsMoqJTW6Z8MTUCgn/GZ3VRpClWBdnbjryiA3ZSNLyxCTmCQx4RmYX6jX1iWHbenUPNQ==}
@@ -2714,6 +2723,11 @@ packages:
 
   semver@7.7.2:
     resolution: {integrity: sha512-RF0Fw+rO5AMf9MAyaRXI4AV0Ulj5lMHqVxxdSgiVbixSCXoEmmX/jk0CuJw4+3SqroYO9VoUh+HcuJivvtJemA==}
+    engines: {node: '>=10'}
+    hasBin: true
+
+  semver@7.7.3:
+    resolution: {integrity: sha512-SdsKMrI9TdgjdweUSR9MweHA4EJ8YxHn8DFaDisvhVlUOe4BF1tLD7GAj0lIqWVl+dPb/rExr0Btby5loQm20Q==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -3496,10 +3510,10 @@ snapshots:
 
   '@ledgerhq/devices@8.5.0':
     dependencies:
-      '@ledgerhq/errors': 6.25.0
+      '@ledgerhq/errors': 6.26.0
       '@ledgerhq/logs': 6.13.0
       rxjs: 7.8.2
-      semver: 7.7.2
+      semver: 7.7.3
 
   '@ledgerhq/devices@8.5.1':
     dependencies:
@@ -3508,9 +3522,18 @@ snapshots:
       rxjs: 7.8.2
       semver: 7.7.2
 
+  '@ledgerhq/devices@8.6.1':
+    dependencies:
+      '@ledgerhq/errors': 6.26.0
+      '@ledgerhq/logs': 6.13.0
+      rxjs: 7.8.2
+      semver: 7.7.3
+
   '@ledgerhq/errors@6.24.0': {}
 
   '@ledgerhq/errors@6.25.0': {}
+
+  '@ledgerhq/errors@6.26.0': {}
 
   '@ledgerhq/hw-transport-mocker@6.29.9':
     dependencies:
@@ -3518,11 +3541,11 @@ snapshots:
       '@ledgerhq/logs': 6.13.0
       rxjs: 7.8.2
 
-  '@ledgerhq/hw-transport-webhid@6.30.6':
+  '@ledgerhq/hw-transport-webhid@6.30.8':
     dependencies:
-      '@ledgerhq/devices': 8.5.1
-      '@ledgerhq/errors': 6.25.0
-      '@ledgerhq/hw-transport': 6.31.10
+      '@ledgerhq/devices': 8.6.1
+      '@ledgerhq/errors': 6.26.0
+      '@ledgerhq/hw-transport': 6.31.12
       '@ledgerhq/logs': 6.13.0
 
   '@ledgerhq/hw-transport@6.31.10':
@@ -3532,17 +3555,24 @@ snapshots:
       '@ledgerhq/logs': 6.13.0
       events: 3.3.0
 
+  '@ledgerhq/hw-transport@6.31.12':
+    dependencies:
+      '@ledgerhq/devices': 8.6.1
+      '@ledgerhq/errors': 6.26.0
+      '@ledgerhq/logs': 6.13.0
+      events: 3.3.0
+
   '@ledgerhq/hw-transport@6.31.4':
     dependencies:
-      '@ledgerhq/devices': 8.5.1
-      '@ledgerhq/errors': 6.25.0
+      '@ledgerhq/devices': 8.6.1
+      '@ledgerhq/errors': 6.26.0
       '@ledgerhq/logs': 6.13.0
       events: 3.3.0
 
   '@ledgerhq/hw-transport@6.31.9':
     dependencies:
       '@ledgerhq/devices': 8.5.0
-      '@ledgerhq/errors': 6.25.0
+      '@ledgerhq/errors': 6.26.0
       '@ledgerhq/logs': 6.13.0
       events: 3.3.0
 
@@ -3591,7 +3621,7 @@ snapshots:
 
   '@noble/hashes@1.8.0': {}
 
-  '@noble/hashes@2.0.0': {}
+  '@noble/hashes@2.0.1': {}
 
   '@pkgjs/parseargs@0.11.0':
     optional: true
@@ -3606,15 +3636,15 @@ snapshots:
   '@polkadot-api/json-rpc-provider@0.0.1':
     optional: true
 
-  '@polkadot-api/merkleize-metadata@1.1.24':
+  '@polkadot-api/merkleize-metadata@1.1.25':
     dependencies:
-      '@polkadot-api/metadata-builders': 0.13.4
-      '@polkadot-api/substrate-bindings': 0.16.2
+      '@polkadot-api/metadata-builders': 0.13.5
+      '@polkadot-api/substrate-bindings': 0.16.3
       '@polkadot-api/utils': 0.2.0
 
-  '@polkadot-api/metadata-builders@0.13.4':
+  '@polkadot-api/metadata-builders@0.13.5':
     dependencies:
-      '@polkadot-api/substrate-bindings': 0.16.2
+      '@polkadot-api/substrate-bindings': 0.16.3
       '@polkadot-api/utils': 0.2.0
 
   '@polkadot-api/metadata-builders@0.3.2':
@@ -3632,9 +3662,9 @@ snapshots:
       rxjs: 7.8.2
     optional: true
 
-  '@polkadot-api/substrate-bindings@0.16.2':
+  '@polkadot-api/substrate-bindings@0.16.3':
     dependencies:
-      '@noble/hashes': 2.0.0
+      '@noble/hashes': 2.0.1
       '@polkadot-api/utils': 0.2.0
       '@scure/base': 2.0.0
       scale-ts: 1.6.1
@@ -5034,9 +5064,9 @@ snapshots:
 
   fraction.js@4.3.7: {}
 
-  framer-motion@12.23.12(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
+  framer-motion@12.23.22(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      motion-dom: 12.23.12
+      motion-dom: 12.23.21
       motion-utils: 12.23.6
       tslib: 2.8.1
     optionalDependencies:
@@ -5340,7 +5370,7 @@ snapshots:
 
   mock-socket@9.3.1: {}
 
-  motion-dom@12.23.12:
+  motion-dom@12.23.21:
     dependencies:
       motion-utils: 12.23.6
 
@@ -5571,6 +5601,8 @@ snapshots:
   semver@6.3.1: {}
 
   semver@7.7.2: {}
+
+  semver@7.7.3: {}
 
   server-only@0.0.1: {}
 
