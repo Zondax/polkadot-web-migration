@@ -459,7 +459,23 @@ export async function deepScanAllApps(
 
     // Get polkadot addresses for cross-chain migration
     const polkadotAddresses: string[] = []
-    const polkadotApp = currentApps.find(app => app.id === 'polkadot')
+    let polkadotApp = currentApps.find(app => app.id === 'polkadot')
+
+    // If Polkadot addresses are not available, synchronize them first
+    if (!polkadotApp?.accounts || polkadotApp.accounts.length === 0) {
+      console.debug('[deepScanAllApps] No Polkadot addresses found in current apps. Synchronizing Polkadot accounts...')
+
+      polkadotApp = await synchronizePolkadotAccounts(onCancel)
+
+      if (polkadotApp.status === AppStatus.ERROR || !polkadotApp.accounts || polkadotApp.accounts.length === 0) {
+        throw new InternalError(InternalErrorType.SYNC_ERROR, {
+          operation: 'deepScanAllApps',
+          context: { reason: 'Cannot perform deep scan without Polkadot addresses. Please synchronize Polkadot accounts first.' },
+        })
+      }
+    }
+
+    // Extract addresses
     if (polkadotApp?.accounts) {
       polkadotAddresses.push(...polkadotApp.accounts.map(account => account.address))
     }
