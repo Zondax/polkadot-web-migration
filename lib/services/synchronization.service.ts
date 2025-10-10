@@ -417,6 +417,8 @@ export interface DeepScanResult {
   success: boolean
   apps: (App & { originalAccountCount: number })[]
   newAccountsFound: number
+  polkadotApp?: App
+  polkadotAppWasSynchronized?: boolean
   error?: string
 }
 
@@ -446,7 +448,7 @@ export async function deepScanAllApps(
   onCancel?: () => boolean,
   onAppStart?: (app: App & { originalAccountCount: number }) => void,
   onProcessingAccountsStart?: () => void,
-  onAppUpdate?: (app: App & { originalAccountCount: number }) => void
+  onAppUpdate?: (app: App & { originalAccountCount: number }, polkadotAddresses?: string[]) => void
 ): Promise<DeepScanResult> {
   try {
     // Validate inputs
@@ -460,12 +462,14 @@ export async function deepScanAllApps(
     // Get polkadot addresses for cross-chain migration
     const polkadotAddresses: string[] = []
     let polkadotApp = currentApps.find(app => app.id === 'polkadot')
+    let polkadotAppWasSynchronized = false
 
     // If Polkadot addresses are not available, synchronize them first
     if (!polkadotApp?.accounts || polkadotApp.accounts.length === 0) {
       console.debug('[deepScanAllApps] No Polkadot addresses found in current apps. Synchronizing Polkadot accounts...')
 
       polkadotApp = await synchronizePolkadotAccounts(onCancel)
+      polkadotAppWasSynchronized = true
 
       if (polkadotApp.status === AppStatus.ERROR || !polkadotApp.accounts || polkadotApp.accounts.length === 0) {
         throw new InternalError(InternalErrorType.SYNC_ERROR, {
@@ -632,7 +636,7 @@ export async function deepScanAllApps(
           }
 
           // Notify completion
-          onAppUpdate?.(updatedApp)
+          onAppUpdate?.(updatedApp, result.polkadotAddressesForApp)
 
           // Merge results with existing app data if there are new accounts
           const hasNewAccounts = newAccountCount > 0
@@ -731,6 +735,8 @@ export async function deepScanAllApps(
       success: true,
       apps: resultApps,
       newAccountsFound,
+      polkadotApp,
+      polkadotAppWasSynchronized,
     }
   } catch (error) {
     if (error instanceof InternalError) {

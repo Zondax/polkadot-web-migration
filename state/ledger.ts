@@ -1049,8 +1049,8 @@ export const ledgerState$ = observable({
             app.status = AppStatus.LOADING
           }
         },
-        // App update callback - update app status in scanning grid
-        app => {
+        // App update callback - update app status in scanning grid and update polkadot addresses
+        (app, polkadotAddresses) => {
           const currentDeepScanApps = ledgerState$.deepScan.apps.get()
           ledgerState$.deepScan.apps.set(
             currentDeepScanApps.map(scanApp =>
@@ -1062,6 +1062,11 @@ export const ledgerState$ = observable({
                 : scanApp
             )
           )
+
+          // Update polkadot addresses if provided
+          if (polkadotAddresses) {
+            updatePolkadotAddresses(app.id, polkadotAddresses)
+          }
         }
       )
 
@@ -1108,6 +1113,14 @@ export const ledgerState$ = observable({
         }
 
         ledgerState$.apps.apps.set(updatedApps)
+      }
+
+      // Update Polkadot app if it was newly synchronized during deep scan
+      if (result.polkadotAppWasSynchronized && result.polkadotApp) {
+        ledgerState$.apps.polkadotApp.set({
+          ...result.polkadotApp,
+          status: AppStatus.SYNCHRONIZED,
+        })
       }
 
       // Show appropriate notifications
