@@ -1,11 +1,11 @@
-import { BN } from '@polkadot/util'
-import type { Transport } from '@zondax/ledger-js'
-import type { PolkadotGenericApp } from '@zondax/ledger-substrate'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { InternalErrorType } from '@/config/errors'
 import { mockAddress1 } from '@/lib/__tests__/utils/__mocks__/mockData'
 import type { DeviceConnectionProps } from '@/lib/ledger/types'
 import { InternalError } from '@/lib/utils/error'
+import { BN } from '@polkadot/util'
+import type { Transport } from '@zondax/ledger-js'
+import type { PolkadotGenericApp } from '@zondax/ledger-substrate'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppStatus, ledgerState$ } from '../ledger'
 import { AccountType } from '../types/ledger'
 
@@ -75,9 +75,14 @@ vi.mock('../notifications', () => ({
   },
 }))
 
-vi.mock('@/lib/services/synchronization.service', () => ({
-  deepScanAllApps: vi.fn(),
-}))
+vi.mock('@/lib/services/synchronization.service', async importOriginal => {
+  const actual = await importOriginal<typeof import('@/lib/services/synchronization.service')>()
+  return {
+    ...actual,
+    deepScanAllApps: vi.fn(),
+    synchronizeAllApps: vi.fn(),
+  }
+})
 
 vi.mock('config/apps', () => ({
   appsConfigs: new Map([
@@ -935,6 +940,151 @@ describe('Ledger State', () => {
     })
   })
 
+  describe('Polkadot app separation', () => {
+    describe('deepScanApp should not store polkadotApp in apps.apps', () => {
+      it('should store polkadotApp separately and not in apps.apps array', async () => {
+        const { deepScanAllApps } = await import('@/lib/services/synchronization.service')
+
+        // Mock successful deep scan with both polkadot and other apps
+        vi.mocked(deepScanAllApps).mockResolvedValueOnce({
+          success: true,
+          apps: [
+            {
+              id: 'kusama',
+              name: 'Kusama',
+              token: { symbol: 'KSM', decimals: 12 },
+              status: AppStatus.SYNCHRONIZED,
+              accounts: [mockAddress1],
+              multisigAccounts: [],
+              originalAccountCount: 0,
+            },
+          ],
+          newAccountsFound: 1,
+          polkadotApp: {
+            id: 'polkadot',
+            name: 'Polkadot',
+            token: { symbol: 'DOT', decimals: 10 },
+            status: AppStatus.SYNCHRONIZED,
+            accounts: [mockAddress1],
+          },
+        })
+
+        // Set initial state with existing polkadot app
+        ledgerState$.apps.polkadotApp.set({
+          id: 'polkadot',
+          name: 'Polkadot',
+          token: { symbol: 'DOT', decimals: 10 },
+        })
+
+        // Execute deep scan
+        const result = await ledgerState$.deepScanApp('kusama', [0, 1], [0, 1, 2])
+
+        expect(result.success).toBe(true)
+
+        // Verify polkadotApp is stored separately
+        const polkadotApp = ledgerState$.apps.polkadotApp.get()
+        expect(polkadotApp.id).toBe('polkadot')
+        expect(polkadotApp.name).toBe('Polkadot')
+
+        // Verify apps.apps does NOT contain polkadot
+        const apps = ledgerState$.apps.apps.get()
+        const hasPolkadotInApps = apps.some(app => app.id === 'polkadot')
+        expect(hasPolkadotInApps).toBe(false)
+
+        // Verify apps.apps contains the scanned app
+        expect(apps.length).toBeGreaterThan(0)
+        expect(apps.every(app => app.id !== 'polkadot')).toBe(true)
+      })
+
+      it('should not add polkadotApp to apps.apps when scanning all chains', async () => {
+        const { deepScanAllApps } = await import('@/lib/services/synchronization.service')
+
+        // Mock deep scan for all chains
+        vi.mocked(deepScanAllApps).mockResolvedValueOnce({
+          success: true,
+          apps: [
+            {
+              id: 'kusama',
+              name: 'Kusama',
+              token: { symbol: 'KSM', decimals: 12 },
+              status: AppStatus.SYNCHRONIZED,
+              accounts: [mockAddress1],
+              multisigAccounts: [],
+              originalAccountCount: 0,
+            },
+          ],
+          newAccountsFound: 1,
+          polkadotApp: {
+            id: 'polkadot',
+            name: 'Polkadot',
+            token: { symbol: 'DOT', decimals: 10 },
+            status: AppStatus.SYNCHRONIZED,
+            accounts: [mockAddress1],
+          },
+        })
+
+        // Execute deep scan for all chains
+        await ledgerState$.deepScanApp('all', [0, 1], [0, 1, 2])
+
+        // Verify polkadotApp is stored separately
+        const polkadotApp = ledgerState$.apps.polkadotApp.get()
+        expect(polkadotApp.id).toBe('polkadot')
+
+        // Verify apps.apps does NOT contain polkadot
+        const apps = ledgerState$.apps.apps.get()
+        const hasPolkadotInApps = apps.some(app => app.id === 'polkadot')
+        expect(hasPolkadotInApps).toBe(false)
+
+        // Verify all apps in apps.apps are not polkadot
+        for (const app of apps) {
+          expect(app.id).not.toBe('polkadot')
+        }
+      })
+
+      it('should keep existing apps without polkadot when deep scan finds no new accounts', async () => {
+        const { deepScanAllApps } = await import('@/lib/services/synchronization.service')
+
+        // Set initial state with some existing apps
+        ledgerState$.apps.apps.set([
+          {
+            id: 'kusama',
+            name: 'Kusama',
+            token: { symbol: 'KSM', decimals: 12 },
+            accounts: [mockAddress1],
+          },
+        ])
+
+        // Mock deep scan with no new accounts
+        vi.mocked(deepScanAllApps).mockResolvedValueOnce({
+          success: true,
+          apps: [],
+          newAccountsFound: 0,
+          polkadotApp: {
+            id: 'polkadot',
+            name: 'Polkadot',
+            token: { symbol: 'DOT', decimals: 10 },
+            status: AppStatus.SYNCHRONIZED,
+            accounts: [mockAddress1],
+          },
+        })
+
+        // Execute deep scan
+        await ledgerState$.deepScanApp('kusama', [0, 1], [0, 1, 2])
+
+        // Verify polkadotApp is stored separately
+        const polkadotApp = ledgerState$.apps.polkadotApp.get()
+        expect(polkadotApp.id).toBe('polkadot')
+
+        // Verify apps.apps still contains only kusama, not polkadot
+        const apps = ledgerState$.apps.apps.get()
+        expect(apps.length).toBe(1)
+        expect(apps[0].id).toBe('kusama')
+        const hasPolkadotInApps = apps.some(app => app.id === 'polkadot')
+        expect(hasPolkadotInApps).toBe(false)
+      })
+    })
+  })
+
   describe('Deep Scan functionality', () => {
     beforeEach(() => {
       // Reset deep scan state before each test
@@ -1025,13 +1175,6 @@ describe('Ledger State', () => {
     })
 
     describe('deepScanApp', () => {
-      beforeEach(() => {
-        // Mock the deepScanAllApps service function
-        vi.mock('@/lib/services/synchronization.service', () => ({
-          deepScanAllApps: vi.fn(),
-        }))
-      })
-
       it('should initialize state when starting deep scan', async () => {
         const { deepScanAllApps } = await import('@/lib/services/synchronization.service')
 
@@ -1181,6 +1324,7 @@ describe('Ledger State', () => {
           'all',
           [0, 1],
           [0, 1, 2],
+          expect.any(Array),
           expect.any(Array),
           expect.any(Function),
           expect.any(Function),

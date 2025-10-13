@@ -133,7 +133,6 @@ export const apps: AppConfig[] = [
       logoId: app.token.logoId || app.id,
     },
   })),
-  polkadotAppConfig,
 ]
 
 /**

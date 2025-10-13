@@ -77,8 +77,8 @@ interface LedgerState {
     error?: string
   }
   apps: {
-    apps: App[]
-    polkadotApp: App
+    apps: Array<Omit<App, 'id'> & { id: Exclude<AppId, 'polkadot'> }>
+    polkadotApp: Omit<App, 'id'> & { id: 'polkadot' }
     status?: AppStatus
     error?: string
     syncProgress: SyncProgress
@@ -100,7 +100,11 @@ const initialLedgerState: LedgerState = {
   },
   apps: {
     apps: [],
-    polkadotApp: polkadotAppConfig,
+    polkadotApp: {
+      name: polkadotAppConfig.name,
+      id: 'polkadot',
+      token: polkadotAppConfig.token,
+    },
     status: undefined,
     error: undefined,
     syncProgress: {
@@ -348,7 +352,11 @@ export const ledgerState$ = observable({
   clearSynchronization() {
     ledgerState$.apps.assign({
       apps: [],
-      polkadotApp: polkadotAppConfig,
+      polkadotApp: {
+        name: polkadotAppConfig.name,
+        id: 'polkadot',
+        token: polkadotAppConfig.token,
+      },
       status: undefined,
       error: undefined,
       syncProgress: {
@@ -498,6 +506,7 @@ export const ledgerState$ = observable({
         if (result.polkadotApp) {
           ledgerState$.apps.polkadotApp.set({
             ...result.polkadotApp,
+            id: 'polkadot',
             status: AppStatus.SYNCHRONIZED,
           })
         }
@@ -1018,6 +1027,7 @@ export const ledgerState$ = observable({
     try {
       // Get current synchronized apps
       const currentApps = ledgerState$.apps.apps.get()
+      const polkadotAddresses = ledgerState$.apps.polkadotApp.accounts.get()?.map(account => account.address) || []
 
       // Use the synchronization service to handle the deep scan process
       const result = await deepScanAllApps(
@@ -1025,6 +1035,7 @@ export const ledgerState$ = observable({
         accountIndices,
         addressIndices,
         currentApps,
+        polkadotAddresses,
         // Progress callback
         progress => {
           ledgerState$.deepScan.progress.set(progress)
@@ -1123,6 +1134,7 @@ export const ledgerState$ = observable({
       if (hasNewPolkadotAccounts && needsPolkadotUpdate && result.polkadotApp) {
         ledgerState$.apps.polkadotApp.set({
           ...result.polkadotApp,
+          id: 'polkadot',
           status: AppStatus.SYNCHRONIZED,
         })
       }

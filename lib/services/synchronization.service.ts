@@ -443,6 +443,7 @@ export async function deepScanAllApps(
   accountIndices: number[],
   addressIndices: number[],
   currentApps: App[],
+  preloadedPolkadotAddresses: string[],
   onProgress?: (progress: SyncProgress) => void,
   onCancel?: () => boolean,
   onAppStart?: (app: App & { originalAccountCount: number }) => void,
@@ -459,11 +460,11 @@ export async function deepScanAllApps(
     }
 
     // Get polkadot addresses for cross-chain migration
-    const polkadotAddresses: string[] = []
-    let polkadotApp = currentApps.find(app => app.id === 'polkadot')
+    let polkadotAddresses: string[] = preloadedPolkadotAddresses
+    let polkadotApp: App | undefined
 
     // If Polkadot addresses are not available, synchronize them first
-    if (!polkadotApp?.accounts || polkadotApp.accounts.length === 0) {
+    if (!polkadotAddresses || polkadotAddresses.length === 0) {
       console.debug('[deepScanAllApps] No Polkadot addresses found in current apps. Synchronizing Polkadot accounts...')
 
       polkadotApp = await synchronizePolkadotAccounts(onCancel)
@@ -478,7 +479,7 @@ export async function deepScanAllApps(
 
     // Extract addresses
     if (polkadotApp?.accounts) {
-      polkadotAddresses.push(...polkadotApp.accounts.map(account => account.address))
+      polkadotAddresses = polkadotApp.accounts.map(account => account.address)
     }
 
     // Get all scannable apps (apps with valid RPC endpoints)
@@ -952,9 +953,6 @@ export async function synchronizeAllApps(
 
     // Collect results (apps have already been notified individually)
     const synchronizedApps: App[] = results.map(result => result.app)
-
-    // Add the Polkadot app to the final results
-    synchronizedApps.push(polkadotApp)
 
     console.debug(
       `[synchronizeAllApps] Synchronization completed at ${new Date().toISOString()}. Total apps synchronized: ${synchronizedApps.length}.`
