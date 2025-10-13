@@ -92,6 +92,12 @@ interface LedgerState {
   polkadotAddresses: Partial<Record<AppId, string[]>>
 }
 
+const initialPolkadotApp = {
+  name: polkadotAppConfig.name,
+  id: 'polkadot' as const,
+  token: polkadotAppConfig.token,
+}
+
 const initialLedgerState: LedgerState = {
   device: {
     connection: undefined,
@@ -100,11 +106,7 @@ const initialLedgerState: LedgerState = {
   },
   apps: {
     apps: [],
-    polkadotApp: {
-      name: polkadotAppConfig.name,
-      id: 'polkadot',
-      token: polkadotAppConfig.token,
-    },
+    polkadotApp: initialPolkadotApp,
     status: undefined,
     error: undefined,
     syncProgress: {
@@ -352,11 +354,7 @@ export const ledgerState$ = observable({
   clearSynchronization() {
     ledgerState$.apps.assign({
       apps: [],
-      polkadotApp: {
-        name: polkadotAppConfig.name,
-        id: 'polkadot',
-        token: polkadotAppConfig.token,
-      },
+      polkadotApp: initialPolkadotApp,
       status: undefined,
       error: undefined,
       syncProgress: {
@@ -373,6 +371,7 @@ export const ledgerState$ = observable({
       },
       currentMigratedItem: undefined,
     })
+    console.log('ssssssss ', ledgerState$.apps.get())
     ledgerState$.polkadotAddresses.set({})
   },
 

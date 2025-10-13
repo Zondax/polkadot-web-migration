@@ -302,8 +302,11 @@ describe('Synchronization Service', () => {
       const result = await synchronizeAllApps(progressCallback, cancelCallback, appStartCallback, appCompleteCallback)
 
       expect(result.success).toBe(true)
-      expect(result.apps).toHaveLength(2) // polkadot and kusama
+      expect(result.apps).toHaveLength(1) // only kusama, polkadot is saved separately
+      expect(result.apps.some(app => app.id === 'kusama')).toBe(true)
+      expect(result.apps.some(app => app.id === 'polkadot')).toBe(false)
       expect(result.polkadotApp).toBeDefined()
+      expect(result.polkadotApp?.id).toBe('polkadot')
       expect(progressCallback).toHaveBeenCalled()
       expect(appStartCallback).toHaveBeenCalled()
       expect(appCompleteCallback).toHaveBeenCalled()
