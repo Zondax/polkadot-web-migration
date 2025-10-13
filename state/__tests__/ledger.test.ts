@@ -64,6 +64,7 @@ vi.mock('@/lib/utils/balance', () => ({
 vi.mock('@/lib/utils/ledger', () => ({
   filterAccountsForApps: vi.fn(accounts => accounts),
   setDefaultDestinationAddress: vi.fn(),
+  canAccountBeMigrated: vi.fn(() => false),
 }))
 
 // handleErrorNotification is now internal to ledger state
@@ -752,10 +753,10 @@ describe('Ledger State', () => {
     })
 
     it('should handle migrateSelected with accounts that have balance and are selected', async () => {
-      const { hasAddressBalance } = await import('@/lib/utils/balance')
+      const { canAccountBeMigrated } = await import('@/lib/utils/ledger')
 
-      // Mock hasAddressBalance to return true
-      vi.mocked(hasAddressBalance).mockReturnValue(true)
+      // Mock canAccountBeMigrated to return true
+      vi.mocked(canAccountBeMigrated).mockReturnValue(true)
 
       // Set up apps with accounts that have balance and are selected
       ledgerState$.apps.apps.set([
@@ -780,7 +781,7 @@ describe('Ledger State', () => {
 
       await ledgerState$.migrateSelected(true)
 
-      expect(hasAddressBalance).toHaveBeenCalled()
+      expect(canAccountBeMigrated).toHaveBeenCalled()
       expect(ledgerState$.apps.migrationResult.get().total).toBe(0) // Reset at start
     })
   })
@@ -813,10 +814,10 @@ describe('Ledger State', () => {
     })
 
     it('should handle migrateSelected with successful migration flows', async () => {
-      const { hasAddressBalance } = await import('@/lib/utils/balance')
+      const { canAccountBeMigrated } = await import('@/lib/utils/ledger')
 
-      // Mock hasAddressBalance to return true
-      vi.mocked(hasAddressBalance).mockReturnValue(true)
+      // Mock canAccountBeMigrated to return true
+      vi.mocked(canAccountBeMigrated).mockReturnValue(true)
 
       // Set up apps with accounts that have balance and are selected
       ledgerState$.apps.apps.set([
@@ -844,7 +845,7 @@ describe('Ledger State', () => {
 
       await ledgerState$.migrateSelected(true)
 
-      expect(hasAddressBalance).toHaveBeenCalled()
+      expect(canAccountBeMigrated).toHaveBeenCalled()
     })
 
     it('should handle synchronizeAccounts with actual app processing', async () => {
