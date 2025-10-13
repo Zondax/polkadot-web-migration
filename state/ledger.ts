@@ -1,28 +1,28 @@
+import { observable } from '@legendapp/state'
+import type { BN } from '@polkadot/util'
+import { type AppId, appsConfigs, polkadotAppConfig } from 'config/apps'
+import { errorDetails, InternalErrorType } from 'config/errors'
 import type { MultisigCallFormData } from '@/components/sections/migrate/dialogs/approve-multisig-call-dialog'
 import type { Token } from '@/config/apps'
 import { getApiAndProvider, getBalance, type UpdateTransactionStatus } from '@/lib/account'
 import type { DeviceConnectionProps } from '@/lib/ledger/types'
 import { deepScanAllApps, getAppsToSkipMigration, synchronizeAllApps, synchronizeAppAccounts } from '@/lib/services/synchronization.service'
-import { interpretError, type InternalError } from '@/lib/utils'
+import { type InternalError, interpretError } from '@/lib/utils'
 import { isMultisigAddress } from '@/lib/utils/address'
-import { hasAddressBalance } from '@/lib/utils/balance'
-import { observable } from '@legendapp/state'
-import type { BN } from '@polkadot/util'
-import { appsConfigs, polkadotAppConfig, type AppId } from 'config/apps'
-import { InternalErrorType, errorDetails } from 'config/errors'
+import { canAccountBeMigrated } from '@/lib/utils/ledger'
 import { ledgerClient } from './client/ledger'
 import { errorsToStopSync } from './config/ledger'
 import { notifications$ } from './notifications'
 import {
   AccountType,
-  AddressStatus,
-  FetchingAddressesPhase,
-  TransactionStatus,
   type Address,
+  AddressStatus,
   type Collection,
+  FetchingAddressesPhase,
   type MigratingItem,
   type MultisigAddress,
   type SyncProgress,
+  TransactionStatus,
   type UpdateMigratedStatusFn,
 } from './types/ledger'
 
@@ -710,7 +710,7 @@ export const ledgerState$ = observable({
   },
 
   // Migrate selected accounts
-  async migrateSelected(selectedOnly = true) {
+  async migrateSelected() {
     // Reset migration result
     ledgerState$.apps.migrationResult.set({ success: 0, fails: 0, total: 0 })
 
@@ -724,10 +724,10 @@ export const ledgerState$ = observable({
       for (const app of apps) {
         if ((!app.accounts || app.accounts.length === 0) && (!app.multisigAccounts || app.multisigAccounts.length === 0)) continue
 
-        // Get accounts that need migration
-        const accountsToMigrate: (Address | MultisigAddress)[] = [...(app.accounts || []), ...(app.multisigAccounts || [])]
-          // Skip accounts that are already migrated or have no balance
-          .filter(account => account.status !== 'migrated' && hasAddressBalance(account) && (!selectedOnly || account.selected))
+        // Get accounts that need migration - using unified validation logic
+        const accountsToMigrate: (Address | MultisigAddress)[] = [...(app.accounts || []), ...(app.multisigAccounts || [])].filter(
+          account => canAccountBeMigrated(account)
+        )
 
         if (accountsToMigrate.length === 0) continue
 
