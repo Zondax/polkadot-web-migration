@@ -75,6 +75,39 @@ export const filterValidSyncedAppsWithBalances = (apps: App[]): App[] => {
 }
 
 /**
+ * Checks if a single account meets ALL criteria for migration.
+ * This is the single source of truth for migration eligibility.
+ *
+ * @param account - The account to check (Address or MultisigAddress)
+ * @param checkSelected - Whether to check if account is selected (default: true)
+ * @returns true if the account can be migrated, false otherwise
+ */
+export const canAccountBeMigrated = (account: Address | MultisigAddress) => {
+  // Must be selected (unless explicitly skipped)
+  if (!account.selected) return false
+
+  // Must not be already migrated
+  if (account.status === 'migrated') return false
+
+  // Must have balances
+  if (!account.balances || account.balances.length === 0) return false
+
+  // Allow accounts with migration errors, but not other errors
+  if (account.error && account.error.source !== 'migration') return false
+
+  // ALL balances must meet migration criteria
+  return account.balances.every(balance => {
+    // Must have transferable balance
+    if (!hasBalance([balance], true)) return false
+
+    // Must have destination address - THIS IS THE KEY CHECK!
+    if (!balance.transaction?.destinationAddress) return false
+
+    return true
+  })
+}
+
+/**
  * Filters apps to only include those that have accounts that can be migrated.
  * This function filters for accounts that are selected and have a balance and destination address.
  *
@@ -85,22 +118,8 @@ export const filterValidSelectedAccountsForMigration = (apps: App[]): App[] => {
   const filteredApps = apps
     .map(app => ({
       ...app,
-      accounts:
-        app.accounts?.filter(
-          account =>
-            account.selected &&
-            (!account.error || account.error?.source === 'migration') &&
-            account.balances &&
-            account.balances.some(balance => hasBalance([balance], true) && balance.transaction?.destinationAddress)
-        ) || [],
-      multisigAccounts:
-        app.multisigAccounts?.filter(
-          account =>
-            account.selected &&
-            (!account.error || account.error?.source === 'migration') &&
-            account.balances &&
-            account.balances.some(balance => hasBalance([balance], true) && balance.transaction?.destinationAddress)
-        ) || [],
+      accounts: app.accounts?.filter(account => canAccountBeMigrated(account)) || [],
+      multisigAccounts: app.multisigAccounts?.filter(account => canAccountBeMigrated(account)) || [],
     }))
     .filter(app => app.accounts.length > 0 || app.multisigAccounts?.length > 0)
 
