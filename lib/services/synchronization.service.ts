@@ -384,7 +384,7 @@ export async function synchronizePolkadotAccounts(onCancel?: () => boolean, prel
       name: appConfig.name,
       id: appConfig.id,
       token: appConfig.token,
-      status: AppStatus.SYNCHRONIZED,
+      status: AppStatus.NO_NEED_MIGRATION,
       accounts,
     }
   } catch (error) {
