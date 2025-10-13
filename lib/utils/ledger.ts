@@ -1,11 +1,13 @@
+import { getValidApps } from '@/lib/services/synchronization.service'
+import type { AppDisplayInfo, DeepScanAppDisplayInfo } from '@/lib/types/app-display'
 import axios from 'axios'
-import { type App, AppStatus } from 'state/ledger'
+import { AppStatus, type App } from 'state/ledger'
 import {
+  VerificationStatus,
   type Address,
   type AddressBalance,
   type AddressWithVerificationStatus,
   type MultisigAddress,
-  VerificationStatus,
 } from 'state/types/ledger'
 import { hasAddressBalance, hasBalance } from './balance'
 
@@ -177,6 +179,85 @@ export const hasAppAccounts = (app: App): boolean => {
  */
 export const getAppTotalAccounts = (app: App): number => {
   return (app.accounts?.length || 0) + (app.multisigAccounts?.length || 0)
+}
+
+/**
+ * Prepare apps for display by combining config apps with sync status
+ * and account counts from apps with balances.
+ *
+ * This function is useful for displaying app status in loading screens and grids.
+ *
+ * @param apps - All synchronized apps
+ * @param appsWithoutErrors - Apps that were validly synchronized and have balances
+ * @returns Array of lightweight app display information
+ */
+export function prepareDisplayApps(apps: App[], appsWithoutErrors: App[]): AppDisplayInfo[] {
+  const configApps = getValidApps()
+
+  return configApps.map(config => {
+    // Find app with balances for account counts
+    const appWithBalances = appsWithoutErrors.find(app => app.id === config.id)
+
+    if (appWithBalances) {
+      const accountCount = appWithBalances.accounts?.length || 0
+      const multisigAccountCount = appWithBalances.multisigAccounts?.length || 0
+      const totalTransactions = accountCount + multisigAccountCount
+
+      return {
+        id: appWithBalances.id,
+        name: appWithBalances.name,
+        status: appWithBalances.status,
+        totalTransactions,
+      }
+    }
+
+    // Find synced app for status
+    const syncedApp = apps.find(app => app.id === config.id)
+
+    if (syncedApp) {
+      const accountCount = syncedApp.accounts?.length || 0
+      const multisigAccountCount = syncedApp.multisigAccounts?.length || 0
+      const totalTransactions = accountCount + multisigAccountCount
+
+      return {
+        id: syncedApp.id,
+        name: syncedApp.name,
+        status: syncedApp.status,
+        totalTransactions,
+      }
+    }
+
+    // App not yet scanned/loading
+    return {
+      id: config.id,
+      name: config.name,
+      status: undefined,
+      totalTransactions: 0,
+    }
+  })
+}
+
+/**
+ * Prepare deep scan apps for display with original account counts
+ * for comparison and showing new accounts found.
+ *
+ * @param deepScanApps - Apps from deep scan with originalAccountCount
+ * @returns Array of lightweight app display information for deep scan
+ */
+export function prepareDeepScanDisplayApps(deepScanApps: (App & { originalAccountCount: number })[]): DeepScanAppDisplayInfo[] {
+  return deepScanApps.map(app => {
+    const accountCount = app.accounts?.length || 0
+    const multisigAccountCount = app.multisigAccounts?.length || 0
+    const totalTransactions = accountCount + multisigAccountCount
+
+    return {
+      id: app.id,
+      name: app.name,
+      status: app.status,
+      totalTransactions,
+      originalAccountCount: app.originalAccountCount,
+    }
+  })
 }
 
 /**

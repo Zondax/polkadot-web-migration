@@ -55,12 +55,13 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
     isDeepScanCancelling,
     isDeepScanCompleted,
     deepScanProgress,
-    deepScanApps,
+    deepScanDisplayApps,
 
     // Computed values
     hasAccountsWithErrors: accountsWithErrors,
     filteredAppsWithoutErrors: appsWithoutErrors,
     filteredAppsWithErrors: appsWithErrors,
+    displayApps,
     polkadotAddresses,
 
     // Actions
@@ -303,7 +304,7 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
           <Progress value={syncProgress.percentage} data-testid="app-sync-progress-bar" />
           <LedgerUnlockReminder isVisible={isFetchingAddresses} />
           <div className="pt-2">
-            <AppScanningGrid />
+            <AppScanningGrid apps={displayApps} />
           </div>
         </div>
       )}
@@ -408,7 +409,7 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
         isCancelling={isDeepScanCancelling}
         isCompleted={isDeepScanCompleted}
         progress={deepScanProgress}
-        scanningApps={deepScanApps}
+        scanningApps={deepScanDisplayApps}
         onCancel={handleCancelDeepScan}
         onDone={handleDeepScanDone}
       />
