@@ -1,3 +1,4 @@
+import { polkadotAppConfig } from '@/config/apps'
 import { getValidApps } from '@/lib/services/synchronization.service'
 import type { AppDisplayInfo, DeepScanAppDisplayInfo } from '@/lib/types/app-display'
 import axios from 'axios'
@@ -194,7 +195,7 @@ export const getAppTotalAccounts = (app: App): number => {
 export function prepareDisplayApps(apps: App[], appsWithoutErrors: App[]): AppDisplayInfo[] {
   const configApps = getValidApps()
 
-  return configApps.map(config => {
+  return [...configApps, polkadotAppConfig].map(config => {
     // Find synced app
     const syncedApp = apps.find(app => app.id === config.id)
     let totalAccounts = 0

@@ -805,6 +805,15 @@ export async function synchronizeAllApps(
     const polkadotAddressesFromLedger = await fetchAddressesFromLedger(polkadotAppConfig, onCancel)
     const polkadotAddresses = polkadotAddressesFromLedger.map(account => account.address)
 
+    // Notify Polkadot app
+    onAppStart?.({
+      id: polkadotAppConfig.id,
+      name: polkadotAppConfig.name,
+      token: polkadotAppConfig.token,
+      status: AppStatus.NO_NEED_MIGRATION,
+    })
+
+    // Notify that apps that don't need migration
     const appsToBeSkipped = getAppsToSkipMigration()
     for (const appConfig of appsToBeSkipped) {
       onAppStart?.({

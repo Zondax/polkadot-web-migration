@@ -1,28 +1,28 @@
-import { observable } from '@legendapp/state'
-import type { BN } from '@polkadot/util'
-import { type AppId, appsConfigs, polkadotAppConfig } from 'config/apps'
-import { errorDetails, InternalErrorType } from 'config/errors'
 import type { MultisigCallFormData } from '@/components/sections/migrate/dialogs/approve-multisig-call-dialog'
 import type { Token } from '@/config/apps'
 import { getApiAndProvider, getBalance, type UpdateTransactionStatus } from '@/lib/account'
 import type { DeviceConnectionProps } from '@/lib/ledger/types'
 import { deepScanAllApps, getAppsToSkipMigration, synchronizeAllApps, synchronizeAppAccounts } from '@/lib/services/synchronization.service'
-import { type InternalError, interpretError } from '@/lib/utils'
+import { interpretError, type InternalError } from '@/lib/utils'
 import { isMultisigAddress } from '@/lib/utils/address'
 import { canAccountBeMigrated } from '@/lib/utils/ledger'
+import { computed, observable } from '@legendapp/state'
+import type { BN } from '@polkadot/util'
+import { appsConfigs, polkadotAppConfig, type AppId } from 'config/apps'
+import { InternalErrorType, errorDetails } from 'config/errors'
 import { ledgerClient } from './client/ledger'
 import { errorsToStopSync } from './config/ledger'
 import { notifications$ } from './notifications'
 import {
   AccountType,
-  type Address,
   AddressStatus,
-  type Collection,
   FetchingAddressesPhase,
+  TransactionStatus,
+  type Address,
+  type Collection,
   type MigratingItem,
   type MultisigAddress,
   type SyncProgress,
-  TransactionStatus,
   type UpdateMigratedStatusFn,
 } from './types/ledger'
 
@@ -59,16 +59,18 @@ export interface App {
   }
 }
 
+type MigrationResultKey = 'success' | 'fails' | 'total'
+type AppWithoutPolkadot = Omit<App, 'id'> & { id: Exclude<AppId, 'polkadot'> }
+type PolkadotApp = Omit<App, 'id'> & { id: 'polkadot' }
+
 export interface DeepScan {
   isScanning: boolean
   isCancelling: boolean
   isCompleted: boolean
   cancelRequested: boolean
   progress: SyncProgress
-  apps: (App & { originalAccountCount: number })[]
+  apps: Array<AppWithoutPolkadot & { originalAccountCount: number }>
 }
-
-type MigrationResultKey = 'success' | 'fails' | 'total'
 
 interface LedgerState {
   device: {
@@ -77,8 +79,8 @@ interface LedgerState {
     error?: string
   }
   apps: {
-    apps: Array<Omit<App, 'id'> & { id: Exclude<AppId, 'polkadot'> }>
-    polkadotApp: Omit<App, 'id'> & { id: 'polkadot' }
+    apps: Array<AppWithoutPolkadot>
+    polkadotApp: PolkadotApp
     status?: AppStatus
     error?: string
     syncProgress: SyncProgress
@@ -480,7 +482,11 @@ export const ledgerState$ = observable({
         () => ledgerState$.apps.isSyncCancelRequested.get(),
         // App start callback - add app with loading status
         loadingApp => {
-          ledgerState$.apps.apps.push(loadingApp)
+          if (loadingApp.id === 'polkadot') {
+            ledgerState$.apps.polkadotApp.set({ ...loadingApp, id: 'polkadot' })
+          } else {
+            ledgerState$.apps.apps.push(loadingApp)
+          }
         },
         // Processing accounts start callback
         () => {
@@ -1181,4 +1187,14 @@ export const ledgerState$ = observable({
       ledgerState$.deepScan.cancelRequested.set(false)
     }
   },
+})
+
+/**
+ * Computed observable that combines apps and polkadotApp into a single array.
+ * This computed value is memoized and only recalculates when the underlying apps change,
+ * preventing unnecessary re-renders in components that consume this data.
+ */
+export const allApps$ = computed(() => {
+  const { apps, polkadotApp } = ledgerState$.apps.get()
+  return [...apps, polkadotApp]
 })

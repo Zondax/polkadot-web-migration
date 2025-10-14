@@ -1,6 +1,6 @@
 import { use$, useObservable } from '@legendapp/state/react'
 import { useCallback, useState } from 'react'
-import { AppStatus, ledgerState$, type App } from 'state/ledger'
+import { AppStatus, allApps$, ledgerState$, type App } from 'state/ledger'
 
 import type { AppId } from '@/config/apps'
 import type { AppDisplayInfo, DeepScanAppDisplayInfo } from '@/lib/types/app-display'
@@ -109,7 +109,7 @@ export const useSynchronization = (): UseSynchronizationReturn => {
   const accountsWithErrors = use$(() => hasAccountsWithErrors(apps))
   const appsWithoutErrors = use$(() => filterValidSyncedAppsWithBalances(apps))
   const appsWithErrors = use$(() => filterInvalidSyncedApps(apps))
-  const displayApps = use$(() => prepareDisplayApps(apps, appsWithoutErrors))
+  const displayApps = use$(() => prepareDisplayApps(allApps$.get(), appsWithoutErrors))
   const deepScanDisplayApps = use$(() => prepareDeepScanDisplayApps(deepScanApps))
 
   const hasMultisigAccounts = apps.some(
