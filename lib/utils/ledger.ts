@@ -119,12 +119,14 @@ export const canAccountBeMigrated = (account: Address | MultisigAddress) => {
  * @returns Apps with accounts that can be migrated.
  */
 export const filterValidSelectedAccountsForMigration = (apps: App[]): App[] => {
+  const isAccountReadyForMigrationView = (account: Address | MultisigAddress) =>
+    account.status === AddressStatus.MIGRATED || canAccountBeMigrated(account)
+
   const filteredApps = apps
     .map(app => ({
       ...app,
-      accounts: app.accounts?.filter(account => account.status === AddressStatus.MIGRATED || canAccountBeMigrated(account)) || [],
-      multisigAccounts:
-        app.multisigAccounts?.filter(account => account.status === AddressStatus.MIGRATED || canAccountBeMigrated(account)) || [],
+      accounts: app.accounts?.filter(isAccountReadyForMigrationView) || [],
+      multisigAccounts: app.multisigAccounts?.filter(isAccountReadyForMigrationView) || [],
     }))
     .filter(app => app.accounts.length > 0 || app.multisigAccounts?.length > 0)
 
