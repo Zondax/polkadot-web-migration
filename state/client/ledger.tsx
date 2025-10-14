@@ -1,7 +1,16 @@
+import type { SubmittableExtrinsic } from '@polkadot/api/types'
+import type { Multisig } from '@polkadot/types/interfaces'
+import type { ISubmittableResult } from '@polkadot/types/types/extrinsic'
+import type { Option } from '@polkadot/types-codec'
+import { BN } from '@polkadot/util'
+import { type AppConfig, type AppId, appsConfigs } from 'config/apps'
+import { maxAddressesToFetch } from 'config/config'
+import { InternalErrorType } from 'config/errors'
 import {
   createSignedExtrinsic,
   getApiAndProvider,
   getTxFee,
+  type PreparedTransactionPayload,
   prepareApproveAsMultiTx,
   prepareAsMultiTx,
   prepareNestedAsMultiTx,
@@ -14,32 +23,23 @@ import {
   prepareUnstakeTransaction,
   prepareWithdrawTransaction,
   submitAndHandleTransaction,
-  validateCallDataMatchesHash,
-  type PreparedTransactionPayload,
   type UpdateTransactionStatus,
+  validateCallDataMatchesHash,
 } from '@/lib/account'
 import { ledgerService } from '@/lib/ledger/ledgerService'
 import type { ConnectionResponse } from '@/lib/ledger/types'
 import { InternalError, withErrorHandling } from '@/lib/utils'
 import { updateBip44PathIndices } from '@/lib/utils/address'
 import { getAccountTransferableBalance } from '@/lib/utils/balance'
-import type { SubmittableExtrinsic } from '@polkadot/api/types'
-import type { Option } from '@polkadot/types-codec'
-import type { Multisig } from '@polkadot/types/interfaces'
-import type { ISubmittableResult } from '@polkadot/types/types/extrinsic'
-import { BN } from '@polkadot/util'
-import { appsConfigs, type AppConfig, type AppId } from 'config/apps'
-import { maxAddressesToFetch } from 'config/config'
-import { InternalErrorType } from 'config/errors'
 import {
-  TransactionStatus,
   type Address,
   type MultisigAddress,
   type PreTxInfo,
   type TransactionDetails,
+  TransactionStatus,
   type UpdateMigratedStatusFn,
 } from '../types/ledger'
-import { validateApproveAsMultiParams, validateAsMultiParams, validateMigrationParams, type ValidateApproveAsMultiResult } from './helpers'
+import { type ValidateApproveAsMultiResult, validateApproveAsMultiParams, validateAsMultiParams, validateMigrationParams } from './helpers'
 
 export const ledgerClient = {
   // Device operations
@@ -887,6 +887,7 @@ export const ledgerClient = {
         errorCode: InternalErrorType.MULTISIG_TRANSFER_ERROR,
         operation: 'signMultisigTransferTx',
         context: { appId, account, recipient, signer, transferAmount },
+        useOriginalMessage: true,
       }
     )
   },

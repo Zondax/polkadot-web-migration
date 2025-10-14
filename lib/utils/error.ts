@@ -53,9 +53,15 @@ export class InternalError extends Error {
  * Interprets a \@zondax/ledger-js error and returns a detailed error object.
  *
  * @param error - The error to map.
+ * @param defaultError - The default error type to use if the specific error cannot be resolved.
+ * @param useOriginalMessage - If true, uses the original error message instead of the generic description.
  * @returns The detailed error object.
  */
-export function interpretUnknownError(error: unknown, defaultError: InternalErrorType = InternalErrorType.UNKNOWN_ERROR): InternalError {
+export function interpretUnknownError(
+  error: unknown,
+  defaultError: InternalErrorType = InternalErrorType.UNKNOWN_ERROR,
+  useOriginalMessage = false
+): InternalError {
   // Handle other errors by converting to our format and add operation and context
   const errorName =
     error && typeof error === 'object' && 'name' in error && typeof (error as any).name === 'string'
@@ -75,7 +81,14 @@ export function interpretUnknownError(error: unknown, defaultError: InternalErro
     errorMessage,
   })
 
-  return new InternalError(defaultError)
+  const internalError = new InternalError(defaultError)
+
+  // Override description with original message if flag is set
+  if (useOriginalMessage && errorMessage) {
+    internalError.description = errorMessage
+  }
+
+  return internalError
 }
 
 /**
@@ -94,9 +107,10 @@ export function interpretLedgerJsError(error: ResponseError): InternalError {
  *
  * @param error - The error to map.
  * @param defaultError - The default error type to use if the specific error cannot be resolved.
+ * @param useOriginalMessage - If true, uses the original error message instead of the generic description.
  * @returns The detailed error object.
  */
-export function interpretLedgerClientError(error: unknown): InternalError {
+export function interpretLedgerClientError(error: unknown, useOriginalMessage = false): InternalError {
   // Handle our internal errors
   if (error instanceof InternalError) {
     return error
@@ -119,7 +133,7 @@ export function interpretLedgerClientError(error: unknown): InternalError {
     return interpretLedgerJsError(error)
   }
 
-  return interpretUnknownError(error)
+  return interpretUnknownError(error, InternalErrorType.UNKNOWN_ERROR, useOriginalMessage)
 }
 
 /**
@@ -127,15 +141,16 @@ export function interpretLedgerClientError(error: unknown): InternalError {
  *
  * @param error - The error to map.
  * @param defaultError - The default error type to use if the specific error cannot be resolved.
+ * @param useOriginalMessage - If true, uses the original error message instead of the generic description.
  * @returns The detailed error object.
  */
-export function interpretError(error: unknown, defaultError: InternalErrorType): InternalError {
+export function interpretError(error: unknown, defaultError: InternalErrorType, useOriginalMessage = false): InternalError {
   // Handle our internal errors
   if (error instanceof InternalError) {
     return error
   }
 
-  return interpretUnknownError(error, defaultError)
+  return interpretUnknownError(error, defaultError, useOriginalMessage)
 }
 
 /**
@@ -145,6 +160,7 @@ type WithErrorHandlingOptions = {
   errorCode: InternalErrorType
   operation?: string
   context?: Record<string, unknown>
+  useOriginalMessage?: boolean
 }
 
 /**
@@ -157,11 +173,11 @@ type WithErrorHandlingOptions = {
  * @param options - The options for the error handling.
  * @returns The detailed error object.
  */
-export const withErrorHandling = async <T>(fn: () => Promise<T>, { operation, context }: WithErrorHandlingOptions): Promise<T> => {
+export const withErrorHandling = async <T>(fn: () => Promise<T>, { operation, context, useOriginalMessage=false }: WithErrorHandlingOptions): Promise<T> => {
   try {
     return await fn()
   } catch (error: unknown) {
-    const internalError = interpretLedgerClientError(error)
+    const internalError = interpretLedgerClientError(error, useOriginalMessage)
 
     internalError.operation = internalError.operation || operation
     internalError.context = internalError.context || context
