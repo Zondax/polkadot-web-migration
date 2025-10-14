@@ -384,7 +384,7 @@ export async function synchronizePolkadotAccounts(onCancel?: () => boolean, prel
       name: appConfig.name,
       id: appConfig.id,
       token: appConfig.token,
-      status: AppStatus.SYNCHRONIZED,
+      status: AppStatus.NO_NEED_MIGRATION,
       accounts,
     }
   } catch (error) {
@@ -443,6 +443,7 @@ export async function deepScanAllApps(
   accountIndices: number[],
   addressIndices: number[],
   currentApps: App[],
+  preloadedPolkadotAddresses: string[],
   onProgress?: (progress: SyncProgress) => void,
   onCancel?: () => boolean,
   onAppStart?: (app: App & { originalAccountCount: number }) => void,
@@ -459,11 +460,11 @@ export async function deepScanAllApps(
     }
 
     // Get polkadot addresses for cross-chain migration
-    const polkadotAddresses: string[] = []
-    let polkadotApp = currentApps.find(app => app.id === 'polkadot')
+    let polkadotAddresses: string[] = preloadedPolkadotAddresses
+    let polkadotApp: App | undefined
 
     // If Polkadot addresses are not available, synchronize them first
-    if (!polkadotApp?.accounts || polkadotApp.accounts.length === 0) {
+    if (!polkadotAddresses || polkadotAddresses.length === 0) {
       console.debug('[deepScanAllApps] No Polkadot addresses found in current apps. Synchronizing Polkadot accounts...')
 
       polkadotApp = await synchronizePolkadotAccounts(onCancel)
@@ -478,7 +479,7 @@ export async function deepScanAllApps(
 
     // Extract addresses
     if (polkadotApp?.accounts) {
-      polkadotAddresses.push(...polkadotApp.accounts.map(account => account.address))
+      polkadotAddresses = polkadotApp.accounts.map(account => account.address)
     }
 
     // Get all scannable apps (apps with valid RPC endpoints)
@@ -804,6 +805,15 @@ export async function synchronizeAllApps(
     const polkadotAddressesFromLedger = await fetchAddressesFromLedger(polkadotAppConfig, onCancel)
     const polkadotAddresses = polkadotAddressesFromLedger.map(account => account.address)
 
+    // Notify Polkadot app
+    onAppStart?.({
+      id: polkadotAppConfig.id,
+      name: polkadotAppConfig.name,
+      token: polkadotAppConfig.token,
+      status: AppStatus.NO_NEED_MIGRATION,
+    })
+
+    // Notify that apps that don't need migration
     const appsToBeSkipped = getAppsToSkipMigration()
     for (const appConfig of appsToBeSkipped) {
       onAppStart?.({
@@ -952,9 +962,6 @@ export async function synchronizeAllApps(
 
     // Collect results (apps have already been notified individually)
     const synchronizedApps: App[] = results.map(result => result.app)
-
-    // Add the Polkadot app to the final results
-    synchronizedApps.push(polkadotApp)
 
     console.debug(
       `[synchronizeAllApps] Synchronization completed at ${new Date().toISOString()}. Total apps synchronized: ${synchronizedApps.length}.`

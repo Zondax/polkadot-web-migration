@@ -1,3 +1,4 @@
+import { polkadotAppConfig } from '@/config/apps'
 import { getValidApps } from '@/lib/services/synchronization.service'
 import type { AppDisplayInfo, DeepScanAppDisplayInfo } from '@/lib/types/app-display'
 import axios from 'axios'
@@ -186,6 +187,7 @@ export const getAppTotalAccounts = (app: App): number => {
  * and account counts from apps with balances.
  *
  * This function is useful for displaying app status in loading screens and grids.
+ * Polkadot is included because it is also synchronized.
  *
  * @param apps - All synchronized apps
  * @param appsWithoutErrors - Apps that were validly synchronized and have balances
@@ -194,7 +196,7 @@ export const getAppTotalAccounts = (app: App): number => {
 export function prepareDisplayApps(apps: App[], appsWithoutErrors: App[]): AppDisplayInfo[] {
   const configApps = getValidApps()
 
-  return configApps.map(config => {
+  return [...configApps, polkadotAppConfig].map(config => {
     // Find synced app
     const syncedApp = apps.find(app => app.id === config.id)
     let totalAccounts = 0

@@ -58,7 +58,6 @@ vi.mock('../balance', () => ({
 // Mock synchronization service
 vi.mock('@/lib/services/synchronization.service', () => ({
   getValidApps: vi.fn(() => [
-    { id: 'polkadot', name: 'Polkadot' },
     { id: 'kusama', name: 'Kusama' },
     { id: 'westend', name: 'Westend' },
   ]),

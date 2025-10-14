@@ -7,7 +7,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { AppId } from '@/config/apps'
-import { polkadotAppConfig } from '@/config/apps'
 import { getAppsToSkipMigration, getValidApps } from '@/lib/services/synchronization.service'
 import type { RangeField, ScanType } from '@/lib/types/scan'
 import { RangeFieldEnum, SCAN_LIMITS, ScanTypeEnum } from '@/lib/types/scan'
@@ -73,11 +72,6 @@ export function DeepScanModal({
   // Get available chains from config
   const availableChains = useMemo(() => {
     const chains = getValidApps()
-    // Add polkadot if not already in the list
-    const hasPolkadot = chains.some(c => c.id === 'polkadot')
-    if (!hasPolkadot) {
-      chains.unshift(polkadotAppConfig)
-    }
     return chains
   }, [])
 
