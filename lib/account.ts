@@ -20,7 +20,7 @@ import type { AppConfig, AppId } from 'config/apps'
 import { DEFAULT_ERA_TIME_IN_HOURS, getEraTimeByAppId } from 'config/apps'
 import { MULTISIG_WEIGHT_BUFFER, defaultWeights } from 'config/config'
 import { InternalErrorType, errorDetails } from 'config/errors'
-import { errorAddresses, mockBalances } from 'config/mockData'
+import { MINIMUM_AMOUNT, errorAddresses, mockBalances } from 'config/mockData'
 import { getMultisigInfo } from 'lib/subscan'
 import {
   BalanceType,
@@ -43,7 +43,6 @@ import {
   type TransactionDetails,
 } from 'state/types/ledger'
 import { InternalError } from './utils'
-import { getActualTransferAmount, isFullMigration as isFullMigrationFn } from './utils/balance'
 import { isDevelopment } from './utils/env'
 
 /**
@@ -77,10 +76,31 @@ interface EventRecord {
 
 /**
  * DispatchError interface for transaction errors
+ * Represents all possible error types that can occur during transaction execution
  */
 interface DispatchError {
+  // Error type checkers
+  isOther: boolean
+  isCannotLookup: boolean
+  isBadOrigin: boolean
   isModule: boolean
-  asModule: any // Module-specific error data
+  isConsumerRemaining: boolean
+  isNoProviders: boolean
+  isToken: boolean
+  isArithmetic: boolean
+
+  // Error data accessors
+  asModule: {
+    index: { toNumber(): number }
+    error: { toNumber(): number; toHex(): string }
+  }
+  asToken: {
+    toString(): string
+  }
+  asArithmetic: {
+    toString(): string
+  }
+
   toString(): string
 }
 
@@ -423,7 +443,7 @@ export async function prepareTransaction(
         throw new Error('Invalid item: must provide destinationAddress for native transfer')
       }
       nativeTransfer = {
-        amount: getActualTransferAmount(balance),
+        amount: isDevelopment() && MINIMUM_AMOUNT ? new BN(MINIMUM_AMOUNT) : balance.balance.transferable,
         receiverAddress: balance.transaction.destinationAddress,
       }
     }
@@ -449,27 +469,22 @@ export async function prepareTransaction(
 
   // Handle native transfer last
   if (nativeTransfer !== undefined) {
-    // Determine if this is a full migration (transferring everything)
-    const isFullMigration = isFullMigrationFn(nativeTransfer.amount, transferableBalance)
+    // Build the transaction with the provided nativeAmount
+    const tempCalls = [...calls, api.tx.balances.transferKeepAlive(nativeTransfer.receiverAddress, nativeTransfer.amount)]
+    const tempTransfer = tempCalls.length > 1 ? api.tx.utility.batchAll(tempCalls) : tempCalls[0]
+    // Calculate the fee
+    const { partialFee: tempPartialFee } = await tempTransfer.paymentInfo(senderAddress)
+    partialFee = new BN(tempPartialFee)
 
-    if (isFullMigration) {
-      // Use transferAll - it automatically deducts fees
-      calls = [...calls, api.tx.balances.transferAll(nativeTransfer.receiverAddress, false)]
-      // Calculate the fee for validation and multisig purposes
-      const tempTransfer = calls.length > 1 ? api.tx.utility.batchAll(calls) : calls[0]
-      const { partialFee: tempPartialFee } = await tempTransfer.paymentInfo(senderAddress)
-      partialFee = new BN(tempPartialFee)
-      if (transferableBalance.lte(partialFee)) {
+    // Send the max amount of native tokens
+    if (nativeTransfer.amount.eq(transferableBalance)) {
+      nativeTransfer.amount = transferableBalance.sub(partialFee)
+      if (nativeTransfer.amount.lte(new BN(0))) {
         throw new InternalError(InternalErrorType.INSUFFICIENT_BALANCE)
       }
+      // Rebuild the calls with the adjusted amount
+      calls = [...calls, api.tx.balances.transferKeepAlive(nativeTransfer.receiverAddress, nativeTransfer.amount)]
     } else {
-      // Send a specific amount - calculate fee and use transferKeepAlive
-      // This handles: partial transfers, development mode with MINIMUM_AMOUNT
-      const tempCalls = [...calls, api.tx.balances.transferKeepAlive(nativeTransfer.receiverAddress, nativeTransfer.amount)]
-      const tempTransfer = tempCalls.length > 1 ? api.tx.utility.batchAll(tempCalls) : tempCalls[0]
-      const { partialFee: tempPartialFee } = await tempTransfer.paymentInfo(senderAddress)
-      partialFee = new BN(tempPartialFee)
-
       const totalNeeded = partialFee.add(nativeTransfer.amount)
       if (transferableBalance.lt(totalNeeded)) {
         throw new InternalError(InternalErrorType.INSUFFICIENT_BALANCE_TO_COVER_FEE)
@@ -598,6 +613,53 @@ export function createSignedExtrinsic(
   return transfer.addSignature(senderAddress, signature, payloadValue)
 }
 
+/**
+ * Parse DispatchError into a human-readable message
+ */
+function parseDispatchError(dispatchError: DispatchError, api: ApiPromise | any): string {
+  if (dispatchError.isModule) {
+    try {
+      const decoded = api.registry.findMetaError(dispatchError.asModule)
+      return `${decoded.section}.${decoded.name}: ${decoded.docs.join(' ')}`
+    } catch {
+      return `Module error: ${dispatchError.toString()}`
+    }
+  } else if (dispatchError.isToken) {
+    return `Token error: ${dispatchError.asToken.toString()}`
+  } else if (dispatchError.isArithmetic) {
+    return `Arithmetic error: ${dispatchError.asArithmetic.toString()}`
+  } else if (dispatchError.isBadOrigin) {
+    return 'Bad origin: Invalid caller for this transaction'
+  } else if (dispatchError.isCannotLookup) {
+    return 'Cannot lookup: Account lookup failed'
+  } else if (dispatchError.isConsumerRemaining) {
+    return 'Consumer remaining: Cannot remove account with remaining consumers'
+  } else if (dispatchError.isNoProviders) {
+    return 'No providers: Account has no providers'
+  }
+  return dispatchError.toString()
+}
+
+/**
+ * Parse error from catch block, which may contain error codes like 1010
+ */
+function parseTransactionError(error: any, api: ApiPromise): string {
+  // Check if error has dispatchError property (from send callback)
+  if (error?.dispatchError) {
+    return parseDispatchError(error.dispatchError as DispatchError, api)
+  }
+
+  // Check if error message contains error codes (e.g., "1010: Invalid Transaction")
+  const errorMessage = error?.message || error?.toString() || 'Unknown error'
+
+  // Common error patterns from Polkadot.js
+  if (errorMessage.includes('1010') || errorMessage.includes('Inability to pay some fees')) {
+    return 'Insufficient balance to pay transaction fees'
+  }
+
+  return `Error sending transaction: ${errorMessage}`
+}
+
 // Submit Transaction and Handle Status
 export async function submitAndHandleTransaction(
   transfer: SubmittableExtrinsic<'promise', ISubmittableResult>,
@@ -668,7 +730,7 @@ export async function submitAndHandleTransaction(
               blockNumber,
             })
             api.disconnect().catch(console.error)
-            reject(new Error(result.error)) // Reject with the specific error
+            // reject(new Error(result.error)) // Reject with the specific error
           } else {
             // Handle cases where result is undefined or doesn't have success/error
             updateStatus(TransactionStatus.ERROR, 'Unknown transaction status', {
@@ -677,14 +739,16 @@ export async function submitAndHandleTransaction(
               blockNumber,
             })
             api.disconnect().catch(console.error)
-            reject(new Error('Unknown transaction status'))
           }
         } else if (status.isError) {
           clearTimeout(timeoutId)
-          console.error('Transaction is error ', status.dispatchError)
-          updateStatus(TransactionStatus.ERROR, 'Transaction is error')
+          const errorMessage = status.dispatchError
+            ? parseDispatchError(status.dispatchError as unknown as DispatchError, api)
+            : 'Transaction is error'
+
+          console.error('Transaction is error ', status.dispatchError, errorMessage)
+          updateStatus(TransactionStatus.ERROR, errorMessage)
           api.disconnect().catch(console.error)
-          reject(new Error('Transaction is error'))
         } else if (status.isWarning) {
           console.debug('Transaction is warning')
           updateStatus(TransactionStatus.WARNING, 'Transaction is warning')
@@ -700,10 +764,11 @@ export async function submitAndHandleTransaction(
       })
       .catch((error: any) => {
         clearTimeout(timeoutId)
-        console.error('Error sending transaction:', error)
-        updateStatus(TransactionStatus.ERROR, 'Error sending transaction')
+        const errorMessage = parseTransactionError(error, api)
+        console.error('Error sending transaction:', error, errorMessage)
+        updateStatus(TransactionStatus.ERROR, errorMessage)
         api.disconnect().catch(console.error)
-        reject(error)
+        reject(new Error(errorMessage))
       })
   })
 }
@@ -733,16 +798,8 @@ export async function getTransactionDetails(
     } else if (apiAt.events.system.ExtrinsicFailed.is(event)) {
       console.debug('Transaction failed!')
       const [dispatchError] = event.data
-
       const typedDispatchError = dispatchError as unknown as DispatchError
-      if (typedDispatchError.isModule) {
-        // for module errors, we have the section indexed, lookup
-        const decoded = apiAt.registry.findMetaError(typedDispatchError.asModule)
-        errorInfo = `${decoded.section}.${decoded.name}: ${decoded.docs.join(' ')}`
-      } else {
-        // Other, CannotLookup, BadOrigin, no extra info
-        errorInfo = dispatchError.toString()
-      }
+      errorInfo = parseDispatchError(typedDispatchError, apiAt)
     }
   }
 
