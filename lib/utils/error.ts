@@ -173,7 +173,10 @@ type WithErrorHandlingOptions = {
  * @param options - The options for the error handling.
  * @returns The detailed error object.
  */
-export const withErrorHandling = async <T>(fn: () => Promise<T>, { operation, context, useOriginalMessage=false }: WithErrorHandlingOptions): Promise<T> => {
+export const withErrorHandling = async <T>(
+  fn: () => Promise<T>,
+  { operation, context, useOriginalMessage = false }: WithErrorHandlingOptions
+): Promise<T> => {
   try {
     return await fn()
   } catch (error: unknown) {
