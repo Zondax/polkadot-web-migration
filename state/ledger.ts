@@ -60,6 +60,7 @@ export interface App {
 }
 
 type MigrationResultKey = 'success' | 'fails' | 'total'
+
 type AppWithoutPolkadot = Omit<App, 'id'> & { id: Exclude<AppId, 'polkadot'> }
 type PolkadotApp = Omit<App, 'id'> & { id: 'polkadot' }
 
@@ -72,6 +73,17 @@ export interface DeepScan {
   apps: Array<AppWithoutPolkadot & { originalAccountCount: number }>
 }
 
+/**
+ * The state of the ledger.
+ *
+ * @property device - The state of the device.
+ * @property apps - The state of the apps.
+ * @property apps - The state of the apps.
+ *   @property apps - The state of the apps, excluding Polkadot.
+ *   @property polkadotApp - The state of the Polkadot app. Polkadot has a fundamental role as the "source of truth" for destination addresses, so it is handled differently.
+ * @property deepScan - The state of the deep scan.
+ * @property polkadotAddresses - The state of the polkadot addresses.
+ */
 interface LedgerState {
   device: {
     connection?: DeviceConnectionProps
@@ -373,7 +385,6 @@ export const ledgerState$ = observable({
       },
       currentMigratedItem: undefined,
     })
-    console.log('ssssssss ', ledgerState$.apps.get())
     ledgerState$.polkadotAddresses.set({})
   },
 

@@ -121,6 +121,7 @@ export const polkadotAppConfig: AppConfig = {
 
 /**
  * Typed app configurations
+ * Polkadot app config is treated separately
  */
 export const apps: AppConfig[] = [
   ...appsConfigData.map(app => ({

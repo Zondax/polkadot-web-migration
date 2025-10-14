@@ -187,6 +187,7 @@ export const getAppTotalAccounts = (app: App): number => {
  * and account counts from apps with balances.
  *
  * This function is useful for displaying app status in loading screens and grids.
+ * Polkadot is included because it is also synchronized.
  *
  * @param apps - All synchronized apps
  * @param appsWithoutErrors - Apps that were validly synchronized and have balances
