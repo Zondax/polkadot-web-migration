@@ -1,6 +1,7 @@
 'use client'
 
 import TokenIcon from '@/components/TokenIcon'
+import type { DeepScanAppDisplayInfo } from '@/lib/types/app-display'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Progress } from '@/components/ui/progress'
@@ -13,7 +14,6 @@ import { RangeFieldEnum, SCAN_LIMITS, ScanTypeEnum } from '@/lib/types/scan'
 import { cn } from '@/lib/utils'
 import { formatIndexDisplay, parseIndexConfig, validateIndexConfig } from '@/lib/utils/scan-indices'
 import { getSyncStatusLabel } from '@/lib/utils/sync-status'
-import type { App } from '@/state/ledger'
 import type { SyncProgress } from '@/state/types/ledger'
 import { use$ } from '@legendapp/state/react'
 import { useMemo, useState } from 'react'
@@ -30,7 +30,7 @@ interface DeepScanModalProps {
   isCancelling?: boolean
   isCompleted?: boolean
   progress?: SyncProgress
-  scanningApps?: App[]
+  scanningApps?: DeepScanAppDisplayInfo[]
   onCancel?: () => void
   onDone?: () => void
 }

@@ -54,6 +54,8 @@ vi.mock('@/lib/utils', () => ({
   filterInvalidSyncedApps: vi.fn(() => []),
   filterValidSyncedAppsWithBalances: vi.fn(() => []),
   hasAccountsWithErrors: vi.fn(() => false),
+  prepareDisplayApps: vi.fn(() => []),
+  prepareDeepScanDisplayApps: vi.fn(() => []),
 }))
 
 import { AppStatus, ledgerState$ } from '@/state/ledger'
@@ -84,13 +86,14 @@ describe('useSynchronization hook', () => {
       const { result } = renderHook(() => useSynchronization())
 
       expect(result.current).toBeDefined()
-      expect(Array.isArray(result.current.apps)).toBe(true)
+      expect(Array.isArray(result.current.displayApps)).toBe(true)
     })
 
     it('should provide essential properties', () => {
       const { result } = renderHook(() => useSynchronization())
 
-      expect(result.current.apps).toBeDefined()
+      expect(result.current.displayApps).toBeDefined()
+      expect(result.current.deepScanDisplayApps).toBeDefined()
       expect(result.current.syncProgress).toBeDefined()
       expect(result.current.polkadotAddresses).toBeDefined()
       // Other properties exist but may have varying types due to mocking
@@ -108,7 +111,7 @@ describe('useSynchronization hook', () => {
 
       const { result } = renderHook(() => useSynchronization())
 
-      expect(result.current.apps).toEqual([])
+      expect(result.current.displayApps).toEqual([])
     })
 
     it('should call cancelSynchronization', () => {
@@ -144,7 +147,7 @@ describe('useSynchronization hook', () => {
       const { result } = renderHook(() => useSynchronization())
 
       // Should handle gracefully without throwing
-      expect(result.current.apps).toBeDefined()
+      expect(result.current.displayApps).toBeDefined()
     })
   })
 

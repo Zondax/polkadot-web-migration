@@ -3,7 +3,14 @@ import { useCallback, useState } from 'react'
 import { AppStatus, ledgerState$, type App } from 'state/ledger'
 
 import type { AppId } from '@/config/apps'
-import { filterInvalidSyncedApps, filterValidSyncedAppsWithBalances, hasAccountsWithErrors } from '@/lib/utils'
+import type { AppDisplayInfo, DeepScanAppDisplayInfo } from '@/lib/types/app-display'
+import {
+  filterInvalidSyncedApps,
+  filterValidSyncedAppsWithBalances,
+  hasAccountsWithErrors,
+  prepareDeepScanDisplayApps,
+  prepareDisplayApps,
+} from '@/lib/utils'
 import { AccountType, type Address, type MultisigAddress, type SyncProgress, type TransactionSettings } from '@/state/types/ledger'
 
 export type UpdateTransaction = (
@@ -30,9 +37,6 @@ const rescanAccountsWithErrors = async (accounts: Address[] | MultisigAddress[],
 }
 
 interface UseSynchronizationReturn {
-  // General
-  apps: App[]
-
   // State
   status: AppStatus | undefined
   syncProgress: SyncProgress
@@ -45,12 +49,13 @@ interface UseSynchronizationReturn {
   isDeepScanCancelling: boolean
   isDeepScanCompleted: boolean
   deepScanProgress: SyncProgress
-  deepScanApps: (App & { originalAccountCount: number })[]
+  deepScanDisplayApps: DeepScanAppDisplayInfo[]
 
   // Computed values
   hasAccountsWithErrors: boolean
   filteredAppsWithoutErrors: App[]
   filteredAppsWithErrors: App[]
+  displayApps: AppDisplayInfo[]
   polkadotAddresses: string[]
   hasMultisigAccounts: boolean
 
@@ -104,6 +109,8 @@ export const useSynchronization = (): UseSynchronizationReturn => {
   const accountsWithErrors = use$(() => hasAccountsWithErrors(apps))
   const appsWithoutErrors = use$(() => filterValidSyncedAppsWithBalances(apps))
   const appsWithErrors = use$(() => filterInvalidSyncedApps(apps))
+  const displayApps = use$(() => prepareDisplayApps(apps, appsWithoutErrors))
+  const deepScanDisplayApps = use$(() => prepareDeepScanDisplayApps(deepScanApps))
 
   const hasMultisigAccounts = apps.some(
     app => app.status === AppStatus.SYNCHRONIZED && app.multisigAccounts && app.multisigAccounts.length > 0
@@ -240,9 +247,6 @@ export const useSynchronization = (): UseSynchronizationReturn => {
   )
 
   return {
-    // General
-    apps,
-
     // State
     status,
     syncProgress,
@@ -255,12 +259,13 @@ export const useSynchronization = (): UseSynchronizationReturn => {
     isDeepScanCancelling,
     isDeepScanCompleted,
     deepScanProgress,
-    deepScanApps,
+    deepScanDisplayApps,
 
     // Computed values
     hasAccountsWithErrors: accountsWithErrors,
     filteredAppsWithoutErrors: appsWithoutErrors,
     filteredAppsWithErrors: appsWithErrors,
+    displayApps,
     polkadotAddresses: polkadotAddresses,
     hasMultisigAccounts,
 

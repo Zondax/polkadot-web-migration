@@ -1,11 +1,11 @@
 import { render, screen } from '@testing-library/react'
-import { type App, AppStatus } from 'state/ledger'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { AppDisplayInfo } from '@/lib/types/app-display'
+import { AppStatus } from 'state/ledger'
+import { describe, expect, it, vi } from 'vitest'
 import AppScanningGrid from '../app-scanning-grid'
 
 // Mock the dependencies
 vi.mock('@legendapp/state/react', () => ({
-  observer: (component: any) => component,
   use$: vi.fn(() => ({
     polkadot: 'polkadot-icon-data',
     kusama: 'kusama-icon-data',
@@ -16,10 +16,6 @@ vi.mock('state/ui', () => ({
   uiState$: {
     icons: {},
   },
-}))
-
-vi.mock('@/components/hooks/useSynchronization', () => ({
-  useSynchronization: vi.fn(),
 }))
 
 vi.mock('@/components/CustomTooltip', () => ({
@@ -47,35 +43,6 @@ vi.mock('@/components/ui/badge', () => ({
 }))
 
 vi.mock('@/config/apps', () => ({
-  appsConfigs: new Map([
-    [
-      'polkadot',
-      {
-        id: 'polkadot',
-        name: 'Polkadot',
-        token: { symbol: 'DOT', decimals: 10 },
-        rpcEndpoints: ['wss://rpc.polkadot.io'],
-      },
-    ],
-    [
-      'kusama',
-      {
-        id: 'kusama',
-        name: 'Kusama',
-        token: { symbol: 'KSM', decimals: 12 },
-        rpcEndpoints: ['wss://kusama-rpc.polkadot.io'],
-      },
-    ],
-    [
-      'westend',
-      {
-        id: 'westend',
-        name: 'Westend',
-        token: { symbol: 'WND', decimals: 12 },
-        // No rpcEndpoints - should be filtered out
-      },
-    ],
-  ]),
   polkadotAppConfig: {
     id: 'polkadot',
     name: 'Polkadot',
@@ -94,189 +61,151 @@ vi.mock('@/config/apps', () => ({
 
 vi.mock('@/lib/utils', () => ({
   cn: vi.fn((...classes) => classes.filter(Boolean).join(' ')),
-  getAppTotalAccounts: vi.fn((app: App) => {
-    if (app.accounts) {
-      return app.accounts.length
-    }
-    return 0
-  }),
-  hasAppAccounts: vi.fn((app: App) => {
-    if (app.accounts) {
-      return app.accounts.length > 0
-    }
-    return false
-  }),
 }))
 
 // Import mocked functions
-import { useSynchronization } from '@/components/hooks/useSynchronization'
-import { getChainName } from '@/config/apps'
-import { cn, getAppTotalAccounts, hasAppAccounts } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 
-const mockUseSynchronization = useSynchronization as ReturnType<typeof vi.fn>
-const mockGetChainName = getChainName as ReturnType<typeof vi.fn>
 const mockCn = cn as ReturnType<typeof vi.fn>
-const mockGetAppTotalAccounts = getAppTotalAccounts as ReturnType<typeof vi.fn>
-const mockHasAppAccounts = hasAppAccounts as ReturnType<typeof vi.fn>
 
 describe('AppScanningGrid', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-
-    // Default mock implementations
-    mockUseSynchronization.mockReturnValue({
-      apps: [],
-    })
-    mockGetChainName.mockImplementation((id: string) => {
-      const names: Record<string, string> = {
-        polkadot: 'Polkadot',
-        kusama: 'Kusama',
-        westend: 'Westend',
-      }
-      return names[id] || id
-    })
-    mockCn.mockImplementation((...classes) => classes.filter(Boolean).join(' '))
-  })
-
   describe('Grid Rendering', () => {
-    it('should render grid with all apps that have RPC endpoints', () => {
-      mockUseSynchronization.mockReturnValue({
-        apps: [],
-      })
+    it('should render grid with provided apps', () => {
+      const apps: AppDisplayInfo[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: undefined,
+          totalAccounts: 0,
+        },
+        {
+          id: 'kusama',
+          name: 'Kusama',
+          status: undefined,
+          totalAccounts: 0,
+        },
+      ]
 
-      render(<AppScanningGrid />)
+      render(<AppScanningGrid apps={apps} />)
 
-      // Should render polkadot and kusama (have RPC endpoints) but not westend (no RPC endpoint)
       expect(screen.getByText('Polkadot')).toBeInTheDocument()
       expect(screen.getByText('Kusama')).toBeInTheDocument()
-      expect(screen.queryByText('Westend')).not.toBeInTheDocument()
     })
 
     it('should render with correct grid classes', () => {
-      mockUseSynchronization.mockReturnValue({
-        apps: [],
-      })
+      const apps: AppDisplayInfo[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: undefined,
+          totalAccounts: 0,
+        },
+      ]
 
-      const { container } = render(<AppScanningGrid />)
+      const { container } = render(<AppScanningGrid apps={apps} />)
       const gridElement = container.querySelector('.grid')
 
       expect(gridElement).toHaveClass('grid-cols-3', 'sm:grid-cols-5', 'md:grid-cols-7', 'lg:grid-cols-10', 'xl:grid-cols-12')
+    })
+
+    it('should render empty grid when no apps provided', () => {
+      const { container } = render(<AppScanningGrid apps={[]} />)
+      const gridElement = container.querySelector('[data-testid="app-sync-grid"]')
+
+      expect(gridElement).toBeInTheDocument()
+      expect(gridElement?.children.length).toBe(0)
     })
   })
 
   describe('AppScanItem - Status Rendering', () => {
     it('should render app in default/waiting state', () => {
-      mockUseSynchronization.mockReturnValue({
-        apps: [],
-      })
-      mockGetAppTotalAccounts.mockReturnValue(0)
-      mockHasAppAccounts.mockReturnValue(false)
+      const apps: AppDisplayInfo[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: undefined,
+          totalAccounts: 0,
+        },
+      ]
 
-      render(<AppScanningGrid />)
+      render(<AppScanningGrid apps={apps} />)
 
-      const tooltips = screen.getAllByTitle('Not synchronized')
-      expect(tooltips).toHaveLength(2) // Polkadot and Kusama both have this status
-      expect(tooltips[0]).toBeInTheDocument()
+      expect(screen.getByTitle('Not synchronized')).toBeInTheDocument()
     })
 
-    it('should render app in synchronized state with accounts', () => {
-      const synchronizedApp: App = {
-        id: 'polkadot',
-        name: 'Polkadot',
-        token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.SYNCHRONIZED,
-        accounts: [
-          { address: 'address1', balances: [] },
-          { address: 'address2', balances: [] },
-        ],
-      }
+    it('should render app in synchronized state with multiple accounts', () => {
+      const apps: AppDisplayInfo[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.SYNCHRONIZED,
+          totalAccounts: 2,
+        },
+      ]
 
-      mockUseSynchronization.mockReturnValue({
-        apps: [synchronizedApp],
-      })
-      mockGetAppTotalAccounts.mockReturnValue(2)
-      mockHasAppAccounts.mockReturnValue(true)
-
-      render(<AppScanningGrid />)
+      render(<AppScanningGrid apps={apps} />)
 
       expect(screen.getByTitle('Ready to migrate (2 accounts)')).toBeInTheDocument()
       expect(screen.getByText('2')).toBeInTheDocument()
     })
 
     it('should render app in synchronized state with single account', () => {
-      const synchronizedApp: App = {
-        id: 'polkadot',
-        name: 'Polkadot',
-        token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.SYNCHRONIZED,
-        accounts: [{ address: 'address1', balances: [] }],
-      }
+      const apps: AppDisplayInfo[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.SYNCHRONIZED,
+          totalAccounts: 1,
+        },
+      ]
 
-      mockUseSynchronization.mockReturnValue({
-        apps: [synchronizedApp],
-      })
-      mockGetAppTotalAccounts.mockReturnValue(1)
-      mockHasAppAccounts.mockReturnValue(true)
-
-      render(<AppScanningGrid />)
+      render(<AppScanningGrid apps={apps} />)
 
       expect(screen.getByTitle('Ready to migrate (1 account)')).toBeInTheDocument()
       expect(screen.getByText('1')).toBeInTheDocument()
     })
 
     it('should render app in synchronized state without accounts', () => {
-      const synchronizedApp: App = {
-        id: 'polkadot',
-        name: 'Polkadot',
-        token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.SYNCHRONIZED,
-        accounts: [],
-      }
+      const apps: AppDisplayInfo[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.SYNCHRONIZED,
+          totalAccounts: 0,
+        },
+      ]
 
-      mockUseSynchronization.mockReturnValue({
-        apps: [synchronizedApp],
-      })
-      mockGetAppTotalAccounts.mockReturnValue(0)
-      mockHasAppAccounts.mockReturnValue(false)
-
-      render(<AppScanningGrid />)
+      render(<AppScanningGrid apps={apps} />)
 
       expect(screen.getByTitle('No accounts with funds to migrate')).toBeInTheDocument()
     })
 
     it('should render app in migrated state', () => {
-      const migratedApp: App = {
-        id: 'polkadot',
-        name: 'Polkadot',
-        token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.MIGRATED,
-        accounts: [{ address: 'address1', balances: [] }],
-      }
+      const apps: AppDisplayInfo[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.MIGRATED,
+          totalAccounts: 1,
+        },
+      ]
 
-      mockUseSynchronization.mockReturnValue({
-        apps: [migratedApp],
-      })
-      mockGetAppTotalAccounts.mockReturnValue(1)
-      mockHasAppAccounts.mockReturnValue(true)
-
-      render(<AppScanningGrid />)
+      render(<AppScanningGrid apps={apps} />)
 
       expect(screen.getByTitle('Ready to migrate (1 account)')).toBeInTheDocument()
     })
 
     it('should render app in error state', () => {
-      const errorApp: App = {
-        id: 'polkadot',
-        name: 'Polkadot',
-        token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.ERROR,
-      }
+      const apps: AppDisplayInfo[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.ERROR,
+          totalAccounts: 0,
+        },
+      ]
 
-      mockUseSynchronization.mockReturnValue({
-        apps: [errorApp],
-      })
-
-      render(<AppScanningGrid />)
+      render(<AppScanningGrid apps={apps} />)
 
       expect(screen.getByTitle('Failed synchronization')).toBeInTheDocument()
       const tokenIcons = screen.getAllByTestId('token-icon')
@@ -284,101 +213,65 @@ describe('AppScanningGrid', () => {
     })
 
     it('should render app in loading state', () => {
-      const loadingApp: App = {
-        id: 'polkadot',
-        name: 'Polkadot',
-        token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.LOADING,
-      }
+      const apps: AppDisplayInfo[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.LOADING,
+          totalAccounts: 0,
+        },
+      ]
 
-      mockUseSynchronization.mockReturnValue({
-        apps: [loadingApp],
-      })
-
-      render(<AppScanningGrid />)
+      render(<AppScanningGrid apps={apps} />)
 
       expect(screen.getByTitle('Synchronizing')).toBeInTheDocument()
     })
 
     it('should render app in rescanning state', () => {
-      const rescanningApp: App = {
-        id: 'polkadot',
-        name: 'Polkadot',
-        token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.RESCANNING,
-      }
+      const apps: AppDisplayInfo[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.RESCANNING,
+          totalAccounts: 0,
+        },
+      ]
 
-      mockUseSynchronization.mockReturnValue({
-        apps: [rescanningApp],
-      })
-
-      render(<AppScanningGrid />)
+      render(<AppScanningGrid apps={apps} />)
 
       expect(screen.getByTitle('Rescanning')).toBeInTheDocument()
     })
   })
 
   describe('App Display Properties', () => {
-    it('should use app name when available', () => {
-      const appWithName: App = {
-        id: 'polkadot',
-        name: 'Custom Polkadot Name',
-        token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.SYNCHRONIZED,
-      }
+    it('should display app name', () => {
+      const apps: AppDisplayInfo[] = [
+        {
+          id: 'polkadot',
+          name: 'Custom Polkadot Name',
+          status: AppStatus.SYNCHRONIZED,
+          totalAccounts: 0,
+        },
+      ]
 
-      mockUseSynchronization.mockReturnValue({
-        apps: [appWithName],
-      })
-
-      render(<AppScanningGrid />)
+      render(<AppScanningGrid apps={apps} />)
 
       expect(screen.getByText('Custom Polkadot Name')).toBeInTheDocument()
     })
 
-    it('should fallback to chain name when app name is not available', () => {
-      const appWithoutName: App = {
-        id: 'polkadot',
-        token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.SYNCHRONIZED,
-      }
-
-      mockUseSynchronization.mockReturnValue({
-        apps: [appWithoutName],
-      })
-      mockGetChainName.mockReturnValue('Polkadot Chain')
-
-      render(<AppScanningGrid />)
-
-      expect(screen.getByText('Polkadot Chain')).toBeInTheDocument()
-      expect(mockGetChainName).toHaveBeenCalledWith('polkadot')
-    })
-
-    it('should fallback to app id when neither name nor chain name available', () => {
-      const appWithoutName: App = {
-        id: 'polkadot',
-        token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.SYNCHRONIZED,
-      }
-
-      mockUseSynchronization.mockReturnValue({
-        apps: [appWithoutName],
-      })
-      mockGetChainName.mockReturnValue('')
-
-      render(<AppScanningGrid />)
-
-      expect(screen.getByText('polkadot')).toBeInTheDocument()
-    })
-
     it('should render token icon with correct props', () => {
-      mockUseSynchronization.mockReturnValue({
-        apps: [],
-      })
+      const apps: AppDisplayInfo[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: undefined,
+          totalAccounts: 0,
+        },
+      ]
 
-      render(<AppScanningGrid />)
+      render(<AppScanningGrid apps={apps} />)
 
-      const tokenIcon = screen.getAllByTestId('token-icon')[0]
+      const tokenIcon = screen.getByTestId('token-icon')
       expect(tokenIcon).toHaveAttribute('data-icon', 'polkadot-icon-data')
       expect(tokenIcon).toHaveAttribute('data-symbol', 'Pol') // First 3 chars of Polkadot
       expect(tokenIcon).toHaveAttribute('data-size', 'md')
@@ -386,75 +279,64 @@ describe('AppScanningGrid', () => {
   })
 
   describe('Badge Display Logic', () => {
-    it('should display badge for synchronized apps', () => {
-      const synchronizedApp: App = {
-        id: 'polkadot',
-        name: 'Polkadot',
-        token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.SYNCHRONIZED,
-        accounts: [{ address: 'addr1', balances: [] }],
-      }
+    it('should display badge for synchronized apps with accounts', () => {
+      const apps: AppDisplayInfo[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.SYNCHRONIZED,
+          totalAccounts: 1,
+        },
+      ]
 
-      mockUseSynchronization.mockReturnValue({
-        apps: [synchronizedApp],
-      })
-      mockGetAppTotalAccounts.mockReturnValue(1)
-      mockHasAppAccounts.mockReturnValue(true)
-
-      render(<AppScanningGrid />)
+      render(<AppScanningGrid apps={apps} />)
 
       expect(screen.getByTestId('badge')).toBeInTheDocument()
     })
 
     it('should not display badge for rescanning apps', () => {
-      const rescanningApp: App = {
-        id: 'polkadot',
-        name: 'Polkadot',
-        token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.RESCANNING,
-      }
+      const apps: AppDisplayInfo[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.RESCANNING,
+          totalAccounts: 0,
+        },
+      ]
 
-      mockUseSynchronization.mockReturnValue({
-        apps: [rescanningApp],
-      })
-
-      render(<AppScanningGrid />)
+      render(<AppScanningGrid apps={apps} />)
 
       expect(screen.queryByTestId('badge')).not.toBeInTheDocument()
     })
 
     it('should not display badge for apps with undefined status', () => {
-      mockUseSynchronization.mockReturnValue({
-        apps: [],
-      })
+      const apps: AppDisplayInfo[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: undefined,
+          totalAccounts: 0,
+        },
+      ]
 
-      render(<AppScanningGrid />)
+      render(<AppScanningGrid apps={apps} />)
 
-      // Apps with undefined status should not have badges visible
-      // The component still renders the apps, but without badges
-      expect(screen.getByText('Polkadot')).toBeInTheDocument()
-      expect(screen.getByText('Kusama')).toBeInTheDocument()
       expect(screen.queryByTestId('badge')).not.toBeInTheDocument()
     })
   })
 
   describe('CSS Classes and Styling', () => {
     it('should apply correct classes for synchronized app with accounts', () => {
-      const synchronizedApp: App = {
-        id: 'polkadot',
-        name: 'Polkadot',
-        token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.SYNCHRONIZED,
-        accounts: [{ address: 'addr1', balances: [] }],
-      }
+      const apps: AppDisplayInfo[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.SYNCHRONIZED,
+          totalAccounts: 1,
+        },
+      ]
 
-      mockUseSynchronization.mockReturnValue({
-        apps: [synchronizedApp],
-      })
-      mockGetAppTotalAccounts.mockReturnValue(1)
-      mockHasAppAccounts.mockReturnValue(true)
-
-      render(<AppScanningGrid />)
+      render(<AppScanningGrid apps={apps} />)
 
       expect(mockCn).toHaveBeenCalledWith(
         'flex flex-col items-center p-3 rounded-lg border transition-all',
@@ -463,18 +345,16 @@ describe('AppScanningGrid', () => {
     })
 
     it('should apply correct classes for error app', () => {
-      const errorApp: App = {
-        id: 'polkadot',
-        name: 'Polkadot',
-        token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.ERROR,
-      }
+      const apps: AppDisplayInfo[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.ERROR,
+          totalAccounts: 0,
+        },
+      ]
 
-      mockUseSynchronization.mockReturnValue({
-        apps: [errorApp],
-      })
-
-      render(<AppScanningGrid />)
+      render(<AppScanningGrid apps={apps} />)
 
       expect(mockCn).toHaveBeenCalledWith(
         'flex flex-col items-center p-3 rounded-lg border transition-all',
@@ -483,18 +363,16 @@ describe('AppScanningGrid', () => {
     })
 
     it('should apply correct classes for loading app', () => {
-      const loadingApp: App = {
-        id: 'polkadot',
-        name: 'Polkadot',
-        token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.LOADING,
-      }
+      const apps: AppDisplayInfo[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.LOADING,
+          totalAccounts: 0,
+        },
+      ]
 
-      mockUseSynchronization.mockReturnValue({
-        apps: [loadingApp],
-      })
-
-      render(<AppScanningGrid />)
+      render(<AppScanningGrid apps={apps} />)
 
       expect(mockCn).toHaveBeenCalledWith(
         'flex flex-col items-center p-3 rounded-lg border transition-all',
@@ -504,54 +382,62 @@ describe('AppScanningGrid', () => {
   })
 
   describe('Edge Cases', () => {
-    it('should handle apps with null or undefined accounts', () => {
-      const appWithNullAccounts: App = {
-        id: 'polkadot',
-        name: 'Polkadot',
-        token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.SYNCHRONIZED,
-        accounts: undefined,
-      }
+    it('should handle multiple apps with different states', () => {
+      const apps: AppDisplayInfo[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.SYNCHRONIZED,
+          totalAccounts: 2,
+        },
+        {
+          id: 'kusama',
+          name: 'Kusama',
+          status: AppStatus.LOADING,
+          totalAccounts: 0,
+        },
+        {
+          id: 'westend',
+          name: 'Westend',
+          status: AppStatus.ERROR,
+          totalAccounts: 0,
+        },
+      ]
 
-      mockUseSynchronization.mockReturnValue({
-        apps: [appWithNullAccounts],
-      })
-      mockGetAppTotalAccounts.mockReturnValue(0)
-      mockHasAppAccounts.mockReturnValue(false)
+      render(<AppScanningGrid apps={apps} />)
 
-      render(<AppScanningGrid />)
-
-      expect(screen.getByTitle('No accounts with funds to migrate')).toBeInTheDocument()
-    })
-
-    it('should handle empty apps array from synchronization', () => {
-      mockUseSynchronization.mockReturnValue({
-        apps: [],
-      })
-
-      render(<AppScanningGrid />)
-
-      // Should still show config apps with undefined status
       expect(screen.getByText('Polkadot')).toBeInTheDocument()
       expect(screen.getByText('Kusama')).toBeInTheDocument()
+      expect(screen.getByText('Westend')).toBeInTheDocument()
     })
 
     it('should handle apps with very long names', () => {
-      const appWithLongName: App = {
-        id: 'polkadot',
-        name: 'Very Very Very Very Very Long Blockchain Network Name That Should Be Truncated',
-        token: { symbol: 'DOT', decimals: 10 },
-        status: AppStatus.SYNCHRONIZED,
-      }
+      const apps: AppDisplayInfo[] = [
+        {
+          id: 'polkadot',
+          name: 'Very Very Very Very Very Long Blockchain Network Name That Should Be Truncated',
+          status: AppStatus.SYNCHRONIZED,
+          totalAccounts: 0,
+        },
+      ]
 
-      mockUseSynchronization.mockReturnValue({
-        apps: [appWithLongName],
-      })
-
-      render(<AppScanningGrid />)
+      render(<AppScanningGrid apps={apps} />)
 
       const nameElement = screen.getByText('Very Very Very Very Very Long Blockchain Network Name That Should Be Truncated')
       expect(nameElement).toHaveClass('truncate')
+    })
+
+    it('should render all apps in the provided array', () => {
+      const apps: AppDisplayInfo[] = [
+        { id: 'polkadot', name: 'Polkadot', status: undefined, totalAccounts: 0 },
+        { id: 'kusama', name: 'Kusama', status: undefined, totalAccounts: 0 },
+        { id: 'westend', name: 'Westend', status: undefined, totalAccounts: 0 },
+      ]
+
+      const { container } = render(<AppScanningGrid apps={apps} />)
+      const gridElement = container.querySelector('[data-testid="app-sync-grid"]')
+
+      expect(gridElement?.children.length).toBe(3)
     })
   })
 })

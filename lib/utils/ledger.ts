@@ -1,11 +1,13 @@
+import { getValidApps } from '@/lib/services/synchronization.service'
+import type { AppDisplayInfo, DeepScanAppDisplayInfo } from '@/lib/types/app-display'
 import axios from 'axios'
-import { type App, AppStatus } from 'state/ledger'
+import { AppStatus, type App } from 'state/ledger'
 import {
+  VerificationStatus,
   type Address,
   type AddressBalance,
   type AddressWithVerificationStatus,
   type MultisigAddress,
-  VerificationStatus,
 } from 'state/types/ledger'
 import { hasAddressBalance, hasBalance } from './balance'
 
@@ -177,6 +179,61 @@ export const hasAppAccounts = (app: App): boolean => {
  */
 export const getAppTotalAccounts = (app: App): number => {
   return (app.accounts?.length || 0) + (app.multisigAccounts?.length || 0)
+}
+
+/**
+ * Prepare apps for display by combining config apps with sync status
+ * and account counts from apps with balances.
+ *
+ * This function is useful for displaying app status in loading screens and grids.
+ *
+ * @param apps - All synchronized apps
+ * @param appsWithoutErrors - Apps that were validly synchronized and have balances
+ * @returns Array of lightweight app display information
+ */
+export function prepareDisplayApps(apps: App[], appsWithoutErrors: App[]): AppDisplayInfo[] {
+  const configApps = getValidApps()
+
+  return configApps.map(config => {
+    // Find synced app
+    const syncedApp = apps.find(app => app.id === config.id)
+    let totalAccounts = 0
+
+    // The number matches with the accounts that are going to be displayed in the sync table
+    if (syncedApp && syncedApp.status === AppStatus.SYNCHRONIZED) {
+      // Find app with balances for account counts
+      const appWithBalances = appsWithoutErrors.find(app => app.id === config.id)
+      totalAccounts = appWithBalances ? getAppTotalAccounts(appWithBalances) : 0
+    }
+
+    return {
+      id: config.id,
+      name: config.name,
+      status: syncedApp?.status,
+      totalAccounts,
+    }
+  })
+}
+
+/**
+ * Prepare deep scan apps for display with original account counts
+ * for comparison and showing new accounts found.
+ *
+ * @param deepScanApps - Apps from deep scan with originalAccountCount
+ * @returns Array of lightweight app display information for deep scan
+ */
+export function prepareDeepScanDisplayApps(deepScanApps: (App & { originalAccountCount: number })[]): DeepScanAppDisplayInfo[] {
+  return deepScanApps.map(app => {
+    const totalAccounts = getAppTotalAccounts(app)
+
+    return {
+      id: app.id,
+      name: app.name,
+      status: app.status,
+      totalAccounts,
+      originalAccountCount: app.originalAccountCount,
+    }
+  })
 }
 
 /**
