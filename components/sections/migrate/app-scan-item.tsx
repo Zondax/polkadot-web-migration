@@ -134,8 +134,8 @@ export const AppScanItem = ({ app, mode = 'sync' }: AppScanItemProps) => {
   const appName = app.name || getChainName(app.id) || app.id
 
   // Calculate account metrics
-  const hasAccounts = app.totalTransactions > 0
-  const totalAccounts = app.totalTransactions
+  const hasAccounts = app.totalAccounts > 0
+  const totalAccounts = app.totalAccounts
   const originalCount = 'originalAccountCount' in app ? app.originalAccountCount : 0
   const newAccountsFound = mode === 'deep-scan' ? Math.max(0, totalAccounts - originalCount) : 0
 

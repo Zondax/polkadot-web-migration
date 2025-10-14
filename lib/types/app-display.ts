@@ -8,7 +8,7 @@ export interface AppDisplayInfo {
   id: AppId
   name: string
   status: AppStatus | undefined
-  totalTransactions: number
+  totalAccounts: number
 }
 
 /**

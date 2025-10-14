@@ -195,44 +195,22 @@ export function prepareDisplayApps(apps: App[], appsWithoutErrors: App[]): AppDi
   const configApps = getValidApps()
 
   return configApps.map(config => {
-    // Find app with balances for account counts
-    const appWithBalances = appsWithoutErrors.find(app => app.id === config.id)
-
-    if (appWithBalances) {
-      const accountCount = appWithBalances.accounts?.length || 0
-      const multisigAccountCount = appWithBalances.multisigAccounts?.length || 0
-      const totalTransactions = accountCount + multisigAccountCount
-
-      return {
-        id: appWithBalances.id,
-        name: appWithBalances.name,
-        status: appWithBalances.status,
-        totalTransactions,
-      }
-    }
-
-    // Find synced app for status
+    // Find synced app
     const syncedApp = apps.find(app => app.id === config.id)
+    let totalAccounts = 0
 
-    if (syncedApp) {
-      const accountCount = syncedApp.accounts?.length || 0
-      const multisigAccountCount = syncedApp.multisigAccounts?.length || 0
-      const totalTransactions = accountCount + multisigAccountCount
-
-      return {
-        id: syncedApp.id,
-        name: syncedApp.name,
-        status: syncedApp.status,
-        totalTransactions,
-      }
+    // The number matches with the accounts that are going to be displayed in the sync table
+    if (syncedApp && syncedApp.status === AppStatus.SYNCHRONIZED) {
+      // Find app with balances for account counts
+      const appWithBalances = appsWithoutErrors.find(app => app.id === config.id)
+      totalAccounts = appWithBalances ? getAppTotalAccounts(appWithBalances) : 0
     }
 
-    // App not yet scanned/loading
     return {
       id: config.id,
       name: config.name,
-      status: undefined,
-      totalTransactions: 0,
+      status: syncedApp?.status,
+      totalAccounts,
     }
   })
 }
@@ -248,13 +226,13 @@ export function prepareDeepScanDisplayApps(deepScanApps: (App & { originalAccoun
   return deepScanApps.map(app => {
     const accountCount = app.accounts?.length || 0
     const multisigAccountCount = app.multisigAccounts?.length || 0
-    const totalTransactions = accountCount + multisigAccountCount
+    const totalAccounts = accountCount + multisigAccountCount
 
     return {
       id: app.id,
       name: app.name,
       status: app.status,
-      totalTransactions,
+      totalAccounts,
       originalAccountCount: app.originalAccountCount,
     }
   })

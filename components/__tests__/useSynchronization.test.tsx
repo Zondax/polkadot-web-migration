@@ -35,7 +35,7 @@ vi.mock('@/state/ledger', () => {
         isCancelling: { get: vi.fn().mockReturnValue(false) },
         isCompleted: { get: vi.fn().mockReturnValue(false) },
         progress: { get: vi.fn().mockReturnValue({ scanned: 0, total: 0, percentage: 0, phase: undefined }) },
-        apps: { get: vi.fn().mockReturnValue([]) },
+        apps: observable([]),
       },
       polkadotAddresses: {
         polkadot: { get: vi.fn() },

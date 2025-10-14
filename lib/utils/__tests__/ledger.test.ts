@@ -1,17 +1,17 @@
-import { BN } from '@polkadot/util'
-import axios from 'axios'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { App } from '@/state/ledger'
 import { AppStatus } from '@/state/ledger'
 import {
+  BalanceType,
+  VerificationStatus,
   type Address,
   type AddressBalance,
   type AddressWithVerificationStatus,
-  BalanceType,
   type MultisigAddress,
   type NativeBalance,
-  VerificationStatus,
 } from '@/state/types/ledger'
+import { BN } from '@polkadot/util'
+import axios from 'axios'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   addDestinationAddressesFromAccounts,
@@ -789,7 +789,15 @@ describe('ledger utilities', () => {
 
   describe('prepareDisplayApps', () => {
     it('should return apps with balances from appsWithoutErrors', () => {
-      const apps: App[] = []
+      const apps: App[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.SYNCHRONIZED,
+          accounts: [],
+          multisigAccounts: [],
+        },
+      ]
       const appsWithoutErrors: App[] = [
         {
           id: 'polkadot',
@@ -807,7 +815,7 @@ describe('ledger utilities', () => {
       expect(polkadotApp).toBeDefined()
       expect(polkadotApp?.name).toBe('Polkadot')
       expect(polkadotApp?.status).toBe(AppStatus.SYNCHRONIZED)
-      expect(polkadotApp?.totalTransactions).toBe(3) // 2 accounts + 1 multisig
+      expect(polkadotApp?.totalAccounts).toBe(3) // 2 accounts + 1 multisig
     })
 
     it('should fallback to synced apps when app not in appsWithoutErrors', () => {
@@ -828,7 +836,7 @@ describe('ledger utilities', () => {
       expect(kusamaApp).toBeDefined()
       expect(kusamaApp?.name).toBe('Kusama')
       expect(kusamaApp?.status).toBe(AppStatus.LOADING)
-      expect(kusamaApp?.totalTransactions).toBe(1)
+      expect(kusamaApp?.totalAccounts).toBe(0) // Accounts not counted when status is not SYNCHRONIZED
     })
 
     it('should return default state for apps not yet scanned', () => {
@@ -842,11 +850,19 @@ describe('ledger utilities', () => {
       expect(westendApp).toBeDefined()
       expect(westendApp?.name).toBe('Westend')
       expect(westendApp?.status).toBeUndefined()
-      expect(westendApp?.totalTransactions).toBe(0)
+      expect(westendApp?.totalAccounts).toBe(0)
     })
 
     it('should handle apps with only regular accounts', () => {
-      const apps: App[] = []
+      const apps: App[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.SYNCHRONIZED,
+          accounts: [],
+          multisigAccounts: [],
+        },
+      ]
       const appsWithoutErrors: App[] = [
         {
           id: 'polkadot',
@@ -860,11 +876,19 @@ describe('ledger utilities', () => {
       const result = prepareDisplayApps(apps, appsWithoutErrors)
 
       const polkadotApp = result.find(app => app.id === 'polkadot')
-      expect(polkadotApp?.totalTransactions).toBe(3)
+      expect(polkadotApp?.totalAccounts).toBe(3)
     })
 
     it('should handle apps with only multisig accounts', () => {
-      const apps: App[] = []
+      const apps: App[] = [
+        {
+          id: 'kusama',
+          name: 'Kusama',
+          status: AppStatus.SYNCHRONIZED,
+          accounts: [],
+          multisigAccounts: [],
+        },
+      ]
       const appsWithoutErrors: App[] = [
         {
           id: 'kusama',
@@ -878,7 +902,7 @@ describe('ledger utilities', () => {
       const result = prepareDisplayApps(apps, appsWithoutErrors)
 
       const kusamaApp = result.find(app => app.id === 'kusama')
-      expect(kusamaApp?.totalTransactions).toBe(2)
+      expect(kusamaApp?.totalAccounts).toBe(2)
     })
 
     it('should handle apps with undefined accounts', () => {
@@ -896,15 +920,15 @@ describe('ledger utilities', () => {
       const result = prepareDisplayApps(apps, appsWithoutErrors)
 
       const westendApp = result.find(app => app.id === 'westend')
-      expect(westendApp?.totalTransactions).toBe(0)
+      expect(westendApp?.totalAccounts).toBe(0)
     })
 
-    it('should prioritize appsWithoutErrors over apps', () => {
+    it('should prioritize appsWithoutErrors account counts when app is synchronized', () => {
       const apps: App[] = [
         {
           id: 'polkadot',
           name: 'Polkadot Old',
-          status: AppStatus.LOADING,
+          status: AppStatus.SYNCHRONIZED,
           accounts: [mockAddress],
           multisigAccounts: [],
         },
@@ -922,13 +946,20 @@ describe('ledger utilities', () => {
       const result = prepareDisplayApps(apps, appsWithoutErrors)
 
       const polkadotApp = result.find(app => app.id === 'polkadot')
-      expect(polkadotApp?.name).toBe('Polkadot New')
-      expect(polkadotApp?.status).toBe(AppStatus.SYNCHRONIZED)
-      expect(polkadotApp?.totalTransactions).toBe(3)
+      expect(polkadotApp?.name).toBe('Polkadot') // Name comes from config
+      expect(polkadotApp?.status).toBe(AppStatus.SYNCHRONIZED) // Status comes from apps
+      expect(polkadotApp?.totalAccounts).toBe(3) // Accounts come from appsWithoutErrors
     })
 
     it('should handle mixed states for different apps', () => {
       const apps: App[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.SYNCHRONIZED,
+          accounts: [],
+          multisigAccounts: [],
+        },
         {
           id: 'kusama',
           name: 'Kusama',
@@ -953,15 +984,15 @@ describe('ledger utilities', () => {
 
       const polkadotApp = result.find(app => app.id === 'polkadot')
       expect(polkadotApp?.status).toBe(AppStatus.SYNCHRONIZED)
-      expect(polkadotApp?.totalTransactions).toBe(1)
+      expect(polkadotApp?.totalAccounts).toBe(1)
 
       const kusamaApp = result.find(app => app.id === 'kusama')
       expect(kusamaApp?.status).toBe(AppStatus.LOADING)
-      expect(kusamaApp?.totalTransactions).toBe(0)
+      expect(kusamaApp?.totalAccounts).toBe(0)
 
       const westendApp = result.find(app => app.id === 'westend')
       expect(westendApp?.status).toBeUndefined()
-      expect(westendApp?.totalTransactions).toBe(0)
+      expect(westendApp?.totalAccounts).toBe(0)
     })
 
     it('should handle apps with error status', () => {
@@ -980,7 +1011,7 @@ describe('ledger utilities', () => {
 
       const polkadotApp = result.find(app => app.id === 'polkadot')
       expect(polkadotApp?.status).toBe(AppStatus.ERROR)
-      expect(polkadotApp?.totalTransactions).toBe(0)
+      expect(polkadotApp?.totalAccounts).toBe(0)
     })
   })
 
@@ -1004,7 +1035,7 @@ describe('ledger utilities', () => {
         id: 'polkadot',
         name: 'Polkadot',
         status: AppStatus.SYNCHRONIZED,
-        totalTransactions: 4, // 3 accounts + 1 multisig
+        totalAccounts: 4, // 3 accounts + 1 multisig
         originalAccountCount: 2,
       })
     })
@@ -1023,7 +1054,7 @@ describe('ledger utilities', () => {
 
       const result = prepareDeepScanDisplayApps(deepScanApps)
 
-      expect(result[0].totalTransactions).toBe(1)
+      expect(result[0].totalAccounts).toBe(1)
       expect(result[0].originalAccountCount).toBe(0)
     })
 
@@ -1041,7 +1072,7 @@ describe('ledger utilities', () => {
 
       const result = prepareDeepScanDisplayApps(deepScanApps)
 
-      expect(result[0].totalTransactions).toBe(2)
+      expect(result[0].totalAccounts).toBe(2)
       expect(result[0].originalAccountCount).toBe(1)
     })
 
@@ -1059,7 +1090,7 @@ describe('ledger utilities', () => {
 
       const result = prepareDeepScanDisplayApps(deepScanApps)
 
-      expect(result[0].totalTransactions).toBe(0)
+      expect(result[0].totalAccounts).toBe(0)
       expect(result[0].originalAccountCount).toBe(0)
     })
 
@@ -1077,10 +1108,10 @@ describe('ledger utilities', () => {
 
       const result = prepareDeepScanDisplayApps(deepScanApps)
 
-      // totalTransactions (5) - originalAccountCount (2) = 3 new accounts found
-      expect(result[0].totalTransactions).toBe(5)
+      // totalAccounts (5) - originalAccountCount (2) = 3 new accounts found
+      expect(result[0].totalAccounts).toBe(5)
       expect(result[0].originalAccountCount).toBe(2)
-      expect(result[0].totalTransactions - result[0].originalAccountCount).toBe(3)
+      expect(result[0].totalAccounts - result[0].originalAccountCount).toBe(3)
     })
 
     it('should handle multiple apps with different originalAccountCount', () => {
@@ -1116,17 +1147,17 @@ describe('ledger utilities', () => {
       expect(result).toHaveLength(3)
       expect(result[0]).toMatchObject({
         id: 'polkadot',
-        totalTransactions: 2,
+        totalAccounts: 2,
         originalAccountCount: 1,
       })
       expect(result[1]).toMatchObject({
         id: 'kusama',
-        totalTransactions: 1,
+        totalAccounts: 1,
         originalAccountCount: 0,
       })
       expect(result[2]).toMatchObject({
         id: 'westend',
-        totalTransactions: 0,
+        totalAccounts: 0,
         originalAccountCount: 0,
       })
     })
@@ -1146,7 +1177,7 @@ describe('ledger utilities', () => {
       const result = prepareDeepScanDisplayApps(deepScanApps)
 
       expect(result[0].status).toBe(AppStatus.ERROR)
-      expect(result[0].totalTransactions).toBe(0)
+      expect(result[0].totalAccounts).toBe(0)
     })
 
     it('should preserve app status during deep scan', () => {
