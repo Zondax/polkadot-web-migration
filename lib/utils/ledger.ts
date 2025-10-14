@@ -4,6 +4,7 @@ import type { AppDisplayInfo, DeepScanAppDisplayInfo } from '@/lib/types/app-dis
 import axios from 'axios'
 import { AppStatus, type App } from 'state/ledger'
 import {
+  AddressStatus,
   VerificationStatus,
   type Address,
   type AddressBalance,
@@ -111,18 +112,21 @@ export const canAccountBeMigrated = (account: Address | MultisigAddress) => {
 }
 
 /**
- * Filters apps to only include those that have accounts that can be migrated.
+ * Filters apps to only include those that have accounts that can be migrated or are already migrated.
  * This function filters for accounts that are selected and have a balance and destination address.
  *
  * @param apps - The apps to filter.
  * @returns Apps with accounts that can be migrated.
  */
 export const filterValidSelectedAccountsForMigration = (apps: App[]): App[] => {
+  const isAccountReadyForMigrationView = (account: Address | MultisigAddress) =>
+    account.status === AddressStatus.MIGRATED || canAccountBeMigrated(account)
+
   const filteredApps = apps
     .map(app => ({
       ...app,
-      accounts: app.accounts?.filter(account => canAccountBeMigrated(account)) || [],
-      multisigAccounts: app.multisigAccounts?.filter(account => canAccountBeMigrated(account)) || [],
+      accounts: app.accounts?.filter(isAccountReadyForMigrationView) || [],
+      multisigAccounts: app.multisigAccounts?.filter(isAccountReadyForMigrationView) || [],
     }))
     .filter(app => app.accounts.length > 0 || app.multisigAccounts?.length > 0)
 
