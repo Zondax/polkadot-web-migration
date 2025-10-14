@@ -23,7 +23,7 @@ import { renderWithProviders } from '../helpers/renderWithProviders'
 import { verifySynchronizeTabActive } from '../helpers/tabs'
 
 describe('Synchronize progress', () => {
-  it('See 2 apps in the sync grid', async () => {
+  it('See 3 apps in the sync grid (including Polkadot)', async () => {
     // Mock the ledgerClient.connectDevice to return a custom object with transport, genericApp, and isAppOpen: true
     mockLedgerClientConnectDevice()
 
@@ -50,10 +50,11 @@ describe('Synchronize progress', () => {
     // Check for the progress bar
     expect(screen.getByTestId('app-sync-progress-bar')).toBeInTheDocument()
 
-    // Verify we have exactly 2 apps in the grid
+    // Verify we have exactly 3 apps in the grid (including Polkadot)
     const appSyncGridItems = screen.getAllByTestId('app-sync-grid-item')
-    expect(appSyncGridItems.length).toBe(2)
+    expect(appSyncGridItems.length).toBe(3)
     expect(appSyncGridItems[0]).toHaveTextContent('Kusama')
     expect(appSyncGridItems[1]).toHaveTextContent('Acala')
+    expect(appSyncGridItems[2]).toHaveTextContent('Polkadot')
   })
 })

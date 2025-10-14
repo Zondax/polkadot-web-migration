@@ -1,4 +1,4 @@
-import { observable } from '@legendapp/state'
+import { computed, observable } from '@legendapp/state'
 import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppId } from '@/config/apps'
@@ -8,6 +8,7 @@ import type { Address, MultisigAddress } from '@/state/types/ledger'
 // Mock the ledger state
 vi.mock('@/state/ledger', () => {
   const mockApps = observable<App[]>([])
+  const mockPolkadotApp = observable({ accounts: [] })
 
   return {
     ledgerState$: {
@@ -28,7 +29,8 @@ vi.mock('@/state/ledger', () => {
         status: { get: vi.fn() },
         syncProgress: { get: vi.fn() },
         isSyncCancelRequested: { get: vi.fn() },
-        polkadotApp: { accounts: [] },
+        polkadotApp: mockPolkadotApp,
+        get: vi.fn(() => ({ apps: mockApps.get(), polkadotApp: mockPolkadotApp.get() })),
       },
       deepScan: {
         isScanning: { get: vi.fn().mockReturnValue(false) },
@@ -49,6 +51,9 @@ vi.mock('@/state/ledger', () => {
       cancelDeepScan: vi.fn(),
       resetDeepScan: vi.fn(),
     },
+    allApps$: computed(() => {
+      return [...mockApps.get(), mockPolkadotApp.get()]
+    }),
     AppStatus: {
       LOADING: 'loading',
       SYNCHRONIZED: 'synchronized',

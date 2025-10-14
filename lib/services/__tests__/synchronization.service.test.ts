@@ -258,7 +258,7 @@ describe('Synchronization Service', () => {
 
       expect(result.id).toBe('polkadot')
       expect(result.name).toBe('Polkadot')
-      expect(result.status).toBe(AppStatus.SYNCHRONIZED)
+      expect(result.status).toBe(AppStatus.NO_NEED_MIGRATION)
       expect(ledgerClient.synchronizeAccounts).toHaveBeenCalledWith(mockApp, undefined)
     })
 
