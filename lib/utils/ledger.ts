@@ -224,9 +224,7 @@ export function prepareDisplayApps(apps: App[], appsWithoutErrors: App[]): AppDi
  */
 export function prepareDeepScanDisplayApps(deepScanApps: (App & { originalAccountCount: number })[]): DeepScanAppDisplayInfo[] {
   return deepScanApps.map(app => {
-    const accountCount = app.accounts?.length || 0
-    const multisigAccountCount = app.multisigAccounts?.length || 0
-    const totalAccounts = accountCount + multisigAccountCount
+    const totalAccounts = getAppTotalAccounts(app)
 
     return {
       id: app.id,
