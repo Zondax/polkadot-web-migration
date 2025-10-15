@@ -2,7 +2,7 @@ import type { BN } from '@polkadot/util'
 import { useCallback, useMemo, useState } from 'react'
 
 import type { UpdateTransactionStatus } from '@/lib/account'
-import { type Transaction, TransactionStatus } from '@/state/types/ledger'
+import { TransactionStatus, type Transaction } from '@/state/types/ledger'
 
 type GenericFunction = (...args: any[]) => Promise<void>
 
@@ -53,11 +53,12 @@ export const useTransactionStatus = <T extends GenericFunction>(
   /**
    * Updates the transaction status for a specific operation
    */
-  const updateTxStatus: UpdateTransactionStatus = useCallback((status, message, txDetails) => {
+  const updateTxStatus: UpdateTransactionStatus = useCallback((status, message, dispatchError, txDetails) => {
     setTxStatus(prev => ({
       ...prev,
       status: status,
       statusMessage: message,
+      dispatchError,
       hash: txDetails?.txHash,
       blockHash: txDetails?.blockHash,
       blockNumber: txDetails?.blockNumber,

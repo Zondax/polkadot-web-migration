@@ -35,6 +35,7 @@ export enum TransactionStatus {
 export interface Transaction extends TransactionDetails {
   status?: TransactionStatus
   statusMessage?: string
+  dispatchError?: string // Raw error returned by the Polkadot runtime when dispatching an extrinsic
   /**
    * The actual amount of native tokens to transfer.
    *

@@ -917,7 +917,11 @@ export const ledgerState$ = observable({
       await ledgerClient.signMultisigTransferTx(appId, account, formBody.recipient, formBody.signer, transferAmount, updateTxStatus)
     } catch (error) {
       const internalError = interpretError(error, InternalErrorType.MULTISIG_TRANSFER_ERROR)
-      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+      updateTxStatus(
+        TransactionStatus.ERROR,
+        internalError.description,
+        internalError.context?.dispatchError ? (internalError.context?.dispatchError as string) : undefined
+      )
     }
   },
 

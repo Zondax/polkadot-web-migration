@@ -182,7 +182,7 @@ function TransferMultisigDialogInner({ open, setOpen, token, appId, account }: T
 
   // Wrap ledgerState$.createMultisigTransfer to match the generic hook's expected signature
   const createMultisigTransferTxFn = async (
-    updateTxStatus: (status: TransactionStatus, message?: string, txDetails?: TransactionDetails) => void,
+    updateTxStatus: (status: TransactionStatus, message?: string, dispatchError?: string, txDetails?: TransactionDetails) => void,
     appId: AppId
   ) => {
     await ledgerState$.createMultisigTransfer(appId, account, form.getValues(), transferAmount, updateTxStatus)
