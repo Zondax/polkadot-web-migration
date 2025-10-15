@@ -282,10 +282,8 @@ export async function getNativeBalance(addressString: string, api: ApiPromise, a
         transferable: transferableBN,
       }
 
-      if (!frozenBN.isZero()) {
-        const stakingInfo = await getStakingInfo(addressString, api, appId)
-        nativeBalance.staking = stakingInfo
-      }
+      const stakingInfo = await getStakingInfo(addressString, api, appId)
+      nativeBalance.staking = stakingInfo
 
       // Get conviction voting info if available
       const convictionVotingInfo = await getConvictionVotingInfo(addressString, api)
