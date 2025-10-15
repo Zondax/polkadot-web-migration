@@ -1,11 +1,15 @@
+import { polkadotAppConfig } from '@/config/apps'
+import { getValidApps } from '@/lib/services/synchronization.service'
+import type { AppDisplayInfo, DeepScanAppDisplayInfo } from '@/lib/types/app-display'
 import axios from 'axios'
-import { type App, AppStatus } from 'state/ledger'
+import { AppStatus, type App } from 'state/ledger'
 import {
+  AddressStatus,
+  VerificationStatus,
   type Address,
   type AddressBalance,
   type AddressWithVerificationStatus,
   type MultisigAddress,
-  VerificationStatus,
 } from 'state/types/ledger'
 import { hasAddressBalance, hasBalance } from './balance'
 
@@ -75,32 +79,54 @@ export const filterValidSyncedAppsWithBalances = (apps: App[]): App[] => {
 }
 
 /**
- * Filters apps to only include those that have accounts that can be migrated.
+ * Checks if a single account meets ALL criteria for migration.
+ * This is the single source of truth for migration eligibility.
+ *
+ * @param account - The account to check (Address or MultisigAddress)
+ * @param checkSelected - Whether to check if account is selected (default: true)
+ * @returns true if the account can be migrated, false otherwise
+ */
+export const canAccountBeMigrated = (account: Address | MultisigAddress) => {
+  // Must be selected (unless explicitly skipped)
+  if (!account.selected) return false
+
+  // Must not be already migrated
+  if (account.status === 'migrated') return false
+
+  // Must have balances
+  if (!account.balances || account.balances.length === 0) return false
+
+  // Allow accounts with migration errors, but not other errors
+  if (account.error && account.error.source !== 'migration') return false
+
+  // ALL balances must meet migration criteria
+  return account.balances.every(balance => {
+    // Must have transferable balance
+    if (!hasBalance([balance], true)) return false
+
+    // Must have destination address - THIS IS THE KEY CHECK!
+    if (!balance.transaction?.destinationAddress) return false
+
+    return true
+  })
+}
+
+/**
+ * Filters apps to only include those that have accounts that can be migrated or are already migrated.
  * This function filters for accounts that are selected and have a balance and destination address.
  *
  * @param apps - The apps to filter.
  * @returns Apps with accounts that can be migrated.
  */
 export const filterValidSelectedAccountsForMigration = (apps: App[]): App[] => {
+  const isAccountReadyForMigrationView = (account: Address | MultisigAddress) =>
+    account.status === AddressStatus.MIGRATED || canAccountBeMigrated(account)
+
   const filteredApps = apps
     .map(app => ({
       ...app,
-      accounts:
-        app.accounts?.filter(
-          account =>
-            account.selected &&
-            (!account.error || account.error?.source === 'migration') &&
-            account.balances &&
-            account.balances.some(balance => hasBalance([balance], true) && balance.transaction?.destinationAddress)
-        ) || [],
-      multisigAccounts:
-        app.multisigAccounts?.filter(
-          account =>
-            account.selected &&
-            (!account.error || account.error?.source === 'migration') &&
-            account.balances &&
-            account.balances.some(balance => hasBalance([balance], true) && balance.transaction?.destinationAddress)
-        ) || [],
+      accounts: app.accounts?.filter(isAccountReadyForMigrationView) || [],
+      multisigAccounts: app.multisigAccounts?.filter(isAccountReadyForMigrationView) || [],
     }))
     .filter(app => app.accounts.length > 0 || app.multisigAccounts?.length > 0)
 
@@ -158,6 +184,62 @@ export const hasAppAccounts = (app: App): boolean => {
  */
 export const getAppTotalAccounts = (app: App): number => {
   return (app.accounts?.length || 0) + (app.multisigAccounts?.length || 0)
+}
+
+/**
+ * Prepare apps for display by combining config apps with sync status
+ * and account counts from apps with balances.
+ *
+ * This function is useful for displaying app status in loading screens and grids.
+ * Polkadot is included because it is also synchronized.
+ *
+ * @param apps - All synchronized apps
+ * @param appsWithoutErrors - Apps that were validly synchronized and have balances
+ * @returns Array of lightweight app display information
+ */
+export function prepareDisplayApps(apps: App[], appsWithoutErrors: App[]): AppDisplayInfo[] {
+  const configApps = getValidApps()
+
+  return [...configApps, polkadotAppConfig].map(config => {
+    // Find synced app
+    const syncedApp = apps.find(app => app.id === config.id)
+    let totalAccounts = 0
+
+    // The number matches with the accounts that are going to be displayed in the sync table
+    if (syncedApp && syncedApp.status === AppStatus.SYNCHRONIZED) {
+      // Find app with balances for account counts
+      const appWithBalances = appsWithoutErrors.find(app => app.id === config.id)
+      totalAccounts = appWithBalances ? getAppTotalAccounts(appWithBalances) : 0
+    }
+
+    return {
+      id: config.id,
+      name: config.name,
+      status: syncedApp?.status,
+      totalAccounts,
+    }
+  })
+}
+
+/**
+ * Prepare deep scan apps for display with original account counts
+ * for comparison and showing new accounts found.
+ *
+ * @param deepScanApps - Apps from deep scan with originalAccountCount
+ * @returns Array of lightweight app display information for deep scan
+ */
+export function prepareDeepScanDisplayApps(deepScanApps: (App & { originalAccountCount: number })[]): DeepScanAppDisplayInfo[] {
+  return deepScanApps.map(app => {
+    const totalAccounts = getAppTotalAccounts(app)
+
+    return {
+      id: app.id,
+      name: app.name,
+      status: app.status,
+      totalAccounts,
+      originalAccountCount: app.originalAccountCount,
+    }
+  })
 }
 
 /**

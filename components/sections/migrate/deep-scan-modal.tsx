@@ -1,19 +1,18 @@
 'use client'
 
 import TokenIcon from '@/components/TokenIcon'
+import type { DeepScanAppDisplayInfo } from '@/lib/types/app-display'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { AppId } from '@/config/apps'
-import { polkadotAppConfig } from '@/config/apps'
 import { getAppsToSkipMigration, getValidApps } from '@/lib/services/synchronization.service'
 import type { RangeField, ScanType } from '@/lib/types/scan'
 import { RangeFieldEnum, SCAN_LIMITS, ScanTypeEnum } from '@/lib/types/scan'
 import { cn } from '@/lib/utils'
 import { formatIndexDisplay, parseIndexConfig, validateIndexConfig } from '@/lib/utils/scan-indices'
 import { getSyncStatusLabel } from '@/lib/utils/sync-status'
-import type { App } from '@/state/ledger'
 import type { SyncProgress } from '@/state/types/ledger'
 import { use$ } from '@legendapp/state/react'
 import { useMemo, useState } from 'react'
@@ -30,7 +29,7 @@ interface DeepScanModalProps {
   isCancelling?: boolean
   isCompleted?: boolean
   progress?: SyncProgress
-  scanningApps?: App[]
+  scanningApps?: DeepScanAppDisplayInfo[]
   onCancel?: () => void
   onDone?: () => void
 }
@@ -73,11 +72,6 @@ export function DeepScanModal({
   // Get available chains from config
   const availableChains = useMemo(() => {
     const chains = getValidApps()
-    // Add polkadot if not already in the list
-    const hasPolkadot = chains.some(c => c.id === 'polkadot')
-    if (!hasPolkadot) {
-      chains.unshift(polkadotAppConfig)
-    }
     return chains
   }, [])
 

@@ -1,8 +1,7 @@
-import { observable } from '@legendapp/state'
-import { type AppConfig, type AppId, appsConfigs } from 'config/apps'
-
+import { getValidApps } from '@/lib/services/synchronization.service'
 import { getAppLightIcon } from '@/lib/utils'
-
+import { observable } from '@legendapp/state'
+import { polkadotAppConfig, type AppConfig, type AppId } from 'config/apps'
 import type { AppIcons } from './ledger'
 
 interface UIState {
@@ -18,12 +17,13 @@ let iconsStatus: 'loading' | 'loaded' | 'unloaded' = 'unloaded'
 export const uiState$ = observable({
   ...initialUIState,
 
+  // Load icons for valid apps and polkadot app
   async loadInitialIcons() {
     if (iconsStatus !== 'unloaded') return
     iconsStatus = 'loading'
     const appIcons: Partial<AppIcons> = {}
 
-    const iconPromises = Array.from(appsConfigs.values())
+    const iconPromises = [...getValidApps(), polkadotAppConfig]
       .filter(app => app.rpcEndpoints && app.rpcEndpoints.length > 0)
       .map(async (app: AppConfig) => {
         const lightIconResponse = await getAppLightIcon(app.id)

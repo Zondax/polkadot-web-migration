@@ -179,7 +179,7 @@
     "name": "People Kusama",
     "bip44Path": "m/44'/434'/0'/0'/0'",
     "ss58Prefix": 2,
-    "rpcEndpoints": ["wss://people-kusama.api.onfinality.io/public-ws", "wss://people-kusama-rpc.dwellir.com"],
+    "rpcEndpoints": ["wss://people-kusama-rpc.dwellir.com", "wss://people-kusama.api.onfinality.io/public-ws"],
     "token": {
       "symbol": "KSM",
       "decimals": 12,

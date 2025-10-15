@@ -4,15 +4,16 @@ import { CustomTooltip } from '@/components/CustomTooltip'
 import TokenIcon from '@/components/TokenIcon'
 import { Badge } from '@/components/ui/badge'
 import { getChainName } from '@/config/apps'
-import { cn, getAppTotalAccounts, hasAppAccounts } from '@/lib/utils'
+import type { AppDisplayInfo, DeepScanAppDisplayInfo } from '@/lib/types/app-display'
+import { cn } from '@/lib/utils'
 import { use$ } from '@legendapp/state/react'
 import { AlertCircle, Check, Loader2 } from 'lucide-react'
 import { useMemo } from 'react'
-import { AppStatus, type App } from 'state/ledger'
+import { AppStatus } from 'state/ledger'
 import { uiState$ } from 'state/ui'
 
 interface AppScanItemProps {
-  app: App & { originalAccountCount?: number }
+  app: AppDisplayInfo | DeepScanAppDisplayInfo
   mode?: 'sync' | 'deep-scan'
 }
 
@@ -133,9 +134,9 @@ export const AppScanItem = ({ app, mode = 'sync' }: AppScanItemProps) => {
   const appName = app.name || getChainName(app.id) || app.id
 
   // Calculate account metrics
-  const hasAccounts = hasAppAccounts(app)
-  const totalAccounts = getAppTotalAccounts(app)
-  const originalCount = app.originalAccountCount || 0
+  const hasAccounts = app.totalAccounts > 0
+  const totalAccounts = app.totalAccounts
+  const originalCount = 'originalAccountCount' in app ? app.originalAccountCount : 0
   const newAccountsFound = mode === 'deep-scan' ? Math.max(0, totalAccounts - originalCount) : 0
 
   // Memoize status configuration to avoid recalculating on every render

@@ -5,8 +5,8 @@ import type { DeviceConnectionProps } from '@/lib/ledger/types'
 import { deepScanAllApps, getAppsToSkipMigration, synchronizeAllApps, synchronizeAppAccounts } from '@/lib/services/synchronization.service'
 import { interpretError, type InternalError } from '@/lib/utils'
 import { isMultisigAddress } from '@/lib/utils/address'
-import { hasAddressBalance } from '@/lib/utils/balance'
-import { observable } from '@legendapp/state'
+import { canAccountBeMigrated } from '@/lib/utils/ledger'
+import { computed, observable } from '@legendapp/state'
 import type { BN } from '@polkadot/util'
 import { appsConfigs, polkadotAppConfig, type AppId } from 'config/apps'
 import { InternalErrorType, errorDetails } from 'config/errors'
@@ -59,17 +59,31 @@ export interface App {
   }
 }
 
+type MigrationResultKey = 'success' | 'fails' | 'total'
+
+type AppWithoutPolkadot = Omit<App, 'id'> & { id: Exclude<AppId, 'polkadot'> }
+type PolkadotApp = Omit<App, 'id'> & { id: 'polkadot' }
+
 export interface DeepScan {
   isScanning: boolean
   isCancelling: boolean
   isCompleted: boolean
   cancelRequested: boolean
   progress: SyncProgress
-  apps: (App & { originalAccountCount: number })[]
+  apps: Array<AppWithoutPolkadot & { originalAccountCount: number }>
 }
 
-type MigrationResultKey = 'success' | 'fails' | 'total'
-
+/**
+ * The state of the ledger.
+ *
+ * @property device - The state of the device.
+ * @property apps - The state of the apps.
+ * @property apps - The state of the apps.
+ *   @property apps - The state of the apps, excluding Polkadot.
+ *   @property polkadotApp - The state of the Polkadot app. Polkadot has a fundamental role as the "source of truth" for destination addresses, so it is handled differently.
+ * @property deepScan - The state of the deep scan.
+ * @property polkadotAddresses - The state of the polkadot addresses.
+ */
 interface LedgerState {
   device: {
     connection?: DeviceConnectionProps
@@ -77,8 +91,8 @@ interface LedgerState {
     error?: string
   }
   apps: {
-    apps: App[]
-    polkadotApp: App
+    apps: Array<AppWithoutPolkadot>
+    polkadotApp: PolkadotApp
     status?: AppStatus
     error?: string
     syncProgress: SyncProgress
@@ -92,6 +106,12 @@ interface LedgerState {
   polkadotAddresses: Partial<Record<AppId, string[]>>
 }
 
+const initialPolkadotApp = {
+  name: polkadotAppConfig.name,
+  id: 'polkadot' as const,
+  token: polkadotAppConfig.token,
+}
+
 const initialLedgerState: LedgerState = {
   device: {
     connection: undefined,
@@ -100,7 +120,7 @@ const initialLedgerState: LedgerState = {
   },
   apps: {
     apps: [],
-    polkadotApp: polkadotAppConfig,
+    polkadotApp: initialPolkadotApp,
     status: undefined,
     error: undefined,
     syncProgress: {
@@ -348,7 +368,7 @@ export const ledgerState$ = observable({
   clearSynchronization() {
     ledgerState$.apps.assign({
       apps: [],
-      polkadotApp: polkadotAppConfig,
+      polkadotApp: initialPolkadotApp,
       status: undefined,
       error: undefined,
       syncProgress: {
@@ -473,7 +493,11 @@ export const ledgerState$ = observable({
         () => ledgerState$.apps.isSyncCancelRequested.get(),
         // App start callback - add app with loading status
         loadingApp => {
-          ledgerState$.apps.apps.push(loadingApp)
+          if (loadingApp.id === 'polkadot') {
+            ledgerState$.apps.polkadotApp.set({ ...loadingApp, id: 'polkadot' })
+          } else {
+            ledgerState$.apps.apps.push(loadingApp)
+          }
         },
         // Processing accounts start callback
         () => {
@@ -498,6 +522,7 @@ export const ledgerState$ = observable({
         if (result.polkadotApp) {
           ledgerState$.apps.polkadotApp.set({
             ...result.polkadotApp,
+            id: 'polkadot',
             status: AppStatus.SYNCHRONIZED,
           })
         }
@@ -710,7 +735,7 @@ export const ledgerState$ = observable({
   },
 
   // Migrate selected accounts
-  async migrateSelected(selectedOnly = true) {
+  async migrateSelected() {
     // Reset migration result
     ledgerState$.apps.migrationResult.set({ success: 0, fails: 0, total: 0 })
 
@@ -724,10 +749,10 @@ export const ledgerState$ = observable({
       for (const app of apps) {
         if ((!app.accounts || app.accounts.length === 0) && (!app.multisigAccounts || app.multisigAccounts.length === 0)) continue
 
-        // Get accounts that need migration
-        const accountsToMigrate: (Address | MultisigAddress)[] = [...(app.accounts || []), ...(app.multisigAccounts || [])]
-          // Skip accounts that are already migrated or have no balance
-          .filter(account => account.status !== 'migrated' && hasAddressBalance(account) && (!selectedOnly || account.selected))
+        // Get accounts that need migration - using unified validation logic
+        const accountsToMigrate: (Address | MultisigAddress)[] = [...(app.accounts || []), ...(app.multisigAccounts || [])].filter(
+          account => canAccountBeMigrated(account)
+        )
 
         if (accountsToMigrate.length === 0) continue
 
@@ -1018,6 +1043,7 @@ export const ledgerState$ = observable({
     try {
       // Get current synchronized apps
       const currentApps = ledgerState$.apps.apps.get()
+      const polkadotAddresses = ledgerState$.apps.polkadotApp.accounts.get()?.map(account => account.address) || []
 
       // Use the synchronization service to handle the deep scan process
       const result = await deepScanAllApps(
@@ -1025,6 +1051,7 @@ export const ledgerState$ = observable({
         accountIndices,
         addressIndices,
         currentApps,
+        polkadotAddresses,
         // Progress callback
         progress => {
           ledgerState$.deepScan.progress.set(progress)
@@ -1123,6 +1150,7 @@ export const ledgerState$ = observable({
       if (hasNewPolkadotAccounts && needsPolkadotUpdate && result.polkadotApp) {
         ledgerState$.apps.polkadotApp.set({
           ...result.polkadotApp,
+          id: 'polkadot',
           status: AppStatus.SYNCHRONIZED,
         })
       }
@@ -1170,4 +1198,14 @@ export const ledgerState$ = observable({
       ledgerState$.deepScan.cancelRequested.set(false)
     }
   },
+})
+
+/**
+ * Computed observable that combines apps and polkadotApp into a single array.
+ * This computed value is memoized and only recalculates when the underlying apps change,
+ * preventing unnecessary re-renders in components that consume this data.
+ */
+export const allApps$ = computed(() => {
+  const { apps, polkadotApp } = ledgerState$.apps.get()
+  return [...apps, polkadotApp]
 })

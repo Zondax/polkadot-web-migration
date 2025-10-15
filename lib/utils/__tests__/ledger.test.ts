@@ -1,17 +1,17 @@
-import { BN } from '@polkadot/util'
-import axios from 'axios'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { App } from '@/state/ledger'
 import { AppStatus } from '@/state/ledger'
 import {
+  BalanceType,
+  VerificationStatus,
   type Address,
   type AddressBalance,
   type AddressWithVerificationStatus,
-  BalanceType,
   type MultisigAddress,
   type NativeBalance,
-  VerificationStatus,
 } from '@/state/types/ledger'
+import { BN } from '@polkadot/util'
+import axios from 'axios'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   addDestinationAddressesFromAccounts,
@@ -23,6 +23,8 @@ import {
   getAppTotalAccounts,
   hasAccountsWithErrors,
   hasAppAccounts,
+  prepareDeepScanDisplayApps,
+  prepareDisplayApps,
   setDefaultDestinationAddress,
 } from '../ledger'
 
@@ -51,6 +53,14 @@ vi.mock('../balance', () => ({
       return balance.balance?.length > 0
     })
   }),
+}))
+
+// Mock synchronization service
+vi.mock('@/lib/services/synchronization.service', () => ({
+  getValidApps: vi.fn(() => [
+    { id: 'kusama', name: 'Kusama' },
+    { id: 'westend', name: 'Westend' },
+  ]),
 }))
 
 describe('ledger utilities', () => {
@@ -773,6 +783,417 @@ describe('ledger utilities', () => {
       addDestinationAddressesFromAccounts(accounts, addressMap, polkadotAddresses)
 
       expect(addressMap.size).toBe(0)
+    })
+  })
+
+  describe('prepareDisplayApps', () => {
+    it('should return apps with balances from appsWithoutErrors', () => {
+      const apps: App[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.SYNCHRONIZED,
+          accounts: [],
+          multisigAccounts: [],
+        },
+      ]
+      const appsWithoutErrors: App[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.SYNCHRONIZED,
+          accounts: [mockAddress, mockAddress],
+          multisigAccounts: [mockMultisigAddress],
+        },
+      ]
+
+      const result = prepareDisplayApps(apps, appsWithoutErrors)
+
+      expect(result).toHaveLength(3) // All config apps
+      const polkadotApp = result.find(app => app.id === 'polkadot')
+      expect(polkadotApp).toBeDefined()
+      expect(polkadotApp?.name).toBe('Polkadot')
+      expect(polkadotApp?.status).toBe(AppStatus.SYNCHRONIZED)
+      expect(polkadotApp?.totalAccounts).toBe(3) // 2 accounts + 1 multisig
+    })
+
+    it('should fallback to synced apps when app not in appsWithoutErrors', () => {
+      const apps: App[] = [
+        {
+          id: 'kusama',
+          name: 'Kusama',
+          status: AppStatus.LOADING,
+          accounts: [mockAddress],
+          multisigAccounts: [],
+        },
+      ]
+      const appsWithoutErrors: App[] = []
+
+      const result = prepareDisplayApps(apps, appsWithoutErrors)
+
+      const kusamaApp = result.find(app => app.id === 'kusama')
+      expect(kusamaApp).toBeDefined()
+      expect(kusamaApp?.name).toBe('Kusama')
+      expect(kusamaApp?.status).toBe(AppStatus.LOADING)
+      expect(kusamaApp?.totalAccounts).toBe(0) // Accounts not counted when status is not SYNCHRONIZED
+    })
+
+    it('should return default state for apps not yet scanned', () => {
+      const apps: App[] = []
+      const appsWithoutErrors: App[] = []
+
+      const result = prepareDisplayApps(apps, appsWithoutErrors)
+
+      expect(result).toHaveLength(3)
+      const westendApp = result.find(app => app.id === 'westend')
+      expect(westendApp).toBeDefined()
+      expect(westendApp?.name).toBe('Westend')
+      expect(westendApp?.status).toBeUndefined()
+      expect(westendApp?.totalAccounts).toBe(0)
+    })
+
+    it('should handle apps with only regular accounts', () => {
+      const apps: App[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.SYNCHRONIZED,
+          accounts: [],
+          multisigAccounts: [],
+        },
+      ]
+      const appsWithoutErrors: App[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.SYNCHRONIZED,
+          accounts: [mockAddress, mockAddress, mockAddress],
+          multisigAccounts: [],
+        },
+      ]
+
+      const result = prepareDisplayApps(apps, appsWithoutErrors)
+
+      const polkadotApp = result.find(app => app.id === 'polkadot')
+      expect(polkadotApp?.totalAccounts).toBe(3)
+    })
+
+    it('should handle apps with only multisig accounts', () => {
+      const apps: App[] = [
+        {
+          id: 'kusama',
+          name: 'Kusama',
+          status: AppStatus.SYNCHRONIZED,
+          accounts: [],
+          multisigAccounts: [],
+        },
+      ]
+      const appsWithoutErrors: App[] = [
+        {
+          id: 'kusama',
+          name: 'Kusama',
+          status: AppStatus.SYNCHRONIZED,
+          accounts: [],
+          multisigAccounts: [mockMultisigAddress, mockMultisigAddress],
+        },
+      ]
+
+      const result = prepareDisplayApps(apps, appsWithoutErrors)
+
+      const kusamaApp = result.find(app => app.id === 'kusama')
+      expect(kusamaApp?.totalAccounts).toBe(2)
+    })
+
+    it('should handle apps with undefined accounts', () => {
+      const apps: App[] = [
+        {
+          id: 'westend',
+          name: 'Westend',
+          status: AppStatus.LOADING,
+          accounts: undefined,
+          multisigAccounts: undefined,
+        },
+      ]
+      const appsWithoutErrors: App[] = []
+
+      const result = prepareDisplayApps(apps, appsWithoutErrors)
+
+      const westendApp = result.find(app => app.id === 'westend')
+      expect(westendApp?.totalAccounts).toBe(0)
+    })
+
+    it('should prioritize appsWithoutErrors account counts when app is synchronized', () => {
+      const apps: App[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot Old',
+          status: AppStatus.SYNCHRONIZED,
+          accounts: [mockAddress],
+          multisigAccounts: [],
+        },
+      ]
+      const appsWithoutErrors: App[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot New',
+          status: AppStatus.SYNCHRONIZED,
+          accounts: [mockAddress, mockAddress],
+          multisigAccounts: [mockMultisigAddress],
+        },
+      ]
+
+      const result = prepareDisplayApps(apps, appsWithoutErrors)
+
+      const polkadotApp = result.find(app => app.id === 'polkadot')
+      expect(polkadotApp?.name).toBe('Polkadot') // Name comes from config
+      expect(polkadotApp?.status).toBe(AppStatus.SYNCHRONIZED) // Status comes from apps
+      expect(polkadotApp?.totalAccounts).toBe(3) // Accounts come from appsWithoutErrors
+    })
+
+    it('should handle mixed states for different apps', () => {
+      const apps: App[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.SYNCHRONIZED,
+          accounts: [],
+          multisigAccounts: [],
+        },
+        {
+          id: 'kusama',
+          name: 'Kusama',
+          status: AppStatus.LOADING,
+          accounts: [],
+          multisigAccounts: [],
+        },
+      ]
+      const appsWithoutErrors: App[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.SYNCHRONIZED,
+          accounts: [mockAddress],
+          multisigAccounts: [],
+        },
+      ]
+
+      const result = prepareDisplayApps(apps, appsWithoutErrors)
+
+      expect(result).toHaveLength(3)
+
+      const polkadotApp = result.find(app => app.id === 'polkadot')
+      expect(polkadotApp?.status).toBe(AppStatus.SYNCHRONIZED)
+      expect(polkadotApp?.totalAccounts).toBe(1)
+
+      const kusamaApp = result.find(app => app.id === 'kusama')
+      expect(kusamaApp?.status).toBe(AppStatus.LOADING)
+      expect(kusamaApp?.totalAccounts).toBe(0)
+
+      const westendApp = result.find(app => app.id === 'westend')
+      expect(westendApp?.status).toBeUndefined()
+      expect(westendApp?.totalAccounts).toBe(0)
+    })
+
+    it('should handle apps with error status', () => {
+      const apps: App[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.ERROR,
+          accounts: [],
+          multisigAccounts: [],
+        },
+      ]
+      const appsWithoutErrors: App[] = []
+
+      const result = prepareDisplayApps(apps, appsWithoutErrors)
+
+      const polkadotApp = result.find(app => app.id === 'polkadot')
+      expect(polkadotApp?.status).toBe(AppStatus.ERROR)
+      expect(polkadotApp?.totalAccounts).toBe(0)
+    })
+  })
+
+  describe('prepareDeepScanDisplayApps', () => {
+    it('should convert deep scan apps to display info with originalAccountCount', () => {
+      const deepScanApps: (App & { originalAccountCount: number })[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.SYNCHRONIZED,
+          accounts: [mockAddress, mockAddress, mockAddress],
+          multisigAccounts: [mockMultisigAddress],
+          originalAccountCount: 2,
+        },
+      ]
+
+      const result = prepareDeepScanDisplayApps(deepScanApps)
+
+      expect(result).toHaveLength(1)
+      expect(result[0]).toEqual({
+        id: 'polkadot',
+        name: 'Polkadot',
+        status: AppStatus.SYNCHRONIZED,
+        totalAccounts: 4, // 3 accounts + 1 multisig
+        originalAccountCount: 2,
+      })
+    })
+
+    it('should handle apps with only regular accounts', () => {
+      const deepScanApps: (App & { originalAccountCount: number })[] = [
+        {
+          id: 'kusama',
+          name: 'Kusama',
+          status: AppStatus.LOADING,
+          accounts: [mockAddress],
+          multisigAccounts: [],
+          originalAccountCount: 0,
+        },
+      ]
+
+      const result = prepareDeepScanDisplayApps(deepScanApps)
+
+      expect(result[0].totalAccounts).toBe(1)
+      expect(result[0].originalAccountCount).toBe(0)
+    })
+
+    it('should handle apps with only multisig accounts', () => {
+      const deepScanApps: (App & { originalAccountCount: number })[] = [
+        {
+          id: 'westend',
+          name: 'Westend',
+          status: AppStatus.SYNCHRONIZED,
+          accounts: [],
+          multisigAccounts: [mockMultisigAddress, mockMultisigAddress],
+          originalAccountCount: 1,
+        },
+      ]
+
+      const result = prepareDeepScanDisplayApps(deepScanApps)
+
+      expect(result[0].totalAccounts).toBe(2)
+      expect(result[0].originalAccountCount).toBe(1)
+    })
+
+    it('should handle apps with undefined accounts', () => {
+      const deepScanApps: (App & { originalAccountCount: number })[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.LOADING,
+          accounts: undefined,
+          multisigAccounts: undefined,
+          originalAccountCount: 0,
+        },
+      ]
+
+      const result = prepareDeepScanDisplayApps(deepScanApps)
+
+      expect(result[0].totalAccounts).toBe(0)
+      expect(result[0].originalAccountCount).toBe(0)
+    })
+
+    it('should calculate new accounts found correctly', () => {
+      const deepScanApps: (App & { originalAccountCount: number })[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.SYNCHRONIZED,
+          accounts: [mockAddress, mockAddress, mockAddress],
+          multisigAccounts: [mockMultisigAddress, mockMultisigAddress],
+          originalAccountCount: 2, // Had 2 accounts before deep scan
+        },
+      ]
+
+      const result = prepareDeepScanDisplayApps(deepScanApps)
+
+      // totalAccounts (5) - originalAccountCount (2) = 3 new accounts found
+      expect(result[0].totalAccounts).toBe(5)
+      expect(result[0].originalAccountCount).toBe(2)
+      expect(result[0].totalAccounts - result[0].originalAccountCount).toBe(3)
+    })
+
+    it('should handle multiple apps with different originalAccountCount', () => {
+      const deepScanApps: (App & { originalAccountCount: number })[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.SYNCHRONIZED,
+          accounts: [mockAddress, mockAddress],
+          multisigAccounts: [],
+          originalAccountCount: 1,
+        },
+        {
+          id: 'kusama',
+          name: 'Kusama',
+          status: AppStatus.SYNCHRONIZED,
+          accounts: [],
+          multisigAccounts: [mockMultisigAddress],
+          originalAccountCount: 0,
+        },
+        {
+          id: 'westend',
+          name: 'Westend',
+          status: AppStatus.LOADING,
+          accounts: [],
+          multisigAccounts: [],
+          originalAccountCount: 0,
+        },
+      ]
+
+      const result = prepareDeepScanDisplayApps(deepScanApps)
+
+      expect(result).toHaveLength(3)
+      expect(result[0]).toMatchObject({
+        id: 'polkadot',
+        totalAccounts: 2,
+        originalAccountCount: 1,
+      })
+      expect(result[1]).toMatchObject({
+        id: 'kusama',
+        totalAccounts: 1,
+        originalAccountCount: 0,
+      })
+      expect(result[2]).toMatchObject({
+        id: 'westend',
+        totalAccounts: 0,
+        originalAccountCount: 0,
+      })
+    })
+
+    it('should handle apps with error status', () => {
+      const deepScanApps: (App & { originalAccountCount: number })[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.ERROR,
+          accounts: [],
+          multisigAccounts: [],
+          originalAccountCount: 0,
+        },
+      ]
+
+      const result = prepareDeepScanDisplayApps(deepScanApps)
+
+      expect(result[0].status).toBe(AppStatus.ERROR)
+      expect(result[0].totalAccounts).toBe(0)
+    })
+
+    it('should preserve app status during deep scan', () => {
+      const deepScanApps: (App & { originalAccountCount: number })[] = [
+        {
+          id: 'polkadot',
+          name: 'Polkadot',
+          status: AppStatus.LOADING,
+          accounts: [mockAddress],
+          multisigAccounts: [],
+          originalAccountCount: 0,
+        },
+      ]
+
+      const result = prepareDeepScanDisplayApps(deepScanApps)
+
+      expect(result[0].status).toBe(AppStatus.LOADING)
     })
   })
 })
