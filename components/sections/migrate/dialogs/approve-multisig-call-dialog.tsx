@@ -23,7 +23,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Info } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import type { MultisigAddress, MultisigCall, MultisigMember, TransactionDetails, TransactionStatus } from 'state/types/ledger'
+import type { MultisigAddress, MultisigCall, MultisigMember } from 'state/types/ledger'
 import { z } from 'zod'
 import { DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
@@ -509,10 +509,7 @@ function ApproveMultisigCallDialogInner({ open, setOpen, token, appId, account }
   }, [callData, selectedCallHash, validateCallDataHandler])
 
   // Wrap ledgerState$.approveMultisigCall to match the generic hook's expected signature
-  const approveMultisigCallTxFn = async (
-    updateTxStatus: (status: TransactionStatus, message?: string, dispatchError?: string, txDetails?: TransactionDetails) => void,
-    appId: AppId
-  ) => {
+  const approveMultisigCallTxFn = async (updateTxStatus: UpdateTransactionStatus, appId: AppId) => {
     const formData = form.getValues()
 
     // Create a wrapper that always includes the callHash and callData from the form

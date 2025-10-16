@@ -1,6 +1,3 @@
-import type { BN } from '@polkadot/util'
-import { useEffect } from 'react'
-import type { Address, TransactionDetails, TransactionStatus } from 'state/types/ledger'
 import { CustomTooltip } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
@@ -8,9 +5,13 @@ import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, Dia
 import type { AppId, Token } from '@/config/apps'
 import { errorDetails } from '@/config/errors'
 import { ExplorerItemType } from '@/config/explorers'
+import type { UpdateTransactionStatus } from '@/lib/account'
 import { cannotCoverFee } from '@/lib/utils/balance'
 import { formatBalance } from '@/lib/utils/format'
 import { ledgerState$ } from '@/state/ledger'
+import type { BN } from '@polkadot/util'
+import { useEffect } from 'react'
+import type { Address } from 'state/types/ledger'
 import { DialogError, DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
@@ -66,12 +67,7 @@ function RemoveIdentityForm({ token, account, appId, estimatedFee, estimatedFeeL
 
 export default function RemoveIdentityDialog({ open, setOpen, token, account, appId, transferableBalance }: RemoveIdentityDialogProps) {
   // Wrap ledgerState$.removeIdentity to match the generic hook's expected signature
-  const removeIdentityTxFn = async (
-    updateTxStatus: (status: TransactionStatus, message?: string, txDetails?: TransactionDetails) => void,
-    appId: AppId,
-    address: string,
-    path: string
-  ) => {
+  const removeIdentityTxFn = async (updateTxStatus: UpdateTransactionStatus, appId: AppId, address: string, path: string) => {
     await ledgerState$.removeIdentity(appId, address, path, updateTxStatus)
   }
 

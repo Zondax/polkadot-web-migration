@@ -1,6 +1,3 @@
-import type { BN } from '@polkadot/util'
-import { AlertCircle, Clock, Lock, Users, Vote } from 'lucide-react'
-import { useEffect, useState } from 'react'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
 import { Badge } from '@/components/ui/badge'
@@ -8,10 +5,14 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { AppId, Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
+import type { UpdateTransactionStatus } from '@/lib/account'
 import { formatBalance } from '@/lib/utils/format'
 import { getConvictionLockDescription } from '@/lib/utils/governance'
 import { ledgerState$ } from '@/state/ledger'
-import type { Address, Conviction, TransactionDetails, TransactionStatus } from '@/state/types/ledger'
+import type { Address, Conviction } from '@/state/types/ledger'
+import type { BN } from '@polkadot/util'
+import { AlertCircle, Clock, Lock, Users, Vote } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
@@ -263,7 +264,7 @@ export default function GovernanceUnlockDialog({ open, setOpen, account, appId, 
 
   // Wrap governance unlock transaction
   const governanceUnlockTxFn = async (
-    updateTxStatus: (status: TransactionStatus, message?: string, txDetails?: TransactionDetails) => void,
+    updateTxStatus: UpdateTransactionStatus,
     appId: AppId,
     address: string,
     path: string,

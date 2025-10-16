@@ -690,7 +690,7 @@ export async function submitAndHandleTransaction(
           }
         } else if (status.isError) {
           clearTimeout(timeoutId)
-          console.error('Transaction is error ', status.dispatchError)
+          console.error('Transaction is error', status.dispatchError)
           updateStatus(TransactionStatus.ERROR, 'Transaction is error')
           api.disconnect().catch(console.error)
           reject(new Error('Transaction is error'))
