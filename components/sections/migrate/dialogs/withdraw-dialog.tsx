@@ -1,16 +1,17 @@
-import type { BN } from '@polkadot/util'
-import { useEffect } from 'react'
-import type { Address, TransactionDetails, TransactionStatus } from 'state/types/ledger'
 import { ExplorerLink } from '@/components/ExplorerLink'
+import TokenIcon from '@/components/TokenIcon'
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
-import TokenIcon from '@/components/TokenIcon'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { type AppId, getChainName, type Token } from '@/config/apps'
+import { getChainName, type AppId, type Token } from '@/config/apps'
 import { errorDetails } from '@/config/errors'
 import { ExplorerItemType } from '@/config/explorers'
+import type { UpdateTransactionStatus } from '@/lib/account'
 import { cannotCoverFee } from '@/lib/utils/balance'
 import { ledgerState$ } from '@/state/ledger'
+import type { BN } from '@polkadot/util'
+import { useEffect } from 'react'
+import type { Address } from 'state/types/ledger'
 import { DialogError, DialogEstimatedFeeContent, DialogField, DialogLabel } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
@@ -63,12 +64,7 @@ function WithdrawForm({ token, account, appId, estimatedFee, estimatedFeeLoading
 
 export default function WithdrawDialog({ open, setOpen, token, account, appId, transferableBalance }: WithdrawDialogProps) {
   // Wrap ledgerState$.withdrawBalance to match the generic hook's expected signature
-  const withdrawTxFn = async (
-    updateTxStatus: (status: TransactionStatus, message?: string, txDetails?: TransactionDetails) => void,
-    appId: AppId,
-    address: string,
-    path: string
-  ) => {
+  const withdrawTxFn = async (updateTxStatus: UpdateTransactionStatus, appId: AppId, address: string, path: string) => {
     await ledgerState$.withdrawBalance(appId, address, path, updateTxStatus)
   }
 

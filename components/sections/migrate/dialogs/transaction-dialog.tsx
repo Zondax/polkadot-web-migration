@@ -14,6 +14,7 @@ import type { Transaction } from '@/state/types/ledger'
 function TransactionStatusBody({
   status,
   statusMessage: txStatusMessage,
+  dispatchError,
   txHash,
   blockHash,
   blockNumber,
@@ -57,10 +58,22 @@ function TransactionStatusBody({
     <div className="w-full flex flex-col items-center space-y-4">
       {statusIcon}
       <span className="text-base font-medium max-w-[80%] text-center">{statusMessage}</span>
+
       {details.length > 0 && renderTransactionDetails()}
 
+      {dispatchError && (
+        <div className="w-full space-y-3 mt-4 p-4 bg-muted/50 rounded-lg">
+          <div className="space-y-2">
+            <div className="space-y-1">
+              <div className="text-xs font-medium">Details</div>
+              <div className="p-2 bg-background rounded text-xs font-mono break-all select-all">{dispatchError}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Display multisig call data and hash for first approval */}
-      {callData && callHash && (
+      {!dispatchError && callData && callHash && (
         <div className="w-full space-y-3 mt-4 p-4 bg-muted/50 rounded-lg">
           <div className="text-sm font-medium text-center">Multisig Transaction Details</div>
           <div className="text-xs text-muted-foreground text-center">

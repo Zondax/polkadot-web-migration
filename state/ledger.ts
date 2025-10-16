@@ -286,6 +286,18 @@ const updateMigratedStatus: UpdateMigratedStatusFn = (appId: AppId, accountType,
   }
 }
 
+/**
+ * Handles transaction errors, updating the status only if the error wasn't already
+ * handled by submitAndHandleTransaction (which handles TRANSACTION_FAILED errors)
+ */
+function handleTransactionError(error: unknown, errorType: InternalErrorType, updateTxStatus: UpdateTransactionStatus): void {
+  const internalError = interpretError(error, errorType)
+  // If the error is from a failed transaction, the status is already handled by `submitAndHandleTransaction`.
+  if (internalError.errorType !== InternalErrorType.TRANSACTION_FAILED) {
+    updateTxStatus(TransactionStatus.ERROR, internalError.description)
+  }
+}
+
 export const ledgerState$ = observable({
   ...initialLedgerState,
   async connectLedger(): Promise<{ connected: boolean; isAppOpen: boolean }> {
@@ -823,8 +835,7 @@ export const ledgerState$ = observable({
     try {
       await ledgerClient.unstakeBalance(appId, address, path, amount, updateTxStatus)
     } catch (error) {
-      const internalError = interpretError(error, InternalErrorType.UNSTAKE_ERROR)
-      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+      handleTransactionError(error, InternalErrorType.UNSTAKE_ERROR, updateTxStatus)
     }
   },
 
@@ -854,8 +865,7 @@ export const ledgerState$ = observable({
     try {
       await ledgerClient.withdrawBalance(appId, address, path, updateTxStatus)
     } catch (error) {
-      const internalError = interpretError(error, InternalErrorType.WITHDRAW_ERROR)
-      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+      handleTransactionError(error, InternalErrorType.WITHDRAW_ERROR, updateTxStatus)
     }
   },
 
@@ -878,8 +888,7 @@ export const ledgerState$ = observable({
     try {
       await ledgerClient.removeIdentity(appId, address, path, updateTxStatus)
     } catch (error) {
-      const internalError = interpretError(error, InternalErrorType.REMOVE_IDENTITY_ERROR)
-      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+      handleTransactionError(error, InternalErrorType.REMOVE_IDENTITY_ERROR, updateTxStatus)
     }
   },
 
@@ -914,8 +923,7 @@ export const ledgerState$ = observable({
       }
     } catch (error) {
       console.error('[ledgerState$.approveMultisigCall] Error caught:', error)
-      const internalError = interpretError(error, InternalErrorType.APPROVE_MULTISIG_CALL_ERROR)
-      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+      handleTransactionError(error, InternalErrorType.APPROVE_MULTISIG_CALL_ERROR, updateTxStatus)
     }
   },
 
@@ -929,8 +937,7 @@ export const ledgerState$ = observable({
     try {
       await ledgerClient.signMultisigTransferTx(appId, account, formBody.recipient, formBody.signer, transferAmount, updateTxStatus)
     } catch (error) {
-      const internalError = interpretError(error, InternalErrorType.MULTISIG_TRANSFER_ERROR)
-      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+      handleTransactionError(error, InternalErrorType.MULTISIG_TRANSFER_ERROR, updateTxStatus)
     }
   },
 
@@ -938,8 +945,7 @@ export const ledgerState$ = observable({
     try {
       await ledgerClient.removeProxies(appId, address, path, updateTxStatus)
     } catch (error) {
-      const internalError = interpretError(error, InternalErrorType.REMOVE_PROXY_ERROR)
-      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+      handleTransactionError(error, InternalErrorType.REMOVE_PROXY_ERROR, updateTxStatus)
     }
   },
 
@@ -956,8 +962,7 @@ export const ledgerState$ = observable({
     try {
       await ledgerClient.removeAccountIndex(appId, address, accountIndex, path, updateTxStatus)
     } catch (error) {
-      const internalError = interpretError(error, InternalErrorType.REMOVE_ACCOUNT_INDEX_ERROR)
-      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+      handleTransactionError(error, InternalErrorType.REMOVE_ACCOUNT_INDEX_ERROR, updateTxStatus)
     }
   },
 
@@ -980,8 +985,7 @@ export const ledgerState$ = observable({
     try {
       await ledgerClient.executeGovernanceUnlock(appId, address, path, actions, updateTxStatus)
     } catch (error) {
-      const internalError = interpretError(error, InternalErrorType.UNLOCK_CONVICTION_ERROR)
-      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+      handleTransactionError(error, InternalErrorType.UNLOCK_CONVICTION_ERROR, updateTxStatus)
     }
   },
 

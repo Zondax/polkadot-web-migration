@@ -1,7 +1,7 @@
+import { TransactionStatus } from '@/state/types/ledger'
 import { BN } from '@polkadot/util'
 import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { TransactionStatus } from '@/state/types/ledger'
 
 import { useTransactionStatus } from '../useTransactionStatus'
 
@@ -88,7 +88,7 @@ describe('useTransactionStatus hook', () => {
       }
 
       mockTransactionFn.mockImplementation(async updateTxStatus => {
-        updateTxStatus(TransactionStatus.SUCCESS, 'Transaction completed', txDetails)
+        updateTxStatus(TransactionStatus.SUCCESS, 'Transaction completed', undefined, txDetails)
       })
 
       const { result } = renderHook(() => useTransactionStatus(mockTransactionFn))
@@ -100,6 +100,7 @@ describe('useTransactionStatus hook', () => {
       expect(result.current.txStatus).toEqual({
         status: TransactionStatus.SUCCESS,
         statusMessage: 'Transaction completed',
+        dispatchError: undefined,
         hash: '0x123',
         blockHash: '0x456',
         blockNumber: 100,
@@ -270,7 +271,7 @@ describe('useTransactionStatus hook', () => {
   describe('edge cases', () => {
     it('should handle updateTxStatus with partial transaction details', async () => {
       mockTransactionFn.mockImplementation(async updateTxStatus => {
-        updateTxStatus(TransactionStatus.SUCCESS, 'Success', { txHash: '0x123' })
+        updateTxStatus(TransactionStatus.SUCCESS, 'Success', undefined, { txHash: '0x123' })
       })
 
       const { result } = renderHook(() => useTransactionStatus(mockTransactionFn))
@@ -282,6 +283,7 @@ describe('useTransactionStatus hook', () => {
       expect(result.current.txStatus).toEqual({
         status: TransactionStatus.SUCCESS,
         statusMessage: 'Success',
+        dispatchError: undefined,
         hash: '0x123',
         blockHash: undefined,
         blockNumber: undefined,
@@ -305,6 +307,29 @@ describe('useTransactionStatus hook', () => {
       expect(result.current.txStatus?.status).toBe(TransactionStatus.SUCCESS)
       expect(result.current.txStatus?.statusMessage).toBe('Completed')
       expect(result.current.isTxFailed).toBe(false)
+    })
+
+    it('should handle dispatchError parameter correctly', async () => {
+      const dispatchError = 'Module error: BadOrigin'
+      mockTransactionFn.mockImplementation(async updateTxStatus => {
+        updateTxStatus(TransactionStatus.FAILED, 'Transaction failed', dispatchError, { txHash: '0xabc' })
+      })
+
+      const { result } = renderHook(() => useTransactionStatus(mockTransactionFn))
+
+      await act(async () => {
+        await result.current.runTransaction()
+      })
+
+      expect(result.current.txStatus).toEqual({
+        status: TransactionStatus.FAILED,
+        statusMessage: 'Transaction failed',
+        dispatchError: 'Module error: BadOrigin',
+        hash: '0xabc',
+        blockHash: undefined,
+        blockNumber: undefined,
+      })
+      expect(result.current.isTxFailed).toBe(true)
     })
   })
 })

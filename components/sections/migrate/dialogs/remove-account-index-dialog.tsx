@@ -1,15 +1,16 @@
-import { BN } from '@polkadot/util'
-import { useMemo } from 'react'
-import type { Address, TransactionDetails, TransactionStatus } from 'state/types/ledger'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { AppId, Token } from '@/config/apps'
 import { errorDetails } from '@/config/errors'
 import { ExplorerItemType } from '@/config/explorers'
+import type { UpdateTransactionStatus } from '@/lib/account'
 import { cannotCoverFee } from '@/lib/utils/balance'
 import { formatBalance } from '@/lib/utils/format'
 import { ledgerState$ } from '@/state/ledger'
+import { BN } from '@polkadot/util'
+import { useMemo } from 'react'
+import type { Address } from 'state/types/ledger'
 import { DialogError, DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
@@ -92,7 +93,7 @@ export default function RemoveAccountIndexDialog({
 
   // Wrap ledgerState$.removeAccountIndex to match the generic hook's expected signature
   const removeAccountIndexTxFn = async (
-    updateTxStatus: (status: TransactionStatus, message?: string, txDetails?: TransactionDetails) => void,
+    updateTxStatus: UpdateTransactionStatus,
     appId: AppId,
     address: string,
     path: string,
