@@ -30,21 +30,21 @@ export async function simulateAndHandleTransaction(
   const wait = (ms: number) => new Promise(res => setTimeout(res, ms))
 
   // Simulate the status updates
-  updateStatus(TransactionStatus.IN_BLOCK, 'Transaction is in block', {
+  updateStatus(TransactionStatus.IN_BLOCK, 'Transaction is in block', undefined, {
     txHash,
     blockHash,
     blockNumber,
   })
   await wait(simulateDelayMs)
 
-  updateStatus(TransactionStatus.COMPLETED, 'Transaction is completed. Waiting confirmation...', {
+  updateStatus(TransactionStatus.COMPLETED, 'Transaction is completed. Waiting confirmation...', undefined, {
     txHash,
     blockHash,
     blockNumber,
   })
   await wait(simulateDelayMs)
 
-  updateStatus(TransactionStatus.FINALIZED, 'Transaction is finalized. Waiting the result...', {
+  updateStatus(TransactionStatus.FINALIZED, 'Transaction is finalized. Waiting the result...', undefined, {
     txHash,
     blockHash,
     blockNumber,
@@ -52,13 +52,13 @@ export async function simulateAndHandleTransaction(
   await wait(simulateDelayMs)
 
   if (simulateSuccess) {
-    updateStatus(TransactionStatus.SUCCESS, 'Successful Transaction', {
+    updateStatus(TransactionStatus.SUCCESS, 'Successful Transaction', undefined, {
       txHash,
       blockHash,
       blockNumber,
     })
   } else {
-    updateStatus(TransactionStatus.FAILED, 'Simulated transaction failure', {
+    updateStatus(TransactionStatus.FAILED, 'Simulated transaction failure', undefined, {
       txHash,
       blockHash,
       blockNumber,

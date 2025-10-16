@@ -1,15 +1,16 @@
-import type { BN } from '@polkadot/util'
-import { useEffect } from 'react'
-import type { Address, TransactionDetails, TransactionStatus } from 'state/types/ledger'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { AppId, Token } from '@/config/apps'
 import { errorDetails } from '@/config/errors'
 import { ExplorerItemType } from '@/config/explorers'
+import type { UpdateTransactionStatus } from '@/lib/account'
 import { cannotCoverFee } from '@/lib/utils/balance'
 import { formatBalance } from '@/lib/utils/format'
 import { ledgerState$ } from '@/state/ledger'
+import type { BN } from '@polkadot/util'
+import { useEffect } from 'react'
+import type { Address } from 'state/types/ledger'
 import { DialogError, DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
@@ -72,12 +73,7 @@ function RemoveProxyForm({ token, account, appId, estimatedFee, estimatedFeeLoad
 
 export default function RemoveProxyDialog({ open, setOpen, token, account, appId, transferableBalance }: RemoveProxyDialogProps) {
   // Wrap ledgerState$.removeProxies to match the generic hook's expected signature
-  const removeProxyTxFn = async (
-    updateTxStatus: (status: TransactionStatus, message?: string, txDetails?: TransactionDetails) => void,
-    appId: AppId,
-    address: string,
-    path: string
-  ) => {
+  const removeProxyTxFn = async (updateTxStatus: UpdateTransactionStatus, appId: AppId, address: string, path: string) => {
     await ledgerState$.removeProxies(appId, address, path, updateTxStatus)
   }
 

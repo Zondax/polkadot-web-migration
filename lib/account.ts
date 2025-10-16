@@ -303,9 +303,14 @@ export async function getNativeBalance(addressString: string, api: ApiPromise, a
 }
 
 /**
- * Updates the transaction status with optional details.
+ * Updates the transaction status with optional dispatch error from the blockchain.
  */
-export type UpdateTransactionStatus = (status: TransactionStatus, message?: string, txDetails?: TransactionDetails) => void
+export type UpdateTransactionStatus = (
+  status: TransactionStatus,
+  message?: string,
+  dispatchError?: string,
+  txDetails?: TransactionDetails
+) => void
 
 /**
  * Prepares a transaction payload for signing
@@ -621,7 +626,7 @@ export async function submitAndHandleTransaction(
           blockHash = status.status.asInBlock.toHex()
           txHash = status.txHash.toHex()
           blockNumber = 'blockNumber' in status ? Number(status.blockNumber).toString() : undefined
-          updateStatus(TransactionStatus.IN_BLOCK, `In block: ${blockHash}`, {
+          updateStatus(TransactionStatus.IN_BLOCK, `In block: ${blockHash}`, undefined, {
             txHash,
             blockHash,
             blockNumber,
@@ -634,14 +639,14 @@ export async function submitAndHandleTransaction(
           blockNumber = 'blockNumber' in status ? Number(status.blockNumber).toString() : undefined
 
           console.debug(`Transaction finalized in block: ${blockHash}`)
-          updateStatus(TransactionStatus.FINALIZED, 'Transaction is finalized. Waiting the result...', {
+          updateStatus(TransactionStatus.FINALIZED, 'Transaction is finalized. Waiting the result...', undefined, {
             txHash,
             blockHash,
             blockNumber,
           })
 
           if (!status.txIndex) {
-            updateStatus(TransactionStatus.UNKNOWN, 'The status is unknown', {
+            updateStatus(TransactionStatus.UNKNOWN, 'The status is unknown', undefined, {
               txHash,
               blockHash,
               blockNumber,
@@ -654,7 +659,7 @@ export async function submitAndHandleTransaction(
           const result = await getTransactionDetails(api, blockHash, status.txIndex)
           if (result?.success) {
             console.debug(`Transaction successful: ${txHash}, ${blockHash}, ${blockNumber}`)
-            updateStatus(TransactionStatus.SUCCESS, 'Successful Transaction', {
+            updateStatus(TransactionStatus.SUCCESS, 'Successful Transaction', undefined, {
               txHash,
               blockHash,
               blockNumber,
@@ -662,16 +667,20 @@ export async function submitAndHandleTransaction(
             api.disconnect().catch(console.error)
             resolve()
           } else if (result?.error) {
-            updateStatus(TransactionStatus.FAILED, result.error, {
+            updateStatus(TransactionStatus.FAILED, result.error, result.error, {
               txHash,
               blockHash,
               blockNumber,
             })
             api.disconnect().catch(console.error)
-            reject(new Error(result.error)) // Reject with the specific error
+            reject(
+              new InternalError(InternalErrorType.TRANSACTION_FAILED, {
+                context: { operation: 'submitAndHandleTransaction', detail: result.error as string },
+              })
+            )
           } else {
             // Handle cases where result is undefined or doesn't have success/error
-            updateStatus(TransactionStatus.ERROR, 'Unknown transaction status', {
+            updateStatus(TransactionStatus.ERROR, 'Unknown transaction status', undefined, {
               txHash,
               blockHash,
               blockNumber,
@@ -681,7 +690,7 @@ export async function submitAndHandleTransaction(
           }
         } else if (status.isError) {
           clearTimeout(timeoutId)
-          console.error('Transaction is error ', status.dispatchError)
+          console.error('Transaction is error', status.dispatchError)
           updateStatus(TransactionStatus.ERROR, 'Transaction is error')
           api.disconnect().catch(console.error)
           reject(new Error('Transaction is error'))
@@ -692,7 +701,7 @@ export async function submitAndHandleTransaction(
           console.debug('Transaction is completed')
           txHash = status.txHash.toHex()
           blockNumber = 'blockNumber' in status ? Number(status.blockNumber).toString() : undefined
-          updateStatus(TransactionStatus.COMPLETED, 'Transaction is completed. Waiting confirmation...', {
+          updateStatus(TransactionStatus.COMPLETED, 'Transaction is completed. Waiting confirmation...', undefined, {
             txHash,
             blockNumber,
           })
@@ -703,7 +712,11 @@ export async function submitAndHandleTransaction(
         console.error('Error sending transaction:', error)
         updateStatus(TransactionStatus.ERROR, 'Error sending transaction')
         api.disconnect().catch(console.error)
-        reject(error)
+        reject(
+          new InternalError(InternalErrorType.TRANSACTION_FAILED, {
+            context: { operation: 'submitAndHandleTransaction', detail: error.message as string },
+          })
+        )
       })
   })
 }

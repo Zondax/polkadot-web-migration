@@ -1,9 +1,3 @@
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Info } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
-import type { MultisigAddress, MultisigCall, MultisigMember, TransactionDetails, TransactionStatus } from 'state/types/ledger'
-import { z } from 'zod'
 import { CustomTooltip } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
@@ -13,18 +7,24 @@ import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, Dia
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import Switch from '@/components/ui/switch'
-import { type AppId, getChainName, type Token } from '@/config/apps'
+import { getChainName, type AppId, type Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import type { UpdateTransactionStatus } from '@/lib/account'
 import { formatBalance } from '@/lib/utils/format'
 import {
   callDataValidationMessages,
-  type EnhancedMultisigMember,
   getAvailableSigners,
   getRemainingInternalSigners,
   validateCallData,
+  type EnhancedMultisigMember,
 } from '@/lib/utils/multisig'
-import { type App, ledgerState$ } from '@/state/ledger'
+import { ledgerState$, type App } from '@/state/ledger'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Info } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Controller, useForm } from 'react-hook-form'
+import type { MultisigAddress, MultisigCall, MultisigMember } from 'state/types/ledger'
+import { z } from 'zod'
 import { DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
@@ -509,21 +509,18 @@ function ApproveMultisigCallDialogInner({ open, setOpen, token, appId, account }
   }, [callData, selectedCallHash, validateCallDataHandler])
 
   // Wrap ledgerState$.approveMultisigCall to match the generic hook's expected signature
-  const approveMultisigCallTxFn = async (
-    updateTxStatus: (status: TransactionStatus, message?: string, txDetails?: TransactionDetails) => void,
-    appId: AppId
-  ) => {
+  const approveMultisigCallTxFn = async (updateTxStatus: UpdateTransactionStatus, appId: AppId) => {
     const formData = form.getValues()
 
     // Create a wrapper that always includes the callHash and callData from the form
-    const updateTxStatusWithFormData: UpdateTransactionStatus = (status, message, txDetails) => {
+    const updateTxStatusWithFormData: UpdateTransactionStatus = (status, message, dispatchError, txDetails) => {
       const updatedDetails = {
         ...txDetails,
         callHash: formData.callHash || txDetails?.callHash,
         callData: formData.callData || txDetails?.callData,
       }
 
-      updateTxStatus(status, message, updatedDetails)
+      updateTxStatus(status, message, dispatchError, updatedDetails)
     }
     try {
       await ledgerState$.approveMultisigCall(appId, account, formData, updateTxStatusWithFormData)

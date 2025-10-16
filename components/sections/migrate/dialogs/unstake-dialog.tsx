@@ -1,9 +1,3 @@
-import { zodResolver } from '@hookform/resolvers/zod'
-import { BN } from '@polkadot/util'
-import { useEffect, useMemo } from 'react'
-import { Controller, useForm } from 'react-hook-form'
-import type { Address, TransactionDetails, TransactionStatus } from 'state/types/ledger'
-import z from 'zod'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { useTransactionStatus } from '@/components/hooks/useTransactionStatus'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -11,9 +5,16 @@ import { Input } from '@/components/ui/input'
 import type { AppId, Token } from '@/config/apps'
 import { errorDetails } from '@/config/errors'
 import { ExplorerItemType } from '@/config/explorers'
+import type { UpdateTransactionStatus } from '@/lib/account'
 import { cannotCoverFee } from '@/lib/utils/balance'
 import { convertToRawUnits, formatBalance } from '@/lib/utils/format'
 import { ledgerState$ } from '@/state/ledger'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { BN } from '@polkadot/util'
+import { useEffect, useMemo } from 'react'
+import { Controller, useForm } from 'react-hook-form'
+import type { Address } from 'state/types/ledger'
+import z from 'zod'
 import { DialogError, DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
 
@@ -143,13 +144,7 @@ export default function UnstakeDialog({ open, setOpen, maxUnstake, transferableB
   const unstakeAmount = form.watch('unstakeAmount')
 
   // Wrap ledgerState$.unstakeBalance to match the generic hook's expected signature
-  const unstakeTxFn = async (
-    updateTxStatus: (status: TransactionStatus, message?: string, txDetails?: TransactionDetails) => void,
-    appId: AppId,
-    address: string,
-    path: string,
-    amount: BN
-  ) => {
+  const unstakeTxFn = async (updateTxStatus: UpdateTransactionStatus, appId: AppId, address: string, path: string, amount: BN) => {
     await ledgerState$.unstakeBalance(appId, address, path, amount, updateTxStatus)
   }
   const {

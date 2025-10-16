@@ -6,12 +6,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { AppId, Token } from '@/config/apps'
 import { MULTISIG_TRANSFER_AMOUNT } from '@/config/config'
 import { ExplorerItemType } from '@/config/explorers'
+import type { UpdateTransactionStatus } from '@/lib/account'
 import { ledgerState$ } from '@/state/ledger'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Info } from 'lucide-react'
 import { useMemo } from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import type { MultisigAddress, MultisigMember, TransactionDetails, TransactionStatus } from 'state/types/ledger'
+import type { MultisigAddress, MultisigMember } from 'state/types/ledger'
 import { z } from 'zod'
 import { DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 import { TransactionDialogFooter, TransactionStatusBody } from './transaction-dialog'
@@ -181,10 +182,7 @@ function TransferMultisigDialogInner({ open, setOpen, token, appId, account }: T
   }, [token.decimals])
 
   // Wrap ledgerState$.createMultisigTransfer to match the generic hook's expected signature
-  const createMultisigTransferTxFn = async (
-    updateTxStatus: (status: TransactionStatus, message?: string, txDetails?: TransactionDetails) => void,
-    appId: AppId
-  ) => {
+  const createMultisigTransferTxFn = async (updateTxStatus: UpdateTransactionStatus, appId: AppId) => {
     await ledgerState$.createMultisigTransfer(appId, account, form.getValues(), transferAmount, updateTxStatus)
   }
 
