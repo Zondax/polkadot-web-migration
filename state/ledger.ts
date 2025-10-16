@@ -771,12 +771,12 @@ export const ledgerState$ = observable({
         updateApp(app.id, { status: AppStatus.SYNCHRONIZED })
       }
 
-      // We don't wait for transactions to complete, we process them in the background
+      // Wait for all transactions to complete before proceeding
       if (allTransactionPromises.length > 0) {
         const validPromises = allTransactionPromises.filter((p): p is Promise<void> => p !== undefined)
 
-        // Monitor total progress in the background, without blocking
-        await Promise.all(validPromises)
+        // Use allSettled to wait for all promises, regardless of success or failure
+        await Promise.allSettled(validPromises)
       }
     } catch (error) {
       const internalError = interpretError(error, InternalErrorType.MIGRATION_ERROR)
