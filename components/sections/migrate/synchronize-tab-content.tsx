@@ -48,7 +48,7 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
     status,
     syncProgress,
     isRescaning,
-    isSyncCancelRequested,
+    isCancelling,
 
     // Deep scan state
     isDeepScanning,
@@ -227,8 +227,9 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
   const renderStopSynchronizationButton = () => {
     if (isLoading) {
       return (
-        <Button onClick={cancelSynchronization} variant="destructive" className="flex items-center gap-1" disabled={isSyncCancelRequested}>
-          {isSyncCancelRequested ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />} Stop Synchronization
+        <Button onClick={cancelSynchronization} variant="destructive" className="flex items-center gap-1" disabled={isCancelling}>
+          {isCancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}{' '}
+          {isCancelling ? 'Cancelling...' : 'Stop Synchronization'}
         </Button>
       )
     }
