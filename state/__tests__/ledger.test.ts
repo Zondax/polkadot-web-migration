@@ -291,7 +291,7 @@ describe('Ledger State', () => {
       expect(ledgerClient.abortCall).toHaveBeenCalled()
     })
 
-    it('should NOT immediately set status or show notification', async () => {
+    it('should show immediate cancellation notification but NOT set status', async () => {
       const { notifications$ } = await import('../notifications')
 
       // Clear any previous calls
@@ -302,8 +302,14 @@ describe('Ledger State', () => {
       // Status should NOT be set immediately (only in finally block)
       expect(ledgerState$.apps.status.get()).not.toBe(AppStatus.SYNCHRONIZED)
 
-      // Notification should NOT be pushed immediately (only in finally block)
-      expect(notifications$.push).not.toHaveBeenCalled()
+      // Notification SHOULD be pushed immediately to inform user cancellation is in progress
+      expect(notifications$.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Synchronization Stopped',
+          description: 'Synchronization cancelled, waiting for already started calls to finish.',
+          type: 'info',
+        })
+      )
     })
 
     it('should allow multiple cancel calls', async () => {
@@ -941,6 +947,9 @@ describe('Ledger State', () => {
       const { ledgerClient } = await import('../client/ledger')
       const { notifications$ } = await import('../notifications')
 
+      // Clear previous mocks
+      vi.clearAllMocks()
+
       const mockConnection = { isAppOpen: false }
       vi.mocked(ledgerClient.connectDevice).mockResolvedValueOnce({
         connection: mockConnection,
@@ -949,6 +958,9 @@ describe('Ledger State', () => {
 
       // Mock openApp call
       vi.mocked(ledgerClient.openApp).mockResolvedValueOnce()
+
+      // Mock checkConnection to return false (app still not open after openApp attempt)
+      vi.mocked(ledgerClient.checkConnection).mockResolvedValueOnce(false)
 
       const result = await ledgerState$.connectLedger()
 
