@@ -120,7 +120,7 @@ export function interpretLedgerClientError(error: unknown): InternalError {
     return interpretLedgerJsError(error)
   }
 
-  return interpretUnknownError(error, InternalErrorType.UNKNOWN_ERROR)
+  return interpretUnknownError(error)
 }
 
 /**
