@@ -97,6 +97,7 @@ interface LedgerState {
     error?: string
     syncProgress: SyncProgress
     isSyncCancelRequested: boolean
+    isCancelling: boolean
     migrationResult: {
       [key in MigrationResultKey]: number
     }
@@ -130,6 +131,7 @@ const initialLedgerState: LedgerState = {
       phase: undefined,
     },
     isSyncCancelRequested: false,
+    isCancelling: false,
     migrationResult: {
       success: 0,
       fails: 0,
@@ -284,6 +286,18 @@ const updateMigratedStatus: UpdateMigratedStatusFn = (appId: AppId, accountType,
   }
 }
 
+/**
+ * Handles transaction errors, updating the status only if the error wasn't already
+ * handled by submitAndHandleTransaction (which handles TRANSACTION_FAILED errors)
+ */
+function handleTransactionError(error: unknown, errorType: InternalErrorType, updateTxStatus: UpdateTransactionStatus): void {
+  const internalError = interpretError(error, errorType)
+  // If the error is from a failed transaction, the status is already handled by `submitAndHandleTransaction`.
+  if (internalError.errorType !== InternalErrorType.TRANSACTION_FAILED) {
+    updateTxStatus(TransactionStatus.ERROR, internalError.description)
+  }
+}
+
 export const ledgerState$ = observable({
   ...initialLedgerState,
   async connectLedger(): Promise<{ connected: boolean; isAppOpen: boolean }> {
@@ -378,6 +392,7 @@ export const ledgerState$ = observable({
         phase: undefined,
       },
       isSyncCancelRequested: false,
+      isCancelling: false,
       migrationResult: {
         success: 0,
         fails: 0,
@@ -391,14 +406,13 @@ export const ledgerState$ = observable({
   // Stop synchronization without deleting already synchronized accounts
   cancelSynchronization() {
     ledgerState$.apps.isSyncCancelRequested.set(true)
+    ledgerState$.apps.isCancelling.set(true)
     ledgerClient.abortCall()
-
-    // Set status to synchronized to indicate that the process was stopped
-    ledgerState$.apps.status.set(AppStatus.SYNCHRONIZED)
+    // Status will be set to SYNCHRONIZED in the finally block of synchronizeAccounts after cleanup
 
     notifications$.push({
       title: 'Synchronization Stopped',
-      description: 'The synchronization process has been stopped. You can continue with the accounts that were already synchronized.',
+      description: 'Synchronization cancelled, waiting for already started calls to finish.',
       type: 'info',
       autoHideDuration: 5000,
     })
@@ -541,9 +555,20 @@ export const ledgerState$ = observable({
       handleErrorNotification(internalError)
       ledgerState$.apps.error.set('Failed to synchronize accounts')
     } finally {
-      // Ensure we reset the cancel flag even if there was an error
-      if (ledgerState$.apps.isSyncCancelRequested.get()) {
-        ledgerState$.apps.isSyncCancelRequested.set(false)
+      // Clean up cancellation state
+      const wasCancelled = ledgerState$.apps.isSyncCancelRequested.get()
+      ledgerState$.apps.isSyncCancelRequested.set(false)
+      ledgerState$.apps.isCancelling.set(false)
+
+      // If cancelled, set status to SYNCHRONIZED and notify user
+      if (wasCancelled) {
+        ledgerState$.apps.status.set(AppStatus.SYNCHRONIZED)
+        notifications$.push({
+          title: 'Synchronization Stopped',
+          description: 'The synchronization process has been stopped. You can continue with the accounts that were already synchronized.',
+          type: 'info',
+          autoHideDuration: 5000,
+        })
       }
     }
   },
@@ -771,12 +796,12 @@ export const ledgerState$ = observable({
         updateApp(app.id, { status: AppStatus.SYNCHRONIZED })
       }
 
-      // We don't wait for transactions to complete, we process them in the background
+      // Wait for all transactions to complete before proceeding
       if (allTransactionPromises.length > 0) {
         const validPromises = allTransactionPromises.filter((p): p is Promise<void> => p !== undefined)
 
-        // Monitor total progress in the background, without blocking
-        await Promise.all(validPromises)
+        // Use allSettled to wait for all promises, regardless of success or failure
+        await Promise.allSettled(validPromises)
       }
     } catch (error) {
       const internalError = interpretError(error, InternalErrorType.MIGRATION_ERROR)
@@ -810,8 +835,7 @@ export const ledgerState$ = observable({
     try {
       await ledgerClient.unstakeBalance(appId, address, path, amount, updateTxStatus)
     } catch (error) {
-      const internalError = interpretError(error, InternalErrorType.UNSTAKE_ERROR)
-      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+      handleTransactionError(error, InternalErrorType.UNSTAKE_ERROR, updateTxStatus)
     }
   },
 
@@ -841,8 +865,7 @@ export const ledgerState$ = observable({
     try {
       await ledgerClient.withdrawBalance(appId, address, path, updateTxStatus)
     } catch (error) {
-      const internalError = interpretError(error, InternalErrorType.WITHDRAW_ERROR)
-      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+      handleTransactionError(error, InternalErrorType.WITHDRAW_ERROR, updateTxStatus)
     }
   },
 
@@ -865,8 +888,7 @@ export const ledgerState$ = observable({
     try {
       await ledgerClient.removeIdentity(appId, address, path, updateTxStatus)
     } catch (error) {
-      const internalError = interpretError(error, InternalErrorType.REMOVE_IDENTITY_ERROR)
-      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+      handleTransactionError(error, InternalErrorType.REMOVE_IDENTITY_ERROR, updateTxStatus)
     }
   },
 
@@ -901,8 +923,7 @@ export const ledgerState$ = observable({
       }
     } catch (error) {
       console.error('[ledgerState$.approveMultisigCall] Error caught:', error)
-      const internalError = interpretError(error, InternalErrorType.APPROVE_MULTISIG_CALL_ERROR)
-      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+      handleTransactionError(error, InternalErrorType.APPROVE_MULTISIG_CALL_ERROR, updateTxStatus)
     }
   },
 
@@ -916,8 +937,7 @@ export const ledgerState$ = observable({
     try {
       await ledgerClient.signMultisigTransferTx(appId, account, formBody.recipient, formBody.signer, transferAmount, updateTxStatus)
     } catch (error) {
-      const internalError = interpretError(error, InternalErrorType.MULTISIG_TRANSFER_ERROR)
-      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+      handleTransactionError(error, InternalErrorType.MULTISIG_TRANSFER_ERROR, updateTxStatus)
     }
   },
 
@@ -925,8 +945,7 @@ export const ledgerState$ = observable({
     try {
       await ledgerClient.removeProxies(appId, address, path, updateTxStatus)
     } catch (error) {
-      const internalError = interpretError(error, InternalErrorType.REMOVE_PROXY_ERROR)
-      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+      handleTransactionError(error, InternalErrorType.REMOVE_PROXY_ERROR, updateTxStatus)
     }
   },
 
@@ -943,8 +962,7 @@ export const ledgerState$ = observable({
     try {
       await ledgerClient.removeAccountIndex(appId, address, accountIndex, path, updateTxStatus)
     } catch (error) {
-      const internalError = interpretError(error, InternalErrorType.REMOVE_ACCOUNT_INDEX_ERROR)
-      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+      handleTransactionError(error, InternalErrorType.REMOVE_ACCOUNT_INDEX_ERROR, updateTxStatus)
     }
   },
 
@@ -967,8 +985,7 @@ export const ledgerState$ = observable({
     try {
       await ledgerClient.executeGovernanceUnlock(appId, address, path, actions, updateTxStatus)
     } catch (error) {
-      const internalError = interpretError(error, InternalErrorType.UNLOCK_CONVICTION_ERROR)
-      updateTxStatus(TransactionStatus.ERROR, internalError.description)
+      handleTransactionError(error, InternalErrorType.UNLOCK_CONVICTION_ERROR, updateTxStatus)
     }
   },
 
@@ -999,6 +1016,12 @@ export const ledgerState$ = observable({
     ledgerState$.deepScan.cancelRequested.set(true)
     ledgerState$.deepScan.isCancelling.set(true)
     ledgerClient.abortCall()
+    notifications$.push({
+      title: 'Deep Scan Stopped',
+      description: 'Deep scan cancelled, waiting for already started calls to finish.',
+      type: 'info',
+      autoHideDuration: 5000,
+    })
   },
 
   resetDeepScan() {

@@ -274,17 +274,168 @@ describe('Ledger State', () => {
   })
 
   describe('cancelSynchronization', () => {
-    it('should set cancel flag and update status', async () => {
-      const { notifications$ } = await import('../notifications')
+    it('should set cancel flags and abort call', async () => {
+      const { ledgerClient } = await import('../client/ledger')
+
+      // Verify initial state
+      expect(ledgerState$.apps.isSyncCancelRequested.get()).toBe(false)
+      expect(ledgerState$.apps.isCancelling.get()).toBe(false)
 
       ledgerState$.cancelSynchronization()
 
+      // Verify cancel flags are set
       expect(ledgerState$.apps.isSyncCancelRequested.get()).toBe(true)
-      expect(ledgerState$.apps.status.get()).toBe(AppStatus.SYNCHRONIZED)
+      expect(ledgerState$.apps.isCancelling.get()).toBe(true)
+
+      // Verify abort was called
+      expect(ledgerClient.abortCall).toHaveBeenCalled()
+    })
+
+    it('should show immediate cancellation notification but NOT set status', async () => {
+      const { notifications$ } = await import('../notifications')
+
+      // Clear any previous calls
+      vi.clearAllMocks()
+
+      ledgerState$.cancelSynchronization()
+
+      // Status should NOT be set immediately (only in finally block)
+      expect(ledgerState$.apps.status.get()).not.toBe(AppStatus.SYNCHRONIZED)
+
+      // Notification SHOULD be pushed immediately to inform user cancellation is in progress
       expect(notifications$.push).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'Synchronization Stopped',
+          description: 'Synchronization cancelled, waiting for already started calls to finish.',
           type: 'info',
+        })
+      )
+    })
+
+    it('should allow multiple cancel calls', async () => {
+      const { ledgerClient } = await import('../client/ledger')
+
+      // Call cancel multiple times
+      ledgerState$.cancelSynchronization()
+      ledgerState$.cancelSynchronization()
+      ledgerState$.cancelSynchronization()
+
+      // State should remain consistent
+      expect(ledgerState$.apps.isSyncCancelRequested.get()).toBe(true)
+      expect(ledgerState$.apps.isCancelling.get()).toBe(true)
+
+      // Abort should be called each time
+      expect(ledgerClient.abortCall).toHaveBeenCalledTimes(3)
+    })
+
+    it('should clean up state in finally block after synchronization completes', async () => {
+      const { synchronizeAllApps } = await import('@/lib/services/synchronization.service')
+      const { notifications$ } = await import('../notifications')
+      const { ledgerClient } = await import('../client/ledger')
+
+      // Clear previous calls
+      vi.clearAllMocks()
+
+      // Mock device connection and checkConnection
+      ledgerState$.device.connection.set({ isAppOpen: true })
+      vi.mocked(ledgerClient.checkConnection).mockResolvedValueOnce(true)
+
+      // Mock synchronizeAllApps to simulate cancellation during execution
+      vi.mocked(synchronizeAllApps).mockImplementationOnce(async (progressCb, cancelCb) => {
+        // Simulate cancellation by calling cancelSynchronization during sync
+        ledgerState$.apps.isSyncCancelRequested.set(true)
+        ledgerState$.apps.isCancelling.set(true)
+
+        // Return cancelled result
+        return {
+          success: false,
+          apps: [],
+          error: 'Cancelled',
+        }
+      })
+
+      // Start synchronization
+      await ledgerState$.synchronizeAccounts()
+
+      // After finally block, state should be cleaned up
+      expect(ledgerState$.apps.isSyncCancelRequested.get()).toBe(false)
+      expect(ledgerState$.apps.isCancelling.get()).toBe(false)
+
+      // Status should be set to SYNCHRONIZED after cleanup (from finally block)
+      expect(ledgerState$.apps.status.get()).toBe(AppStatus.SYNCHRONIZED)
+
+      // Cancellation notification should be shown
+      expect(notifications$.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Synchronization Stopped',
+          description: 'The synchronization process has been stopped. You can continue with the accounts that were already synchronized.',
+          type: 'info',
+        })
+      )
+    })
+
+    it('should handle error during sync and still clean up properly', async () => {
+      const { synchronizeAllApps } = await import('@/lib/services/synchronization.service')
+      const { ledgerClient } = await import('../client/ledger')
+
+      // Mock device connection and checkConnection
+      ledgerState$.device.connection.set({ isAppOpen: true })
+      vi.mocked(ledgerClient.checkConnection).mockResolvedValueOnce(true)
+
+      // Request cancellation before sync starts
+      ledgerState$.cancelSynchronization()
+
+      // Mock synchronizeAllApps to throw error
+      vi.mocked(synchronizeAllApps).mockRejectedValueOnce(new Error('Sync failed'))
+
+      // Start synchronization
+      await ledgerState$.synchronizeAccounts()
+
+      // State should still be cleaned up even with error
+      expect(ledgerState$.apps.isSyncCancelRequested.get()).toBe(false)
+      expect(ledgerState$.apps.isCancelling.get()).toBe(false)
+    })
+
+    it('should properly cleanup when cancellation is not requested', async () => {
+      const { synchronizeAllApps } = await import('@/lib/services/synchronization.service')
+      const { notifications$ } = await import('../notifications')
+      const { ledgerClient } = await import('../client/ledger')
+
+      // Clear all state and mocks
+      vi.clearAllMocks()
+      ledgerState$.clearSynchronization()
+
+      // Mock device connection
+      ledgerState$.device.connection.set({ isAppOpen: true })
+
+      // Mock checkConnection to return true
+      vi.mocked(ledgerClient.checkConnection).mockResolvedValue(true)
+
+      // Mock successful sync without cancellation
+      vi.mocked(synchronizeAllApps).mockResolvedValue({
+        success: true,
+        apps: [],
+        polkadotApp: {
+          id: 'polkadot',
+          name: 'Polkadot',
+          token: { symbol: 'DOT', decimals: 10 },
+        },
+      })
+
+      // Start synchronization without cancellation
+      await ledgerState$.synchronizeAccounts()
+
+      // Flags should remain false
+      expect(ledgerState$.apps.isSyncCancelRequested.get()).toBe(false)
+      expect(ledgerState$.apps.isCancelling.get()).toBe(false)
+
+      // Status should be SYNCHRONIZED from successful sync
+      expect(ledgerState$.apps.status.get()).toBe(AppStatus.SYNCHRONIZED)
+
+      // Notification should NOT be the cancellation notification
+      expect(notifications$.push).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Synchronization Stopped',
         })
       )
     })
@@ -796,6 +947,9 @@ describe('Ledger State', () => {
       const { ledgerClient } = await import('../client/ledger')
       const { notifications$ } = await import('../notifications')
 
+      // Clear previous mocks
+      vi.clearAllMocks()
+
       const mockConnection = { isAppOpen: false }
       vi.mocked(ledgerClient.connectDevice).mockResolvedValueOnce({
         connection: mockConnection,
@@ -804,6 +958,9 @@ describe('Ledger State', () => {
 
       // Mock openApp call
       vi.mocked(ledgerClient.openApp).mockResolvedValueOnce()
+
+      // Mock checkConnection to return false (app still not open after openApp attempt)
+      vi.mocked(ledgerClient.checkConnection).mockResolvedValueOnce(false)
 
       const result = await ledgerState$.connectLedger()
 

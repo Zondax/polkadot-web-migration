@@ -213,12 +213,17 @@ export const ledgerClient = {
         // Create signed extrinsic
         createSignedExtrinsic(api, transfer, senderAddress, signature, payload, nonce, metadataHash)
 
-        const updateTransactionStatus = (status: TransactionStatus, message?: string, txDetails?: TransactionDetails) => {
-          updateStatus(appConfig.id, accountType, account.address, { status, statusMessage: message, ...txDetails })
+        const updateTransactionStatus = (
+          status: TransactionStatus,
+          message?: string,
+          dispatchError?: string,
+          txDetails?: TransactionDetails
+        ) => {
+          updateStatus(appConfig.id, accountType, account.address, { status, statusMessage: message, dispatchError, ...txDetails })
         }
 
         if (callData) {
-          updateTransactionStatus(TransactionStatus.IS_LOADING, 'Transaction is loading', {
+          updateTransactionStatus(TransactionStatus.IS_LOADING, 'Transaction is loading', undefined, {
             callData,
           })
         }
@@ -544,7 +549,7 @@ export const ledgerClient = {
           throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
 
-        updateTxStatus(TransactionStatus.PREPARING_TX, undefined, {
+        updateTxStatus(TransactionStatus.PREPARING_TX, undefined, undefined, {
           callHash: callHash,
         })
 
@@ -601,7 +606,7 @@ export const ledgerClient = {
         // Get chain ID from app config
         const chainId = appConfig.token.symbol.toLowerCase()
 
-        updateTxStatus(TransactionStatus.SIGNING, undefined, {
+        updateTxStatus(TransactionStatus.SIGNING, undefined, undefined, {
           callHash: callHash,
           callData: callData,
         })
@@ -615,14 +620,14 @@ export const ledgerClient = {
         // Create signed extrinsic
         createSignedExtrinsic(api, transfer, signerForPayload, signature, payload, nonce, metadataHash)
 
-        updateTxStatus(TransactionStatus.SUBMITTING, undefined, {
+        updateTxStatus(TransactionStatus.SUBMITTING, undefined, undefined, {
           callHash: callHash,
           callData: callData,
         })
 
         // Create wrapper to preserve call data through all status updates
-        const updateTxStatusWithCallData: UpdateTransactionStatus = (status, message, txDetails) => {
-          updateTxStatus(status, message, {
+        const updateTxStatusWithCallData: UpdateTransactionStatus = (status, message, dispatchError, txDetails) => {
+          updateTxStatus(status, message, dispatchError, {
             ...txDetails,
             callData: callData || txDetails?.callData,
             callHash: callHash || txDetails?.callHash,
@@ -715,7 +720,7 @@ export const ledgerClient = {
         // Get chain ID from app config
         const chainId = appConfig.token.symbol.toLowerCase()
 
-        updateTxStatus(TransactionStatus.SIGNING, undefined, {
+        updateTxStatus(TransactionStatus.SIGNING, undefined, undefined, {
           callHash: callHash,
           callData: validCallData,
         })
@@ -729,14 +734,14 @@ export const ledgerClient = {
         // Create signed extrinsic
         createSignedExtrinsic(api, transfer, signerForPayload, signature, payload, nonce, metadataHash)
 
-        updateTxStatus(TransactionStatus.SUBMITTING, undefined, {
+        updateTxStatus(TransactionStatus.SUBMITTING, undefined, undefined, {
           callHash: callHash,
           callData: validCallData,
         })
 
         // Create wrapper to preserve call data through all status updates
-        const updateTxStatusWithCallData: UpdateTransactionStatus = (status, message, txDetails) => {
-          updateTxStatus(status, message, {
+        const updateTxStatusWithCallData: UpdateTransactionStatus = (status, message, dispatchError, txDetails) => {
+          updateTxStatus(status, message, dispatchError, {
             ...txDetails,
             callData: validCallData || txDetails?.callData,
             callHash: callHash || txDetails?.callHash,
@@ -852,7 +857,7 @@ export const ledgerClient = {
         const existingApprovals = (await api.query.multisig.multisigs(multisigInfo.address, callHash)) as Option<Multisig>
         const isFirstApproval = existingApprovals.isNone
 
-        updateTxStatus(TransactionStatus.SIGNING, undefined, {
+        updateTxStatus(TransactionStatus.SIGNING, undefined, undefined, {
           callData: isFirstApproval ? callData : undefined,
           callHash: callHash,
         })
@@ -866,14 +871,14 @@ export const ledgerClient = {
         // Create signed extrinsic
         createSignedExtrinsic(api, transfer, signer, signature, payload, nonce, metadataHash)
 
-        updateTxStatus(TransactionStatus.SUBMITTING, undefined, {
+        updateTxStatus(TransactionStatus.SUBMITTING, undefined, undefined, {
           callData: isFirstApproval ? callData : undefined,
           callHash: callHash,
         })
 
         // Create wrapper to preserve call data through all status updates
-        const updateTxStatusWithCallData: UpdateTransactionStatus = (status, message, txDetails) => {
-          updateTxStatus(status, message, {
+        const updateTxStatusWithCallData: UpdateTransactionStatus = (status, message, dispatchError, txDetails) => {
+          updateTxStatus(status, message, dispatchError, {
             ...txDetails,
             callData: (isFirstApproval ? callData : undefined) || txDetails?.callData,
             callHash: callHash || txDetails?.callHash,
