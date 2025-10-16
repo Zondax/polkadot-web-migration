@@ -667,7 +667,7 @@ export async function submitAndHandleTransaction(
             api.disconnect().catch(console.error)
             resolve()
           } else if (result?.error) {
-            updateStatus(TransactionStatus.FAILED, result.error, result.error, {
+            updateStatus(TransactionStatus.FAILED, 'Transaction failed', result.error, {
               txHash,
               blockHash,
               blockNumber,
@@ -675,7 +675,7 @@ export async function submitAndHandleTransaction(
             api.disconnect().catch(console.error)
             reject(
               new InternalError(InternalErrorType.TRANSACTION_FAILED, {
-                context: { operation: 'submitAndHandleTransaction', detail: result.error as string },
+                context: { operation: 'submitAndHandleTransaction', dispatchError: result.error as string },
               })
             )
           } else {
@@ -686,14 +686,21 @@ export async function submitAndHandleTransaction(
               blockNumber,
             })
             api.disconnect().catch(console.error)
-            reject(new Error('Unknown transaction status'))
+            reject(
+              new InternalError(InternalErrorType.TRANSACTION_FAILED, {
+                context: { operation: 'submitAndHandleTransaction' },
+              })
+            )
           }
         } else if (status.isError) {
           clearTimeout(timeoutId)
-          console.error('Transaction is error', status.dispatchError)
-          updateStatus(TransactionStatus.ERROR, 'Transaction is error')
+          updateStatus(TransactionStatus.FAILED, 'Transaction failed', status.dispatchError?.toString())
           api.disconnect().catch(console.error)
-          reject(new Error('Transaction is error'))
+          reject(
+            new InternalError(InternalErrorType.TRANSACTION_FAILED, {
+              context: { operation: 'submitAndHandleTransaction', dispatchError: status.dispatchError?.toString() },
+            })
+          )
         } else if (status.isWarning) {
           console.debug('Transaction is warning')
           updateStatus(TransactionStatus.WARNING, 'Transaction is warning')
@@ -709,12 +716,11 @@ export async function submitAndHandleTransaction(
       })
       .catch((error: any) => {
         clearTimeout(timeoutId)
-        console.error('Error sending transaction:', error)
-        updateStatus(TransactionStatus.ERROR, 'Error sending transaction')
+        updateStatus(TransactionStatus.FAILED, 'Transaction failed', error.message)
         api.disconnect().catch(console.error)
         reject(
           new InternalError(InternalErrorType.TRANSACTION_FAILED, {
-            context: { operation: 'submitAndHandleTransaction', detail: error.message as string },
+            context: { operation: 'submitAndHandleTransaction', dispatchError: error.message as string },
           })
         )
       })

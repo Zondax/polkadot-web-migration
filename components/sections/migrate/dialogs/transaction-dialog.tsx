@@ -59,6 +59,8 @@ function TransactionStatusBody({
       {statusIcon}
       <span className="text-base font-medium max-w-[80%] text-center">{statusMessage}</span>
 
+      {details.length > 0 && renderTransactionDetails()}
+
       {dispatchError && (
         <div className="w-full space-y-3 mt-4 p-4 bg-muted/50 rounded-lg">
           <div className="space-y-2">
@@ -70,10 +72,8 @@ function TransactionStatusBody({
         </div>
       )}
 
-      {details.length > 0 && renderTransactionDetails()}
-
       {/* Display multisig call data and hash for first approval */}
-      {callData && callHash && (
+      {!dispatchError && callData && callHash && (
         <div className="w-full space-y-3 mt-4 p-4 bg-muted/50 rounded-lg">
           <div className="text-sm font-medium text-center">Multisig Transaction Details</div>
           <div className="text-xs text-muted-foreground text-center">
