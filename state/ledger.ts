@@ -97,6 +97,7 @@ interface LedgerState {
     error?: string
     syncProgress: SyncProgress
     isSyncCancelRequested: boolean
+    isCancelling: boolean
     migrationResult: {
       [key in MigrationResultKey]: number
     }
@@ -130,6 +131,7 @@ const initialLedgerState: LedgerState = {
       phase: undefined,
     },
     isSyncCancelRequested: false,
+    isCancelling: false,
     migrationResult: {
       success: 0,
       fails: 0,
@@ -378,6 +380,7 @@ export const ledgerState$ = observable({
         phase: undefined,
       },
       isSyncCancelRequested: false,
+      isCancelling: false,
       migrationResult: {
         success: 0,
         fails: 0,
@@ -391,14 +394,13 @@ export const ledgerState$ = observable({
   // Stop synchronization without deleting already synchronized accounts
   cancelSynchronization() {
     ledgerState$.apps.isSyncCancelRequested.set(true)
+    ledgerState$.apps.isCancelling.set(true)
     ledgerClient.abortCall()
-
-    // Set status to synchronized to indicate that the process was stopped
-    ledgerState$.apps.status.set(AppStatus.SYNCHRONIZED)
+    // Status will be set to SYNCHRONIZED in the finally block of synchronizeAccounts after cleanup
 
     notifications$.push({
       title: 'Synchronization Stopped',
-      description: 'The synchronization process has been stopped. You can continue with the accounts that were already synchronized.',
+      description: 'Synchronization cancelled, waiting for already started calls to finish.',
       type: 'info',
       autoHideDuration: 5000,
     })
@@ -541,9 +543,20 @@ export const ledgerState$ = observable({
       handleErrorNotification(internalError)
       ledgerState$.apps.error.set('Failed to synchronize accounts')
     } finally {
-      // Ensure we reset the cancel flag even if there was an error
-      if (ledgerState$.apps.isSyncCancelRequested.get()) {
-        ledgerState$.apps.isSyncCancelRequested.set(false)
+      // Clean up cancellation state
+      const wasCancelled = ledgerState$.apps.isSyncCancelRequested.get()
+      ledgerState$.apps.isSyncCancelRequested.set(false)
+      ledgerState$.apps.isCancelling.set(false)
+
+      // If cancelled, set status to SYNCHRONIZED and notify user
+      if (wasCancelled) {
+        ledgerState$.apps.status.set(AppStatus.SYNCHRONIZED)
+        notifications$.push({
+          title: 'Synchronization Stopped',
+          description: 'The synchronization process has been stopped. You can continue with the accounts that were already synchronized.',
+          type: 'info',
+          autoHideDuration: 5000,
+        })
       }
     }
   },
@@ -999,6 +1012,12 @@ export const ledgerState$ = observable({
     ledgerState$.deepScan.cancelRequested.set(true)
     ledgerState$.deepScan.isCancelling.set(true)
     ledgerClient.abortCall()
+    notifications$.push({
+      title: 'Deep Scan Stopped',
+      description: 'Deep scan cancelled, waiting for already started calls to finish.',
+      type: 'info',
+      autoHideDuration: 5000,
+    })
   },
 
   resetDeepScan() {
