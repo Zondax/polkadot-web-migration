@@ -397,6 +397,13 @@ export const ledgerState$ = observable({
     ledgerState$.apps.isCancelling.set(true)
     ledgerClient.abortCall()
     // Status will be set to SYNCHRONIZED in the finally block of synchronizeAccounts after cleanup
+
+    notifications$.push({
+      title: 'Synchronization Stopped',
+      description: 'Synchronization cancelled, waiting for already started calls to finish.',
+      type: 'info',
+      autoHideDuration: 5000,
+    })
   },
 
   // Determine if an error should stop synchronization and handle accordingly
@@ -1005,6 +1012,12 @@ export const ledgerState$ = observable({
     ledgerState$.deepScan.cancelRequested.set(true)
     ledgerState$.deepScan.isCancelling.set(true)
     ledgerClient.abortCall()
+    notifications$.push({
+      title: 'Deep Scan Stopped',
+      description: 'Deep scan cancelled, waiting for already started calls to finish.',
+      type: 'info',
+      autoHideDuration: 5000,
+    })
   },
 
   resetDeepScan() {
