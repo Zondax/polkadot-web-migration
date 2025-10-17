@@ -37,6 +37,7 @@ export const MigrationProgressDialog = observer(function MigrationProgressDialog
   // Get balances for the account (native + NFTs)
   // Always show the real balance in UI, even in development mode with MINIMUM_AMOUNT
   const balances = migratingItem.account?.balances || []
+  const hasSignatoryAddress = balances.some(balance => balance.transaction?.signatoryAddress)
   const collections = getCollectionsByAppId(migratingItem.appId)
   const estimatedFee = migratingItem.transaction?.estimatedFee
   const fromAddress = migratingItem.account?.address
@@ -113,6 +114,7 @@ export const MigrationProgressDialog = observer(function MigrationProgressDialog
                     <TableHead>Type</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>To</TableHead>
+                    {hasSignatoryAddress && <TableHead>Signatory Address</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -142,6 +144,20 @@ export const MigrationProgressDialog = observer(function MigrationProgressDialog
                           <span className="text-gray-400">-</span>
                         )}
                       </TableCell>
+                      {hasSignatoryAddress && (
+                        <TableCell>
+                          {balance.transaction?.signatoryAddress ? (
+                            <ExplorerLink
+                              value={balance.transaction.signatoryAddress}
+                              appId={migratingItem.appId}
+                              explorerLinkType={ExplorerItemType.Address}
+                              size="xs"
+                            />
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
