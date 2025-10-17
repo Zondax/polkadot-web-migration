@@ -341,7 +341,7 @@ describe('Ledger State', () => {
       vi.mocked(ledgerClient.checkConnection).mockResolvedValueOnce(true)
 
       // Mock synchronizeAllApps to simulate cancellation during execution
-      vi.mocked(synchronizeAllApps).mockImplementationOnce(async (progressCb, cancelCb) => {
+      vi.mocked(synchronizeAllApps).mockImplementationOnce(async (_progressCb, _cancelCb) => {
         // Simulate cancellation by calling cancelSynchronization during sync
         ledgerState$.apps.isSyncCancelRequested.set(true)
         ledgerState$.apps.isCancelling.set(true)
