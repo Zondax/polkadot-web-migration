@@ -1048,6 +1048,15 @@ export const ledgerState$ = observable({
     success: boolean
     newAccountsFound: number
   }> {
+    // Check if ledger is connected
+    const isConnected = await ledgerState$.checkConnection()
+    if (!isConnected) {
+      const result = await ledgerState$.connectLedger()
+      if (!result.connected) {
+        return { success: false, newAccountsFound: 0 }
+      }
+    }
+
     // Reset state
     ledgerState$.deepScan.assign({
       isScanning: true,
