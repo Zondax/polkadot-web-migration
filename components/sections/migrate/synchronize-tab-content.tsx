@@ -52,7 +52,7 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
 
     // Deep scan state
     isDeepScanning,
-    isDeepScanCancelling,
+    isDeepScanCancelRequested,
     isDeepScanCompleted,
     deepScanProgress,
     deepScanDisplayApps,
@@ -416,7 +416,7 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
         }}
         onScan={handleDeepScan}
         isScanning={isDeepScanning}
-        isCancelling={isDeepScanCancelling}
+        isCancelRequested={isDeepScanCancelRequested}
         isCompleted={isDeepScanCompleted}
         progress={deepScanProgress}
         scanningApps={deepScanDisplayApps}

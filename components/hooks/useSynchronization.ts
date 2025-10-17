@@ -46,7 +46,7 @@ interface UseSynchronizationReturn {
 
   // Deep scan state
   isDeepScanning: boolean
-  isDeepScanCancelling: boolean
+  isDeepScanCancelRequested: boolean
   isDeepScanCompleted: boolean
   deepScanProgress: SyncProgress
   deepScanDisplayApps: DeepScanAppDisplayInfo[]
@@ -94,7 +94,7 @@ export const useSynchronization = (): UseSynchronizationReturn => {
 
   // Deep scan state
   const isDeepScanning = use$(ledgerState$.deepScan.isScanning)
-  const isDeepScanCancelling = use$(ledgerState$.deepScan.cancelRequested)
+  const isDeepScanCancelRequested = use$(ledgerState$.deepScan.cancelRequested)
   const isDeepScanCompleted = use$(ledgerState$.deepScan.isCompleted)
   const deepScanProgress = use$(ledgerState$.deepScan.progress)
   const deepScanApps = use$(ledgerState$.deepScan.apps)
@@ -256,7 +256,7 @@ export const useSynchronization = (): UseSynchronizationReturn => {
 
     // Deep scan state
     isDeepScanning,
-    isDeepScanCancelling,
+    isDeepScanCancelRequested,
     isDeepScanCompleted,
     deepScanProgress,
     deepScanDisplayApps,

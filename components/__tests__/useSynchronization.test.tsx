@@ -1,9 +1,9 @@
-import { computed, observable } from '@legendapp/state'
-import { act, renderHook } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppId } from '@/config/apps'
 import type { App } from '@/state/ledger'
 import type { Address, MultisigAddress } from '@/state/types/ledger'
+import { computed, observable } from '@legendapp/state'
+import { act, renderHook } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock the ledger state
 vi.mock('@/state/ledger', () => {
@@ -34,7 +34,7 @@ vi.mock('@/state/ledger', () => {
       },
       deepScan: {
         isScanning: { get: vi.fn().mockReturnValue(false) },
-        isCancelling: { get: vi.fn().mockReturnValue(false) },
+        isCancelRequested: { get: vi.fn().mockReturnValue(false) },
         isCompleted: { get: vi.fn().mockReturnValue(false) },
         progress: { get: vi.fn().mockReturnValue({ scanned: 0, total: 0, percentage: 0, phase: undefined }) },
         apps: observable([]),
