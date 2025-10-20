@@ -56,35 +56,37 @@ class RateLimiter {
 
     this.processing = true
 
-    while (this.queue.length > 0) {
-      const now = Date.now()
+    try {
+      while (this.queue.length > 0) {
+        const now = Date.now()
 
-      // Remove timestamps older than 1 second
-      this.requestTimestamps = this.requestTimestamps.filter(ts => now - ts < this.windowMs)
+        // Remove timestamps older than 1 second
+        this.requestTimestamps = this.requestTimestamps.filter(ts => now - ts < this.windowMs)
 
-      // If we've hit the limit, wait until the oldest request expires
-      if (this.requestTimestamps.length >= this.maxRequestsPerSecond) {
-        const oldestTimestamp = this.requestTimestamps[0]
-        const waitTime = this.windowMs - (now - oldestTimestamp) + 50 // +50ms buffer
+        // If we've hit the limit, wait until the oldest request expires
+        if (this.requestTimestamps.length >= this.maxRequestsPerSecond) {
+          const oldestTimestamp = this.requestTimestamps[0]
+          const waitTime = this.windowMs - (now - oldestTimestamp) + 50 // +50ms buffer
 
-        if (waitTime > 0) {
-          console.log(
-            `[RateLimiter] Rate limit reached (${this.requestTimestamps.length}/${this.maxRequestsPerSecond}). Waiting ${waitTime}ms`
-          )
-          await new Promise(resolve => setTimeout(resolve, waitTime))
-          continue // Recheck after waiting
+          if (waitTime > 0) {
+            console.debug(
+              `[RateLimiter] Subscan rate limit reached (${this.requestTimestamps.length}/${this.maxRequestsPerSecond}). Waiting ${waitTime}ms`
+            )
+            await new Promise(resolve => setTimeout(resolve, waitTime))
+            continue // Recheck after waiting
+          }
+        }
+
+        // We have a slot available, release the next request in queue
+        const resolve = this.queue.shift()
+        if (resolve) {
+          this.requestTimestamps.push(Date.now())
+          resolve()
         }
       }
-
-      // We have a slot available, release the next request in queue
-      const resolve = this.queue.shift()
-      if (resolve) {
-        this.requestTimestamps.push(Date.now())
-        resolve()
-      }
+    } finally {
+      this.processing = false
     }
-
-    this.processing = false
   }
 }
 
@@ -139,71 +141,59 @@ export class SubscanClient {
   /**
    * Handle rate limit retry: log, wait, and increment attempt counter
    */
-  private async handleRateLimitRetry(endpoint: string, attempt: number): Promise<void> {
+  private async handleRateLimitRetry(attempt: number): Promise<void> {
     const delay = this.getRetryDelay(attempt)
     console.warn(`[SubscanClient] Rate limit exceeded. Retrying in ${Math.round(delay)}ms (attempt ${attempt + 1})`)
     await this.sleep(delay)
-    console.log(`[SubscanClient] Retrying request to ${endpoint} after rate limit`)
   }
 
   async request<T extends SubscanBaseResponse, B extends Record<string, unknown>>(endpoint: string, body: B): Promise<T> {
     let attempt = 0
+    const maxRetries = 10
 
-    // Keep retrying indefinitely until we get a non-429 response
-    while (true) {
-      try {
-        // Wait for rate limiter slot before making request
-        await SubscanClient.globalRateLimiter.waitForSlot()
+    while (attempt < maxRetries) {
+      // Wait for rate limiter slot before making request
+      await SubscanClient.globalRateLimiter.waitForSlot()
 
-        const response = await fetch(`${this.baseUrl}${endpoint}`, {
-          method: 'POST',
-          headers: this.headers,
-          body: JSON.stringify(body),
-        })
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        method: 'POST',
+        headers: this.headers,
+        body: JSON.stringify(body),
+      })
 
-        if (!response.ok) {
-          const errorText = await response.text()
-          const error = new SubscanError(`HTTP error! status: ${response.status}, error: ${errorText}`, 0, response.status)
-
-          // Retry indefinitely on 429
-          if (response.status === 429) {
-            await this.handleRateLimitRetry(endpoint, attempt)
-            attempt++
-            continue
-          }
-
-          throw error
+      if (!response.ok) {
+        // Retry on 429
+        if (response.status === 429) {
+          await this.handleRateLimitRetry(attempt)
+          attempt++
+          continue
         }
 
-        const data: T = await response.json()
+        const errorText = await response.text()
+        const error = new SubscanError(`HTTP error! status: ${response.status}, error: ${errorText}`, 0, response.status)
 
-        if (data.code !== 0) {
-          const httpStatus = this.getHttpStatusFromSubscanCode(data.code)
-          const error = new SubscanError(data.message, data.code, httpStatus)
-
-          // Retry indefinitely on rate limit (Subscan code 10003)
-          if (httpStatus === 429) {
-            await this.handleRateLimitRetry(endpoint, attempt)
-            attempt++
-            continue
-          }
-
-          throw error
-        }
-
-        return data
-      } catch (error) {
-        // If it's a network error or other unexpected error, don't retry
-        if (!(error instanceof SubscanError)) {
-          throw error
-        }
-        // If it's not a 429 error, throw immediately
-        if (error.httpStatus !== 429) {
-          throw error
-        }
-        // If it is a 429 error, continue to next iteration
-        attempt++
+        throw error
       }
+
+      const data: T = await response.json()
+
+      if (data.code !== 0) {
+        const httpStatus = this.getHttpStatusFromSubscanCode(data.code)
+
+        // Retry on rate limit (Subscan code 10003)
+        if (httpStatus === 429) {
+          await this.handleRateLimitRetry(attempt)
+          attempt++
+          continue
+        }
+
+        const error = new SubscanError(data.message, data.code, httpStatus)
+        throw error
+      }
+
+      return data
     }
+
+    throw new SubscanError(`Request to ${endpoint} failed after ${maxRetries} attempts.`, 0, 429)
   }
 }

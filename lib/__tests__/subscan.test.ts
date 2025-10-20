@@ -273,13 +273,68 @@ describe('Subscan Integration', () => {
       await expect(getMultisigInfo(testAddress, testNetwork)).rejects.toThrow('HTTP error! status: 500')
     })
 
-    it('should handle rate limiting errors', async () => {
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: false,
-        status: 429,
+    it('should handle rate limiting errors with retry logic', async () => {
+      // First call returns 429, second call succeeds
+      const mockResponse = {
+        code: 0,
+        message: 'Success',
+        generated_at: 1234567890,
+        data: {
+          account: {
+            address: testAddress,
+            multisig: {
+              multi_account: [],
+              multi_account_member: [],
+              threshold: 0,
+            },
+          },
+        },
+      }
+
+      vi.mocked(fetch)
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 429,
+        } as any)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: vi.fn().mockResolvedValue(mockResponse),
+        } as any)
+
+      // Should retry and eventually succeed
+      const result = await getMultisigInfo(testAddress, testNetwork)
+
+      expect(result).toBeDefined()
+      expect(fetch).toHaveBeenCalledTimes(2)
+    })
+
+    it('should respect rate limiting for concurrent requests', async () => {
+      const mockResponse = {
+        code: 0,
+        message: 'Success',
+        generated_at: 1234567890,
+        data: { account: { address: testAddress } },
+      }
+
+      vi.mocked(fetch).mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue(mockResponse),
       } as any)
 
-      await expect(getMultisigInfo(testAddress, testNetwork)).rejects.toThrow('HTTP error! status: 429')
+      // Make multiple concurrent requests
+      const addresses = ['addr1', 'addr2', 'addr3', 'addr4', 'addr5', 'addr6']
+      const startTime = Date.now()
+
+      await Promise.all(addresses.map(addr => getMultisigInfo(addr, testNetwork)))
+
+      const endTime = Date.now()
+      const duration = endTime - startTime
+
+      // With rate limiting (4 req/s), 6 requests should take at least 1 second
+      // (First 4 go through, then 2 more after ~1s)
+      // Allow some tolerance for test execution time
+      expect(duration).toBeGreaterThanOrEqual(800)
+      expect(fetch).toHaveBeenCalledTimes(6)
     })
 
     it('should handle malformed API responses', async () => {
