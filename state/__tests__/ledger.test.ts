@@ -274,18 +274,16 @@ describe('Ledger State', () => {
   })
 
   describe('cancelSynchronization', () => {
-    it('should set cancel flags and abort call', async () => {
+    it('should set cancel flag and abort call', async () => {
       const { ledgerClient } = await import('../client/ledger')
 
       // Verify initial state
       expect(ledgerState$.apps.isSyncCancelRequested.get()).toBe(false)
-      expect(ledgerState$.apps.isCancelling.get()).toBe(false)
 
       ledgerState$.cancelSynchronization()
 
-      // Verify cancel flags are set
+      // Verify cancel flag is set
       expect(ledgerState$.apps.isSyncCancelRequested.get()).toBe(true)
-      expect(ledgerState$.apps.isCancelling.get()).toBe(true)
 
       // Verify abort was called
       expect(ledgerClient.abortCall).toHaveBeenCalled()
@@ -322,7 +320,6 @@ describe('Ledger State', () => {
 
       // State should remain consistent
       expect(ledgerState$.apps.isSyncCancelRequested.get()).toBe(true)
-      expect(ledgerState$.apps.isCancelling.get()).toBe(true)
 
       // Abort should be called each time
       expect(ledgerClient.abortCall).toHaveBeenCalledTimes(3)
@@ -341,10 +338,9 @@ describe('Ledger State', () => {
       vi.mocked(ledgerClient.checkConnection).mockResolvedValueOnce(true)
 
       // Mock synchronizeAllApps to simulate cancellation during execution
-      vi.mocked(synchronizeAllApps).mockImplementationOnce(async (progressCb, cancelCb) => {
+      vi.mocked(synchronizeAllApps).mockImplementationOnce(async (_progressCb, _cancelCb) => {
         // Simulate cancellation by calling cancelSynchronization during sync
         ledgerState$.apps.isSyncCancelRequested.set(true)
-        ledgerState$.apps.isCancelling.set(true)
 
         // Return cancelled result
         return {
@@ -359,7 +355,6 @@ describe('Ledger State', () => {
 
       // After finally block, state should be cleaned up
       expect(ledgerState$.apps.isSyncCancelRequested.get()).toBe(false)
-      expect(ledgerState$.apps.isCancelling.get()).toBe(false)
 
       // Status should be set to SYNCHRONIZED after cleanup (from finally block)
       expect(ledgerState$.apps.status.get()).toBe(AppStatus.SYNCHRONIZED)
@@ -393,7 +388,6 @@ describe('Ledger State', () => {
 
       // State should still be cleaned up even with error
       expect(ledgerState$.apps.isSyncCancelRequested.get()).toBe(false)
-      expect(ledgerState$.apps.isCancelling.get()).toBe(false)
     })
 
     it('should properly cleanup when cancellation is not requested', async () => {
@@ -425,9 +419,8 @@ describe('Ledger State', () => {
       // Start synchronization without cancellation
       await ledgerState$.synchronizeAccounts()
 
-      // Flags should remain false
+      // Flag should remain false
       expect(ledgerState$.apps.isSyncCancelRequested.get()).toBe(false)
-      expect(ledgerState$.apps.isCancelling.get()).toBe(false)
 
       // Status should be SYNCHRONIZED from successful sync
       expect(ledgerState$.apps.status.get()).toBe(AppStatus.SYNCHRONIZED)
@@ -1305,14 +1298,12 @@ describe('Ledger State', () => {
 
         // Verify initial state
         expect(ledgerState$.deepScan.cancelRequested.get()).toBe(false)
-        expect(ledgerState$.deepScan.isCancelling.get()).toBe(false)
 
         // Call cancel
         ledgerState$.cancelDeepScan()
 
-        // Verify cancel flags are set
+        // Verify cancel flag is set
         expect(ledgerState$.deepScan.cancelRequested.get()).toBe(true)
-        expect(ledgerState$.deepScan.isCancelling.get()).toBe(true)
 
         // Verify abort was called
         expect(ledgerClient.abortCall).toHaveBeenCalled()
@@ -1328,7 +1319,6 @@ describe('Ledger State', () => {
 
         // State should remain consistent
         expect(ledgerState$.deepScan.cancelRequested.get()).toBe(true)
-        expect(ledgerState$.deepScan.isCancelling.get()).toBe(true)
 
         // Abort should be called each time
         expect(ledgerClient.abortCall).toHaveBeenCalledTimes(3)
@@ -1339,7 +1329,6 @@ describe('Ledger State', () => {
       it('should reset all deep scan state to initial values', () => {
         // Set some state first
         ledgerState$.deepScan.isScanning.set(true)
-        ledgerState$.deepScan.isCancelling.set(true)
         ledgerState$.deepScan.isCompleted.set(true)
         ledgerState$.deepScan.cancelRequested.set(true)
         ledgerState$.deepScan.progress.set({ scanned: 5, total: 10, percentage: 50, phase: undefined })
@@ -1358,7 +1347,6 @@ describe('Ledger State', () => {
 
         // Verify all state is reset
         expect(ledgerState$.deepScan.isScanning.get()).toBe(false)
-        expect(ledgerState$.deepScan.isCancelling.get()).toBe(false)
         expect(ledgerState$.deepScan.isCompleted.get()).toBe(false)
         expect(ledgerState$.deepScan.cancelRequested.get()).toBe(false)
         expect(ledgerState$.deepScan.progress.get()).toEqual({
@@ -1409,7 +1397,6 @@ describe('Ledger State', () => {
 
         // Check initial state
         expect(ledgerState$.deepScan.isScanning.get()).toBe(true)
-        expect(ledgerState$.deepScan.isCancelling.get()).toBe(false)
         expect(ledgerState$.deepScan.isCompleted.get()).toBe(false)
         expect(ledgerState$.deepScan.cancelRequested.get()).toBe(false)
 
@@ -1429,7 +1416,6 @@ describe('Ledger State', () => {
 
         expect(result.success).toBe(true)
         expect(ledgerState$.deepScan.isScanning.get()).toBe(false)
-        expect(ledgerState$.deepScan.isCancelling.get()).toBe(false)
         expect(ledgerState$.deepScan.cancelRequested.get()).toBe(false)
         expect(ledgerState$.deepScan.isCompleted.get()).toBe(true)
       })
@@ -1504,7 +1490,6 @@ describe('Ledger State', () => {
         expect(result.newAccountsFound).toBe(0)
         // State should be cleaned up even on failure
         expect(ledgerState$.deepScan.isScanning.get()).toBe(false)
-        expect(ledgerState$.deepScan.isCancelling.get()).toBe(false)
       })
 
       it('should handle errors gracefully', async () => {

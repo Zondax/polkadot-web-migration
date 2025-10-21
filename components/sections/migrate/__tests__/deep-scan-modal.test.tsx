@@ -1,7 +1,7 @@
+import { ScanTypeEnum } from '@/lib/types/scan'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import React from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ScanTypeEnum } from '@/lib/types/scan'
 import { DeepScanModal } from '../deep-scan-modal'
 
 // Mock UI components
@@ -458,7 +458,7 @@ describe('DeepScanModal', () => {
           onClose={mockOnClose}
           onScan={mockOnScan}
           isScanning={true}
-          isCancelling={true}
+          isCancelRequested={true}
           onCancel={mockOnCancel}
         />
       )

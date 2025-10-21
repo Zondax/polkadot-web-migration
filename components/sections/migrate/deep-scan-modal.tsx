@@ -1,13 +1,13 @@
 'use client'
 
 import TokenIcon from '@/components/TokenIcon'
-import type { DeepScanAppDisplayInfo } from '@/lib/types/app-display'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { AppId } from '@/config/apps'
 import { getAppsToSkipMigration, getValidApps } from '@/lib/services/synchronization.service'
+import type { DeepScanAppDisplayInfo } from '@/lib/types/app-display'
 import type { RangeField, ScanType } from '@/lib/types/scan'
 import { RangeFieldEnum, SCAN_LIMITS, ScanTypeEnum } from '@/lib/types/scan'
 import { cn } from '@/lib/utils'
@@ -26,7 +26,7 @@ interface DeepScanModalProps {
   onClose: () => void
   onScan: (options: DeepScanOptions) => void
   isScanning?: boolean
-  isCancelling?: boolean
+  isCancelRequested?: boolean
   isCompleted?: boolean
   progress?: SyncProgress
   scanningApps?: DeepScanAppDisplayInfo[]
@@ -51,7 +51,7 @@ export function DeepScanModal({
   onClose,
   onScan,
   isScanning = false,
-  isCancelling = false,
+  isCancelRequested = false,
   isCompleted = false,
   progress,
   scanningApps,
@@ -194,7 +194,7 @@ export function DeepScanModal({
               <span className="text-sm text-gray-600">
                 Scanned {progress.total} chain{progress.total !== 1 ? 's' : ''} successfully
               </span>
-            ) : isCancelling ? (
+            ) : isCancelRequested ? (
               <span className="text-sm text-gray-600">Cancelling deep scan...</span>
             ) : (
               getSyncStatusLabel(progress, 'Deep scanning')
@@ -326,8 +326,8 @@ export function DeepScanModal({
           {isCompleted ? (
             <Button onClick={onDone}>Done</Button>
           ) : isScanning ? (
-            <Button variant="outline" onClick={onCancel} disabled={isCancelling}>
-              {isCancelling ? 'Cancelling...' : 'Cancel Scan'}
+            <Button variant="outline" onClick={onCancel} disabled={isCancelRequested}>
+              {isCancelRequested ? 'Cancelling...' : 'Cancel Scan'}
             </Button>
           ) : (
             <>
