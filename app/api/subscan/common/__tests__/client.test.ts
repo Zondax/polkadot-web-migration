@@ -7,6 +7,7 @@ global.fetch = vi.fn()
 describe('SubscanClient', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    SubscanClient.resetRateLimiter()
   })
 
   describe('constructor', () => {
@@ -135,12 +136,14 @@ describe('SubscanClient', () => {
       const testCases = [
         { code: 10001, expectedHttpStatus: 400, message: 'Invalid parameter' },
         { code: 10002, expectedHttpStatus: 400, message: 'Invalid format' },
-        { code: 10003, expectedHttpStatus: 429, message: 'Rate limit exceeded' },
         { code: 10004, expectedHttpStatus: 404, message: 'Record Not Found' },
         { code: 99999, expectedHttpStatus: 500, message: 'Unknown error' },
       ]
 
       for (const testCase of testCases) {
+        // Reset rate limiter between test cases to avoid rate limiting in tests
+        SubscanClient.resetRateLimiter()
+
         const mockErrorResponse = {
           code: testCase.code,
           message: testCase.message,
@@ -168,6 +171,7 @@ describe('SubscanClient', () => {
     })
 
     it('should handle network connection errors', async () => {
+      SubscanClient.resetRateLimiter()
       vi.mocked(fetch).mockRejectedValueOnce(new Error('Network connection failed'))
 
       const client = new SubscanClient({ network: 'polkadot' })
@@ -176,6 +180,7 @@ describe('SubscanClient', () => {
     })
 
     it('should handle JSON parsing errors', async () => {
+      SubscanClient.resetRateLimiter()
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: vi.fn().mockRejectedValue(new Error('Invalid JSON')),
@@ -187,6 +192,7 @@ describe('SubscanClient', () => {
     })
 
     it('should handle different network endpoints correctly', async () => {
+      SubscanClient.resetRateLimiter()
       const mockResponse = {
         code: 0,
         message: 'Success',

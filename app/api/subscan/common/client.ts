@@ -37,6 +37,15 @@ class RateLimiter {
   }
 
   /**
+   * Reset the rate limiter state (useful for testing)
+   */
+  reset(): void {
+    this.requestTimestamps = []
+    this.queue = []
+    this.processing = false
+  }
+
+  /**
    * Wait if necessary to respect rate limit, then record the request
    * Uses a queue to prevent race conditions with concurrent requests
    */
@@ -99,6 +108,13 @@ export class SubscanClient {
   // Global rate limiter shared across ALL instances
   // Using 4 req/s instead of 5 to have safety margin
   private static readonly globalRateLimiter = new RateLimiter(4)
+
+  /**
+   * Reset the global rate limiter state (useful for testing)
+   */
+  static resetRateLimiter(): void {
+    SubscanClient.globalRateLimiter.reset()
+  }
 
   private getHttpStatusFromSubscanCode(code: number): number {
     switch (code) {
