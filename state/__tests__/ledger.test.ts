@@ -800,6 +800,57 @@ describe('Ledger State', () => {
       expect(ledgerClient.checkConnection).toHaveBeenCalled()
     })
 
+    it('should verify connection status before operations', async () => {
+      const { ledgerClient } = await import('../client/ledger')
+      const { synchronizeAllApps } = await import('@/lib/services/synchronization.service')
+
+      // Clear any existing state
+      ledgerState$.clearConnection()
+      vi.clearAllMocks()
+
+      // Mock connection check to return false initially
+      vi.mocked(ledgerClient.checkConnection).mockResolvedValueOnce(false)
+
+      // Mock connectDevice to return successful connection
+      vi.mocked(ledgerClient.connectDevice).mockResolvedValueOnce({
+        connection: { isAppOpen: true },
+        error: undefined,
+      })
+
+      // Mock synchronization to succeed
+      vi.mocked(synchronizeAllApps).mockResolvedValueOnce({
+        success: true,
+        apps: [],
+      })
+
+      // Attempt to synchronize - should trigger connection check
+      await ledgerState$.synchronizeAccounts()
+
+      // Verify connection was checked
+      expect(ledgerClient.checkConnection).toHaveBeenCalled()
+
+      // Verify reconnection attempt was made
+      expect(ledgerClient.connectDevice).toHaveBeenCalled()
+
+      // Verify synchronization proceeded after reconnection
+      expect(synchronizeAllApps).toHaveBeenCalled()
+    })
+
+    it('should handle connection check failures gracefully', async () => {
+      const { ledgerClient } = await import('../client/ledger')
+
+      // Clear existing state
+      ledgerState$.device.connection.set({ isAppOpen: true })
+
+      // Mock checkConnection to throw error
+      vi.mocked(ledgerClient.checkConnection).mockRejectedValueOnce(new Error('Connection check failed'))
+
+      const result = await ledgerState$.checkConnection()
+
+      // Should return false instead of throwing
+      expect(result).toBe(false)
+    })
+
     it('should handle polkadot addresses verification - app config not found', async () => {
       const result = await ledgerState$.verifyDestinationAddresses('nonexistent' as any, '1test', "m/44'/354'/0'/0'/0'")
       expect(result.isVerified).toBe(false)
@@ -1334,16 +1385,27 @@ describe('Ledger State', () => {
     describe('deepScanApp', () => {
       it('should initialize state when starting deep scan', async () => {
         const { deepScanAllApps } = await import('@/lib/services/synchronization.service')
+        const { ledgerClient } = await import('../client/ledger')
 
-        // Mock successful scan
-        vi.mocked(deepScanAllApps).mockResolvedValueOnce({
-          success: true,
-          apps: [],
-          newAccountsFound: 0,
+        // Mock connection check
+        vi.mocked(ledgerClient.checkConnection).mockResolvedValueOnce(true)
+
+        // Mock successful scan with a delay to ensure we can check the scanning state
+        vi.mocked(deepScanAllApps).mockImplementationOnce(async () => {
+          // Add a small delay to ensure the state is set before we check it
+          await new Promise(resolve => setTimeout(resolve, 10))
+          return {
+            success: true,
+            apps: [],
+            newAccountsFound: 0,
+          }
         })
 
         // Start deep scan
         const promise = ledgerState$.deepScanApp('polkadot', [0, 1], [0, 1, 2])
+
+        // Wait a tick to ensure the state is set
+        await new Promise(resolve => setTimeout(resolve, 0))
 
         // Check initial state
         expect(ledgerState$.deepScan.isScanning.get()).toBe(true)
