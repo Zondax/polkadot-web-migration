@@ -17,27 +17,59 @@ vi.mock('lucide-react', () => ({
   ),
   AlertTriangle: () => <div data-testid="alert-triangle">⚠</div>,
   Banknote: () => <div data-testid="banknote">💰</div>,
-  BanknoteArrowDown: ({ size, className }: any) => <div data-testid="banknote-arrow-down" className={className}>💰⬇</div>,
+  BanknoteArrowDown: ({ size, className }: any) => (
+    <div data-testid="banknote-arrow-down" className={className}>
+      💰⬇
+    </div>
+  ),
   Check: () => <div data-testid="check">✓</div>,
-  CheckCircle: ({ className }: any) => <div data-testid="check-circle" className={className}>✓</div>,
-  Clock: ({ className }: any) => <div data-testid="clock" className={className}>🕒</div>,
+  CheckCircle: ({ className }: any) => (
+    <div data-testid="check-circle" className={className}>
+      ✓
+    </div>
+  ),
+  Clock: ({ className }: any) => (
+    <div data-testid="clock" className={className}>
+      🕒
+    </div>
+  ),
   Group: () => <div data-testid="group">👥</div>,
   Hash: () => <div data-testid="hash">#</div>,
   Info: () => <div data-testid="info">ℹ</div>,
   KeyRound: () => <div data-testid="key-round">🔑</div>,
-  LockOpen: ({ size, className }: any) => <div data-testid="lock-open" className={className}>🔓</div>,
+  LockOpen: ({ size, className }: any) => (
+    <div data-testid="lock-open" className={className}>
+      🔓
+    </div>
+  ),
   Route: () => <div data-testid="route">🛣</div>,
-  Send: ({ size, className }: any) => <div data-testid="send" className={className}>📤</div>,
+  Send: ({ size, className }: any) => (
+    <div data-testid="send" className={className}>
+      📤
+    </div>
+  ),
   Shield: () => <div data-testid="shield">🛡</div>,
-  Trash2: ({ size, className }: any) => <div data-testid="trash2" className={className}>🗑</div>,
+  Trash2: ({ size, className }: any) => (
+    <div data-testid="trash2" className={className}>
+      🗑
+    </div>
+  ),
   User: () => <div data-testid="user">👤</div>,
   UserCog: ({ className }: any) => (
     <div data-testid="user-cog" className={className}>
       👤⚙
     </div>
   ),
-  Users: ({ size, className }: any) => <div data-testid="users" className={className}>👥</div>,
-  Vote: ({ size, className }: any) => <div data-testid="vote" className={className}>🗳</div>,
+  Users: ({ size, className }: any) => (
+    <div data-testid="users" className={className}>
+      👥
+    </div>
+  ),
+  Vote: ({ size, className }: any) => (
+    <div data-testid="vote" className={className}>
+      🗳
+    </div>
+  ),
   X: () => <div data-testid="x">✕</div>,
 }))
 
