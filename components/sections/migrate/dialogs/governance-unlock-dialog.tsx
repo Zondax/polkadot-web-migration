@@ -5,11 +5,11 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { AppId, Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
-import type { UpdateTransactionStatus } from '@/lib/account'
+import type { GovernanceActivity, UpdateTransactionStatus } from '@/lib/account'
 import { formatBalance } from '@/lib/utils/format'
 import { getConvictionLockDescription } from '@/lib/utils/governance'
 import { ledgerState$ } from '@/state/ledger'
-import type { Address, Conviction } from '@/state/types/ledger'
+import type { Address } from '@/state/types/ledger'
 import type { BN } from '@polkadot/util'
 import { AlertCircle, Clock, Lock, Users, Vote } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -22,30 +22,7 @@ interface GovernanceUnlockDialogProps {
   setOpen: (open: boolean) => void
   account: Address
   token: Token
-  governanceActivity: {
-    votes: Array<{
-      trackId: number
-      referendumIndex: number
-      vote: {
-        aye: boolean
-        conviction: Conviction
-        balance: BN
-      }
-      referendumStatus: 'ongoing' | 'finished'
-      canRemoveVote: boolean
-      unlockAt?: number
-    }>
-    delegations: Array<{
-      trackId: number
-      target: string
-      conviction: Conviction
-      balance: BN
-      canUndelegate: boolean
-      unlockAt?: number
-    }>
-    totalLocked: BN
-    unlockableAmount: BN
-  }
+  governanceActivity: GovernanceActivity
 }
 
 type SelectedAction = {

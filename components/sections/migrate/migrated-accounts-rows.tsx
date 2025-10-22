@@ -1,16 +1,18 @@
 'use client'
 
-import { ShieldCheck } from 'lucide-react'
-import type { App } from 'state/ledger'
-import { type AddressWithVerificationStatus, type MultisigAddress, type Transaction, VerificationStatus } from 'state/types/ledger'
 import { CustomTooltip } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { useTokenLogo } from '@/components/hooks/useTokenLogo'
 import { TableCell, TableRow } from '@/components/ui/table'
 import type { AppId } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
+import { MIGRATION_WARNINGS } from '@/config/ui'
+import { hasPendingActions, isMultisigAddress as isMultisigAddressFn } from '@/lib/utils'
 import { muifyHtml } from '@/lib/utils/html'
 import { getTransactionStatus } from '@/lib/utils/ui'
+import { AlertCircle, ShieldCheck } from 'lucide-react'
+import type { App } from 'state/ledger'
+import { VerificationStatus, type AddressWithVerificationStatus, type MultisigAddress, type Transaction } from 'state/types/ledger'
 import { BalanceHoverCard } from './balance-hover-card'
 import TransactionDropdown from './transaction-dropdown'
 
@@ -18,6 +20,22 @@ interface AccountRowsProps {
   app: App
   multisigAddresses?: boolean
   destinationAddressesStatus: AddressWithVerificationStatus[]
+}
+
+const PendingActionsWarning = () => {
+  return (
+    <CustomTooltip
+      tooltipBody={
+        <>
+          <p className="font-semibold">{MIGRATION_WARNINGS.TRANSFER_ALL_WITH_PENDING_ACTIONS.title}</p>
+          <p className="text-xs text-muted-foreground">{MIGRATION_WARNINGS.TRANSFER_ALL_WITH_PENDING_ACTIONS.message}</p>
+        </>
+      }
+      className="max-w-[300px]"
+    >
+      <AlertCircle className="h-4 w-4 text-yellow-500 cursor-help" />
+    </CustomTooltip>
+  )
 }
 
 const MigratedAccountRows = ({ app, multisigAddresses, destinationAddressesStatus }: AccountRowsProps) => {
@@ -30,9 +48,13 @@ const MigratedAccountRows = ({ app, multisigAddresses, destinationAddressesStatu
     return null
   }
 
-  const renderStatusIcon = (transaction: Transaction | undefined) => {
+  const renderStatusIcon = (transaction: Transaction | undefined, hasPendingActions: boolean) => {
     const txStatus = transaction?.status
     const txStatusMessage = transaction?.statusMessage
+
+    if (hasPendingActions && !txStatus) {
+      return <PendingActionsWarning />
+    }
 
     const { statusIcon, statusMessage } = getTransactionStatus(txStatus, txStatusMessage)
 
@@ -44,6 +66,18 @@ const MigratedAccountRows = ({ app, multisigAddresses, destinationAddressesStatu
     if (!account.balances || account.balances.length === 0) {
       return null
     }
+
+    // Check for pending actions using the centralized utility function
+    const isMultisigAddress = isMultisigAddressFn(account)
+    const nativeBalance = balances.find(b => b.type === 'native')
+
+    const accountHasPendingActions = hasPendingActions({
+      account,
+      balance: nativeBalance,
+      appId: app.id as AppId,
+      isMultisigAddress,
+    })
+
     return (
       <TableRow key={`${app.id}-${account.address}-${accountIndex}`}>
         {/* App Icon */}
@@ -135,7 +169,7 @@ const MigratedAccountRows = ({ app, multisigAddresses, destinationAddressesStatu
         {/* Status */}
         <TableCell>
           <div className="flex items-center space-x-2">
-            {renderStatusIcon(account.transaction)}
+            {renderStatusIcon(account.transaction, accountHasPendingActions)}
             {account.transaction && <TransactionDropdown transaction={account.transaction} appId={app.id as AppId} />}
           </div>
         </TableCell>

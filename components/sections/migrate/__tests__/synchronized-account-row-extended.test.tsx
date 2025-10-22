@@ -17,25 +17,27 @@ vi.mock('lucide-react', () => ({
   ),
   AlertTriangle: () => <div data-testid="alert-triangle">⚠</div>,
   Banknote: () => <div data-testid="banknote">💰</div>,
-  BanknoteArrowDown: () => <div data-testid="banknote-arrow-down">💰⬇</div>,
+  BanknoteArrowDown: ({ size, className }: any) => <div data-testid="banknote-arrow-down" className={className}>💰⬇</div>,
   Check: () => <div data-testid="check">✓</div>,
+  CheckCircle: ({ className }: any) => <div data-testid="check-circle" className={className}>✓</div>,
+  Clock: ({ className }: any) => <div data-testid="clock" className={className}>🕒</div>,
   Group: () => <div data-testid="group">👥</div>,
   Hash: () => <div data-testid="hash">#</div>,
   Info: () => <div data-testid="info">ℹ</div>,
   KeyRound: () => <div data-testid="key-round">🔑</div>,
-  LockOpen: () => <div data-testid="lock-open">🔓</div>,
+  LockOpen: ({ size, className }: any) => <div data-testid="lock-open" className={className}>🔓</div>,
   Route: () => <div data-testid="route">🛣</div>,
-  Send: () => <div data-testid="send">📤</div>,
+  Send: ({ size, className }: any) => <div data-testid="send" className={className}>📤</div>,
   Shield: () => <div data-testid="shield">🛡</div>,
-  Trash2: () => <div data-testid="trash2">🗑</div>,
+  Trash2: ({ size, className }: any) => <div data-testid="trash2" className={className}>🗑</div>,
   User: () => <div data-testid="user">👤</div>,
   UserCog: ({ className }: any) => (
     <div data-testid="user-cog" className={className}>
       👤⚙
     </div>
   ),
-  Users: () => <div data-testid="users">👥</div>,
-  Vote: () => <div data-testid="vote">🗳</div>,
+  Users: ({ size, className }: any) => <div data-testid="users" className={className}>👥</div>,
+  Vote: ({ size, className }: any) => <div data-testid="vote" className={className}>🗳</div>,
   X: () => <div data-testid="x">✕</div>,
 }))
 
@@ -122,6 +124,66 @@ vi.mock('@/lib/utils', () => ({
   isMultisigAddress: (account: any) => account.isMultisig === true,
   hasBalance: () => true,
   cn: (...classes: string[]) => classes.filter(Boolean).join(' '),
+  PendingActionType: {
+    UNSTAKE: 'unstake',
+    WITHDRAW: 'withdraw',
+    IDENTITY: 'identity',
+    MULTISIG_CALL: 'multisig-call',
+    MULTISIG_TRANSFER: 'multisig-transfer',
+    ACCOUNT_INDEX: 'account-index',
+    PROXY: 'proxy',
+    GOVERNANCE: 'governance',
+  },
+  getPendingActions: ({ account, isMultisigAddress }: any) => {
+    const actions: any[] = []
+
+    // Add identity action if account has identity
+    if (account.registration?.identity) {
+      actions.push({
+        type: 'identity' as any,
+        label: 'Identity',
+        tooltip: 'Remove account identity',
+        disabled: !account.registration?.canRemove,
+      })
+    }
+
+    // Add multisig call action if multisig has pending calls
+    if (isMultisigAddress && account.pendingMultisigCalls?.length > 0) {
+      actions.push({
+        type: 'multisig-call' as any,
+        label: 'Multisig Call',
+        tooltip: 'Approve multisig pending calls',
+        disabled: false,
+        data: {
+          hasRemainingInternalSigners: true,
+          hasRemainingSigners: true,
+          hasAvailableSigners: true,
+        },
+      })
+    }
+
+    // Add account index action if account has index
+    if (account.index?.index) {
+      actions.push({
+        type: 'account-index' as any,
+        label: 'Account Index',
+        tooltip: 'Remove account index',
+        disabled: false,
+      })
+    }
+
+    // Add proxy action if account is proxied
+    if (account.proxy?.proxies?.length > 0) {
+      actions.push({
+        type: 'proxy' as any,
+        label: 'Proxy',
+        tooltip: 'Remove proxy',
+        disabled: false,
+      })
+    }
+
+    return actions
+  },
 }))
 
 vi.mock('@/lib/utils/balance', () => ({

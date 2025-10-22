@@ -1,10 +1,11 @@
-import { AlertCircle, CheckCircle, Clock } from 'lucide-react'
+import type { TabItem } from '@/components/Tabs'
 import { Spinner } from '@/components/icons'
 import { ConnectTabContent } from '@/components/sections/migrate/connect-tab-content'
 import { MigrateTabContent } from '@/components/sections/migrate/migrate-tab-content'
 import { SynchronizeTabContent } from '@/components/sections/migrate/synchronize-tab-content'
-import type { TabItem } from '@/components/Tabs'
+import { PendingActionType } from '@/lib/utils'
 import { VerificationStatus } from '@/state/types/ledger'
+import { AlertCircle, BanknoteArrowDown, CheckCircle, Clock, LockOpen, Send, Trash2, Users, Vote } from 'lucide-react'
 
 export type MigrationTabValue = 'connect-device' | 'synchronize-accounts' | 'migrate'
 
@@ -45,4 +46,30 @@ export const verificationStatusMap: Record<VerificationStatus, { icon: React.Rea
     icon: <AlertCircle className="h-4 w-4 text-red-500" />,
     tooltip: 'Failed verification',
   },
+}
+
+/**
+ * Warning messages for migration flow
+ */
+export const MIGRATION_WARNINGS = {
+  TRANSFER_ALL_WITH_PENDING_ACTIONS: {
+    title: "You're About to Transfer All Your Funds",
+    message:
+      "You're transferring all your available funds and you still have pending actions. You'll need some balance to pay the fees later. By migrating everything now, you might not have enough left to cover those fees.",
+  },
+} as const
+
+/**
+ * Map of PendingActionType to icon component.
+ * Used for rendering pending action icons in UI.
+ */
+export const pendingActionTypeMap: Record<PendingActionType, React.ReactNode> = {
+  [PendingActionType.UNSTAKE]: <LockOpen size={16} />,
+  [PendingActionType.WITHDRAW]: <BanknoteArrowDown size={16} />,
+  [PendingActionType.IDENTITY]: <Trash2 size={16} />,
+  [PendingActionType.MULTISIG_CALL]: <Users size={16} />,
+  [PendingActionType.MULTISIG_TRANSFER]: <Send size={16} />,
+  [PendingActionType.ACCOUNT_INDEX]: <Trash2 size={16} />,
+  [PendingActionType.PROXY]: <Trash2 size={16} />,
+  [PendingActionType.GOVERNANCE]: <Vote size={16} />,
 }

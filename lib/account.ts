@@ -32,6 +32,7 @@ import {
   type AddressBalance,
   type Collection,
   type ConvictionVotingInfo,
+  type DelegationInfo,
   type IdentityInfo,
   type MultisigAddress,
   type MultisigCall,
@@ -2180,16 +2181,13 @@ export async function prepareUnlockConvictionTransaction(
   return api.tx.convictionVoting.unlock(trackId, address) as SubmittableExtrinsic<'promise', ISubmittableResult>
 }
 
-/**
- * Get detailed information about all governance activity for an address
- * @param address The address to check
- * @param api The Polkadot API instance
- * @returns Detailed governance activity including votes and delegations
- */
-export async function getGovernanceActivity(
-  address: string,
-  api: ApiPromise
-): Promise<{
+export interface DelegationInfoExtended extends DelegationInfo {
+  trackId: number
+  unlockAt?: number
+  canUndelegate: boolean
+}
+
+export interface GovernanceActivity {
   votes: Array<{
     trackId: number
     referendumIndex: number
@@ -2202,17 +2200,17 @@ export async function getGovernanceActivity(
     canRemoveVote: boolean
     unlockAt?: number
   }>
-  delegations: Array<{
-    trackId: number
-    target: string
-    conviction: Conviction
-    balance: BN
-    canUndelegate: boolean
-    unlockAt?: number
-  }>
+  delegations: Array<DelegationInfoExtended>
   totalLocked: BN
   unlockableAmount: BN
-}> {
+}
+/**
+ * Get detailed information about all governance activity for an address
+ * @param address The address to check
+ * @param api The Polkadot API instance
+ * @returns Detailed governance activity including votes and delegations
+ */
+export async function getGovernanceActivity(address: string, api: ApiPromise): Promise<GovernanceActivity> {
   try {
     if (!api.query.convictionVoting?.votingFor || !api.query.referenda?.referendumInfoFor) {
       throw new InternalError(InternalErrorType.GET_CONVICTION_VOTING_INFO_ERROR)

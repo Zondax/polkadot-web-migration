@@ -1,4 +1,5 @@
 // Re-export all utilities for backwards compatibility
+export * from './actions'
 export * from './address'
 export * from './balance'
 export * from './browser'
