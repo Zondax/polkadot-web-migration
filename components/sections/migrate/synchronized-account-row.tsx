@@ -1,29 +1,3 @@
-import { observer } from '@legendapp/state/react'
-import { BN } from '@polkadot/util'
-import type { CheckedState } from '@radix-ui/react-checkbox'
-import {
-  AlertCircle,
-  AlertTriangle,
-  Banknote,
-  BanknoteArrowDown,
-  Check,
-  Group,
-  Hash,
-  Info,
-  KeyRound,
-  LockOpen,
-  Route,
-  Send,
-  Shield,
-  Trash2,
-  User,
-  UserCog,
-  Users,
-  Vote,
-} from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
-import { type Collections, ledgerState$ } from 'state/ledger'
-import type { Address, AddressBalance, MultisigAddress, MultisigMember } from 'state/types/ledger'
 import { CustomTooltip, TooltipBody, type TooltipItem } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import type { ToggleAccountSelection, UpdateTransaction } from '@/components/hooks/useSynchronization'
@@ -35,10 +9,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { TableCell, TableRow } from '@/components/ui/table'
 import type { AppId, Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
-import { formatBalance, isMultisigAddress as isMultisigAddressFunction } from '@/lib/utils'
-import { canUnstake, hasStakedBalance, isNativeBalance } from '@/lib/utils/balance'
-import { getAvailableSigners, getRemainingInternalSigners, getRemainingSigners } from '@/lib/utils/multisig'
+import { ActionTypeMap } from '@/config/ui'
+import { buildPendingActions, formatBalance, isMultisigAddress as isMultisigAddressFunction } from '@/lib/utils'
+import { isNativeBalance } from '@/lib/utils/balance'
 import { getIdentityItems } from '@/lib/utils/ui'
+import { observer } from '@legendapp/state/react'
+import { BN } from '@polkadot/util'
+import type { CheckedState } from '@radix-ui/react-checkbox'
+import { AlertCircle, AlertTriangle, Banknote, Check, Group, Hash, Info, KeyRound, Route, Shield, User, UserCog, Users } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { Collections } from 'state/ledger'
+import { ActionType, type Address, type AddressBalance, type MultisigAddress, type MultisigMember } from 'state/types/ledger'
 import { BalanceHoverCard, NativeBalanceHoverCard } from './balance-hover-card'
 import { BalanceType } from './balance-visualizations'
 import DestinationAddressSelect from './destination-address-select'
@@ -47,7 +28,6 @@ import GovernanceUnlockDialog from './dialogs/governance-unlock-dialog'
 import RemoveAccountIndexDialog from './dialogs/remove-account-index-dialog'
 import RemoveIdentityDialog from './dialogs/remove-identity-dialog'
 import RemoveProxyDialog from './dialogs/remove-proxy-dialog'
-import TransferMultisigDialog from './dialogs/transfer-multisig-dialog'
 import UnstakeDialog from './dialogs/unstake-dialog'
 import WithdrawDialog from './dialogs/withdraw-dialog'
 
@@ -97,174 +77,124 @@ const SynchronizedAccountRow = ({
   const [removeProxyOpen, setRemoveProxyOpen] = useState<boolean>(false)
   const [removeAccountIndexOpen, setRemoveAccountIndexOpen] = useState<boolean>(false)
   const [governanceUnlockOpen, setGovernanceUnlockOpen] = useState<boolean>(false)
-  const [governanceActivity, setGovernanceActivity] = useState<any>(null)
-  const [transferMultisigOpen, setTransferMultisigOpen] = useState<boolean>(false)
   const isNoBalance: boolean = balance === undefined
   const isFirst: boolean = balanceIndex === 0 || isNoBalance
   const isNative = isNativeBalance(balance)
-  const hasGovernanceLocks = isNative && balance?.balance.convictionVoting?.locked?.gt(new BN(0))
-
-  useEffect(() => {
-    const fetchGovernanceActivity = async () => {
-      if (hasGovernanceLocks) {
-        try {
-          const activity = await ledgerState$.getGovernanceActivity(appId, account.address)
-          setGovernanceActivity(activity)
-        } catch (error) {
-          console.warn('Failed to get governance activity:', error)
-          setGovernanceActivity(null)
-        }
-      } else {
-        setGovernanceActivity(null)
-      }
-    }
-    fetchGovernanceActivity()
-  }, [hasGovernanceLocks, appId, account.address])
-  const hasStaked: boolean = isNative && hasStakedBalance(balance)
   const stakingActive: BN | undefined = isNative ? balance?.balance.staking?.active : undefined
   const maxUnstake: BN = stakingActive ?? new BN(0)
-  const isUnstakeAvailable: boolean = isNative ? canUnstake(balance) : false
   const totalBalance: BN = isNative ? balance.balance.total : new BN(0)
   const isMultisigMember: boolean = (account.memberMultisigAddresses && account.memberMultisigAddresses.length > 0) ?? false
   const isMultisigAddress: boolean = isMultisigAddressFunction(account)
   const internalMultisigMembers: MultisigMember[] = (account as MultisigAddress).members?.filter(member => member.internal) ?? []
   const signatoryAddress: string = balance?.transaction?.signatoryAddress ?? ''
   const isProxied: boolean = (account.proxy?.proxies.length ?? 0) > 0
-
-  const actions: Action[] = []
-  if (hasStaked) {
-    actions.push({
-      label: 'Unstake',
-      tooltip: !isUnstakeAvailable ? 'Only the controller address can unstake this balance' : 'Unlock your staked assets',
-      onClick: () => setUnstakeOpen(true),
-      disabled: !isUnstakeAvailable,
-      icon: <LockOpen className="h-4 w-4" />,
-    })
-  }
-  const canWithdraw: boolean = isNative ? (balance?.balance.staking?.unlocking?.some(u => u.canWithdraw) ?? false) : false
-  if (canWithdraw) {
-    actions.push({
-      label: 'Withdraw',
-      tooltip: 'Move your unstaked assets to your available balance',
-      onClick: () => setWithdrawOpen(true),
-      disabled: false,
-      icon: <BanknoteArrowDown className="h-4 w-4" />,
-    })
-  }
-
-  if (account.registration?.identity) {
-    const identityItems = getIdentityItems(account.registration, appId)
-    if (identityItems.length > 0) {
-      actions.push({
-        label: 'Identity',
-        tooltip: account.registration?.canRemove
-          ? 'Remove account identity'
-          : 'Account identity cannot be removed because it has a parent account',
-        onClick: () => setRemoveIdentityOpen(true),
-        disabled: !account.registration?.canRemove,
-        icon: <Trash2 className="h-4 w-4" />,
-      })
+  const convictionVoting = useMemo(() => {
+    if (isNative && balance?.balance.convictionVoting?.totalLocked?.gt(new BN(0))) {
+      return balance?.balance.convictionVoting
     }
-  }
+    return undefined
+  }, [balance?.balance, isNative])
 
-  // --- Multisig pending call action logic ---
-  let hasMultisigPending = false
-  let hasRemainingInternalSigners = false
-  let hasRemainingSigners = false
-  let _hasAvailableSigners = false
+  // Get pending actions using the utility function
+  const pendingActions = account.pendingActions
+    ? buildPendingActions(account.pendingActions, {
+        account,
+        appId,
+        isMultisigAddress,
+      })
+    : []
+
+  // Action handlers configuration - maps action types to their click handlers
+  const actionHandlers = useMemo(
+    () => ({
+      [ActionType.UNSTAKE]: () => setUnstakeOpen(true),
+      [ActionType.WITHDRAW]: () => setWithdrawOpen(true),
+      [ActionType.IDENTITY]: () => setRemoveIdentityOpen(true),
+      [ActionType.MULTISIG_CALL]: () => setApproveMultisigCallOpen(true),
+      [ActionType.ACCOUNT_INDEX]: () => setRemoveAccountIndexOpen(true),
+      [ActionType.PROXY]: () => setRemoveProxyOpen(true),
+      [ActionType.GOVERNANCE]: () => setGovernanceUnlockOpen(true),
+    }),
+    []
+  )
+
+  // Map pending actions to Action format with icons and callbacks
+  const actions: Action[] = pendingActions
+    .map(({ type, label, tooltip, disabled }): Action | null => {
+      const onClick = actionHandlers[type]
+      if (!onClick) return null
+
+      return {
+        label,
+        tooltip,
+        onClick,
+        disabled,
+        icon: ActionTypeMap[type],
+      }
+    })
+    .filter((action): action is Action => action !== null)
+
+  // --- Multisig pending call tooltip logic ---
+  const multisigCallAction = pendingActions.find(a => a.type === ActionType.MULTISIG_CALL)
+  const hasMultisigPending = !!multisigCallAction
+  const hasRemainingInternalSigners = multisigCallAction?.data?.hasRemainingInternalSigners ?? false
+  const hasRemainingSigners = multisigCallAction?.data?.hasRemainingSigners ?? false
   let multisigPendingTooltip: React.ReactNode = null
-  if (isMultisigAddress && (account as MultisigAddress).pendingMultisigCalls.length > 0) {
-    hasMultisigPending = true
-    // For each pending call, check if there are available signers
+
+  if (hasMultisigPending && !hasRemainingInternalSigners) {
     const pendingCalls = (account as MultisigAddress).pendingMultisigCalls
     const members = (account as MultisigAddress).members
-    // If at least one call has available signers, allow action
-    hasRemainingInternalSigners = pendingCalls.some(call => getRemainingInternalSigners(call, members).length > 0)
-    hasRemainingSigners = pendingCalls.some(call => getRemainingSigners(call, members).length > 0)
-    _hasAvailableSigners = pendingCalls.some(call => getAvailableSigners(call, members).length > 0)
-
-    if (!hasRemainingInternalSigners) {
-      // Compose tooltip for all pending calls
-      multisigPendingTooltip = (
-        <div className="p-2 min-w-[320px]">
-          <div className="font-semibold mb-2">Pending multisig approvals</div>
-          {pendingCalls.map(call => {
-            const approvers = call.signatories
-            const notApproved = members.filter(m => !approvers.includes(m.address))
-            return (
-              <div key={call.callHash} className="mb-3 last:mb-0">
-                <div className="text-xs text-muted-foreground mb-1">Call Hash:</div>
-                <ExplorerLink value={call.callHash} appId={appId} explorerLinkType={ExplorerItemType.Address} size="xs" />
-                <div className="flex flex-col gap-1 mt-2">
-                  <div className="text-xs text-muted-foreground">
-                    Approvers ({approvers.length}/{(account as MultisigAddress).threshold}):
-                  </div>
-                  <div className="flex flex-col flex-wrap gap-1">
-                    {approvers.map(addr => (
-                      <span key={addr} className="flex items-center gap-1">
-                        <ExplorerLink value={addr} appId={appId} explorerLinkType={ExplorerItemType.Address} size="xs" />
-                        {addr === call.depositor && (
-                          <Badge variant="light-gray" className="text-[10px] leading-tight shrink-0">
-                            Depositor
-                          </Badge>
-                        )}
-                      </span>
-                    ))}
-                  </div>
-                  {!hasRemainingSigners && <div className="text-xs text-yellow-500 mt-2">Waiting for a signer to submit the call data</div>}
-                  {hasRemainingSigners && (
-                    <>
-                      <div className="text-xs text-yellow-500 mt-2">Still needs approval from:</div>
-                      <div className="flex flex-wrap gap-1">
-                        {notApproved.map(member => (
-                          <span key={member.address} className="flex items-center gap-1">
-                            <ExplorerLink value={member.address} appId={appId} explorerLinkType={ExplorerItemType.Address} size="xs" />
-                            {member.internal && (
-                              <Badge variant="light-gray" className="text-[10px] leading-tight shrink-0">
-                                Own
-                              </Badge>
-                            )}
-                          </span>
-                        ))}
-                      </div>
-                    </>
-                  )}
+    // Compose tooltip for all pending calls
+    multisigPendingTooltip = (
+      <div className="p-2 min-w-[320px]">
+        <div className="font-semibold mb-2">Pending multisig approvals</div>
+        {pendingCalls.map(call => {
+          const approvers = call.signatories
+          const notApproved = members.filter(m => !approvers.includes(m.address))
+          return (
+            <div key={call.callHash} className="mb-3 last:mb-0">
+              <div className="text-xs text-muted-foreground mb-1">Call Hash:</div>
+              <ExplorerLink value={call.callHash} appId={appId} explorerLinkType={ExplorerItemType.Address} size="xs" />
+              <div className="flex flex-col gap-1 mt-2">
+                <div className="text-xs text-muted-foreground">
+                  Approvers ({approvers.length}/{(account as MultisigAddress).threshold}):
                 </div>
+                <div className="flex flex-col flex-wrap gap-1">
+                  {approvers.map(addr => (
+                    <span key={addr} className="flex items-center gap-1">
+                      <ExplorerLink value={addr} appId={appId} explorerLinkType={ExplorerItemType.Address} size="xs" />
+                      {addr === call.depositor && (
+                        <Badge variant="light-gray" className="text-[10px] leading-tight shrink-0">
+                          Depositor
+                        </Badge>
+                      )}
+                    </span>
+                  ))}
+                </div>
+                {!hasRemainingSigners && <div className="text-xs text-yellow-500 mt-2">Waiting for a signer to submit the call data</div>}
+                {hasRemainingSigners && (
+                  <>
+                    <div className="text-xs text-yellow-500 mt-2">Still needs approval from:</div>
+                    <div className="flex flex-wrap gap-1">
+                      {notApproved.map(member => (
+                        <span key={member.address} className="flex items-center gap-1">
+                          <ExplorerLink value={member.address} appId={appId} explorerLinkType={ExplorerItemType.Address} size="xs" />
+                          {member.internal && (
+                            <Badge variant="light-gray" className="text-[10px] leading-tight shrink-0">
+                              Own
+                            </Badge>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
-            )
-          })}
-        </div>
-      )
-    }
-  }
-  if (hasMultisigPending) {
-    actions.push({
-      label: 'Multisig Call',
-      tooltip: 'Approve multisig pending calls',
-      onClick: () => setApproveMultisigCallOpen(true),
-      disabled: false,
-      icon: <Users className="h-4 w-4" />,
-    })
-  }
-
-  if (isMultisigAddress && internalMultisigMembers.length > 0) {
-    actions.push({
-      label: 'Transfer',
-      tooltip: 'Transfer funds to a multisig signatory',
-      onClick: () => setTransferMultisigOpen(true),
-      disabled: false,
-      icon: <Send className="h-4 w-4" />,
-    })
-  }
-
-  if (account.index?.index) {
-    actions.push({
-      label: 'Account Index',
-      tooltip: 'Remove account index',
-      onClick: () => setRemoveAccountIndexOpen(true),
-      disabled: false,
-      icon: <Trash2 className="h-4 w-4" />,
-    })
+            </div>
+          )
+        })}
+      </div>
+    )
   }
 
   // Determine if multisig account is not ready to migrate
@@ -294,45 +224,6 @@ const SynchronizedAccountRow = ({
   if (isMultisigAddress && internalMultisigMembers.length === 0) {
     // it shouldn't happen, but if it does, we don't want to render the row
     return null
-  }
-
-  if (isProxied) {
-    actions.push({
-      label: 'Proxy',
-      tooltip: 'Remove proxy',
-      onClick: () => setRemoveProxyOpen(true),
-      disabled: false,
-      icon: <Trash2 className="h-4 w-4" />,
-    })
-  }
-
-  if (hasGovernanceLocks && governanceActivity) {
-    const hasDelegations = governanceActivity.delegations.length > 0
-    const hasOngoingVotes = governanceActivity.votes.some((v: { referendumStatus: string }) => v.referendumStatus === 'ongoing')
-    const hasUnlockable = governanceActivity.unlockableAmount.gtn(0)
-
-    let buttonLabel = 'Manage Governance'
-    let tooltip = 'Manage governance locks and unlock conviction-locked tokens'
-    if (hasUnlockable) {
-      buttonLabel = 'Gov Unlock'
-      tooltip = 'Unlock conviction-locked tokens'
-    } else if (hasDelegations) {
-      buttonLabel = 'Remove Delegation'
-      tooltip = 'Remove delegation'
-    } else if (hasOngoingVotes) {
-      buttonLabel = 'Remove Vote'
-      tooltip = 'Remove Votes (Ongoing Referenda)'
-    }
-
-    actions.push({
-      label: buttonLabel,
-      tooltip: tooltip,
-      onClick: async () => {
-        setGovernanceUnlockOpen(true)
-      },
-      disabled: false,
-      icon: <Vote className="h-4 w-4" />,
-    })
   }
 
   const renderStatusIcon = (account: Address): React.ReactNode | null => {
@@ -676,37 +567,41 @@ const SynchronizedAccountRow = ({
       </TableCell>
       {/* Governance */}
       <TableCell className="py-2 text-sm text-right w-1/4">
-        {isNative && balance?.balance.convictionVoting?.locked?.gt(new BN(0)) ? (
+        {isNative && balance?.balance.convictionVoting?.totalLocked?.gt(new BN(0)) ? (
           <NativeBalanceHoverCard balance={balance.balance} token={token} type={BalanceType.Governance} appId={appId} />
         ) : (
           '-'
         )}
       </TableCell>
-      {/* Actions */}
+      {/* Actions - Only for the first account */}
       <TableCell>
-        <div className="flex gap-2 justify-end items-center">
-          {account.error?.description && (
-            <CustomTooltip tooltipBody={account.error?.description ?? ''}>
-              <AlertCircle className="h-4 w-4 text-destructive cursor-help" />
-            </CustomTooltip>
-          )}
-          {renderStatusIcon(account)}
-        </div>
-        {/* Additional Actions */}
-        {actions.length > 0 ? (
-          <div className="flex gap-2 justify-start items-center">{actions.map(action => renderAction(action))}</div>
-        ) : hasMultisigPending && !hasRemainingInternalSigners ? (
-          <CustomTooltip tooltipBody={multisigPendingTooltip}>
-            <div className="text-sm text-muted-foreground/60 font-medium flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-yellow-500" />
-              Multisig pending
+        {isFirst && (
+          <>
+            <div className="flex gap-2 justify-end items-center">
+              {account.error?.description && (
+                <CustomTooltip tooltipBody={account.error?.description ?? ''}>
+                  <AlertCircle className="h-4 w-4 text-destructive cursor-help" />
+                </CustomTooltip>
+              )}
+              {renderStatusIcon(account)}
             </div>
-          </CustomTooltip>
-        ) : (
-          <div className="text-sm text-muted-foreground/60 font-medium flex items-center gap-2">
-            <Check className="h-4 w-4 text-polkadot-pink" />
-            Ready to migrate
-          </div>
+            {/* Additional Actions */}
+            {actions.length > 0 ? (
+              <div className="flex gap-2 justify-start items-center">{actions.map(action => renderAction(action))}</div>
+            ) : hasMultisigPending && !hasRemainingInternalSigners ? (
+              <CustomTooltip tooltipBody={multisigPendingTooltip}>
+                <div className="text-sm text-muted-foreground/60 font-medium flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                  Multisig pending
+                </div>
+              </CustomTooltip>
+            ) : (
+              <div className="text-sm text-muted-foreground/60 font-medium flex items-center gap-2">
+                <Check className="h-4 w-4 text-polkadot-pink" />
+                Ready to migrate
+              </div>
+            )}
+          </>
         )}
       </TableCell>
       <UnstakeDialog
@@ -757,23 +652,14 @@ const SynchronizedAccountRow = ({
         appId={appId}
         transferableBalance={transferableBalance}
       />
-      {governanceActivity && (
+      {convictionVoting && (
         <GovernanceUnlockDialog
           open={governanceUnlockOpen}
           setOpen={setGovernanceUnlockOpen}
           account={account}
           appId={appId}
           token={token}
-          governanceActivity={governanceActivity}
-        />
-      )}
-      {isMultisigAddress && (
-        <TransferMultisigDialog
-          open={transferMultisigOpen}
-          setOpen={setTransferMultisigOpen}
-          token={token}
-          account={account as MultisigAddress}
-          appId={appId}
+          convictionVoting={convictionVoting}
         />
       )}
     </TableRow>

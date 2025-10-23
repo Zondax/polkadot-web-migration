@@ -20,10 +20,10 @@ vi.mock('@/state/ledger', () => ({
     },
     deepScan: {
       isScanning: { get: vi.fn() },
-      isCancelling: { get: vi.fn() },
       isCompleted: { get: vi.fn() },
       progress: { get: vi.fn() },
       apps: { get: vi.fn() },
+      cancelRequested: { get: vi.fn() },
     },
     polkadotAddresses: {
       polkadot: { get: vi.fn() },
@@ -75,7 +75,7 @@ describe('useSynchronization hook', () => {
     vi.mocked(ledgerState$.polkadotAddresses.polkadot.get).mockReturnValue([])
     // Deep scan state
     vi.mocked(ledgerState$.deepScan.isScanning.get).mockReturnValue(false)
-    vi.mocked(ledgerState$.deepScan.isCancelling.get).mockReturnValue(false)
+    vi.mocked(ledgerState$.deepScan.cancelRequested.get).mockReturnValue(false)
     vi.mocked(ledgerState$.deepScan.isCompleted.get).mockReturnValue(false)
     vi.mocked(ledgerState$.deepScan.progress.get).mockReturnValue({ scanned: 0, total: 0, percentage: 0, phase: undefined })
     vi.mocked(ledgerState$.deepScan.apps.get).mockReturnValue([])

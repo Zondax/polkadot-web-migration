@@ -1247,30 +1247,6 @@ export const ledgerClient = {
     }
   },
 
-  async getGovernanceActivity(appId: AppId, address: string) {
-    const appConfig = appsConfigs.get(appId)
-    if (!appConfig?.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
-      return undefined
-    }
-
-    try {
-      return await withErrorHandling(
-        async () => {
-          const { api } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
-          if (!api) {
-            throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
-          }
-
-          const { getGovernanceActivity } = await import('@/lib/account')
-          return await getGovernanceActivity(address, api)
-        },
-        { errorCode: InternalErrorType.GET_CONVICTION_VOTING_INFO_ERROR, operation: 'getGovernanceActivity', context: { appId, address } }
-      )
-    } catch {
-      return undefined
-    }
-  },
-
   clearConnection() {
     ledgerService.clearConnection()
   },

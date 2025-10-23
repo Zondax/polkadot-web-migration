@@ -20,6 +20,7 @@ import { BN } from '@polkadot/util'
 import type { AppConfig } from 'config/apps'
 import { InternalErrorType } from 'config/errors'
 import { errorApps } from 'config/mockData'
+import { getPendingActions } from '../utils'
 
 export interface ProcessedAccountData {
   accounts: Address[]
@@ -462,11 +463,31 @@ export async function processAccountsForApp(
     // Set default destination addresses
     const polkadotAddressesForApp = polkadotAddresses.map(address => convertSS58Format(address, appConfig.ss58Prefix || 0))
 
-    const processedAccounts = filteredAccounts.map(account => setDefaultDestinationAddress(account, polkadotAddressesForApp[0]))
+    // Add default destination address and pending actions to accounts
+    const processedAccounts = filteredAccounts.map(account => {
+      const modifiedAccount = setDefaultDestinationAddress(account, polkadotAddressesForApp[0])
+      const pendingActions = getPendingActions({
+        account: modifiedAccount,
+        appId: appConfig.id,
+      })
+      return {
+        ...modifiedAccount,
+        pendingActions,
+      }
+    })
 
-    const processedMultisigAccounts = filteredMultisigAccounts.map(account =>
-      setDefaultDestinationAddress(account, polkadotAddressesForApp[0])
-    )
+    const processedMultisigAccounts = filteredMultisigAccounts.map(account => {
+      const modifiedAccount = setDefaultDestinationAddress(account, polkadotAddressesForApp[0])
+      const pendingActions = getPendingActions({
+        account: modifiedAccount,
+        appId: appConfig.id,
+        isMultisigAddress: true,
+      })
+      return {
+        ...modifiedAccount,
+        pendingActions,
+      }
+    })
 
     return {
       success: true,

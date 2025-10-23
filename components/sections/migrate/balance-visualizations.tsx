@@ -1,9 +1,5 @@
 'use client'
 
-import { BN } from '@polkadot/util'
-import { LockClosedIcon } from '@radix-ui/react-icons'
-import { ArrowRightLeftIcon, BarChartIcon, Check, ClockIcon, Group, Hash, LockOpenIcon, User, UserCog } from 'lucide-react'
-import type { ReactNode } from 'react'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -11,6 +7,10 @@ import type { AppId, Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { formatBalance } from '@/lib/utils'
 import type { ConvictionVotingInfo, Native, Reserved, Staking } from '@/state/types/ledger'
+import { BN } from '@polkadot/util'
+import { LockClosedIcon } from '@radix-ui/react-icons'
+import { ArrowRightLeftIcon, BarChartIcon, Check, ClockIcon, Group, Hash, LockOpenIcon, User, UserCog } from 'lucide-react'
+import type { ReactNode } from 'react'
 
 export enum BalanceType {
   Transferable = 'transferable',
@@ -171,10 +171,10 @@ const ReservedDetails = ({ reservedData, token }: { reservedData: Reserved; toke
 
 const GovernanceDetails = ({ convictionVoting, token, appId }: { convictionVoting: ConvictionVotingInfo; token: Token; appId: AppId }) => {
   if (!convictionVoting) return null
-  const { votes = [], delegations = [], locked } = convictionVoting
+  const { votes = [], delegations = [], totalLocked } = convictionVoting
   return (
     <div className="w-full text-sm border-t border-gray-100 pt-2 mb-2 flex flex-col gap-2">
-      {locked?.gtn(0) && renderDetailsItem(<LockClosedIcon className="w-4 h-4 text-polkadot-magenta" />, 'Locked', locked, token)}
+      {totalLocked?.gtn(0) && renderDetailsItem(<LockClosedIcon className="w-4 h-4 text-polkadot-magenta" />, 'Locked', totalLocked, token)}
 
       {votes.length > 0 && (
         <div className="flex flex-col gap-1">
@@ -273,7 +273,7 @@ export const NativeBalanceVisualization = ({
     },
     {
       id: BalanceType.Governance,
-      value: data.convictionVoting?.locked || new BN(0),
+      value: data.convictionVoting?.totalLocked || new BN(0),
       label: 'Governance',
       icon: <Group className="w-6 h-6" />,
       colorScheme: {

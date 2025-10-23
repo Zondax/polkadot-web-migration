@@ -128,6 +128,16 @@ export interface MultisigAddress extends Address {
   pendingMultisigCalls: MultisigCall[]
 }
 
+export enum ActionType {
+  UNSTAKE = 'unstake',
+  WITHDRAW = 'withdraw',
+  IDENTITY = 'identity',
+  MULTISIG_CALL = 'multisig-call',
+  ACCOUNT_INDEX = 'account-index',
+  PROXY = 'proxy',
+  GOVERNANCE = 'governance',
+}
+
 /**
  * Extended address information including balance, status and transaction details
  */
@@ -146,6 +156,8 @@ export interface Address extends GenericeResponseAddress {
   index?: AccountIndex // base-58 AccountIndex string
   selected?: boolean
   transaction?: Transaction
+  pendingActions?: ActionType[] // array of pending actions determined during synchronization
+  governanceActivity?: ConvictionVotingInfo // governance voting and delegation activity
 }
 
 export enum VerificationStatus {
@@ -319,13 +331,16 @@ export enum Conviction {
  * Information about a vote on a referendum
  */
 export interface VoteInfo {
+  trackId: number
   referendumIndex: number
   vote: {
     aye: boolean
     conviction: Conviction
     balance: BN
   }
-  lockPeriod?: number
+  referendumStatus: 'ongoing' | 'finished'
+  canRemoveVote: boolean
+  unlockAt?: number
 }
 
 /**
@@ -336,6 +351,9 @@ export interface DelegationInfo {
   conviction: Conviction
   balance: BN
   lockPeriod?: number
+  trackId: number
+  unlockAt?: number
+  canUndelegate: boolean
 }
 
 /**
@@ -344,7 +362,8 @@ export interface DelegationInfo {
 export interface ConvictionVotingInfo {
   votes: VoteInfo[]
   delegations: DelegationInfo[]
-  locked: BN
+  totalLocked: BN
+  unlockableAmount: BN
   classLocks: {
     class: number
     amount: BN

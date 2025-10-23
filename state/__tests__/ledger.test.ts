@@ -274,18 +274,16 @@ describe('Ledger State', () => {
   })
 
   describe('cancelSynchronization', () => {
-    it('should set cancel flags and abort call', async () => {
+    it('should set cancel flag and abort call', async () => {
       const { ledgerClient } = await import('../client/ledger')
 
       // Verify initial state
       expect(ledgerState$.apps.isSyncCancelRequested.get()).toBe(false)
-      expect(ledgerState$.apps.isCancelling.get()).toBe(false)
 
       ledgerState$.cancelSynchronization()
 
-      // Verify cancel flags are set
+      // Verify cancel flag is set
       expect(ledgerState$.apps.isSyncCancelRequested.get()).toBe(true)
-      expect(ledgerState$.apps.isCancelling.get()).toBe(true)
 
       // Verify abort was called
       expect(ledgerClient.abortCall).toHaveBeenCalled()
@@ -322,7 +320,6 @@ describe('Ledger State', () => {
 
       // State should remain consistent
       expect(ledgerState$.apps.isSyncCancelRequested.get()).toBe(true)
-      expect(ledgerState$.apps.isCancelling.get()).toBe(true)
 
       // Abort should be called each time
       expect(ledgerClient.abortCall).toHaveBeenCalledTimes(3)
@@ -341,10 +338,9 @@ describe('Ledger State', () => {
       vi.mocked(ledgerClient.checkConnection).mockResolvedValueOnce(true)
 
       // Mock synchronizeAllApps to simulate cancellation during execution
-      vi.mocked(synchronizeAllApps).mockImplementationOnce(async (progressCb, cancelCb) => {
+      vi.mocked(synchronizeAllApps).mockImplementationOnce(async (_progressCb, _cancelCb) => {
         // Simulate cancellation by calling cancelSynchronization during sync
         ledgerState$.apps.isSyncCancelRequested.set(true)
-        ledgerState$.apps.isCancelling.set(true)
 
         // Return cancelled result
         return {
@@ -359,7 +355,6 @@ describe('Ledger State', () => {
 
       // After finally block, state should be cleaned up
       expect(ledgerState$.apps.isSyncCancelRequested.get()).toBe(false)
-      expect(ledgerState$.apps.isCancelling.get()).toBe(false)
 
       // Status should be set to SYNCHRONIZED after cleanup (from finally block)
       expect(ledgerState$.apps.status.get()).toBe(AppStatus.SYNCHRONIZED)
@@ -393,7 +388,6 @@ describe('Ledger State', () => {
 
       // State should still be cleaned up even with error
       expect(ledgerState$.apps.isSyncCancelRequested.get()).toBe(false)
-      expect(ledgerState$.apps.isCancelling.get()).toBe(false)
     })
 
     it('should properly cleanup when cancellation is not requested', async () => {
@@ -425,9 +419,8 @@ describe('Ledger State', () => {
       // Start synchronization without cancellation
       await ledgerState$.synchronizeAccounts()
 
-      // Flags should remain false
+      // Flag should remain false
       expect(ledgerState$.apps.isSyncCancelRequested.get()).toBe(false)
-      expect(ledgerState$.apps.isCancelling.get()).toBe(false)
 
       // Status should be SYNCHRONIZED from successful sync
       expect(ledgerState$.apps.status.get()).toBe(AppStatus.SYNCHRONIZED)
@@ -798,6 +791,57 @@ describe('Ledger State', () => {
       const result = await ledgerState$.checkConnection()
       expect(result).toBe(true)
       expect(ledgerClient.checkConnection).toHaveBeenCalled()
+    })
+
+    it('should verify connection status before operations', async () => {
+      const { ledgerClient } = await import('../client/ledger')
+      const { synchronizeAllApps } = await import('@/lib/services/synchronization.service')
+
+      // Clear any existing state
+      ledgerState$.clearConnection()
+      vi.clearAllMocks()
+
+      // Mock connection check to return false initially
+      vi.mocked(ledgerClient.checkConnection).mockResolvedValueOnce(false)
+
+      // Mock connectDevice to return successful connection
+      vi.mocked(ledgerClient.connectDevice).mockResolvedValueOnce({
+        connection: { isAppOpen: true },
+        error: undefined,
+      })
+
+      // Mock synchronization to succeed
+      vi.mocked(synchronizeAllApps).mockResolvedValueOnce({
+        success: true,
+        apps: [],
+      })
+
+      // Attempt to synchronize - should trigger connection check
+      await ledgerState$.synchronizeAccounts()
+
+      // Verify connection was checked
+      expect(ledgerClient.checkConnection).toHaveBeenCalled()
+
+      // Verify reconnection attempt was made
+      expect(ledgerClient.connectDevice).toHaveBeenCalled()
+
+      // Verify synchronization proceeded after reconnection
+      expect(synchronizeAllApps).toHaveBeenCalled()
+    })
+
+    it('should handle connection check failures gracefully', async () => {
+      const { ledgerClient } = await import('../client/ledger')
+
+      // Clear existing state
+      ledgerState$.device.connection.set({ isAppOpen: true })
+
+      // Mock checkConnection to throw error
+      vi.mocked(ledgerClient.checkConnection).mockRejectedValueOnce(new Error('Connection check failed'))
+
+      const result = await ledgerState$.checkConnection()
+
+      // Should return false instead of throwing
+      expect(result).toBe(false)
     })
 
     it('should handle polkadot addresses verification - app config not found', async () => {
@@ -1254,14 +1298,12 @@ describe('Ledger State', () => {
 
         // Verify initial state
         expect(ledgerState$.deepScan.cancelRequested.get()).toBe(false)
-        expect(ledgerState$.deepScan.isCancelling.get()).toBe(false)
 
         // Call cancel
         ledgerState$.cancelDeepScan()
 
-        // Verify cancel flags are set
+        // Verify cancel flag is set
         expect(ledgerState$.deepScan.cancelRequested.get()).toBe(true)
-        expect(ledgerState$.deepScan.isCancelling.get()).toBe(true)
 
         // Verify abort was called
         expect(ledgerClient.abortCall).toHaveBeenCalled()
@@ -1277,7 +1319,6 @@ describe('Ledger State', () => {
 
         // State should remain consistent
         expect(ledgerState$.deepScan.cancelRequested.get()).toBe(true)
-        expect(ledgerState$.deepScan.isCancelling.get()).toBe(true)
 
         // Abort should be called each time
         expect(ledgerClient.abortCall).toHaveBeenCalledTimes(3)
@@ -1288,7 +1329,6 @@ describe('Ledger State', () => {
       it('should reset all deep scan state to initial values', () => {
         // Set some state first
         ledgerState$.deepScan.isScanning.set(true)
-        ledgerState$.deepScan.isCancelling.set(true)
         ledgerState$.deepScan.isCompleted.set(true)
         ledgerState$.deepScan.cancelRequested.set(true)
         ledgerState$.deepScan.progress.set({ scanned: 5, total: 10, percentage: 50, phase: undefined })
@@ -1307,7 +1347,6 @@ describe('Ledger State', () => {
 
         // Verify all state is reset
         expect(ledgerState$.deepScan.isScanning.get()).toBe(false)
-        expect(ledgerState$.deepScan.isCancelling.get()).toBe(false)
         expect(ledgerState$.deepScan.isCompleted.get()).toBe(false)
         expect(ledgerState$.deepScan.cancelRequested.get()).toBe(false)
         expect(ledgerState$.deepScan.progress.get()).toEqual({
@@ -1334,20 +1373,30 @@ describe('Ledger State', () => {
     describe('deepScanApp', () => {
       it('should initialize state when starting deep scan', async () => {
         const { deepScanAllApps } = await import('@/lib/services/synchronization.service')
+        const { ledgerClient } = await import('../client/ledger')
 
-        // Mock successful scan
-        vi.mocked(deepScanAllApps).mockResolvedValueOnce({
-          success: true,
-          apps: [],
-          newAccountsFound: 0,
+        // Mock connection check
+        vi.mocked(ledgerClient.checkConnection).mockResolvedValueOnce(true)
+
+        // Mock successful scan with a delay to ensure we can check the scanning state
+        vi.mocked(deepScanAllApps).mockImplementationOnce(async () => {
+          // Add a small delay to ensure the state is set before we check it
+          await new Promise(resolve => setTimeout(resolve, 10))
+          return {
+            success: true,
+            apps: [],
+            newAccountsFound: 0,
+          }
         })
 
         // Start deep scan
         const promise = ledgerState$.deepScanApp('polkadot', [0, 1], [0, 1, 2])
 
+        // Wait a tick to ensure the state is set
+        await new Promise(resolve => setTimeout(resolve, 0))
+
         // Check initial state
         expect(ledgerState$.deepScan.isScanning.get()).toBe(true)
-        expect(ledgerState$.deepScan.isCancelling.get()).toBe(false)
         expect(ledgerState$.deepScan.isCompleted.get()).toBe(false)
         expect(ledgerState$.deepScan.cancelRequested.get()).toBe(false)
 
@@ -1367,7 +1416,6 @@ describe('Ledger State', () => {
 
         expect(result.success).toBe(true)
         expect(ledgerState$.deepScan.isScanning.get()).toBe(false)
-        expect(ledgerState$.deepScan.isCancelling.get()).toBe(false)
         expect(ledgerState$.deepScan.cancelRequested.get()).toBe(false)
         expect(ledgerState$.deepScan.isCompleted.get()).toBe(true)
       })
@@ -1442,7 +1490,6 @@ describe('Ledger State', () => {
         expect(result.newAccountsFound).toBe(0)
         // State should be cleaned up even on failure
         expect(ledgerState$.deepScan.isScanning.get()).toBe(false)
-        expect(ledgerState$.deepScan.isCancelling.get()).toBe(false)
       })
 
       it('should handle errors gracefully', async () => {

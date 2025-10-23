@@ -48,11 +48,11 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
     status,
     syncProgress,
     isRescaning,
-    isCancelling,
+    isSyncCancelRequested,
 
     // Deep scan state
     isDeepScanning,
-    isDeepScanCancelling,
+    isDeepScanCancelRequested,
     isDeepScanCompleted,
     deepScanProgress,
     deepScanDisplayApps,
@@ -227,8 +227,8 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
   const renderStopSynchronizationButton = () => {
     if (isLoading) {
       return (
-        <Button onClick={cancelSynchronization} variant="destructive" className="flex items-center gap-1" disabled={isCancelling}>
-          {isCancelling ? (
+        <Button onClick={cancelSynchronization} variant="destructive" className="flex items-center gap-1" disabled={isSyncCancelRequested}>
+          {isSyncCancelRequested ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
               Cancelling...
@@ -416,7 +416,7 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
         }}
         onScan={handleDeepScan}
         isScanning={isDeepScanning}
-        isCancelling={isDeepScanCancelling}
+        isCancelRequested={isDeepScanCancelRequested}
         isCompleted={isDeepScanCompleted}
         progress={deepScanProgress}
         scanningApps={deepScanDisplayApps}

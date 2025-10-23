@@ -1,10 +1,10 @@
-import { AlertCircle, CheckCircle, Clock } from 'lucide-react'
+import type { TabItem } from '@/components/Tabs'
 import { Spinner } from '@/components/icons'
 import { ConnectTabContent } from '@/components/sections/migrate/connect-tab-content'
 import { MigrateTabContent } from '@/components/sections/migrate/migrate-tab-content'
 import { SynchronizeTabContent } from '@/components/sections/migrate/synchronize-tab-content'
-import type { TabItem } from '@/components/Tabs'
-import { VerificationStatus } from '@/state/types/ledger'
+import { ActionType, VerificationStatus } from '@/state/types/ledger'
+import { AlertCircle, BanknoteArrowDown, CheckCircle, Clock, LockOpen, Trash2, Users, Vote } from 'lucide-react'
 
 export type MigrationTabValue = 'connect-device' | 'synchronize-accounts' | 'migrate'
 
@@ -45,4 +45,18 @@ export const verificationStatusMap: Record<VerificationStatus, { icon: React.Rea
     icon: <AlertCircle className="h-4 w-4 text-red-500" />,
     tooltip: 'Failed verification',
   },
+}
+
+/**
+ * Map of ActionType to icon component.
+ * Used for rendering pending action icons in UI.
+ */
+export const ActionTypeMap: Record<ActionType, React.ReactNode> = {
+  [ActionType.UNSTAKE]: <LockOpen size={16} />,
+  [ActionType.WITHDRAW]: <BanknoteArrowDown size={16} />,
+  [ActionType.IDENTITY]: <Trash2 size={16} />,
+  [ActionType.MULTISIG_CALL]: <Users size={16} />,
+  [ActionType.ACCOUNT_INDEX]: <Trash2 size={16} />,
+  [ActionType.PROXY]: <Trash2 size={16} />,
+  [ActionType.GOVERNANCE]: <Vote size={16} />,
 }

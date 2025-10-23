@@ -66,7 +66,6 @@ type PolkadotApp = Omit<App, 'id'> & { id: 'polkadot' }
 
 export interface DeepScan {
   isScanning: boolean
-  isCancelling: boolean
   isCompleted: boolean
   cancelRequested: boolean
   progress: SyncProgress
@@ -97,7 +96,6 @@ interface LedgerState {
     error?: string
     syncProgress: SyncProgress
     isSyncCancelRequested: boolean
-    isCancelling: boolean
     migrationResult: {
       [key in MigrationResultKey]: number
     }
@@ -131,7 +129,6 @@ const initialLedgerState: LedgerState = {
       phase: undefined,
     },
     isSyncCancelRequested: false,
-    isCancelling: false,
     migrationResult: {
       success: 0,
       fails: 0,
@@ -141,7 +138,6 @@ const initialLedgerState: LedgerState = {
   },
   deepScan: {
     isScanning: false,
-    isCancelling: false,
     isCompleted: false,
     cancelRequested: false,
     progress: {
@@ -392,7 +388,6 @@ export const ledgerState$ = observable({
         phase: undefined,
       },
       isSyncCancelRequested: false,
-      isCancelling: false,
       migrationResult: {
         success: 0,
         fails: 0,
@@ -406,7 +401,6 @@ export const ledgerState$ = observable({
   // Stop synchronization without deleting already synchronized accounts
   cancelSynchronization() {
     ledgerState$.apps.isSyncCancelRequested.set(true)
-    ledgerState$.apps.isCancelling.set(true)
     ledgerClient.abortCall()
     // Status will be set to SYNCHRONIZED in the finally block of synchronizeAccounts after cleanup
 
@@ -558,7 +552,6 @@ export const ledgerState$ = observable({
       // Clean up cancellation state
       const wasCancelled = ledgerState$.apps.isSyncCancelRequested.get()
       ledgerState$.apps.isSyncCancelRequested.set(false)
-      ledgerState$.apps.isCancelling.set(false)
 
       // If cancelled, set status to SYNCHRONIZED and notify user
       if (wasCancelled) {
@@ -1002,19 +995,9 @@ export const ledgerState$ = observable({
     }
   },
 
-  async getGovernanceActivity(appId: AppId, address: string) {
-    try {
-      return await ledgerClient.getGovernanceActivity(appId, address)
-    } catch (error) {
-      console.warn('[ledgerState$] Failed to get governance activity:', error)
-      return undefined
-    }
-  },
-
   // Deep Scan functionality
   cancelDeepScan() {
     ledgerState$.deepScan.cancelRequested.set(true)
-    ledgerState$.deepScan.isCancelling.set(true)
     ledgerClient.abortCall()
     notifications$.push({
       title: 'Deep Scan Stopped',
@@ -1027,7 +1010,6 @@ export const ledgerState$ = observable({
   resetDeepScan() {
     ledgerState$.deepScan.assign({
       isScanning: false,
-      isCancelling: false,
       isCompleted: false,
       cancelRequested: false,
       progress: {
@@ -1048,10 +1030,18 @@ export const ledgerState$ = observable({
     success: boolean
     newAccountsFound: number
   }> {
+    // Check if ledger is connected
+    const isConnected = await ledgerState$.checkConnection()
+    if (!isConnected) {
+      const result = await ledgerState$.connectLedger()
+      if (!result.connected) {
+        return { success: false, newAccountsFound: 0 }
+      }
+    }
+
     // Reset state
     ledgerState$.deepScan.assign({
       isScanning: true,
-      isCancelling: false,
       isCompleted: false,
       cancelRequested: false,
       progress: {
@@ -1217,7 +1207,6 @@ export const ledgerState$ = observable({
     } finally {
       // Clean up scanning state
       ledgerState$.deepScan.isScanning.set(false)
-      ledgerState$.deepScan.isCancelling.set(false)
       ledgerState$.deepScan.cancelRequested.set(false)
     }
   },

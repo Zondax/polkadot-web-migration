@@ -43,11 +43,10 @@ interface UseSynchronizationReturn {
   isLedgerConnected: boolean
   isRescaning: boolean
   isSyncCancelRequested: boolean
-  isCancelling: boolean
 
   // Deep scan state
   isDeepScanning: boolean
-  isDeepScanCancelling: boolean
+  isDeepScanCancelRequested: boolean
   isDeepScanCompleted: boolean
   deepScanProgress: SyncProgress
   deepScanDisplayApps: DeepScanAppDisplayInfo[]
@@ -91,12 +90,11 @@ export const useSynchronization = (): UseSynchronizationReturn => {
   const status = use$(ledgerState$.apps.status)
   const syncProgress = use$(ledgerState$.apps.syncProgress)
   const isSyncCancelRequested = use$(ledgerState$.apps.isSyncCancelRequested)
-  const isCancelling = use$(ledgerState$.apps.isCancelling)
   const [isRescaning, setIsRescaning] = useState<boolean>(false)
 
   // Deep scan state
   const isDeepScanning = use$(ledgerState$.deepScan.isScanning)
-  const isDeepScanCancelling = use$(ledgerState$.deepScan.isCancelling)
+  const isDeepScanCancelRequested = use$(ledgerState$.deepScan.cancelRequested)
   const isDeepScanCompleted = use$(ledgerState$.deepScan.isCompleted)
   const deepScanProgress = use$(ledgerState$.deepScan.progress)
   const deepScanApps = use$(ledgerState$.deepScan.apps)
@@ -255,11 +253,10 @@ export const useSynchronization = (): UseSynchronizationReturn => {
     isLedgerConnected,
     isRescaning,
     isSyncCancelRequested,
-    isCancelling,
 
     // Deep scan state
     isDeepScanning,
-    isDeepScanCancelling,
+    isDeepScanCancelRequested,
     isDeepScanCompleted,
     deepScanProgress,
     deepScanDisplayApps,
