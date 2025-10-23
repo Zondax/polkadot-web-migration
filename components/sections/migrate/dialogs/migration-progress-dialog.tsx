@@ -2,7 +2,7 @@ import { CustomTooltip } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { BalanceHoverCard } from '@/components/sections/migrate/balance-hover-card'
 import { TransactionStatusBody } from '@/components/sections/migrate/dialogs/transaction-dialog'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -13,7 +13,8 @@ import { formatBalance, hasPendingActions, isFullMigration as isFullMigrationFn,
 import type { Collections } from '@/state/ledger'
 import { TransactionStatus, type MigratingItem } from '@/state/types/ledger'
 import { observer } from '@legendapp/state/react'
-import { AlertCircle, Info } from 'lucide-react'
+import { AlertTriangle, Code, Info } from 'lucide-react'
+import { useState } from 'react'
 import { BalanceTypeFlag } from '../balance-detail-card'
 import { DialogEstimatedFeeContent, DialogField, DialogLabel, DialogNetworkContent } from './common-dialog-fields'
 
@@ -30,6 +31,8 @@ export const MigrationProgressDialog = observer(function MigrationProgressDialog
   migratingItem,
   getCollectionsByAppId = () => undefined,
 }: MigrationProgressDialogProps) {
+  const [showDevDetails, setShowDevDetails] = useState(false)
+
   if (!migratingItem) return null
 
   // Only show dialog if there is a migrating item, regardless of the open prop
@@ -165,46 +168,71 @@ export const MigrationProgressDialog = observer(function MigrationProgressDialog
               </Table>
             </div>
 
-            {/* Existential Deposit Warning */}
-            <CustomTooltip
-              tooltipBody="Substrate-based chains require a minimum balance (existential deposit) for accounts to remain active. If the destination account doesn't exist and the transfer amount is below this minimum, the transaction will fail and funds may be lost. Ensure the destination account is already active or that your transfer amount exceeds the existential deposit."
-              className="max-w-[40vw]"
-            >
-              <Alert className="mb-4 border-amber-200 bg-amber-50">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'orange' }} />
-                <AlertDescription className="text-amber-900">
-                  <p className="font-medium">Existential Deposit Required</p>
+            {/* Warnings Section */}
+            <div className="space-y-3">
+              {/* Existential Deposit Info */}
+              <Alert variant="info">
+                <Info className="h-4 w-4" />
+                <AlertTitle>Existential Deposit Required</AlertTitle>
+                <AlertDescription className="text-xs mt-1">
+                  Substrate chains require a minimum balance for accounts to remain active. Ensure your destination account exists or
+                  transfer exceeds the minimum deposit.
+                  <CustomTooltip
+                    tooltipBody="If the destination account doesn't exist and the transfer amount is below the existential deposit, the transaction will fail and funds may be lost."
+                    className="max-w-[20vw]"
+                  >
+                    <button type="button" className="ml-1 text-blue-700 hover:text-blue-800 underline font-medium">
+                      Learn more
+                    </button>
+                  </CustomTooltip>
                 </AlertDescription>
               </Alert>
-            </CustomTooltip>
 
-            {/* Pending Actions Warning */}
-            {hasPendingActions(migratingItem.account.pendingActions) && (
-              <CustomTooltip tooltipBody={MIGRATION_WARNINGS.TRANSFER_ALL_WITH_PENDING_ACTIONS.message} className="max-w-[40vw]">
-                <Alert className="mb-4 border-amber-200 bg-amber-50">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'orange' }} />
-                  <AlertDescription className="text-amber-900">
-                    <p className="font-medium">{MIGRATION_WARNINGS.TRANSFER_ALL_WITH_PENDING_ACTIONS.title}</p>
+              {/* Pending Actions Warning */}
+              {hasPendingActions(migratingItem.account.pendingActions) && (
+                <Alert variant="warning">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>{MIGRATION_WARNINGS.TRANSFER_ALL_WITH_PENDING_ACTIONS.title}</AlertTitle>
+                  <AlertDescription className="text-xs mt-1">
+                    {MIGRATION_WARNINGS.TRANSFER_ALL_WITH_PENDING_ACTIONS.message}
                   </AlertDescription>
                 </Alert>
-              </CustomTooltip>
-            )}
+              )}
 
-            {/* Development Mode Indicator */}
-            {!isFullMigration && nativeTransferAmount && transferableAmount && (
-              <Alert className="mb-4 border-purple-200 bg-purple-50">
-                <AlertCircle className="w-4 h-4 text-purple-600 flex-shrink-0" style={{ color: 'purple' }} />
-                <AlertDescription className="text-purple-800">
-                  <p className="font-semibold">Development Mode</p>
-                  <p className="text-xs mt-1">
-                    Transferring{' '}
-                    <span className="font-mono font-semibold">{formatBalance(nativeTransferAmount, token, token?.decimals, true)}</span>{' '}
-                    instead of the full balance <span className="font-mono">({formatBalance(transferableAmount, token)})</span> for testing
-                    purposes.
-                  </p>
-                </AlertDescription>
-              </Alert>
-            )}
+              {/* Development Mode Indicator */}
+              {!isFullMigration && nativeTransferAmount && transferableAmount && (
+                <Alert variant="info" className="border-purple-200 bg-purple-50">
+                  <Code className="h-4 w-4 text-purple-600" />
+                  <div>
+                    <AlertTitle className="text-purple-900">Development Mode Active</AlertTitle>
+                    <AlertDescription className="text-xs mt-1 text-purple-800">
+                      <button
+                        type="button"
+                        onClick={() => setShowDevDetails(!showDevDetails)}
+                        className="hover:underline flex items-center gap-1 font-medium"
+                      >
+                        <span>Partial transfer for testing</span>
+                        <span className="text-[10px]">{showDevDetails ? '▼' : '▶'}</span>
+                      </button>
+                      {showDevDetails && (
+                        <div className="mt-2 pl-3 border-l-2 border-purple-300 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-purple-700">Transferring:</span>
+                            <span className="font-mono font-semibold text-purple-900">
+                              {formatBalance(nativeTransferAmount, token, token?.decimals, true)}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-purple-700">Full balance:</span>
+                            <span className="font-mono text-purple-800">{formatBalance(transferableAmount, token)}</span>
+                          </div>
+                        </div>
+                      )}
+                    </AlertDescription>
+                  </div>
+                </Alert>
+              )}
+            </div>
           </div>
         </DialogBody>
         {/* Transaction status */}
