@@ -995,15 +995,6 @@ export const ledgerState$ = observable({
     }
   },
 
-  async getGovernanceActivity(appId: AppId, address: string) {
-    try {
-      return await ledgerClient.getGovernanceActivity(appId, address)
-    } catch (error) {
-      console.warn('[ledgerState$] Failed to get governance activity:', error)
-      return undefined
-    }
-  },
-
   // Deep Scan functionality
   cancelDeepScan() {
     ledgerState$.deepScan.cancelRequested.set(true)
