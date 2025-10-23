@@ -4,7 +4,7 @@ import { ConnectTabContent } from '@/components/sections/migrate/connect-tab-con
 import { MigrateTabContent } from '@/components/sections/migrate/migrate-tab-content'
 import { SynchronizeTabContent } from '@/components/sections/migrate/synchronize-tab-content'
 import { ActionType, VerificationStatus } from '@/state/types/ledger'
-import { AlertCircle, BanknoteArrowDown, CheckCircle, Clock, LockOpen, Send, Trash2, Users, Vote } from 'lucide-react'
+import { AlertCircle, BanknoteArrowDown, CheckCircle, Clock, LockOpen, Trash2, Users, Vote } from 'lucide-react'
 
 export type MigrationTabValue = 'connect-device' | 'synchronize-accounts' | 'migrate'
 
@@ -56,7 +56,6 @@ export const ActionTypeMap: Record<ActionType, React.ReactNode> = {
   [ActionType.WITHDRAW]: <BanknoteArrowDown size={16} />,
   [ActionType.IDENTITY]: <Trash2 size={16} />,
   [ActionType.MULTISIG_CALL]: <Users size={16} />,
-  [ActionType.MULTISIG_TRANSFER]: <Send size={16} />,
   [ActionType.ACCOUNT_INDEX]: <Trash2 size={16} />,
   [ActionType.PROXY]: <Trash2 size={16} />,
   [ActionType.GOVERNANCE]: <Vote size={16} />,

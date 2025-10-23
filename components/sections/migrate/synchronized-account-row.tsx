@@ -28,7 +28,6 @@ import GovernanceUnlockDialog from './dialogs/governance-unlock-dialog'
 import RemoveAccountIndexDialog from './dialogs/remove-account-index-dialog'
 import RemoveIdentityDialog from './dialogs/remove-identity-dialog'
 import RemoveProxyDialog from './dialogs/remove-proxy-dialog'
-import TransferMultisigDialog from './dialogs/transfer-multisig-dialog'
 import UnstakeDialog from './dialogs/unstake-dialog'
 import WithdrawDialog from './dialogs/withdraw-dialog'
 
@@ -78,7 +77,6 @@ const SynchronizedAccountRow = ({
   const [removeProxyOpen, setRemoveProxyOpen] = useState<boolean>(false)
   const [removeAccountIndexOpen, setRemoveAccountIndexOpen] = useState<boolean>(false)
   const [governanceUnlockOpen, setGovernanceUnlockOpen] = useState<boolean>(false)
-  const [transferMultisigOpen, setTransferMultisigOpen] = useState<boolean>(false)
   const isNoBalance: boolean = balance === undefined
   const isFirst: boolean = balanceIndex === 0 || isNoBalance
   const isNative = isNativeBalance(balance)
@@ -113,7 +111,6 @@ const SynchronizedAccountRow = ({
       [ActionType.WITHDRAW]: () => setWithdrawOpen(true),
       [ActionType.IDENTITY]: () => setRemoveIdentityOpen(true),
       [ActionType.MULTISIG_CALL]: () => setApproveMultisigCallOpen(true),
-      [ActionType.MULTISIG_TRANSFER]: () => setTransferMultisigOpen(true),
       [ActionType.ACCOUNT_INDEX]: () => setRemoveAccountIndexOpen(true),
       [ActionType.PROXY]: () => setRemoveProxyOpen(true),
       [ActionType.GOVERNANCE]: () => setGovernanceUnlockOpen(true),
@@ -663,15 +660,6 @@ const SynchronizedAccountRow = ({
           appId={appId}
           token={token}
           convictionVoting={convictionVoting}
-        />
-      )}
-      {isMultisigAddress && (
-        <TransferMultisigDialog
-          open={transferMultisigOpen}
-          setOpen={setTransferMultisigOpen}
-          token={token}
-          account={account as MultisigAddress}
-          appId={appId}
         />
       )}
     </TableRow>

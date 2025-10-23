@@ -1,7 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { BN } from '@polkadot/util'
 import type { Address, AddressBalance, MultisigAddress, MultisigCall, MultisigMember } from '@/state/types/ledger'
 import { ActionType, BalanceType, type NativeBalance } from '@/state/types/ledger'
+import { BN } from '@polkadot/util'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildPendingActions, getPendingActions, hasPendingActions } from '../actions'
 
 // Mock the dependencies
@@ -338,54 +338,6 @@ describe('actions utilities', () => {
         const account = createAddress()
         const actionTypes = getPendingActions({ account, appId: 'polkadot', isMultisigAddress: false })
         expect(actionTypes).not.toContain(ActionType.MULTISIG_CALL)
-      })
-    })
-
-    describe('multisig-transfer action', () => {
-      it('should add multisig-transfer action when multisig has internal members', () => {
-        const multisig = createMultisigAddress({
-          members: [
-            { address: 'alice', internal: true },
-            { address: 'bob', internal: false },
-          ],
-        })
-
-        const actionTypes = getPendingActions({ account: multisig, appId: 'polkadot', isMultisigAddress: true })
-        expect(actionTypes).toContain(ActionType.MULTISIG_TRANSFER)
-
-        const actions = buildPendingActions(actionTypes, { account: multisig, appId: 'polkadot', isMultisigAddress: true })
-        const transferAction = actions.find(a => a.type === ActionType.MULTISIG_TRANSFER)
-        expect(transferAction).toBeDefined()
-        expect(transferAction?.disabled).toBe(false)
-        expect(transferAction?.label).toBe('Transfer')
-        expect(transferAction?.tooltip).toBe('Transfer funds to a multisig signatory')
-      })
-
-      it('should not add multisig-transfer action when multisig has no internal members', () => {
-        const multisig = createMultisigAddress({
-          members: [
-            { address: 'alice', internal: false },
-            { address: 'bob', internal: false },
-          ],
-        })
-
-        const actionTypes = getPendingActions({ account: multisig, appId: 'polkadot', isMultisigAddress: true })
-        expect(actionTypes).not.toContain(ActionType.MULTISIG_TRANSFER)
-      })
-
-      it('should not add multisig-transfer action for non-multisig addresses', () => {
-        const account = createAddress()
-        const actionTypes = getPendingActions({ account, appId: 'polkadot', isMultisigAddress: false })
-        expect(actionTypes).not.toContain(ActionType.MULTISIG_TRANSFER)
-      })
-
-      it('should not add multisig-transfer action when members array is empty', () => {
-        const multisig = createMultisigAddress({
-          members: [],
-        })
-
-        const actionTypes = getPendingActions({ account: multisig, appId: 'polkadot', isMultisigAddress: true })
-        expect(actionTypes).not.toContain(ActionType.MULTISIG_TRANSFER)
       })
     })
 

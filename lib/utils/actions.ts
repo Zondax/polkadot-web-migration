@@ -1,6 +1,6 @@
 import type { AppId } from '@/config/apps'
 import { BN } from '@polkadot/util'
-import { ActionType, type Address, type MultisigAddress, type MultisigMember } from 'state/types/ledger'
+import { ActionType, type Address, type MultisigAddress } from 'state/types/ledger'
 import { canUnstake, hasStakedBalance, isNativeBalance } from './balance'
 import { getAvailableSigners, getRemainingInternalSigners, getRemainingSigners } from './multisig'
 import { getIdentityItems } from './ui'
@@ -75,26 +75,18 @@ export function getPendingActions(params: GetPendingActionsParams): ActionType[]
     actionTypes.push(ActionType.MULTISIG_CALL)
   }
 
-  // 5. Multisig transfer action
-  if (isMultisigAddress) {
-    const internalMultisigMembers: MultisigMember[] = (account as MultisigAddress).members?.filter(member => member.internal) ?? []
-    if (internalMultisigMembers.length > 0) {
-      actionTypes.push(ActionType.MULTISIG_TRANSFER)
-    }
-  }
-
-  // 6. Account index action
+  // 5. Account index action
   if (account.index?.index) {
     actionTypes.push(ActionType.ACCOUNT_INDEX)
   }
 
-  // 7. Proxy action
+  // 6. Proxy action
   const isProxied: boolean = (account.proxy?.proxies.length ?? 0) > 0
   if (isProxied) {
     actionTypes.push(ActionType.PROXY)
   }
 
-  // 8. Governance action
+  // 7. Governance action
   // Check governance locks from either governanceActivity or balance.convictionVoting
   let hasGovernanceLocks = false
   const convictionVoting = nativeBalance?.balance.convictionVoting
@@ -198,16 +190,6 @@ export function buildPendingActions(actionTypes: ActionType[], params: GetPendin
             },
           })
         }
-        break
-      }
-
-      case ActionType.MULTISIG_TRANSFER: {
-        actions.push({
-          type: ActionType.MULTISIG_TRANSFER,
-          label: 'Transfer',
-          tooltip: 'Transfer funds to a multisig signatory',
-          disabled: false,
-        })
         break
       }
 

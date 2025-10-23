@@ -133,7 +133,6 @@ export enum ActionType {
   WITHDRAW = 'withdraw',
   IDENTITY = 'identity',
   MULTISIG_CALL = 'multisig-call',
-  MULTISIG_TRANSFER = 'multisig-transfer',
   ACCOUNT_INDEX = 'account-index',
   PROXY = 'proxy',
   GOVERNANCE = 'governance',
