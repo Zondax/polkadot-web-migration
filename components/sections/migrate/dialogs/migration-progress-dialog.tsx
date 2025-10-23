@@ -8,7 +8,7 @@ import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTi
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { AppId } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
-import { MIGRATION_WARNINGS } from '@/config/ui'
+import { warningDetails } from '@/config/warnings'
 import { formatBalance, hasPendingActions, isFullMigration as isFullMigrationFn, isNativeBalance } from '@/lib/utils'
 import type { Collections } from '@/state/ledger'
 import { TransactionStatus, type MigratingItem } from '@/state/types/ledger'
@@ -173,10 +173,9 @@ export const MigrationProgressDialog = observer(function MigrationProgressDialog
               {/* Existential Deposit Info */}
               <Alert variant="info">
                 <Info className="h-4 w-4" />
-                <AlertTitle>Existential Deposit Required</AlertTitle>
+                <AlertTitle>{warningDetails.existential_deposit_required.title}</AlertTitle>
                 <AlertDescription className="text-xs mt-1">
-                  Substrate chains require a minimum balance for accounts to remain active. Ensure your destination account exists or
-                  transfer exceeds the minimum deposit.
+                  {warningDetails.existential_deposit_required.description}
                   <CustomTooltip
                     tooltipBody="If the destination account doesn't exist and the transfer amount is below the existential deposit, the transaction will fail and funds may be lost."
                     className="max-w-[20vw]"
@@ -192,9 +191,9 @@ export const MigrationProgressDialog = observer(function MigrationProgressDialog
               {hasPendingActions(migratingItem.account.pendingActions) && (
                 <Alert variant="warning">
                   <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>{MIGRATION_WARNINGS.TRANSFER_ALL_WITH_PENDING_ACTIONS.title}</AlertTitle>
+                  <AlertTitle>{warningDetails.transfer_all_with_pending_actions.title}</AlertTitle>
                   <AlertDescription className="text-xs mt-1">
-                    {MIGRATION_WARNINGS.TRANSFER_ALL_WITH_PENDING_ACTIONS.message}
+                    {warningDetails.transfer_all_with_pending_actions.description}
                   </AlertDescription>
                 </Alert>
               )}
@@ -204,14 +203,14 @@ export const MigrationProgressDialog = observer(function MigrationProgressDialog
                 <Alert variant="info" className="border-purple-200 bg-purple-50">
                   <Code className="h-4 w-4 text-purple-600" />
                   <div>
-                    <AlertTitle className="text-purple-900">Development Mode Active</AlertTitle>
+                    <AlertTitle className="text-purple-900">{warningDetails.development_mode_active.title}</AlertTitle>
                     <AlertDescription className="text-xs mt-1 text-purple-800">
                       <button
                         type="button"
                         onClick={() => setShowDevDetails(!showDevDetails)}
                         className="hover:underline flex items-center gap-1 font-medium"
                       >
-                        <span>Partial transfer for testing</span>
+                        <span>{warningDetails.development_mode_active.description}</span>
                         <span className="text-[10px]">{showDevDetails ? '▼' : '▶'}</span>
                       </button>
                       {showDevDetails && (

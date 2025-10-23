@@ -1,8 +1,9 @@
 'use client'
 
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { warningDetails } from '@/config/warnings'
 import { AlertCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface LedgerUnlockReminderProps {
   isVisible: boolean
@@ -49,8 +50,7 @@ export function LedgerUnlockReminder({ isVisible }: LedgerUnlockReminderProps) {
     <Alert className="mb-4 border-amber-200 bg-amber-50">
       <AlertCircle className="h-4 w-4 text-amber-600" />
       <AlertDescription className="text-amber-900">
-        <strong>Keep your Ledger device unlocked</strong> - The synchronization process is still running. Please ensure your device stays
-        active to complete the process successfully.
+        <strong>{warningDetails.ledger_unlock_reminder.title}</strong> - {warningDetails.ledger_unlock_reminder.description}
       </AlertDescription>
     </Alert>
   )

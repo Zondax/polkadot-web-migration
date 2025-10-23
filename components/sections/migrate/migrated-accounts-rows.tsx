@@ -6,7 +6,7 @@ import { useTokenLogo } from '@/components/hooks/useTokenLogo'
 import { TableCell, TableRow } from '@/components/ui/table'
 import type { AppId } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
-import { MIGRATION_WARNINGS } from '@/config/ui'
+import { warningDetails } from '@/config/warnings'
 import { muifyHtml } from '@/lib/utils/html'
 import { getTransactionStatus } from '@/lib/utils/ui'
 import { AlertCircle, ShieldCheck } from 'lucide-react'
@@ -26,8 +26,8 @@ const PendingActionsWarning = () => {
     <CustomTooltip
       tooltipBody={
         <>
-          <p className="font-semibold">{MIGRATION_WARNINGS.TRANSFER_ALL_WITH_PENDING_ACTIONS.title}</p>
-          <p className="text-xs text-muted-foreground">{MIGRATION_WARNINGS.TRANSFER_ALL_WITH_PENDING_ACTIONS.message}</p>
+          <p className="font-semibold">{warningDetails.transfer_all_with_pending_actions.title}</p>
+          <p className="text-xs text-muted-foreground">{warningDetails.transfer_all_with_pending_actions.description}</p>
         </>
       }
       className="max-w-[300px]"

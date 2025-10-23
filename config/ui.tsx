@@ -48,17 +48,6 @@ export const verificationStatusMap: Record<VerificationStatus, { icon: React.Rea
 }
 
 /**
- * Warning messages for migration flow
- */
-export const MIGRATION_WARNINGS = {
-  TRANSFER_ALL_WITH_PENDING_ACTIONS: {
-    title: "You're About to Transfer All Your Funds",
-    message:
-      "You're transferring all your available funds and you still have pending actions. You'll need some balance to pay the fees later. By migrating everything now, you might not have enough left to cover those fees.",
-  },
-} as const
-
-/**
  * Map of ActionType to icon component.
  * Used for rendering pending action icons in UI.
  */
