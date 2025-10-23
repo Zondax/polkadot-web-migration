@@ -195,7 +195,6 @@ async function getBlockchainDataForAccount(
     // Process reserved balance breakdown
     const processedBalances = processReservedBalanceBreakdown(balances, registration, proxy, indexInfo, multisigDeposits)
 
-    // PUEDE IR ACA
     return {
       account: {
         ...address,

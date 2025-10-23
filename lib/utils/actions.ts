@@ -31,14 +31,13 @@ export interface GetPendingActionsParams {
  * This function analyzes the account's state and returns only the types of actions
  * that need to be completed.
  *
- * @param params - Parameters including account, balance, and governance activity
+ * @param params - Parameters including account and appId
  * @returns Array of action types that are pending
  *
  * @example
  * ```typescript
  * const actionTypes = getPendingActions({
  *   account,
- *   balance,
  *   appId: 'polkadot',
  *   isMultisigAddress: true,
  * })
@@ -124,7 +123,7 @@ export function getPendingActions(params: GetPendingActionsParams): ActionType[]
  * from action types.
  *
  * @param actionTypes - Array of action types to build
- * @param params - Parameters including account, balance, and governance activity
+ * @param params - Parameters including account and appId
  * @returns Array of pending actions with full details
  *
  * @example
@@ -132,7 +131,6 @@ export function getPendingActions(params: GetPendingActionsParams): ActionType[]
  * const actionTypes = ['unstake', 'governance']
  * const actions = buildPendingActions(actionTypes, {
  *   account,
- *   balance,
  *   appId: 'polkadot',
  * })
  * // Returns: [{ type: 'unstake', label: 'Unstake', disabled: false, ... }]
