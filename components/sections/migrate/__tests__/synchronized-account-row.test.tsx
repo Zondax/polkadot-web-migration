@@ -15,6 +15,8 @@ vi.mock('lucide-react', () => ({
   Banknote: () => null,
   BanknoteArrowDown: () => null,
   Check: () => null,
+  CheckCircle: () => null,
+  Clock: () => null,
   Group: () => null,
   Hash: () => null,
   Info: () => null,
@@ -86,6 +88,77 @@ vi.mock('@/lib/utils', () => ({
   isMultisigAddress: (account: any) => account.isMultisig === true,
   hasBalance: () => true,
   cn: (...classes: string[]) => classes.filter(Boolean).join(' '),
+  buildPendingActions: (pendingActions: any[], _options: any) => {
+    return pendingActions
+      .map((actionType: string) => {
+        switch (actionType) {
+          case 'unstake':
+            return {
+              type: 'unstake',
+              label: 'Unstake',
+              tooltip: 'Unlock your staked assets',
+              disabled: false,
+            }
+          case 'withdraw':
+            return {
+              type: 'withdraw',
+              label: 'Withdraw',
+              tooltip: 'Move your unstaked assets to your available balance',
+              disabled: false,
+            }
+          case 'identity':
+            return {
+              type: 'identity',
+              label: 'Identity',
+              tooltip: 'Remove account identity',
+              disabled: false,
+            }
+          case 'multisig-call':
+            return {
+              type: 'multisig-call',
+              label: 'Multisig Call',
+              tooltip: 'Approve multisig pending calls',
+              disabled: false,
+              data: {
+                hasRemainingInternalSigners: true,
+                hasRemainingSigners: true,
+                hasAvailableSigners: true,
+              },
+            }
+          case 'multisig-transfer':
+            return {
+              type: 'multisig-transfer',
+              label: 'Multisig Transfer',
+              tooltip: 'Transfer multisig balance',
+              disabled: false,
+            }
+          case 'account-index':
+            return {
+              type: 'account-index',
+              label: 'Account Index',
+              tooltip: 'Remove account index',
+              disabled: false,
+            }
+          case 'proxy':
+            return {
+              type: 'proxy',
+              label: 'Proxy',
+              tooltip: 'Remove proxy',
+              disabled: false,
+            }
+          case 'governance':
+            return {
+              type: 'governance',
+              label: 'Governance',
+              tooltip: 'Unlock governance',
+              disabled: false,
+            }
+          default:
+            return null
+        }
+      })
+      .filter(Boolean)
+  },
 }))
 
 vi.mock('@/lib/utils/balance', () => ({
@@ -160,6 +233,7 @@ const mockNativeBalance = {
 
 describe('SynchronizedAccountRow component', () => {
   const mockUpdateTransaction = vi.fn()
+  const mockToggleAccountSelection = vi.fn()
   const defaultProps = {
     account: mockAccount,
     accountIndex: 0,
@@ -170,6 +244,8 @@ describe('SynchronizedAccountRow component', () => {
     polkadotAddresses: [TEST_ADDRESSES.ADDRESS2],
     updateTransaction: mockUpdateTransaction,
     appId: 'polkadot' as const,
+    toggleAccountSelection: mockToggleAccountSelection,
+    isSelected: false,
   }
 
   beforeEach(() => {
@@ -208,10 +284,15 @@ describe('SynchronizedAccountRow component', () => {
   })
 
   it('should show action buttons when balance has staking', () => {
+    const accountWithActions = {
+      ...mockAccount,
+      pendingActions: ['unstake', 'withdraw'],
+    }
+
     render(
       <table>
         <tbody>
-          <SynchronizedAccountRow {...defaultProps} />
+          <SynchronizedAccountRow {...defaultProps} account={accountWithActions} />
         </tbody>
       </table>
     )

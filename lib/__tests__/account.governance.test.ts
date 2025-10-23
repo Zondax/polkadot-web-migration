@@ -21,14 +21,25 @@ describe('Governance Functions', () => {
   beforeEach(() => {
     mockApi = {
       query: {
+        system: {
+          number: vi.fn().mockResolvedValue({
+            toNumber: () => 1000000,
+          }),
+        },
         convictionVoting: {
           votingFor: vi.fn(),
           classLocksFor: vi.fn(),
         },
+        referenda: {
+          referendumInfoFor: vi.fn(),
+        },
       },
       consts: {
         referenda: {
-          tracks: [[0], [1], [2]], // Mock 3 tracks
+          tracks: [[{ toNumber: () => 0 }], [{ toNumber: () => 1 }], [{ toNumber: () => 2 }]], // Mock 3 tracks
+          undecidingTimeout: {
+            toNumber: () => 28800,
+          },
         },
       },
       tx: {
@@ -65,20 +76,22 @@ describe('Governance Functions', () => {
       expect(result).toEqual({
         votes: [],
         delegations: [],
-        locked: new BN(0),
+        totalLocked: new BN(0),
+        unlockableAmount: new BN(0),
         classLocks: [],
       })
     })
 
     it('should correctly parse delegation info', async () => {
       // Mock delegation for track 0
-      mockApi.query.convictionVoting.votingFor.mockImplementation((_address: string, trackId: number) => {
-        if (trackId === 0) {
+      mockApi.query.convictionVoting.votingFor.mockImplementation((_address: string, trackId: any) => {
+        const trackIdNum = typeof trackId === 'number' ? trackId : (trackId.toNumber?.() ?? trackId)
+        if (trackIdNum === 0) {
           return Promise.resolve({
             isDelegating: true,
             isCasting: false,
             asDelegating: {
-              target: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty',
+              target: { toString: () => '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty' },
               conviction: { toString: () => 'Locked3x' },
               balance: { toString: () => '1000000000000' },
               prior: [{ toNumber: () => 100 }],
@@ -98,14 +111,18 @@ describe('Governance Functions', () => {
         conviction: Conviction.Locked3x,
         balance: new BN('1000000000000'),
         lockPeriod: 100,
+        trackId: 0,
+        canUndelegate: true,
+        unlockAt: 1000100, // currentBlock (1000000) + lockPeriod (100)
       })
-      expect(result?.locked.toString()).toBe('1000000000000')
+      expect(result?.totalLocked.toString()).toBe('1000000000000')
     })
 
     it('should correctly parse vote info', async () => {
       // Mock votes for track 1
-      mockApi.query.convictionVoting.votingFor.mockImplementation((_address: string, trackId: number) => {
-        if (trackId === 1) {
+      mockApi.query.convictionVoting.votingFor.mockImplementation((_address: string, trackId: any) => {
+        const trackIdNum = typeof trackId === 'number' ? trackId : (trackId.toNumber?.() ?? trackId)
+        if (trackIdNum === 1) {
           return Promise.resolve({
             isDelegating: false,
             isCasting: true,
@@ -130,18 +147,30 @@ describe('Governance Functions', () => {
         return Promise.resolve({ isDelegating: false, isCasting: false })
       })
 
+      // Mock referendum info as ongoing
+      mockApi.query.referenda.referendumInfoFor.mockResolvedValue({
+        isSome: true,
+        unwrap: () => ({
+          isOngoing: true,
+        }),
+      })
+
       mockApi.query.convictionVoting.classLocksFor.mockResolvedValue([])
 
       const result = await getConvictionVotingInfo('5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY', mockApi as ApiPromise)
 
       expect(result?.votes).toHaveLength(1)
       expect(result?.votes[0]).toEqual({
+        trackId: 1,
         referendumIndex: 42,
         vote: {
           aye: true,
           conviction: Conviction.Locked2x,
           balance: new BN('500000000000'),
         },
+        referendumStatus: 'ongoing',
+        canRemoveVote: true,
+        unlockAt: undefined,
       })
     })
   })
