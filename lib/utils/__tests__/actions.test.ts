@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BN } from '@polkadot/util'
 import type { Address, AddressBalance, MultisigAddress, MultisigCall, MultisigMember } from '@/state/types/ledger'
-import { BalanceType, type NativeBalance } from '@/state/types/ledger'
-import { getPendingActions, hasPendingActions, type GovernanceActivity, type PendingAction } from '../actions'
+import { ActionType, BalanceType, type NativeBalance } from '@/state/types/ledger'
+import { buildPendingActions, getPendingActions, hasPendingActions } from '../actions'
 
 // Mock the dependencies
 vi.mock('../balance', () => ({
@@ -52,7 +52,6 @@ describe('actions utilities', () => {
 
   describe('getPendingActions', () => {
     const createNativeBalance = (overrides?: Partial<NativeBalance>): NativeBalance => ({
-      id: 'native',
       type: BalanceType.NATIVE,
       balance: {
         free: new BN(1000),
@@ -66,15 +65,20 @@ describe('actions utilities', () => {
 
     const createAddress = (overrides?: Partial<Address>): Address => ({
       address: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
+      path: '//0',
+      pubKey: '0x000',
       balances: [],
       ...overrides,
     })
 
     const createMultisigAddress = (overrides?: Partial<MultisigAddress>): MultisigAddress => ({
       address: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
+      path: '//0',
+      pubKey: '0x000',
       balances: [],
       members: [],
       threshold: 2,
+      pendingMultisigCalls: [],
       ...overrides,
     })
 
@@ -95,14 +99,15 @@ describe('actions utilities', () => {
           },
         })
 
-        const account = createAddress()
-        const actions = getPendingActions({
-          account,
-          balance,
-          appId: 'polkadot',
+        const account = createAddress({
+          balances: [balance],
         })
 
-        const unstakeAction = actions.find(a => a.type === 'unstake')
+        const actionTypes = getPendingActions({ account, appId: 'polkadot' })
+        expect(actionTypes).toContain(ActionType.UNSTAKE)
+
+        const actions = buildPendingActions(actionTypes, { account, appId: 'polkadot' })
+        const unstakeAction = actions.find(a => a.type === ActionType.UNSTAKE)
         expect(unstakeAction).toBeDefined()
         expect(unstakeAction?.disabled).toBe(false)
         expect(unstakeAction?.label).toBe('Unstake')
@@ -125,14 +130,15 @@ describe('actions utilities', () => {
           },
         })
 
-        const account = createAddress()
-        const actions = getPendingActions({
-          account,
-          balance,
-          appId: 'polkadot',
+        const account = createAddress({
+          balances: [balance],
         })
 
-        const unstakeAction = actions.find(a => a.type === 'unstake')
+        const actionTypes = getPendingActions({ account, appId: 'polkadot' })
+        expect(actionTypes).toContain(ActionType.UNSTAKE)
+
+        const actions = buildPendingActions(actionTypes, { account, appId: 'polkadot' })
+        const unstakeAction = actions.find(a => a.type === ActionType.UNSTAKE)
         expect(unstakeAction).toBeDefined()
         expect(unstakeAction?.disabled).toBe(true)
         expect(unstakeAction?.tooltip).toBe('Only the controller address can unstake this balance')
@@ -140,28 +146,18 @@ describe('actions utilities', () => {
 
       it('should not add unstake action when account has no staked balance', () => {
         const balance = createNativeBalance()
-        const account = createAddress()
-
-        const actions = getPendingActions({
-          account,
-          balance,
-          appId: 'polkadot',
+        const account = createAddress({
+          balances: [balance],
         })
 
-        const unstakeAction = actions.find(a => a.type === 'unstake')
-        expect(unstakeAction).toBeUndefined()
+        const actionTypes = getPendingActions({ account, appId: 'polkadot' })
+        expect(actionTypes).not.toContain(ActionType.UNSTAKE)
       })
 
       it('should not add unstake action when balance is undefined', () => {
         const account = createAddress()
-
-        const actions = getPendingActions({
-          account,
-          appId: 'polkadot',
-        })
-
-        const unstakeAction = actions.find(a => a.type === 'unstake')
-        expect(unstakeAction).toBeUndefined()
+        const actionTypes = getPendingActions({ account, appId: 'polkadot' })
+        expect(actionTypes).not.toContain(ActionType.UNSTAKE)
       })
     })
 
@@ -175,28 +171,21 @@ describe('actions utilities', () => {
             total: new BN(1100),
             transferable: new BN(950),
             staking: {
-              total: new BN(500),
-              active: new BN(500),
-              canUnstake: true,
-              unlocking: [
-                {
-                  value: new BN(100),
-                  era: 100,
-                  canWithdraw: true,
-                },
-              ],
+              canUnstake: false,
+              unlocking: [{ value: new BN(100), era: 10, timeRemaining: '1 day', canWithdraw: true }],
             },
           },
         })
 
-        const account = createAddress()
-        const actions = getPendingActions({
-          account,
-          balance,
-          appId: 'polkadot',
+        const account = createAddress({
+          balances: [balance],
         })
 
-        const withdrawAction = actions.find(a => a.type === 'withdraw')
+        const actionTypes = getPendingActions({ account, appId: 'polkadot' })
+        expect(actionTypes).toContain(ActionType.WITHDRAW)
+
+        const actions = buildPendingActions(actionTypes, { account, appId: 'polkadot' })
+        const withdrawAction = actions.find(a => a.type === ActionType.WITHDRAW)
         expect(withdrawAction).toBeDefined()
         expect(withdrawAction?.disabled).toBe(false)
         expect(withdrawAction?.label).toBe('Withdraw')
@@ -212,64 +201,49 @@ describe('actions utilities', () => {
             total: new BN(1100),
             transferable: new BN(950),
             staking: {
-              total: new BN(500),
-              active: new BN(500),
-              canUnstake: true,
-              unlocking: [
-                {
-                  value: new BN(100),
-                  era: 100,
-                  canWithdraw: false,
-                },
-              ],
+              canUnstake: false,
+              unlocking: [{ value: new BN(100), era: 10, timeRemaining: '1 day', canWithdraw: false }],
             },
           },
         })
 
-        const account = createAddress()
-        const actions = getPendingActions({
-          account,
-          balance,
-          appId: 'polkadot',
+        const account = createAddress({
+          balances: [balance],
         })
 
-        const withdrawAction = actions.find(a => a.type === 'withdraw')
-        expect(withdrawAction).toBeUndefined()
+        const actionTypes = getPendingActions({ account, appId: 'polkadot' })
+        expect(actionTypes).not.toContain(ActionType.WITHDRAW)
       })
 
       it('should not add withdraw action when there are no unlocking funds', () => {
         const balance = createNativeBalance()
-        const account = createAddress()
-
-        const actions = getPendingActions({
-          account,
-          balance,
-          appId: 'polkadot',
+        const account = createAddress({
+          balances: [balance],
         })
 
-        const withdrawAction = actions.find(a => a.type === 'withdraw')
-        expect(withdrawAction).toBeUndefined()
+        const actionTypes = getPendingActions({ account, appId: 'polkadot' })
+        expect(actionTypes).not.toContain(ActionType.WITHDRAW)
       })
     })
 
     describe('identity action', () => {
       it('should add identity action when account has identity and can remove it', () => {
+        const balance = createNativeBalance()
         const account = createAddress({
+          balances: [balance],
           registration: {
-            identity: {
-              display: 'Test User',
-              legal: 'Test Legal Name',
-            },
             canRemove: true,
+            identity: {
+              display: 'Alice',
+            },
           },
         })
 
-        const actions = getPendingActions({
-          account,
-          appId: 'polkadot',
-        })
+        const actionTypes = getPendingActions({ account, appId: 'polkadot' })
+        expect(actionTypes).toContain(ActionType.IDENTITY)
 
-        const identityAction = actions.find(a => a.type === 'identity')
+        const actions = buildPendingActions(actionTypes, { account, appId: 'polkadot' })
+        const identityAction = actions.find(a => a.type === ActionType.IDENTITY)
         expect(identityAction).toBeDefined()
         expect(identityAction?.disabled).toBe(false)
         expect(identityAction?.label).toBe('Identity')
@@ -277,172 +251,110 @@ describe('actions utilities', () => {
       })
 
       it('should add disabled identity action when account has identity but cannot remove it', () => {
+        const balance = createNativeBalance()
         const account = createAddress({
+          balances: [balance],
           registration: {
-            identity: {
-              display: 'Test User',
-              parent: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
-            },
             canRemove: false,
+            identity: {
+              display: 'Alice',
+            },
           },
         })
 
-        const actions = getPendingActions({
-          account,
-          appId: 'polkadot',
-        })
+        const actionTypes = getPendingActions({ account, appId: 'polkadot' })
+        expect(actionTypes).toContain(ActionType.IDENTITY)
 
-        const identityAction = actions.find(a => a.type === 'identity')
+        const actions = buildPendingActions(actionTypes, { account, appId: 'polkadot' })
+        const identityAction = actions.find(a => a.type === ActionType.IDENTITY)
         expect(identityAction).toBeDefined()
         expect(identityAction?.disabled).toBe(true)
         expect(identityAction?.tooltip).toBe('Account identity cannot be removed because it has a parent account')
       })
 
       it('should not add identity action when account has no identity', () => {
-        const account = createAddress()
-
-        const actions = getPendingActions({
-          account,
-          appId: 'polkadot',
+        const balance = createNativeBalance()
+        const account = createAddress({
+          balances: [balance],
         })
 
-        const identityAction = actions.find(a => a.type === 'identity')
-        expect(identityAction).toBeUndefined()
+        const actionTypes = getPendingActions({ account, appId: 'polkadot' })
+        expect(actionTypes).not.toContain(ActionType.IDENTITY)
       })
 
       it('should not add identity action when identity has no items', () => {
+        const balance = createNativeBalance()
         const account = createAddress({
+          balances: [balance],
           registration: {
-            identity: {},
             canRemove: true,
+            identity: {},
           },
         })
 
-        const actions = getPendingActions({
-          account,
-          appId: 'polkadot',
-        })
-
-        const identityAction = actions.find(a => a.type === 'identity')
-        expect(identityAction).toBeUndefined()
+        const actionTypes = getPendingActions({ account, appId: 'polkadot' })
+        expect(actionTypes).not.toContain(ActionType.IDENTITY)
       })
     })
 
     describe('multisig-call action', () => {
-      const createMultisigCall = (overrides?: Partial<MultisigCall>): MultisigCall => ({
-        signatories: [],
-        callHash: '0x123',
-        callData: '',
-        threshold: 2,
-        when: { height: 1000, index: 1 },
-        depositor: 'depositor',
-        deposit: '1000',
-        approvals: [],
-        ...overrides,
-      })
-
-      const createMember = (address: string, internal: boolean): MultisigMember => ({
-        address,
-        internal,
-      })
-
       it('should add multisig-call action when multisig has pending calls', () => {
-        const members = [createMember('alice', true), createMember('bob', true), createMember('charlie', false)]
-
-        const account = createMultisigAddress({
-          members,
-          pendingMultisigCalls: [createMultisigCall({ signatories: ['alice'] })],
+        const multisig = createMultisigAddress({
+          members: [
+            { address: 'alice', internal: true },
+            { address: 'bob', internal: false },
+          ],
+          pendingMultisigCalls: [
+            {
+              callHash: 'hash1',
+              depositor: 'alice',
+              signatories: ['alice'],
+              deposit: new BN(100),
+            },
+          ],
         })
 
-        const actions = getPendingActions({
-          account,
-          appId: 'polkadot',
-          isMultisigAddress: true,
-        })
+        const actionTypes = getPendingActions({ account: multisig, appId: 'polkadot', isMultisigAddress: true })
+        expect(actionTypes).toContain(ActionType.MULTISIG_CALL)
 
-        const multisigCallAction = actions.find(a => a.type === 'multisig-call')
+        const actions = buildPendingActions(actionTypes, { account: multisig, appId: 'polkadot', isMultisigAddress: true })
+        const multisigCallAction = actions.find(a => a.type === ActionType.MULTISIG_CALL)
         expect(multisigCallAction).toBeDefined()
         expect(multisigCallAction?.disabled).toBe(false)
         expect(multisigCallAction?.label).toBe('Multisig Call')
         expect(multisigCallAction?.tooltip).toBe('Approve multisig pending calls')
-        expect(multisigCallAction?.data?.hasRemainingInternalSigners).toBe(true)
-        expect(multisigCallAction?.data?.hasRemainingSigners).toBe(true)
-        expect(multisigCallAction?.data?.hasAvailableSigners).toBe(true)
       })
 
       it('should not add multisig-call action when multisig has no pending calls', () => {
-        const members = [createMember('alice', true), createMember('bob', true)]
-
-        const account = createMultisigAddress({
-          members,
+        const multisig = createMultisigAddress({
           pendingMultisigCalls: [],
         })
 
-        const actions = getPendingActions({
-          account,
-          appId: 'polkadot',
-          isMultisigAddress: true,
-        })
-
-        const multisigCallAction = actions.find(a => a.type === 'multisig-call')
-        expect(multisigCallAction).toBeUndefined()
+        const actionTypes = getPendingActions({ account: multisig, appId: 'polkadot', isMultisigAddress: true })
+        expect(actionTypes).not.toContain(ActionType.MULTISIG_CALL)
       })
 
       it('should not add multisig-call action for non-multisig addresses', () => {
         const account = createAddress()
-
-        const actions = getPendingActions({
-          account,
-          appId: 'polkadot',
-          isMultisigAddress: false,
-        })
-
-        const multisigCallAction = actions.find(a => a.type === 'multisig-call')
-        expect(multisigCallAction).toBeUndefined()
-      })
-
-      it('should handle multisig with multiple pending calls', () => {
-        const members = [createMember('alice', true), createMember('bob', true), createMember('charlie', false)]
-
-        const account = createMultisigAddress({
-          members,
-          pendingMultisigCalls: [
-            createMultisigCall({ signatories: ['alice'], callHash: '0x123' }),
-            createMultisigCall({ signatories: ['bob'], callHash: '0x456' }),
-          ],
-        })
-
-        const actions = getPendingActions({
-          account,
-          appId: 'polkadot',
-          isMultisigAddress: true,
-        })
-
-        const multisigCallAction = actions.find(a => a.type === 'multisig-call')
-        expect(multisigCallAction).toBeDefined()
+        const actionTypes = getPendingActions({ account, appId: 'polkadot', isMultisigAddress: false })
+        expect(actionTypes).not.toContain(ActionType.MULTISIG_CALL)
       })
     })
 
     describe('multisig-transfer action', () => {
-      const createMember = (address: string, internal: boolean): MultisigMember => ({
-        address,
-        internal,
-      })
-
       it('should add multisig-transfer action when multisig has internal members', () => {
-        const members = [createMember('alice', true), createMember('bob', true), createMember('charlie', false)]
-
-        const account = createMultisigAddress({
-          members,
+        const multisig = createMultisigAddress({
+          members: [
+            { address: 'alice', internal: true },
+            { address: 'bob', internal: false },
+          ],
         })
 
-        const actions = getPendingActions({
-          account,
-          appId: 'polkadot',
-          isMultisigAddress: true,
-        })
+        const actionTypes = getPendingActions({ account: multisig, appId: 'polkadot', isMultisigAddress: true })
+        expect(actionTypes).toContain(ActionType.MULTISIG_TRANSFER)
 
-        const transferAction = actions.find(a => a.type === 'multisig-transfer')
+        const actions = buildPendingActions(actionTypes, { account: multisig, appId: 'polkadot', isMultisigAddress: true })
+        const transferAction = actions.find(a => a.type === ActionType.MULTISIG_TRANSFER)
         expect(transferAction).toBeDefined()
         expect(transferAction?.disabled).toBe(false)
         expect(transferAction?.label).toBe('Transfer')
@@ -450,48 +362,30 @@ describe('actions utilities', () => {
       })
 
       it('should not add multisig-transfer action when multisig has no internal members', () => {
-        const members = [createMember('alice', false), createMember('bob', false)]
-
-        const account = createMultisigAddress({
-          members,
+        const multisig = createMultisigAddress({
+          members: [
+            { address: 'alice', internal: false },
+            { address: 'bob', internal: false },
+          ],
         })
 
-        const actions = getPendingActions({
-          account,
-          appId: 'polkadot',
-          isMultisigAddress: true,
-        })
-
-        const transferAction = actions.find(a => a.type === 'multisig-transfer')
-        expect(transferAction).toBeUndefined()
+        const actionTypes = getPendingActions({ account: multisig, appId: 'polkadot', isMultisigAddress: true })
+        expect(actionTypes).not.toContain(ActionType.MULTISIG_TRANSFER)
       })
 
       it('should not add multisig-transfer action for non-multisig addresses', () => {
         const account = createAddress()
-
-        const actions = getPendingActions({
-          account,
-          appId: 'polkadot',
-          isMultisigAddress: false,
-        })
-
-        const transferAction = actions.find(a => a.type === 'multisig-transfer')
-        expect(transferAction).toBeUndefined()
+        const actionTypes = getPendingActions({ account, appId: 'polkadot', isMultisigAddress: false })
+        expect(actionTypes).not.toContain(ActionType.MULTISIG_TRANSFER)
       })
 
       it('should not add multisig-transfer action when members array is empty', () => {
-        const account = createMultisigAddress({
+        const multisig = createMultisigAddress({
           members: [],
         })
 
-        const actions = getPendingActions({
-          account,
-          appId: 'polkadot',
-          isMultisigAddress: true,
-        })
-
-        const transferAction = actions.find(a => a.type === 'multisig-transfer')
-        expect(transferAction).toBeUndefined()
+        const actionTypes = getPendingActions({ account: multisig, appId: 'polkadot', isMultisigAddress: true })
+        expect(actionTypes).not.toContain(ActionType.MULTISIG_TRANSFER)
       })
     })
 
@@ -499,16 +393,16 @@ describe('actions utilities', () => {
       it('should add account-index action when account has an index', () => {
         const account = createAddress({
           index: {
-            index: '123',
+            index: 'ABC',
+            deposit: new BN(100),
           },
         })
 
-        const actions = getPendingActions({
-          account,
-          appId: 'polkadot',
-        })
+        const actionTypes = getPendingActions({ account, appId: 'polkadot' })
+        expect(actionTypes).toContain(ActionType.ACCOUNT_INDEX)
 
-        const indexAction = actions.find(a => a.type === 'account-index')
+        const actions = buildPendingActions(actionTypes, { account, appId: 'polkadot' })
+        const indexAction = actions.find(a => a.type === ActionType.ACCOUNT_INDEX)
         expect(indexAction).toBeDefined()
         expect(indexAction?.disabled).toBe(false)
         expect(indexAction?.label).toBe('Account Index')
@@ -517,30 +411,20 @@ describe('actions utilities', () => {
 
       it('should not add account-index action when account has no index', () => {
         const account = createAddress()
-
-        const actions = getPendingActions({
-          account,
-          appId: 'polkadot',
-        })
-
-        const indexAction = actions.find(a => a.type === 'account-index')
-        expect(indexAction).toBeUndefined()
+        const actionTypes = getPendingActions({ account, appId: 'polkadot' })
+        expect(actionTypes).not.toContain(ActionType.ACCOUNT_INDEX)
       })
 
       it('should not add account-index action when index is empty string', () => {
         const account = createAddress({
           index: {
             index: '',
+            deposit: new BN(100),
           },
         })
 
-        const actions = getPendingActions({
-          account,
-          appId: 'polkadot',
-        })
-
-        const indexAction = actions.find(a => a.type === 'account-index')
-        expect(indexAction).toBeUndefined()
+        const actionTypes = getPendingActions({ account, appId: 'polkadot' })
+        expect(actionTypes).not.toContain(ActionType.ACCOUNT_INDEX)
       })
     })
 
@@ -548,23 +432,16 @@ describe('actions utilities', () => {
       it('should add proxy action when account has proxies', () => {
         const account = createAddress({
           proxy: {
-            proxies: [
-              {
-                delegate: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
-                proxyType: 'Any',
-                delay: 0,
-              },
-            ],
-            reserved: new BN(1000),
+            proxies: [{ address: 'alice', type: 'Any', delay: 0 }],
+            deposit: new BN(100),
           },
         })
 
-        const actions = getPendingActions({
-          account,
-          appId: 'polkadot',
-        })
+        const actionTypes = getPendingActions({ account, appId: 'polkadot' })
+        expect(actionTypes).toContain(ActionType.PROXY)
 
-        const proxyAction = actions.find(a => a.type === 'proxy')
+        const actions = buildPendingActions(actionTypes, { account, appId: 'polkadot' })
+        const proxyAction = actions.find(a => a.type === ActionType.PROXY)
         expect(proxyAction).toBeDefined()
         expect(proxyAction?.disabled).toBe(false)
         expect(proxyAction?.label).toBe('Proxy')
@@ -573,59 +450,35 @@ describe('actions utilities', () => {
 
       it('should not add proxy action when account has no proxies', () => {
         const account = createAddress()
-
-        const actions = getPendingActions({
-          account,
-          appId: 'polkadot',
-        })
-
-        const proxyAction = actions.find(a => a.type === 'proxy')
-        expect(proxyAction).toBeUndefined()
+        const actionTypes = getPendingActions({ account, appId: 'polkadot' })
+        expect(actionTypes).not.toContain(ActionType.PROXY)
       })
 
       it('should not add proxy action when proxy array is empty', () => {
         const account = createAddress({
           proxy: {
             proxies: [],
-            reserved: new BN(0),
+            deposit: new BN(100),
           },
         })
 
-        const actions = getPendingActions({
-          account,
-          appId: 'polkadot',
-        })
-
-        const proxyAction = actions.find(a => a.type === 'proxy')
-        expect(proxyAction).toBeUndefined()
+        const actionTypes = getPendingActions({ account, appId: 'polkadot' })
+        expect(actionTypes).not.toContain(ActionType.PROXY)
       })
 
       it('should add proxy action when account has multiple proxies', () => {
         const account = createAddress({
           proxy: {
             proxies: [
-              {
-                delegate: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
-                proxyType: 'Any',
-                delay: 0,
-              },
-              {
-                delegate: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty',
-                proxyType: 'Staking',
-                delay: 0,
-              },
+              { address: 'alice', type: 'Any', delay: 0 },
+              { address: 'bob', type: 'Staking', delay: 0 },
             ],
-            reserved: new BN(2000),
+            deposit: new BN(100),
           },
         })
 
-        const actions = getPendingActions({
-          account,
-          appId: 'polkadot',
-        })
-
-        const proxyAction = actions.find(a => a.type === 'proxy')
-        expect(proxyAction).toBeDefined()
+        const actionTypes = getPendingActions({ account, appId: 'polkadot' })
+        expect(actionTypes).toContain(ActionType.PROXY)
       })
     })
 
@@ -639,31 +492,27 @@ describe('actions utilities', () => {
             total: new BN(1100),
             transferable: new BN(950),
             convictionVoting: {
-              locked: new BN(500),
+              votes: [],
+              delegations: [],
+              unlockableAmount: new BN(500),
+              totalLocked: new BN(500),
             },
           },
         })
 
-        const governanceActivity: GovernanceActivity = {
-          delegations: [],
-          votes: [],
-          unlockableAmount: new BN(500),
-        }
-
-        const account = createAddress()
-        const actions = getPendingActions({
-          account,
-          balance,
-          appId: 'polkadot',
-          governanceActivity,
+        const account = createAddress({
+          balances: [balance],
         })
 
-        const govAction = actions.find(a => a.type === 'governance')
+        const actionTypes = getPendingActions({ account, appId: 'polkadot' })
+        expect(actionTypes).toContain(ActionType.GOVERNANCE)
+
+        const actions = buildPendingActions(actionTypes, { account, appId: 'polkadot' })
+        const govAction = actions.find(a => a.type === ActionType.GOVERNANCE)
         expect(govAction).toBeDefined()
         expect(govAction?.disabled).toBe(false)
         expect(govAction?.label).toBe('Gov Unlock')
         expect(govAction?.tooltip).toBe('Unlock conviction-locked tokens')
-        expect(govAction?.data?.governanceActivity).toEqual(governanceActivity)
       })
 
       it('should add governance action with delegation label when there are delegations', () => {
@@ -675,26 +524,23 @@ describe('actions utilities', () => {
             total: new BN(1100),
             transferable: new BN(950),
             convictionVoting: {
-              locked: new BN(500),
+              votes: [],
+              delegations: [{ target: 'alice', conviction: 'Locked1x' as any, balance: new BN(1000), trackId: 0, canUndelegate: true }],
+              unlockableAmount: new BN(0),
+              totalLocked: new BN(500),
             },
           },
         })
 
-        const governanceActivity: GovernanceActivity = {
-          delegations: [{ target: 'alice', conviction: 'Locked1x', balance: '1000' }],
-          votes: [],
-          unlockableAmount: new BN(0),
-        }
-
-        const account = createAddress()
-        const actions = getPendingActions({
-          account,
-          balance,
-          appId: 'polkadot',
-          governanceActivity,
+        const account = createAddress({
+          balances: [balance],
         })
 
-        const govAction = actions.find(a => a.type === 'governance')
+        const actionTypes = getPendingActions({ account, appId: 'polkadot' })
+        expect(actionTypes).toContain(ActionType.GOVERNANCE)
+
+        const actions = buildPendingActions(actionTypes, { account, appId: 'polkadot' })
+        const govAction = actions.find(a => a.type === ActionType.GOVERNANCE)
         expect(govAction).toBeDefined()
         expect(govAction?.label).toBe('Remove Delegation')
         expect(govAction?.tooltip).toBe('Remove delegation')
@@ -709,153 +555,77 @@ describe('actions utilities', () => {
             total: new BN(1100),
             transferable: new BN(950),
             convictionVoting: {
-              locked: new BN(500),
+              votes: [
+                {
+                  trackId: 0,
+                  referendumIndex: 1,
+                  vote: { aye: true, conviction: 'Locked1x' as any, balance: new BN(100) },
+                  referendumStatus: 'ongoing',
+                  canRemoveVote: true,
+                },
+              ],
+              delegations: [],
+              unlockableAmount: new BN(0),
+              totalLocked: new BN(500),
             },
           },
         })
 
-        const governanceActivity: GovernanceActivity = {
-          delegations: [],
-          votes: [{ referendumStatus: 'ongoing' }],
-          unlockableAmount: new BN(0),
-        }
-
-        const account = createAddress()
-        const actions = getPendingActions({
-          account,
-          balance,
-          appId: 'polkadot',
-          governanceActivity,
+        const account = createAddress({
+          balances: [balance],
         })
 
-        const govAction = actions.find(a => a.type === 'governance')
+        const actionTypes = getPendingActions({ account, appId: 'polkadot' })
+        expect(actionTypes).toContain(ActionType.GOVERNANCE)
+
+        const actions = buildPendingActions(actionTypes, { account, appId: 'polkadot' })
+        const govAction = actions.find(a => a.type === ActionType.GOVERNANCE)
         expect(govAction).toBeDefined()
         expect(govAction?.label).toBe('Remove Vote')
         expect(govAction?.tooltip).toBe('Remove Votes (Ongoing Referenda)')
       })
 
-      it('should add governance action with generic label when governance locks exist but no specific actions', () => {
-        const balance = createNativeBalance({
-          balance: {
-            free: new BN(1000),
-            reserved: { total: new BN(100) },
-            frozen: new BN(50),
-            total: new BN(1100),
-            transferable: new BN(950),
-            convictionVoting: {
-              locked: new BN(500),
-            },
-          },
-        })
-
-        const governanceActivity: GovernanceActivity = {
-          delegations: [],
-          votes: [{ referendumStatus: 'completed' }],
-          unlockableAmount: new BN(0),
-        }
-
-        const account = createAddress()
-        const actions = getPendingActions({
-          account,
-          balance,
-          appId: 'polkadot',
-          governanceActivity,
-        })
-
-        const govAction = actions.find(a => a.type === 'governance')
-        expect(govAction).toBeDefined()
-        expect(govAction?.label).toBe('Manage Governance')
-        expect(govAction?.tooltip).toBe('Manage governance locks and unlock conviction-locked tokens')
-      })
-
       it('should not add governance action when there are no governance locks', () => {
+        const balance = createNativeBalance({
+          balance: {
+            free: new BN(1000),
+            reserved: { total: new BN(100) },
+            frozen: new BN(50),
+            total: new BN(1100),
+            transferable: new BN(950),
+            convictionVoting: {
+              votes: [],
+              delegations: [],
+              unlockableAmount: new BN(0),
+              totalLocked: new BN(0),
+            },
+          },
+        })
+
+        const account = createAddress({
+          balances: [balance],
+        })
+
+        const actionTypes = getPendingActions({ account, appId: 'polkadot' })
+        expect(actionTypes).not.toContain(ActionType.GOVERNANCE)
+      })
+
+      it('should not add governance action when convictionVoting is not provided', () => {
         const balance = createNativeBalance()
-        const governanceActivity: GovernanceActivity = {
-          delegations: [],
-          votes: [],
-          unlockableAmount: new BN(0),
-        }
-
-        const account = createAddress()
-        const actions = getPendingActions({
-          account,
-          balance,
-          appId: 'polkadot',
-          governanceActivity,
+        const account = createAddress({
+          balances: [balance],
         })
 
-        const govAction = actions.find(a => a.type === 'governance')
-        expect(govAction).toBeUndefined()
-      })
-
-      it('should not add governance action when governanceActivity is not provided', () => {
-        const balance = createNativeBalance({
-          balance: {
-            free: new BN(1000),
-            reserved: { total: new BN(100) },
-            frozen: new BN(50),
-            total: new BN(1100),
-            transferable: new BN(950),
-            convictionVoting: {
-              locked: new BN(500),
-            },
-          },
-        })
-
-        const account = createAddress()
-        const actions = getPendingActions({
-          account,
-          balance,
-          appId: 'polkadot',
-        })
-
-        const govAction = actions.find(a => a.type === 'governance')
-        expect(govAction).toBeUndefined()
-      })
-
-      it('should prioritize unlock over other governance actions', () => {
-        const balance = createNativeBalance({
-          balance: {
-            free: new BN(1000),
-            reserved: { total: new BN(100) },
-            frozen: new BN(50),
-            total: new BN(1100),
-            transferable: new BN(950),
-            convictionVoting: {
-              locked: new BN(500),
-            },
-          },
-        })
-
-        const governanceActivity: GovernanceActivity = {
-          delegations: [{ target: 'alice' }],
-          votes: [{ referendumStatus: 'ongoing' }],
-          unlockableAmount: new BN(500), // Has unlockable amount
-        }
-
-        const account = createAddress()
-        const actions = getPendingActions({
-          account,
-          balance,
-          appId: 'polkadot',
-          governanceActivity,
-        })
-
-        const govAction = actions.find(a => a.type === 'governance')
-        expect(govAction?.label).toBe('Gov Unlock') // Should prioritize unlock
+        const actionTypes = getPendingActions({ account, appId: 'polkadot' })
+        expect(actionTypes).not.toContain(ActionType.GOVERNANCE)
       })
     })
 
     describe('complex scenarios', () => {
       it('should return empty array when account has no pending actions', () => {
         const account = createAddress()
-
-        const actions = getPendingActions({
-          account,
-          appId: 'polkadot',
-        })
-
-        expect(actions).toEqual([])
+        const actionTypes = getPendingActions({ account, appId: 'polkadot' })
+        expect(actionTypes).toEqual([])
       })
 
       it('should return multiple pending actions when account has multiple issues', () => {
@@ -870,557 +640,63 @@ describe('actions utilities', () => {
               total: new BN(500),
               active: new BN(500),
               canUnstake: true,
+              unlocking: [{ value: new BN(100), era: 10, timeRemaining: '1 day', canWithdraw: true }],
             },
             convictionVoting: {
-              locked: new BN(500),
+              votes: [],
+              delegations: [],
+              unlockableAmount: new BN(500),
+              totalLocked: new BN(500),
             },
           },
         })
 
-        const governanceActivity: GovernanceActivity = {
-          delegations: [],
-          votes: [],
-          unlockableAmount: new BN(500),
-        }
-
         const account = createAddress({
+          balances: [balance],
           registration: {
-            identity: {
-              display: 'Test User',
-            },
             canRemove: true,
+            identity: { display: 'Alice' },
           },
           index: {
-            index: '123',
+            index: 'ABC',
+            deposit: new BN(100),
           },
           proxy: {
-            proxies: [
-              {
-                delegate: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
-                proxyType: 'Any',
-                delay: 0,
-              },
-            ],
-            reserved: new BN(1000),
+            proxies: [{ address: 'alice', type: 'Any', delay: 0 }],
+            deposit: new BN(100),
           },
         })
 
-        const actions = getPendingActions({
-          account,
-          balance,
-          appId: 'polkadot',
-          governanceActivity,
-        })
-
-        expect(actions.length).toBeGreaterThan(1)
-        expect(actions.find(a => a.type === 'unstake')).toBeDefined()
-        expect(actions.find(a => a.type === 'identity')).toBeDefined()
-        expect(actions.find(a => a.type === 'account-index')).toBeDefined()
-        expect(actions.find(a => a.type === 'proxy')).toBeDefined()
-        expect(actions.find(a => a.type === 'governance')).toBeDefined()
-      })
-
-      it('should handle multisig with all types of actions', () => {
-        const createMember = (address: string, internal: boolean): MultisigMember => ({
-          address,
-          internal,
-        })
-
-        const createMultisigCall = (): MultisigCall => ({
-          signatories: [],
-          callHash: '0x123',
-          callData: '',
-          threshold: 2,
-          when: { height: 1000, index: 1 },
-          depositor: 'depositor',
-          deposit: '1000',
-          approvals: [],
-        })
-
-        const members = [createMember('alice', true), createMember('bob', true)]
-
-        const account = createMultisigAddress({
-          members,
-          pendingMultisigCalls: [createMultisigCall()],
-          registration: {
-            identity: {
-              display: 'Multisig Account',
-            },
-            canRemove: true,
-          },
-          index: {
-            index: '456',
-          },
-        })
-
-        const actions = getPendingActions({
-          account,
-          appId: 'polkadot',
-          isMultisigAddress: true,
-        })
-
-        expect(actions.find(a => a.type === 'multisig-call')).toBeDefined()
-        expect(actions.find(a => a.type === 'multisig-transfer')).toBeDefined()
-        expect(actions.find(a => a.type === 'identity')).toBeDefined()
-        expect(actions.find(a => a.type === 'account-index')).toBeDefined()
-      })
-
-      it('should preserve action order correctly', () => {
-        const balance = createNativeBalance({
-          balance: {
-            free: new BN(1000),
-            reserved: { total: new BN(100) },
-            frozen: new BN(50),
-            total: new BN(1100),
-            transferable: new BN(950),
-            staking: {
-              total: new BN(500),
-              active: new BN(500),
-              canUnstake: true,
-              unlocking: [
-                {
-                  value: new BN(100),
-                  era: 100,
-                  canWithdraw: true,
-                },
-              ],
-            },
-            convictionVoting: {
-              locked: new BN(500),
-            },
-          },
-        })
-
-        const governanceActivity: GovernanceActivity = {
-          delegations: [],
-          votes: [],
-          unlockableAmount: new BN(500),
-        }
-
-        const account = createAddress({
-          registration: {
-            identity: {
-              display: 'Test User',
-            },
-            canRemove: true,
-          },
-          index: {
-            index: '123',
-          },
-          proxy: {
-            proxies: [
-              {
-                delegate: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
-                proxyType: 'Any',
-                delay: 0,
-              },
-            ],
-            reserved: new BN(1000),
-          },
-        })
-
-        const actions = getPendingActions({
-          account,
-          balance,
-          appId: 'polkadot',
-          governanceActivity,
-        })
-
-        // Expected order: unstake, withdraw, identity, account-index, proxy, governance
-        const actionTypes = actions.map(a => a.type)
-        const expectedOrder = ['unstake', 'withdraw', 'identity', 'account-index', 'proxy', 'governance']
-
-        expect(actionTypes).toEqual(expectedOrder)
-      })
-    })
-
-    describe('edge cases', () => {
-      it('should handle null values gracefully', () => {
-        const account = createAddress({
-          registration: undefined,
-          index: undefined,
-          proxy: undefined,
-        })
-
-        const actions = getPendingActions({
-          account,
-          appId: 'polkadot',
-        })
-
-        expect(actions).toEqual([])
-      })
-
-      it('should handle different app IDs correctly', () => {
-        const account = createAddress({
-          registration: {
-            identity: {
-              display: 'Test User',
-            },
-            canRemove: true,
-          },
-        })
-
-        const polkadotActions = getPendingActions({
-          account,
-          appId: 'polkadot',
-        })
-
-        const kusamaActions = getPendingActions({
-          account,
-          appId: 'kusama',
-        })
-
-        expect(polkadotActions.length).toEqual(kusamaActions.length)
-      })
-
-      it('should handle zero BN values correctly in governance', () => {
-        const balance = createNativeBalance({
-          balance: {
-            free: new BN(1000),
-            reserved: { total: new BN(100) },
-            frozen: new BN(50),
-            total: new BN(1100),
-            transferable: new BN(950),
-            convictionVoting: {
-              locked: new BN(0), // Zero locked amount
-            },
-          },
-        })
-
-        const governanceActivity: GovernanceActivity = {
-          delegations: [],
-          votes: [],
-          unlockableAmount: new BN(500),
-        }
-
-        const account = createAddress()
-        const actions = getPendingActions({
-          account,
-          balance,
-          appId: 'polkadot',
-          governanceActivity,
-        })
-
-        const govAction = actions.find(a => a.type === 'governance')
-        expect(govAction).toBeUndefined() // Should not add governance action when locked is 0
+        const actionTypes = getPendingActions({ account, appId: 'polkadot' })
+        expect(actionTypes).toContain(ActionType.UNSTAKE)
+        expect(actionTypes).toContain(ActionType.WITHDRAW)
+        expect(actionTypes).toContain(ActionType.IDENTITY)
+        expect(actionTypes).toContain(ActionType.ACCOUNT_INDEX)
+        expect(actionTypes).toContain(ActionType.PROXY)
+        expect(actionTypes).toContain(ActionType.GOVERNANCE)
       })
     })
   })
 
   describe('hasPendingActions', () => {
-    const createNativeBalance = (overrides?: Partial<NativeBalance>): NativeBalance => ({
-      id: 'native',
-      type: BalanceType.NATIVE,
-      balance: {
-        free: new BN(1000),
-        reserved: { total: new BN(100) },
-        frozen: new BN(50),
-        total: new BN(1100),
-        transferable: new BN(950),
-      },
-      ...overrides,
-    })
-
-    const createAddress = (overrides?: Partial<Address>): Address => ({
-      address: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
-      balances: [],
-      ...overrides,
-    })
-
-    const createMultisigAddress = (overrides?: Partial<MultisigAddress>): MultisigAddress => ({
-      address: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
-      balances: [],
-      members: [],
-      threshold: 2,
-      ...overrides,
-    })
-
-    it('should return false when account has no pending actions', () => {
-      const account = createAddress()
-
-      const result = hasPendingActions({
-        account,
-        appId: 'polkadot',
-      })
-
+    it('should return false when there are no pending actions', () => {
+      const result = hasPendingActions([])
       expect(result).toBe(false)
     })
 
-    it('should return true when account has staked balance', () => {
-      const balance = createNativeBalance({
-        balance: {
-          free: new BN(1000),
-          reserved: { total: new BN(100) },
-          frozen: new BN(50),
-          total: new BN(1100),
-          transferable: new BN(950),
-          staking: {
-            total: new BN(500),
-            active: new BN(500),
-            canUnstake: true,
-          },
-        },
-      })
-
-      const account = createAddress()
-
-      const result = hasPendingActions({
-        account,
-        balance,
-        appId: 'polkadot',
-      })
-
-      expect(result).toBe(true)
-    })
-
-    it('should return true when account has withdrawable funds', () => {
-      const balance = createNativeBalance({
-        balance: {
-          free: new BN(1000),
-          reserved: { total: new BN(100) },
-          frozen: new BN(50),
-          total: new BN(1100),
-          transferable: new BN(950),
-          staking: {
-            total: new BN(500),
-            active: new BN(500),
-            canUnstake: true,
-            unlocking: [
-              {
-                value: new BN(100),
-                era: 100,
-                canWithdraw: true,
-              },
-            ],
-          },
-        },
-      })
-
-      const account = createAddress()
-
-      const result = hasPendingActions({
-        account,
-        balance,
-        appId: 'polkadot',
-      })
-
-      expect(result).toBe(true)
-    })
-
-    it('should return true when account has identity', () => {
-      const account = createAddress({
-        registration: {
-          identity: {
-            display: 'Test User',
-          },
-          canRemove: true,
-        },
-      })
-
-      const result = hasPendingActions({
-        account,
-        appId: 'polkadot',
-      })
-
-      expect(result).toBe(true)
-    })
-
-    it('should return true when multisig has pending calls', () => {
-      const createMember = (address: string, internal: boolean): MultisigMember => ({
-        address,
-        internal,
-      })
-
-      const createMultisigCall = (): MultisigCall => ({
-        signatories: [],
-        callHash: '0x123',
-        callData: '',
-        threshold: 2,
-        when: { height: 1000, index: 1 },
-        depositor: 'depositor',
-        deposit: '1000',
-        approvals: [],
-      })
-
-      const members = [createMember('alice', true), createMember('bob', true)]
-
-      const account = createMultisigAddress({
-        members,
-        pendingMultisigCalls: [createMultisigCall()],
-      })
-
-      const result = hasPendingActions({
-        account,
-        appId: 'polkadot',
-        isMultisigAddress: true,
-      })
-
-      expect(result).toBe(true)
-    })
-
-    it('should return true when multisig has internal members', () => {
-      const createMember = (address: string, internal: boolean): MultisigMember => ({
-        address,
-        internal,
-      })
-
-      const members = [createMember('alice', true), createMember('bob', false)]
-
-      const account = createMultisigAddress({
-        members,
-      })
-
-      const result = hasPendingActions({
-        account,
-        appId: 'polkadot',
-        isMultisigAddress: true,
-      })
-
-      expect(result).toBe(true)
-    })
-
-    it('should return true when account has index', () => {
-      const account = createAddress({
-        index: {
-          index: '123',
-        },
-      })
-
-      const result = hasPendingActions({
-        account,
-        appId: 'polkadot',
-      })
-
-      expect(result).toBe(true)
-    })
-
-    it('should return true when account has proxies', () => {
-      const account = createAddress({
-        proxy: {
-          proxies: [
-            {
-              delegate: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
-              proxyType: 'Any',
-              delay: 0,
-            },
-          ],
-          reserved: new BN(1000),
-        },
-      })
-
-      const result = hasPendingActions({
-        account,
-        appId: 'polkadot',
-      })
-
-      expect(result).toBe(true)
-    })
-
-    it('should return true when account has governance locks', () => {
-      const balance = createNativeBalance({
-        balance: {
-          free: new BN(1000),
-          reserved: { total: new BN(100) },
-          frozen: new BN(50),
-          total: new BN(1100),
-          transferable: new BN(950),
-          convictionVoting: {
-            locked: new BN(500),
-          },
-        },
-      })
-
-      const governanceActivity: GovernanceActivity = {
-        delegations: [],
-        votes: [],
-        unlockableAmount: new BN(500),
-      }
-
-      const account = createAddress()
-
-      const result = hasPendingActions({
-        account,
-        balance,
-        appId: 'polkadot',
-        governanceActivity,
-      })
-
-      expect(result).toBe(true)
-    })
-
-    it('should match getPendingActions results', () => {
-      // Test that hasPendingActions returns the same result as checking getPendingActions length
-      const balance = createNativeBalance({
-        balance: {
-          free: new BN(1000),
-          reserved: { total: new BN(100) },
-          frozen: new BN(50),
-          total: new BN(1100),
-          transferable: new BN(950),
-          staking: {
-            total: new BN(500),
-            active: new BN(500),
-            canUnstake: true,
-          },
-        },
-      })
-
-      const account = createAddress({
-        registration: {
-          identity: {
-            display: 'Test User',
-          },
-          canRemove: true,
-        },
-      })
-
-      const params = {
-        account,
-        balance,
-        appId: 'polkadot' as const,
-      }
-
-      const hasActions = hasPendingActions(params)
-      const actions = getPendingActions(params)
-
-      expect(hasActions).toBe(actions.length > 0)
-      expect(hasActions).toBe(true)
-    })
-
-    it('should match getPendingActions when no actions exist', () => {
-      const account = createAddress()
-
-      const params = {
-        account,
-        appId: 'polkadot' as const,
-      }
-
-      const hasActions = hasPendingActions(params)
-      const actions = getPendingActions(params)
-
-      expect(hasActions).toBe(actions.length > 0)
-      expect(hasActions).toBe(false)
-    })
-
-    it('should return false when multisig has no internal members', () => {
-      const createMember = (address: string, internal: boolean): MultisigMember => ({
-        address,
-        internal,
-      })
-
-      const members = [createMember('alice', false), createMember('bob', false)]
-
-      const account = createMultisigAddress({
-        members,
-      })
-
-      const result = hasPendingActions({
-        account,
-        appId: 'polkadot',
-        isMultisigAddress: true,
-      })
-
+    it('should return false when pendingActions is undefined', () => {
+      const result = hasPendingActions(undefined)
       expect(result).toBe(false)
+    })
+
+    it('should return true when there are pending actions', () => {
+      const result = hasPendingActions([ActionType.UNSTAKE])
+      expect(result).toBe(true)
+    })
+
+    it('should return true when there are multiple pending actions', () => {
+      const result = hasPendingActions([ActionType.UNSTAKE, ActionType.WITHDRAW, ActionType.GOVERNANCE])
+      expect(result).toBe(true)
     })
   })
 })

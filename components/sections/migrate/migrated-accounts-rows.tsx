@@ -7,7 +7,6 @@ import { TableCell, TableRow } from '@/components/ui/table'
 import type { AppId } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { MIGRATION_WARNINGS } from '@/config/ui'
-import { hasPendingActions, isMultisigAddress as isMultisigAddressFn } from '@/lib/utils'
 import { muifyHtml } from '@/lib/utils/html'
 import { getTransactionStatus } from '@/lib/utils/ui'
 import { AlertCircle, ShieldCheck } from 'lucide-react'
@@ -67,16 +66,7 @@ const MigratedAccountRows = ({ app, multisigAddresses, destinationAddressesStatu
       return null
     }
 
-    // Check for pending actions using the centralized utility function
-    const isMultisigAddress = isMultisigAddressFn(account)
-    const nativeBalance = balances.find(b => b.type === 'native')
-
-    const accountHasPendingActions = hasPendingActions({
-      account,
-      balance: nativeBalance,
-      appId: app.id as AppId,
-      isMultisigAddress,
-    })
+    const accountHasPendingActions = Boolean(account.pendingActions && account.pendingActions?.length > 0)
 
     return (
       <TableRow key={`${app.id}-${account.address}-${accountIndex}`}>

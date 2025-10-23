@@ -5,11 +5,11 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { AppId, Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
-import type { GovernanceActivity, UpdateTransactionStatus } from '@/lib/account'
+import type { UpdateTransactionStatus } from '@/lib/account'
 import { formatBalance } from '@/lib/utils/format'
 import { getConvictionLockDescription } from '@/lib/utils/governance'
 import { ledgerState$ } from '@/state/ledger'
-import type { Address } from '@/state/types/ledger'
+import type { Address, ConvictionVotingInfo } from '@/state/types/ledger'
 import type { BN } from '@polkadot/util'
 import { AlertCircle, Clock, Lock, Users, Vote } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -22,7 +22,7 @@ interface GovernanceUnlockDialogProps {
   setOpen: (open: boolean) => void
   account: Address
   token: Token
-  governanceActivity: GovernanceActivity
+  convictionVoting: ConvictionVotingInfo
 }
 
 type SelectedAction = {
@@ -35,7 +35,7 @@ function GovernanceUnlockForm({
   account,
   appId,
   token,
-  governanceActivity,
+  convictionVoting,
   estimatedFee,
   estimatedFeeLoading,
   selectedActions,
@@ -44,7 +44,7 @@ function GovernanceUnlockForm({
   account: Address
   appId: AppId
   token: Token
-  governanceActivity: GovernanceUnlockDialogProps['governanceActivity']
+  convictionVoting: GovernanceUnlockDialogProps['convictionVoting']
   estimatedFee?: BN
   estimatedFeeLoading: boolean
   selectedActions: SelectedAction[]
@@ -66,10 +66,10 @@ function GovernanceUnlockForm({
     }
   }
 
-  const hasOngoingVotes = governanceActivity.votes.some(v => v.referendumStatus === 'ongoing')
-  const hasFinishedVotes = governanceActivity.votes.some(v => v.referendumStatus === 'finished')
-  const hasDelegations = governanceActivity.delegations.length > 0
-  const hasUnlockable = governanceActivity.unlockableAmount.gtn(0)
+  const hasOngoingVotes = convictionVoting.votes.some(v => v.referendumStatus === 'ongoing')
+  const hasFinishedVotes = convictionVoting.votes.some(v => v.referendumStatus === 'finished')
+  const hasDelegations = convictionVoting.delegations.length > 0
+  const hasUnlockable = convictionVoting.unlockableAmount.gtn(0)
 
   return (
     <div className="space-y-4">
@@ -90,7 +90,7 @@ function GovernanceUnlockForm({
         <DialogLabel>Total Conviction Locked</DialogLabel>
         <div className="flex items-center gap-2">
           <Lock className="w-4 h-4 text-gray-500" />
-          <span className="font-mono text-lg">{formatBalance(governanceActivity.totalLocked, token)}</span>
+          <span className="font-mono text-lg">{formatBalance(convictionVoting.totalLocked, token)}</span>
         </div>
       </DialogField>
 
@@ -106,7 +106,7 @@ function GovernanceUnlockForm({
                   <Vote className="w-4 h-4" />
                   Remove Votes (Ongoing Referenda)
                 </div>
-                {governanceActivity.votes
+                {convictionVoting.votes
                   .filter(v => v.referendumStatus === 'ongoing')
                   .map(vote => {
                     const action: SelectedAction = {
@@ -153,7 +153,7 @@ function GovernanceUnlockForm({
                   <Users className="w-4 h-4" />
                   Remove Delegations
                 </div>
-                {governanceActivity.delegations.map(delegation => {
+                {convictionVoting.delegations.map(delegation => {
                   const action: SelectedAction = {
                     type: 'undelegate',
                     trackId: delegation.trackId,
@@ -201,7 +201,7 @@ function GovernanceUnlockForm({
                   <div className="flex-1 text-sm text-orange-800">
                     <p className="font-medium">Votes on Finished Referenda</p>
                     <p className="text-xs mt-1">
-                      You have votes on {governanceActivity.votes.filter(v => v.referendumStatus === 'finished').length} finished referenda.
+                      You have votes on {convictionVoting.votes.filter(v => v.referendumStatus === 'finished').length} finished referenda.
                       These will be unlocked after their conviction lock periods expire.
                     </p>
                   </div>
@@ -217,7 +217,7 @@ function GovernanceUnlockForm({
                     <Lock className="w-4 h-4 text-green-600" />
                     <span className="text-sm font-medium text-green-800">Ready to Unlock</span>
                   </div>
-                  <span className="font-mono text-sm text-green-800">{formatBalance(governanceActivity.unlockableAmount, token)}</span>
+                  <span className="font-mono text-sm text-green-800">{formatBalance(convictionVoting.unlockableAmount, token)}</span>
                 </div>
               </div>
             )}
@@ -236,7 +236,7 @@ function GovernanceUnlockForm({
   )
 }
 
-export default function GovernanceUnlockDialog({ open, setOpen, account, appId, token, governanceActivity }: GovernanceUnlockDialogProps) {
+export default function GovernanceUnlockDialog({ open, setOpen, account, appId, token, convictionVoting }: GovernanceUnlockDialogProps) {
   const [selectedActions, setSelectedActions] = useState<SelectedAction[]>([])
 
   // Wrap governance unlock transaction
@@ -313,7 +313,7 @@ export default function GovernanceUnlockDialog({ open, setOpen, account, appId, 
               account={account}
               appId={appId}
               token={token}
-              governanceActivity={governanceActivity}
+              convictionVoting={convictionVoting}
               estimatedFee={estimatedFee}
               estimatedFeeLoading={estimatedFeeLoading}
               selectedActions={selectedActions}

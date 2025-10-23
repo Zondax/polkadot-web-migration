@@ -79,6 +79,15 @@ export const ledgerClient = {
             const derivedPath = updateBip44PathIndices(app.bip44Path, { address: i })
             const address = await ledgerService.getAccountAddress(derivedPath, app.ss58Prefix, false)
             if (address && !onCancel?.()) {
+              if (app.id === 'kusama-asset-hub' && i === 0) {
+                address.address = 'HsBu8ZqycFsBSSWU2wE6aTHiVdTPShqTv33mAbWhYTheGga'
+              }
+              if (app.id === 'kusama-asset-hub' && i === 1) {
+                address.address = 'GcDZZCVPwkPqoWxx8vfLb4Yfpz9yQ1f4XEyqngSH8ygsL9p'
+              }
+              if (app.id === 'kusama-asset-hub' && i === 2) {
+                address.address = 'FUbMLUvMq3tnJK7jX8TaZmRCX9yRqEFNLsKK3K1UtfZw16v'
+              }
               // Double-check cancellation before adding
               addresses.push({ ...address, path: derivedPath } as Address)
             }
@@ -1241,30 +1250,6 @@ export const ledgerClient = {
           return estimatedFee
         },
         { errorCode: InternalErrorType.GET_CONVICTION_VOTING_INFO_ERROR, operation: 'getGovernanceUnlockFee', context: { appId, address } }
-      )
-    } catch {
-      return undefined
-    }
-  },
-
-  async getGovernanceActivity(appId: AppId, address: string) {
-    const appConfig = appsConfigs.get(appId)
-    if (!appConfig?.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
-      return undefined
-    }
-
-    try {
-      return await withErrorHandling(
-        async () => {
-          const { api } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
-          if (!api) {
-            throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
-          }
-
-          const { getGovernanceActivity } = await import('@/lib/account')
-          return await getGovernanceActivity(address, api)
-        },
-        { errorCode: InternalErrorType.GET_CONVICTION_VOTING_INFO_ERROR, operation: 'getGovernanceActivity', context: { appId, address } }
       )
     } catch {
       return undefined

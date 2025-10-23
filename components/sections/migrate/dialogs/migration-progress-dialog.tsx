@@ -8,7 +8,8 @@ import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTi
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { AppId } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
-import { formatBalance, isFullMigration as isFullMigrationFn, isNativeBalance } from '@/lib/utils'
+import { MIGRATION_WARNINGS } from '@/config/ui'
+import { formatBalance, hasPendingActions, isFullMigration as isFullMigrationFn, isNativeBalance } from '@/lib/utils'
 import type { Collections } from '@/state/ledger'
 import { TransactionStatus, type MigratingItem } from '@/state/types/ledger'
 import { observer } from '@legendapp/state/react'
@@ -169,13 +170,25 @@ export const MigrationProgressDialog = observer(function MigrationProgressDialog
               tooltipBody="Substrate-based chains require a minimum balance (existential deposit) for accounts to remain active. If the destination account doesn't exist and the transfer amount is below this minimum, the transaction will fail and funds may be lost. Ensure the destination account is already active or that your transfer amount exceeds the existential deposit."
               className="max-w-[40vw]"
             >
-              <Alert className="mb-4 border-amber-200 bg-amber-50 p-3">
+              <Alert className="mb-4 border-amber-200 bg-amber-50">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'orange' }} />
                 <AlertDescription className="text-amber-900">
                   <p className="font-medium">Existential Deposit Required</p>
                 </AlertDescription>
               </Alert>
             </CustomTooltip>
+
+            {/* Pending Actions Warning */}
+            {hasPendingActions(migratingItem.account.pendingActions) && (
+              <CustomTooltip tooltipBody={MIGRATION_WARNINGS.TRANSFER_ALL_WITH_PENDING_ACTIONS.message} className="max-w-[40vw]">
+                <Alert className="mb-4 border-amber-200 bg-amber-50">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'orange' }} />
+                  <AlertDescription className="text-amber-900">
+                    <p className="font-medium">{MIGRATION_WARNINGS.TRANSFER_ALL_WITH_PENDING_ACTIONS.title}</p>
+                  </AlertDescription>
+                </Alert>
+              </CustomTooltip>
+            )}
 
             {/* Development Mode Indicator */}
             {!isFullMigration && nativeTransferAmount && transferableAmount && (

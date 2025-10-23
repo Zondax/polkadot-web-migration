@@ -9,18 +9,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { TableCell, TableRow } from '@/components/ui/table'
 import type { AppId, Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
-import { pendingActionTypeMap } from '@/config/ui'
-import type { GovernanceActivity } from '@/lib/account'
-import { PendingActionType, formatBalance, getPendingActions, isMultisigAddress as isMultisigAddressFunction } from '@/lib/utils'
+import { ActionTypeMap } from '@/config/ui'
+import { buildPendingActions, formatBalance, isMultisigAddress as isMultisigAddressFunction } from '@/lib/utils'
 import { isNativeBalance } from '@/lib/utils/balance'
 import { getIdentityItems } from '@/lib/utils/ui'
 import { observer } from '@legendapp/state/react'
 import { BN } from '@polkadot/util'
 import type { CheckedState } from '@radix-ui/react-checkbox'
 import { AlertCircle, AlertTriangle, Banknote, Check, Group, Hash, Info, KeyRound, Route, Shield, User, UserCog, Users } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
-import { ledgerState$, type Collections } from 'state/ledger'
-import type { Address, AddressBalance, MultisigAddress, MultisigMember } from 'state/types/ledger'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { Collections } from 'state/ledger'
+import { ActionType, type Address, type AddressBalance, type MultisigAddress, type MultisigMember } from 'state/types/ledger'
 import { BalanceHoverCard, NativeBalanceHoverCard } from './balance-hover-card'
 import { BalanceType } from './balance-visualizations'
 import DestinationAddressSelect from './destination-address-select'
@@ -79,29 +78,10 @@ const SynchronizedAccountRow = ({
   const [removeProxyOpen, setRemoveProxyOpen] = useState<boolean>(false)
   const [removeAccountIndexOpen, setRemoveAccountIndexOpen] = useState<boolean>(false)
   const [governanceUnlockOpen, setGovernanceUnlockOpen] = useState<boolean>(false)
-  const [governanceActivity, setGovernanceActivity] = useState<GovernanceActivity | undefined>(undefined)
   const [transferMultisigOpen, setTransferMultisigOpen] = useState<boolean>(false)
   const isNoBalance: boolean = balance === undefined
   const isFirst: boolean = balanceIndex === 0 || isNoBalance
   const isNative = isNativeBalance(balance)
-  const hasGovernanceLocks = isNative && balance?.balance.convictionVoting?.locked?.gt(new BN(0))
-
-  useEffect(() => {
-    const fetchGovernanceActivity = async () => {
-      if (hasGovernanceLocks) {
-        try {
-          const activity = await ledgerState$.getGovernanceActivity(appId, account.address)
-          setGovernanceActivity(activity)
-        } catch (error) {
-          console.warn('Failed to get governance activity:', error)
-          setGovernanceActivity(undefined)
-        }
-      } else {
-        setGovernanceActivity(undefined)
-      }
-    }
-    fetchGovernanceActivity()
-  }, [hasGovernanceLocks, appId, account.address])
   const stakingActive: BN | undefined = isNative ? balance?.balance.staking?.active : undefined
   const maxUnstake: BN = stakingActive ?? new BN(0)
   const totalBalance: BN = isNative ? balance.balance.total : new BN(0)
@@ -110,92 +90,55 @@ const SynchronizedAccountRow = ({
   const internalMultisigMembers: MultisigMember[] = (account as MultisigAddress).members?.filter(member => member.internal) ?? []
   const signatoryAddress: string = balance?.transaction?.signatoryAddress ?? ''
   const isProxied: boolean = (account.proxy?.proxies.length ?? 0) > 0
+  const convictionVoting = useMemo(() => {
+    if (isNative && balance?.balance.convictionVoting?.totalLocked?.gt(new BN(0))) {
+      return balance?.balance.convictionVoting
+    }
+    return undefined
+  }, [balance?.balance, isNative])
 
   // Get pending actions using the utility function
-  const pendingActions = getPendingActions({
-    account,
-    balance,
-    appId,
-    governanceActivity,
-    isMultisigAddress,
-  })
+  const pendingActions = account.pendingActions
+    ? buildPendingActions(account.pendingActions, {
+        account,
+        appId,
+        isMultisigAddress,
+      })
+    : []
+
+  // Action handlers configuration - maps action types to their click handlers
+  const actionHandlers = useMemo(
+    () => ({
+      [ActionType.UNSTAKE]: () => setUnstakeOpen(true),
+      [ActionType.WITHDRAW]: () => setWithdrawOpen(true),
+      [ActionType.IDENTITY]: () => setRemoveIdentityOpen(true),
+      [ActionType.MULTISIG_CALL]: () => setApproveMultisigCallOpen(true),
+      [ActionType.MULTISIG_TRANSFER]: () => setTransferMultisigOpen(true),
+      [ActionType.ACCOUNT_INDEX]: () => setRemoveAccountIndexOpen(true),
+      [ActionType.PROXY]: () => setRemoveProxyOpen(true),
+      [ActionType.GOVERNANCE]: () => setGovernanceUnlockOpen(true),
+    }),
+    []
+  )
 
   // Map pending actions to Action format with icons and callbacks
   const actions: Action[] = pendingActions
-    .map((pendingAction): Action | null => {
-      switch (pendingAction.type) {
-        case PendingActionType.UNSTAKE:
-          return {
-            label: pendingAction.label,
-            tooltip: pendingAction.tooltip,
-            onClick: () => setUnstakeOpen(true),
-            disabled: pendingAction.disabled,
-            icon: pendingActionTypeMap[pendingAction.type],
-          }
-        case PendingActionType.WITHDRAW:
-          return {
-            label: pendingAction.label,
-            tooltip: pendingAction.tooltip,
-            onClick: () => setWithdrawOpen(true),
-            disabled: pendingAction.disabled,
-            icon: pendingActionTypeMap[pendingAction.type],
-          }
-        case PendingActionType.IDENTITY:
-          return {
-            label: pendingAction.label,
-            tooltip: pendingAction.tooltip,
-            onClick: () => setRemoveIdentityOpen(true),
-            disabled: pendingAction.disabled,
-            icon: pendingActionTypeMap[pendingAction.type],
-          }
-        case PendingActionType.MULTISIG_CALL:
-          return {
-            label: pendingAction.label,
-            tooltip: pendingAction.tooltip,
-            onClick: () => setApproveMultisigCallOpen(true),
-            disabled: pendingAction.disabled,
-            icon: pendingActionTypeMap[pendingAction.type],
-          }
-        case PendingActionType.MULTISIG_TRANSFER:
-          return {
-            label: pendingAction.label,
-            tooltip: pendingAction.tooltip,
-            onClick: () => setTransferMultisigOpen(true),
-            disabled: pendingAction.disabled,
-            icon: pendingActionTypeMap[pendingAction.type],
-          }
-        case PendingActionType.ACCOUNT_INDEX:
-          return {
-            label: pendingAction.label,
-            tooltip: pendingAction.tooltip,
-            onClick: () => setRemoveAccountIndexOpen(true),
-            disabled: pendingAction.disabled,
-            icon: pendingActionTypeMap[pendingAction.type],
-          }
-        case PendingActionType.PROXY:
-          return {
-            label: pendingAction.label,
-            tooltip: pendingAction.tooltip,
-            onClick: () => setRemoveProxyOpen(true),
-            disabled: pendingAction.disabled,
-            icon: pendingActionTypeMap[pendingAction.type],
-          }
-        case PendingActionType.GOVERNANCE:
-          return {
-            label: pendingAction.label,
-            tooltip: pendingAction.tooltip,
-            onClick: () => setGovernanceUnlockOpen(true),
-            disabled: pendingAction.disabled,
-            icon: pendingActionTypeMap[pendingAction.type],
-          }
-        default:
-          return null
+    .map(({ type, label, tooltip, disabled }): Action | null => {
+      const onClick = actionHandlers[type]
+      if (!onClick) return null
+
+      return {
+        label,
+        tooltip,
+        onClick,
+        disabled,
+        icon: ActionTypeMap[type],
       }
     })
     .filter((action): action is Action => action !== null)
 
   // --- Multisig pending call tooltip logic ---
-  const multisigCallAction = pendingActions.find(a => a.type === PendingActionType.MULTISIG_CALL)
+  const multisigCallAction = pendingActions.find(a => a.type === ActionType.MULTISIG_CALL)
   const hasMultisigPending = !!multisigCallAction
   const hasRemainingInternalSigners = multisigCallAction?.data?.hasRemainingInternalSigners ?? false
   const hasRemainingSigners = multisigCallAction?.data?.hasRemainingSigners ?? false
@@ -627,37 +570,41 @@ const SynchronizedAccountRow = ({
       </TableCell>
       {/* Governance */}
       <TableCell className="py-2 text-sm text-right w-1/4">
-        {isNative && balance?.balance.convictionVoting?.locked?.gt(new BN(0)) ? (
+        {isNative && balance?.balance.convictionVoting?.totalLocked?.gt(new BN(0)) ? (
           <NativeBalanceHoverCard balance={balance.balance} token={token} type={BalanceType.Governance} appId={appId} />
         ) : (
           '-'
         )}
       </TableCell>
-      {/* Actions */}
+      {/* Actions - Only for the first account */}
       <TableCell>
-        <div className="flex gap-2 justify-end items-center">
-          {account.error?.description && (
-            <CustomTooltip tooltipBody={account.error?.description ?? ''}>
-              <AlertCircle className="h-4 w-4 text-destructive cursor-help" />
-            </CustomTooltip>
-          )}
-          {renderStatusIcon(account)}
-        </div>
-        {/* Additional Actions */}
-        {actions.length > 0 ? (
-          <div className="flex gap-2 justify-start items-center">{actions.map(action => renderAction(action))}</div>
-        ) : hasMultisigPending && !hasRemainingInternalSigners ? (
-          <CustomTooltip tooltipBody={multisigPendingTooltip}>
-            <div className="text-sm text-muted-foreground/60 font-medium flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-yellow-500" />
-              Multisig pending
+        {isFirst && (
+          <>
+            <div className="flex gap-2 justify-end items-center">
+              {account.error?.description && (
+                <CustomTooltip tooltipBody={account.error?.description ?? ''}>
+                  <AlertCircle className="h-4 w-4 text-destructive cursor-help" />
+                </CustomTooltip>
+              )}
+              {renderStatusIcon(account)}
             </div>
-          </CustomTooltip>
-        ) : (
-          <div className="text-sm text-muted-foreground/60 font-medium flex items-center gap-2">
-            <Check className="h-4 w-4 text-polkadot-pink" />
-            Ready to migrate
-          </div>
+            {/* Additional Actions */}
+            {actions.length > 0 ? (
+              <div className="flex gap-2 justify-start items-center">{actions.map(action => renderAction(action))}</div>
+            ) : hasMultisigPending && !hasRemainingInternalSigners ? (
+              <CustomTooltip tooltipBody={multisigPendingTooltip}>
+                <div className="text-sm text-muted-foreground/60 font-medium flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                  Multisig pending
+                </div>
+              </CustomTooltip>
+            ) : (
+              <div className="text-sm text-muted-foreground/60 font-medium flex items-center gap-2">
+                <Check className="h-4 w-4 text-polkadot-pink" />
+                Ready to migrate
+              </div>
+            )}
+          </>
         )}
       </TableCell>
       <UnstakeDialog
@@ -708,14 +655,14 @@ const SynchronizedAccountRow = ({
         appId={appId}
         transferableBalance={transferableBalance}
       />
-      {governanceActivity && (
+      {convictionVoting && (
         <GovernanceUnlockDialog
           open={governanceUnlockOpen}
           setOpen={setGovernanceUnlockOpen}
           account={account}
           appId={appId}
           token={token}
-          governanceActivity={governanceActivity}
+          convictionVoting={convictionVoting}
         />
       )}
       {isMultisigAddress && (

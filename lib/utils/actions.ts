@@ -1,27 +1,14 @@
 import type { AppId } from '@/config/apps'
 import { BN } from '@polkadot/util'
-import type { Address, AddressBalance, MultisigAddress, MultisigMember } from 'state/types/ledger'
-import { type GovernanceActivity } from '../account'
+import { ActionType, type Address, type MultisigAddress, type MultisigMember } from 'state/types/ledger'
 import { canUnstake, hasStakedBalance, isNativeBalance } from './balance'
 import { getAvailableSigners, getRemainingInternalSigners, getRemainingSigners } from './multisig'
 import { getIdentityItems } from './ui'
-
-export enum PendingActionType {
-  UNSTAKE = 'unstake',
-  WITHDRAW = 'withdraw',
-  IDENTITY = 'identity',
-  MULTISIG_CALL = 'multisig-call',
-  MULTISIG_TRANSFER = 'multisig-transfer',
-  ACCOUNT_INDEX = 'account-index',
-  PROXY = 'proxy',
-  GOVERNANCE = 'governance',
-}
-
 /**
  * Action type definition
  */
 export interface PendingAction {
-  type: PendingActionType
+  type: ActionType
   label: string
   tooltip?: string
   disabled: boolean
@@ -30,227 +17,287 @@ export interface PendingAction {
     hasRemainingInternalSigners?: boolean
     hasRemainingSigners?: boolean
     hasAvailableSigners?: boolean
-    governanceActivity?: GovernanceActivity
   }
 }
 
 export interface GetPendingActionsParams {
   account: MultisigAddress | Address
-  balance?: AddressBalance
   appId: AppId
-  governanceActivity?: GovernanceActivity
   isMultisigAddress?: boolean
 }
 
 /**
- * Gets pending actions for an account based on its state.
- * This function analyzes the account's balance, multisig status, governance locks,
- * identity, proxies, and other on-chain data to determine what actions need to be
- * completed before the account can be migrated.
+ * Determines which action types are pending for an account.
+ * This function analyzes the account's state and returns only the types of actions
+ * that need to be completed.
  *
  * @param params - Parameters including account, balance, and governance activity
- * @param params.account - The account to check (can be regular or multisig address)
- * @param params.balance - The account's balance information (optional)
- * @param params.appId - The app/chain identifier
- * @param params.governanceActivity - Governance activity data (optional)
- * @param params.isMultisigAddress - Whether the account is a multisig address
- * @returns Array of pending actions that should be completed before migration
+ * @returns Array of action types that are pending
  *
  * @example
  * ```typescript
- * const actions = getPendingActions({
+ * const actionTypes = getPendingActions({
  *   account,
  *   balance,
  *   appId: 'polkadot',
- *   governanceActivity,
  *   isMultisigAddress: true,
  * })
- * // Returns: [{ type: 'unstake', label: 'Unstake', disabled: false, ... }]
+ * // Returns: ['unstake', 'governance']
  * ```
  */
-export function getPendingActions(params: GetPendingActionsParams): PendingAction[] {
-  const { account, balance, appId, governanceActivity, isMultisigAddress } = params
-  const actions: PendingAction[] = []
+export function getPendingActions(params: GetPendingActionsParams): ActionType[] {
+  const { account, isMultisigAddress } = params
+  const actionTypes: ActionType[] = []
 
-  const isNative = isNativeBalance(balance)
+  const nativeBalance = account.balances?.find(isNativeBalance)
 
   // 1. Unstake action
-  const hasStaked: boolean = isNative && hasStakedBalance(balance)
-  const isUnstakeAvailable: boolean = isNative ? canUnstake(balance) : false
-
+  const hasStaked: boolean = Boolean(nativeBalance && hasStakedBalance(nativeBalance))
   if (hasStaked) {
-    actions.push({
-      type: PendingActionType.UNSTAKE,
-      label: 'Unstake',
-      tooltip: !isUnstakeAvailable ? 'Only the controller address can unstake this balance' : 'Unlock your staked assets',
-      disabled: !isUnstakeAvailable,
-    })
+    actionTypes.push(ActionType.UNSTAKE)
   }
 
   // 2. Withdraw action
-  const canWithdraw: boolean = isNative ? (balance?.balance.staking?.unlocking?.some(u => u.canWithdraw) ?? false) : false
-
+  const canWithdraw: boolean = Boolean(nativeBalance?.balance.staking?.unlocking?.some(u => u.canWithdraw))
   if (canWithdraw) {
-    actions.push({
-      type: PendingActionType.WITHDRAW,
-      label: 'Withdraw',
-      tooltip: 'Move your unstaked assets to your available balance',
-      disabled: false,
-    })
+    actionTypes.push(ActionType.WITHDRAW)
   }
 
   // 3. Identity action
   if (account.registration?.identity) {
-    const identityItems = getIdentityItems(account.registration, appId)
+    const identityItems = getIdentityItems(account.registration, params.appId)
     if (identityItems.length > 0) {
-      actions.push({
-        type: PendingActionType.IDENTITY,
-        label: 'Identity',
-        tooltip: account.registration?.canRemove
-          ? 'Remove account identity'
-          : 'Account identity cannot be removed because it has a parent account',
-        disabled: !account.registration?.canRemove,
-      })
+      actionTypes.push(ActionType.IDENTITY)
     }
   }
 
   // 4. Multisig pending call action
   if (isMultisigAddress && (account as MultisigAddress).pendingMultisigCalls?.length > 0) {
-    const pendingCalls = (account as MultisigAddress).pendingMultisigCalls
-    const members = (account as MultisigAddress).members
-
-    const hasRemainingInternalSigners = pendingCalls.some(call => getRemainingInternalSigners(call, members).length > 0)
-    const hasRemainingSigners = pendingCalls.some(call => getRemainingSigners(call, members).length > 0)
-    const hasAvailableSigners = pendingCalls.some(call => getAvailableSigners(call, members).length > 0)
-
-    actions.push({
-      type: PendingActionType.MULTISIG_CALL,
-      label: 'Multisig Call',
-      tooltip: 'Approve multisig pending calls',
-      disabled: false,
-      data: {
-        hasRemainingInternalSigners,
-        hasRemainingSigners,
-        hasAvailableSigners,
-      },
-    })
+    actionTypes.push(ActionType.MULTISIG_CALL)
   }
 
   // 5. Multisig transfer action
   if (isMultisigAddress) {
     const internalMultisigMembers: MultisigMember[] = (account as MultisigAddress).members?.filter(member => member.internal) ?? []
-
     if (internalMultisigMembers.length > 0) {
-      actions.push({
-        type: PendingActionType.MULTISIG_TRANSFER,
-        label: 'Transfer',
-        tooltip: 'Transfer funds to a multisig signatory',
-        disabled: false,
-      })
+      actionTypes.push(ActionType.MULTISIG_TRANSFER)
     }
   }
 
   // 6. Account index action
   if (account.index?.index) {
-    actions.push({
-      type: PendingActionType.ACCOUNT_INDEX,
-      label: 'Account Index',
-      tooltip: 'Remove account index',
-      disabled: false,
-    })
+    actionTypes.push(ActionType.ACCOUNT_INDEX)
   }
 
   // 7. Proxy action
   const isProxied: boolean = (account.proxy?.proxies.length ?? 0) > 0
   if (isProxied) {
-    actions.push({
-      type: PendingActionType.PROXY,
-      label: 'Proxy',
-      tooltip: 'Remove proxy',
-      disabled: false,
-    })
+    actionTypes.push(ActionType.PROXY)
   }
 
   // 8. Governance action
-  const hasGovernanceLocks = isNative && balance?.balance.convictionVoting?.locked?.gt(new BN(0))
+  // Check governance locks from either governanceActivity or balance.convictionVoting
+  let hasGovernanceLocks = false
+  const convictionVoting = nativeBalance?.balance.convictionVoting
 
-  if (hasGovernanceLocks && governanceActivity) {
-    const hasDelegations = governanceActivity.delegations.length > 0
-    const hasOngoingVotes = governanceActivity.votes.some(v => v.referendumStatus === 'ongoing')
-    const hasUnlockable = governanceActivity.unlockableAmount.gtn(0)
+  if (convictionVoting) {
+    // When governanceActivity is provided, also check if there's actually locked balance
+    const hasLockedBalance = convictionVoting.totalLocked?.gt(new BN(0))
 
-    // Determine button label and tooltip based on governance state
-    const getGovernanceLabel = (): { label: string; tooltip: string } => {
-      if (hasUnlockable) {
-        return {
-          label: 'Gov Unlock',
-          tooltip: 'Unlock conviction-locked tokens',
-        }
+    hasGovernanceLocks =
+      hasLockedBalance &&
+      (convictionVoting.votes.length > 0 ||
+        convictionVoting.delegations.length > 0 ||
+        convictionVoting.unlockableAmount.gtn(0) ||
+        convictionVoting.totalLocked?.gtn(0))
+  }
+
+  if (hasGovernanceLocks) {
+    actionTypes.push(ActionType.GOVERNANCE)
+  }
+
+  return actionTypes
+}
+
+/**
+ * Builds full pending action objects with labels, tooltips, and disabled states
+ * from action types.
+ *
+ * @param actionTypes - Array of action types to build
+ * @param params - Parameters including account, balance, and governance activity
+ * @returns Array of pending actions with full details
+ *
+ * @example
+ * ```typescript
+ * const actionTypes = ['unstake', 'governance']
+ * const actions = buildPendingActions(actionTypes, {
+ *   account,
+ *   balance,
+ *   appId: 'polkadot',
+ * })
+ * // Returns: [{ type: 'unstake', label: 'Unstake', disabled: false, ... }]
+ * ```
+ */
+export function buildPendingActions(actionTypes: ActionType[], params: GetPendingActionsParams): PendingAction[] {
+  const { account, isMultisigAddress } = params
+  const actions: PendingAction[] = []
+
+  const nativeBalance = account.balances?.find(isNativeBalance)
+
+  for (const actionType of actionTypes) {
+    switch (actionType) {
+      case ActionType.UNSTAKE: {
+        const isUnstakeAvailable: boolean = nativeBalance ? canUnstake(nativeBalance) : false
+        actions.push({
+          type: ActionType.UNSTAKE,
+          label: 'Unstake',
+          tooltip: !isUnstakeAvailable ? 'Only the controller address can unstake this balance' : 'Unlock your staked assets',
+          disabled: !isUnstakeAvailable,
+        })
+        break
       }
-      if (hasDelegations) {
-        return {
-          label: 'Remove Delegation',
-          tooltip: 'Remove delegation',
-        }
+
+      case ActionType.WITHDRAW: {
+        actions.push({
+          type: ActionType.WITHDRAW,
+          label: 'Withdraw',
+          tooltip: 'Move your unstaked assets to your available balance',
+          disabled: false,
+        })
+        break
       }
-      if (hasOngoingVotes) {
-        return {
-          label: 'Remove Vote',
-          tooltip: 'Remove Votes (Ongoing Referenda)',
-        }
+
+      case ActionType.IDENTITY: {
+        actions.push({
+          type: ActionType.IDENTITY,
+          label: 'Identity',
+          tooltip: account.registration?.canRemove
+            ? 'Remove account identity'
+            : 'Account identity cannot be removed because it has a parent account',
+          disabled: !account.registration?.canRemove,
+        })
+        break
       }
-      return {
-        label: 'Manage Governance',
-        tooltip: 'Manage governance locks and unlock conviction-locked tokens',
+
+      case ActionType.MULTISIG_CALL: {
+        if (isMultisigAddress) {
+          const pendingCalls = (account as MultisigAddress).pendingMultisigCalls
+          const members = (account as MultisigAddress).members
+
+          const hasRemainingInternalSigners = pendingCalls.some(call => getRemainingInternalSigners(call, members).length > 0)
+          const hasRemainingSigners = pendingCalls.some(call => getRemainingSigners(call, members).length > 0)
+          const hasAvailableSigners = pendingCalls.some(call => getAvailableSigners(call, members).length > 0)
+
+          actions.push({
+            type: ActionType.MULTISIG_CALL,
+            label: 'Multisig Call',
+            tooltip: 'Approve multisig pending calls',
+            disabled: false,
+            data: {
+              hasRemainingInternalSigners,
+              hasRemainingSigners,
+              hasAvailableSigners,
+            },
+          })
+        }
+        break
+      }
+
+      case ActionType.MULTISIG_TRANSFER: {
+        actions.push({
+          type: ActionType.MULTISIG_TRANSFER,
+          label: 'Transfer',
+          tooltip: 'Transfer funds to a multisig signatory',
+          disabled: false,
+        })
+        break
+      }
+
+      case ActionType.ACCOUNT_INDEX: {
+        actions.push({
+          type: ActionType.ACCOUNT_INDEX,
+          label: 'Account Index',
+          tooltip: 'Remove account index',
+          disabled: false,
+        })
+        break
+      }
+
+      case ActionType.PROXY: {
+        actions.push({
+          type: ActionType.PROXY,
+          label: 'Proxy',
+          tooltip: 'Remove proxy',
+          disabled: false,
+        })
+        break
+      }
+
+      case ActionType.GOVERNANCE: {
+        // Use governanceActivity if provided, otherwise fall back to balance.convictionVoting
+        const convictionVoting = nativeBalance?.balance.convictionVoting
+
+        if (convictionVoting) {
+          const delegations = convictionVoting.delegations ?? []
+          const hasDelegations = delegations.length > 0
+          const hasOngoingVotes = convictionVoting.votes?.some((v: any) => v.referendumStatus === 'ongoing')
+          const hasUnlockable = convictionVoting.unlockableAmount?.gtn(0)
+
+          // Determine button label and tooltip based on governance state
+          const getGovernanceLabel = (): { label: string; tooltip: string } => {
+            if (hasUnlockable) {
+              return {
+                label: 'Gov Unlock',
+                tooltip: 'Unlock conviction-locked tokens',
+              }
+            }
+            if (hasDelegations) {
+              return {
+                label: 'Remove Delegation',
+                tooltip: 'Remove delegation',
+              }
+            }
+            if (hasOngoingVotes) {
+              return {
+                label: 'Remove Vote',
+                tooltip: 'Remove Votes (Ongoing Referenda)',
+              }
+            }
+            return {
+              label: 'Manage Governance',
+              tooltip: 'Manage governance locks and unlock conviction-locked tokens',
+            }
+          }
+
+          const { label, tooltip } = getGovernanceLabel()
+
+          actions.push({
+            type: ActionType.GOVERNANCE,
+            label,
+            tooltip,
+            disabled: false,
+          })
+        }
+        break
       }
     }
-
-    const { label, tooltip } = getGovernanceLabel()
-
-    actions.push({
-      type: PendingActionType.GOVERNANCE,
-      label,
-      tooltip,
-      disabled: false,
-      data: {
-        governanceActivity,
-      },
-    })
   }
 
   return actions
 }
 
 /**
- * Checks if an account has any pending actions that should trigger a warning.
+ * getPendingActions is a utility function that determines the pending actions
+ * for a given account, balance, appId, and governanceActivity.
  *
- * This function identifies accounts with any pending actions. While these accounts CAN still be migrated,
- * a warning should be displayed to the user as these pending actions may result in incomplete migration
- * or insufficient balance for transaction fees.
+ * It checks if the account has pending actions such as governance locks and
+ * unlockable tokens, and delegations. If so, it adds the corresponding pending
+ * action to the actions array.
  *
- * This is a convenience function that uses `getPendingActions()` internally but only returns
- * a boolean. If you need the actual list of actions, call `getPendingActions()` directly.
- *
- * @param params - Parameters including account, balance, and app info
- * @returns `true` if the account has any pending actions, `false` otherwise
- *
- * @example
- * ```typescript
- * // Check if account has any pending actions
- * const hasActions = hasPendingActions({
- *   account,
- *   balance,
- *   appId: 'polkadot',
- *   isMultisigAddress: true,
- * })
- *
- * // Or get the full list of actions when you need details
- * const actions = getPendingActions({ account, balance, appId })
- * actions.forEach(action => {
- *   console.log(action.label, action.tooltip)
- * })
- * ```
+ * @param {pendingActions} pendingActions - The pending actions array.
+ * @return {boolean} True if there are pending actions, false otherwise.
  */
-export function hasPendingActions(params: GetPendingActionsParams): boolean {
-  return getPendingActions(params).length > 0
+
+export function hasPendingActions(pendingActions: ActionType[] | undefined): boolean {
+  return Boolean(pendingActions && pendingActions.length > 0)
 }

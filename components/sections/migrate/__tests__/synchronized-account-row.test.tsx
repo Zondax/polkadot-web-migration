@@ -88,86 +88,76 @@ vi.mock('@/lib/utils', () => ({
   isMultisigAddress: (account: any) => account.isMultisig === true,
   hasBalance: () => true,
   cn: (...classes: string[]) => classes.filter(Boolean).join(' '),
-  PendingActionType: {
-    UNSTAKE: 'unstake',
-    WITHDRAW: 'withdraw',
-    IDENTITY: 'identity',
-    MULTISIG_CALL: 'multisig-call',
-    MULTISIG_TRANSFER: 'multisig-transfer',
-    ACCOUNT_INDEX: 'account-index',
-    PROXY: 'proxy',
-    GOVERNANCE: 'governance',
-  },
-  getPendingActions: ({ account, balance, isMultisigAddress }: any) => {
-    const actions: any[] = []
-    const isNative = balance?.type === 'native'
-
-    // Add unstake action if has staked balance
-    if (isNative && balance?.balance?.staking?.total?.gt(TEST_AMOUNTS.ZERO)) {
-      actions.push({
-        type: 'unstake' as any,
-        label: 'Unstake',
-        tooltip: 'Unlock your staked assets',
-        disabled: balance?.canUnstake !== true,
+  buildPendingActions: (pendingActions: any[], _options: any) => {
+    return pendingActions
+      .map((actionType: string) => {
+        switch (actionType) {
+          case 'unstake':
+            return {
+              type: 'unstake',
+              label: 'Unstake',
+              tooltip: 'Unlock your staked assets',
+              disabled: false,
+            }
+          case 'withdraw':
+            return {
+              type: 'withdraw',
+              label: 'Withdraw',
+              tooltip: 'Move your unstaked assets to your available balance',
+              disabled: false,
+            }
+          case 'identity':
+            return {
+              type: 'identity',
+              label: 'Identity',
+              tooltip: 'Remove account identity',
+              disabled: false,
+            }
+          case 'multisig-call':
+            return {
+              type: 'multisig-call',
+              label: 'Multisig Call',
+              tooltip: 'Approve multisig pending calls',
+              disabled: false,
+              data: {
+                hasRemainingInternalSigners: true,
+                hasRemainingSigners: true,
+                hasAvailableSigners: true,
+              },
+            }
+          case 'multisig-transfer':
+            return {
+              type: 'multisig-transfer',
+              label: 'Multisig Transfer',
+              tooltip: 'Transfer multisig balance',
+              disabled: false,
+            }
+          case 'account-index':
+            return {
+              type: 'account-index',
+              label: 'Account Index',
+              tooltip: 'Remove account index',
+              disabled: false,
+            }
+          case 'proxy':
+            return {
+              type: 'proxy',
+              label: 'Proxy',
+              tooltip: 'Remove proxy',
+              disabled: false,
+            }
+          case 'governance':
+            return {
+              type: 'governance',
+              label: 'Governance',
+              tooltip: 'Unlock governance',
+              disabled: false,
+            }
+          default:
+            return null
+        }
       })
-    }
-
-    // Add withdraw action if has unlocking balance
-    if (isNative && balance?.balance?.staking?.unlocking?.some((u: any) => u.canWithdraw)) {
-      actions.push({
-        type: 'withdraw' as any,
-        label: 'Withdraw',
-        tooltip: 'Move your unstaked assets to your available balance',
-        disabled: false,
-      })
-    }
-
-    // Add identity action if account has identity
-    if (account.registration?.identity) {
-      actions.push({
-        type: 'identity' as any,
-        label: 'Identity',
-        tooltip: 'Remove account identity',
-        disabled: !account.registration?.canRemove,
-      })
-    }
-
-    // Add multisig call action if multisig has pending calls
-    if (isMultisigAddress && account.pendingMultisigCalls?.length > 0) {
-      actions.push({
-        type: 'multisig-call' as any,
-        label: 'Multisig Call',
-        tooltip: 'Approve multisig pending calls',
-        disabled: false,
-        data: {
-          hasRemainingInternalSigners: true,
-          hasRemainingSigners: true,
-          hasAvailableSigners: true,
-        },
-      })
-    }
-
-    // Add account index action if account has index
-    if (account.index?.index) {
-      actions.push({
-        type: 'account-index' as any,
-        label: 'Account Index',
-        tooltip: 'Remove account index',
-        disabled: false,
-      })
-    }
-
-    // Add proxy action if account is proxied
-    if (account.proxy?.proxies?.length > 0) {
-      actions.push({
-        type: 'proxy' as any,
-        label: 'Proxy',
-        tooltip: 'Remove proxy',
-        disabled: false,
-      })
-    }
-
-    return actions
+      .filter(Boolean)
   },
 }))
 
@@ -243,6 +233,7 @@ const mockNativeBalance = {
 
 describe('SynchronizedAccountRow component', () => {
   const mockUpdateTransaction = vi.fn()
+  const mockToggleAccountSelection = vi.fn()
   const defaultProps = {
     account: mockAccount,
     accountIndex: 0,
@@ -253,6 +244,8 @@ describe('SynchronizedAccountRow component', () => {
     polkadotAddresses: [TEST_ADDRESSES.ADDRESS2],
     updateTransaction: mockUpdateTransaction,
     appId: 'polkadot' as const,
+    toggleAccountSelection: mockToggleAccountSelection,
+    isSelected: false,
   }
 
   beforeEach(() => {
@@ -291,10 +284,15 @@ describe('SynchronizedAccountRow component', () => {
   })
 
   it('should show action buttons when balance has staking', () => {
+    const accountWithActions = {
+      ...mockAccount,
+      pendingActions: ['unstake', 'withdraw'],
+    }
+
     render(
       <table>
         <tbody>
-          <SynchronizedAccountRow {...defaultProps} />
+          <SynchronizedAccountRow {...defaultProps} account={accountWithActions} />
         </tbody>
       </table>
     )
