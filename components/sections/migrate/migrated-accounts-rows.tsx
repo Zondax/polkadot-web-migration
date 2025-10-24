@@ -8,7 +8,7 @@ import type { AppId } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { warningDetails } from '@/config/warnings'
 import { muifyHtml } from '@/lib/utils/html'
-import { getTransactionStatus } from '@/lib/utils/ui'
+import { createStatusBadge, getTransactionStatus } from '@/lib/utils/ui'
 import { AlertCircle, ShieldCheck } from 'lucide-react'
 import type { App } from 'state/ledger'
 import { VerificationStatus, type AddressWithVerificationStatus, type MultisigAddress, type Transaction } from 'state/types/ledger'
@@ -32,7 +32,7 @@ const PendingActionsWarning = () => {
       }
       className="max-w-[300px]"
     >
-      <AlertCircle className="h-4 w-4 text-yellow-500 cursor-help" />
+      {createStatusBadge(<AlertCircle className="h-3.5 w-3.5" />, 'Pending Actions', 'bg-amber-50', 'border-amber-200', 'text-amber-800')}
     </CustomTooltip>
   )
 }
