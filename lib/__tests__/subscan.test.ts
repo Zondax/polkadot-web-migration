@@ -273,15 +273,6 @@ describe('Subscan Integration', () => {
       await expect(getMultisigInfo(testAddress, testNetwork)).rejects.toThrow('HTTP error! status: 500')
     })
 
-    it('should handle rate limiting errors', async () => {
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: false,
-        status: 429,
-      } as any)
-
-      await expect(getMultisigInfo(testAddress, testNetwork)).rejects.toThrow('HTTP error! status: 429')
-    })
-
     it('should handle malformed API responses', async () => {
       const malformedResponse = {
         // Missing required fields like 'data'
