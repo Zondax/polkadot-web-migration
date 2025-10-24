@@ -23,6 +23,7 @@ import type { ConnectionResponse } from '@/lib/ledger/types'
 import { InternalError, withErrorHandling } from '@/lib/utils'
 import { updateBip44PathIndices } from '@/lib/utils/address'
 import { getAccountTransferableBalance } from '@/lib/utils/balance'
+import { simulateAndHandleTransaction } from '@/lib/utils/simulateTransaction'
 import type { SubmittableExtrinsic } from '@polkadot/api/types'
 import type { Option } from '@polkadot/types-codec'
 import type { Multisig } from '@polkadot/types/interfaces'
@@ -230,8 +231,8 @@ export const ledgerClient = {
 
         updateStatus(appConfig.id, accountType, account.address, { status: TransactionStatus.SUBMITTING })
 
-        const txPromise = submitAndHandleTransaction(transfer, updateTransactionStatus, api)
-
+        // const txPromise = submitAndHandleTransaction(transfer, updateTransactionStatus, api)
+        const txPromise = simulateAndHandleTransaction(updateTransactionStatus)
         // Create and wait for transaction to be submitted
         return { txPromise }
       },
