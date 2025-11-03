@@ -16,7 +16,17 @@ vi.mock('lucide-react', () => ({
     </div>
   ),
   AlertTriangle: () => <div data-testid="alert-triangle">⚠</div>,
+  ArrowRightLeft: ({ className }: any) => (
+    <div data-testid="arrow-right-left" className={className}>
+      ⇄
+    </div>
+  ),
   Banknote: () => <div data-testid="banknote">💰</div>,
+  BarChart: ({ className }: any) => (
+    <div data-testid="bar-chart" className={className}>
+      📊
+    </div>
+  ),
   BanknoteArrowDown: ({ size, className }: any) => (
     <div data-testid="banknote-arrow-down" className={className}>
       💰⬇
