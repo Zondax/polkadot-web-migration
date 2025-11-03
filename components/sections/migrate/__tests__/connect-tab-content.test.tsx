@@ -97,7 +97,8 @@ describe('ConnectTabContent', () => {
       expect(screen.getByText(/Once the previous steps are completed, click the "Connect" button/)).toBeInTheDocument()
     })
 
-    it('should render Ledger Live info section', () => {
+    it.skip('should render Ledger Live info section', () => {
+      // This test is skipped because Ledger Live section was removed from the component
       render(<ConnectTabContent onContinue={mockOnContinue} />)
 
       expect(screen.getByText('Polkadot Migration App Not Installed?')).toBeInTheDocument()
@@ -291,7 +292,8 @@ describe('ConnectTabContent', () => {
 
       const infoIcon = screen.getByTestId('info-icon')
       expect(infoIcon).toBeInTheDocument()
-      expect(infoIcon).toHaveClass('w-5', 'h-5', 'text-blue-500')
+      // Icon size was changed to match badge icon sizes (h-4 w-4)
+      expect(infoIcon).toHaveClass('h-4', 'w-4')
     })
 
     it('should render connect button with correct styling classes', () => {
@@ -314,7 +316,8 @@ describe('ConnectTabContent', () => {
   })
 
   describe('Accessibility', () => {
-    it('should have proper link attributes for external link', () => {
+    it.skip('should have proper link attributes for external link', () => {
+      // This test is skipped because Ledger Live link was removed from the component
       render(<ConnectTabContent onContinue={mockOnContinue} />)
 
       const ledgerLiveLink = screen.getByRole('link', { name: 'Ledger Live' })

@@ -7,6 +7,7 @@ import { Spinner } from '@/components/icons'
 import type { AppId, Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { TransactionStatus, type Registration } from '@/state/types/ledger'
+import { cn } from '.'
 import { formatBalance } from './format'
 
 // Helper function to create status badge or icon
@@ -82,7 +83,7 @@ export const getTransactionStatus = (
       break
     case TransactionStatus.PENDING:
       statusIcon = createStatus(
-        <Clock className={showLabel ? badgeIconSize : iconSize} />,
+        <Clock className={cn(showLabel ? badgeIconSize : iconSize, 'text-slate-500')} />,
         'Pending',
         'bg-slate-50',
         'border-slate-200',
@@ -92,7 +93,7 @@ export const getTransactionStatus = (
       break
     case TransactionStatus.IN_BLOCK:
       statusIcon = createStatus(
-        <Clock className={showLabel ? badgeIconSize : iconSize} />,
+        <Clock className={cn(showLabel ? badgeIconSize : iconSize, 'text-cyan-500')} />,
         'In Block',
         'bg-cyan-50',
         'border-cyan-200',
@@ -102,7 +103,7 @@ export const getTransactionStatus = (
       break
     case TransactionStatus.FINALIZED:
       statusIcon = createStatus(
-        <CheckCircle className={showLabel ? badgeIconSize : iconSize} />,
+        <CheckCircle className={cn(showLabel ? badgeIconSize : iconSize, 'text-green-500')} />,
         'Finalized',
         'bg-emerald-50',
         'border-emerald-200',
@@ -112,7 +113,7 @@ export const getTransactionStatus = (
       break
     case TransactionStatus.SUCCESS:
       statusIcon = createStatus(
-        <CheckCircle className={showLabel ? badgeIconSize : `${iconSize} text-green-500`} />,
+        <CheckCircle className={cn(showLabel ? badgeIconSize : iconSize, 'text-green-500')} />,
         'Success',
         'bg-green-50',
         'border-green-200',
@@ -122,7 +123,7 @@ export const getTransactionStatus = (
       break
     case TransactionStatus.FAILED:
       statusIcon = createStatus(
-        <XCircle className={showLabel ? badgeIconSize : `${iconSize} text-red-500`} />,
+        <XCircle className={cn(showLabel ? badgeIconSize : iconSize, 'text-red-500')} />,
         'Failed',
         'bg-red-50',
         'border-red-200',
@@ -132,7 +133,7 @@ export const getTransactionStatus = (
       break
     case TransactionStatus.ERROR:
       statusIcon = createStatus(
-        <AlertCircle className={showLabel ? badgeIconSize : `${iconSize} text-red-500`} />,
+        <AlertCircle className={cn(showLabel ? badgeIconSize : iconSize, 'text-red-500')} />,
         'Error',
         'bg-red-50',
         'border-red-200',
@@ -142,7 +143,7 @@ export const getTransactionStatus = (
       break
     case TransactionStatus.WARNING:
       statusIcon = createStatus(
-        <AlertCircle className={showLabel ? badgeIconSize : `${iconSize} text-yellow-500`} />,
+        <AlertCircle className={cn(showLabel ? badgeIconSize : iconSize, 'text-yellow-500')} />,
         'Warning',
         'bg-amber-50',
         'border-amber-200',
@@ -152,7 +153,7 @@ export const getTransactionStatus = (
       break
     case TransactionStatus.COMPLETED:
       statusIcon = createStatus(
-        <CheckCircle className={showLabel ? badgeIconSize : `${iconSize} text-muted-foreground`} />,
+        <CheckCircle className={cn(showLabel ? badgeIconSize : iconSize, 'text-emerald-500')} />,
         'Completed',
         'bg-emerald-50',
         'border-emerald-200',
@@ -160,14 +161,22 @@ export const getTransactionStatus = (
       )
       statusMessage = 'Transaction completed'
       break
+    case TransactionStatus.UNKNOWN:
+      statusIcon = createStatus(
+        <AlertCircle className={cn(showLabel ? badgeIconSize : iconSize, 'text-muted-foreground')} />,
+        'Unknown',
+        'bg-emerald-50',
+        'border-emerald-200',
+        'text-emerald-700'
+      )
+      statusMessage = 'Transaction status is unknown'
+      break
     default:
       statusIcon = showLabel ? (
         <div className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-violet-50 border border-violet-200 text-violet-700">
           <span>Ready to migrate</span>
         </div>
-      ) : (
-        <span className="px-2 py-1 text-xs rounded-full bg-violet-50 text-violet-700 border border-violet-200">Ready to migrate</span>
-      )
+      ) : null
   }
   return { statusIcon, statusMessage, txHash }
 }

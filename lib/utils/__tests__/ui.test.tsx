@@ -59,7 +59,7 @@ describe('ui utilities', () => {
 
       const { container } = render(<div>{result.statusIcon}</div>)
       expect(container.querySelector('[data-testid="spinner"]')).toBeTruthy()
-      expect(result.statusMessage).toBe('Loading...')
+      expect(result.statusMessage).toBe('Loading transaction data...')
     })
 
     it('should return pending status with clock icon', () => {
@@ -67,7 +67,7 @@ describe('ui utilities', () => {
 
       const { container } = render(<div>{result.statusIcon}</div>)
       expect(container.querySelector('[data-testid="clock"]')).toBeTruthy()
-      expect(result.statusMessage).toBe('Transaction pending...')
+      expect(result.statusMessage).toBe('Transaction pending in mempool...')
     })
 
     it('should return in block status with clock icon', () => {
@@ -75,14 +75,15 @@ describe('ui utilities', () => {
 
       const { container } = render(<div>{result.statusIcon}</div>)
       expect(container.querySelector('[data-testid="clock"]')).toBeTruthy()
-      expect(result.statusMessage).toBeUndefined()
+      expect(result.statusMessage).toBe('Transaction included in block')
     })
 
     it('should return finalized status with clock icon', () => {
       const result = getTransactionStatus(TransactionStatus.FINALIZED)
 
       const { container } = render(<div>{result.statusIcon}</div>)
-      expect(container.querySelector('[data-testid="clock"]')).toBeTruthy()
+      expect(container.querySelector('[data-testid="check-circle"]')).toBeTruthy()
+      expect(result.statusMessage).toBe('Transaction finalized on chain')
     })
 
     it('should return success status with green check circle', () => {
@@ -125,7 +126,8 @@ describe('ui utilities', () => {
       const result = getTransactionStatus(TransactionStatus.COMPLETED)
 
       const { container } = render(<div>{result.statusIcon}</div>)
-      expect(container.querySelector('[data-testid="clock"]')).toBeTruthy()
+      expect(container.querySelector('[data-testid="check-circle"]')).toBeTruthy()
+      expect(result.statusMessage).toBe('Transaction completed')
     })
 
     it('should return default ready to migrate badge', () => {
@@ -137,14 +139,13 @@ describe('ui utilities', () => {
 
     it('should use custom status message when provided', () => {
       const customMessage = 'Custom status message'
-      const result = getTransactionStatus(TransactionStatus.PENDING, customMessage)
+      // Test with FAILED status which uses custom message if provided
+      const result = getTransactionStatus(TransactionStatus.FAILED, customMessage)
+      expect(result.statusMessage).toBe(customMessage)
 
-      // The function overwrites the custom message for PENDING status
-      expect(result.statusMessage).toBe('Transaction pending...')
-
-      // Test with a status that doesn't set its own message
-      const resultInBlock = getTransactionStatus(TransactionStatus.IN_BLOCK, customMessage)
-      expect(resultInBlock.statusMessage).toBe(customMessage)
+      // Test with ERROR status which also uses custom message if provided
+      const resultError = getTransactionStatus(TransactionStatus.ERROR, customMessage)
+      expect(resultError.statusMessage).toBe(customMessage)
     })
 
     it('should include transaction hash when provided', () => {
@@ -163,9 +164,10 @@ describe('ui utilities', () => {
       const { container: containerMd } = render(<div>{resultMd.statusIcon}</div>)
       const { container: containerLg } = render(<div>{resultLg.statusIcon}</div>)
 
-      expect(containerSm.querySelector('[data-testid="check-circle"]')?.className).toContain('h-4 w-4')
-      expect(containerMd.querySelector('[data-testid="check-circle"]')?.className).toContain('h-6 w-6')
-      expect(containerLg.querySelector('[data-testid="check-circle"]')?.className).toContain('h-8 w-8')
+      // Icons are now inside badges with different size classes (h-3.5 w-3.5, h-4 w-4, h-5 w-5)
+      expect(containerSm.querySelector('[data-testid="check-circle"]')?.className).toContain('h-3.5 w-3.5')
+      expect(containerMd.querySelector('[data-testid="check-circle"]')?.className).toContain('h-4 w-4')
+      expect(containerLg.querySelector('[data-testid="check-circle"]')?.className).toContain('h-5 w-5')
     })
   })
 
