@@ -95,11 +95,7 @@ function SynchronizedAccountsTable({
             <TableHead className="text-left">Source Address</TableHead>
             <TableHead className="text-left">Destination Address</TableHead>
             {isMultisig && <TableHead className="text-left">Signatory Address</TableHead>}
-            <TableHead className="text-right">Total Balance</TableHead>
-            <TableHead className="text-right">Transferable</TableHead>
-            <TableHead className="text-right">Staked</TableHead>
-            <TableHead className="text-right">Reserved</TableHead>
-            <TableHead className="text-right">Governance</TableHead>
+            <TableHead className="text-right">Balance</TableHead>
             <TableHead className="w-[100px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
