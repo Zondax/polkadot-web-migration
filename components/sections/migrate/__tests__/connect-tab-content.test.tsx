@@ -98,13 +98,12 @@ describe('ConnectTabContent', () => {
     })
 
     it.skip('should render Ledger Live info section', () => {
-      // This test is skipped because Ledger Live section was removed from the component
       render(<ConnectTabContent onContinue={mockOnContinue} />)
 
       expect(screen.getByText('Polkadot Migration App Not Installed?')).toBeInTheDocument()
       expect(screen.getByText(/If you don't have the Polkadot Migration App/)).toBeInTheDocument()
 
-      const ledgerLiveLink = screen.getByRole('link', { name: 'Ledger Live' })
+      const ledgerLiveLink = screen.getByRole('link', { name: 'Learn more' })
       expect(ledgerLiveLink).toHaveAttribute('href', 'https://www.ledger.com/ledger-live')
       expect(ledgerLiveLink).toHaveAttribute('target', '_blank')
       expect(ledgerLiveLink).toHaveAttribute('rel', 'noopener noreferrer')
@@ -292,7 +291,6 @@ describe('ConnectTabContent', () => {
 
       const infoIcon = screen.getByTestId('info-icon')
       expect(infoIcon).toBeInTheDocument()
-      // Icon size was changed to match badge icon sizes (h-4 w-4)
       expect(infoIcon).toHaveClass('h-4', 'w-4')
     })
 
@@ -316,12 +314,11 @@ describe('ConnectTabContent', () => {
   })
 
   describe('Accessibility', () => {
-    it.skip('should have proper link attributes for external link', () => {
-      // This test is skipped because Ledger Live link was removed from the component
+    it('should have proper link attributes for external link', () => {
       render(<ConnectTabContent onContinue={mockOnContinue} />)
 
-      const ledgerLiveLink = screen.getByRole('link', { name: 'Ledger Live' })
-      expect(ledgerLiveLink).toHaveClass('underline', 'text-blue-700', 'hover:text-blue-900')
+      const ledgerLiveLink = screen.getByRole('link', { name: 'Learn more' })
+      expect(ledgerLiveLink).toHaveClass('underline', 'text-blue-700', 'hover:text-blue-800')
     })
 
     it('should render proper semantic structure with headings', () => {

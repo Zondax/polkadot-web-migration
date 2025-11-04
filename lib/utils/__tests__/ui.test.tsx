@@ -1,8 +1,8 @@
+import type { Registration, Token } from '@/state/types/ledger'
+import { TransactionStatus } from '@/state/types/ledger'
 import { BN } from '@polkadot/util'
 import { render } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import type { Registration, Token } from '@/state/types/ledger'
-import { TransactionStatus } from '@/state/types/ledger'
 
 // Mock dependencies
 vi.mock('lucide-react', () => ({
@@ -82,7 +82,7 @@ describe('ui utilities', () => {
       const result = getTransactionStatus(TransactionStatus.FINALIZED)
 
       const { container } = render(<div>{result.statusIcon}</div>)
-      expect(container.querySelector('[data-testid="check-circle"]')).toBeTruthy()
+      expect(container.querySelector('[data-testid="clock"]')).toBeTruthy()
       expect(result.statusMessage).toBe('Transaction finalized on chain')
     })
 
@@ -126,7 +126,7 @@ describe('ui utilities', () => {
       const result = getTransactionStatus(TransactionStatus.COMPLETED)
 
       const { container } = render(<div>{result.statusIcon}</div>)
-      expect(container.querySelector('[data-testid="check-circle"]')).toBeTruthy()
+      expect(container.querySelector('[data-testid="clock"]')).toBeTruthy()
       expect(result.statusMessage).toBe('Transaction completed')
     })
 

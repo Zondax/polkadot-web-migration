@@ -67,10 +67,10 @@ exports[`getTransactionStatus > returns Clock and message for PENDING 1`] = `
 
 exports[`getTransactionStatus > returns Clock for COMPLETED 1`] = `
 <div
-  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700"
+  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-cyan-50 border border-cyan-200 text-cyan-700"
 >
-  <CheckCircle
-    className="h-3.5 w-3.5 text-emerald-500"
+  <Clock
+    className="h-3.5 w-3.5 text-cyan-500"
   />
   <span>
     Completed
@@ -80,10 +80,10 @@ exports[`getTransactionStatus > returns Clock for COMPLETED 1`] = `
 
 exports[`getTransactionStatus > returns Clock for FINALIZED 1`] = `
 <div
-  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700"
+  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-cyan-50 border border-cyan-200 text-cyan-700"
 >
-  <CheckCircle
-    className="h-3.5 w-3.5 text-green-500"
+  <Clock
+    className="h-3.5 w-3.5 text-cyan-500"
   />
   <span>
     Finalized

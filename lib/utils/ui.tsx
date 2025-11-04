@@ -103,11 +103,11 @@ export const getTransactionStatus = (
       break
     case TransactionStatus.FINALIZED:
       statusIcon = createStatus(
-        <CheckCircle className={cn(showLabel ? badgeIconSize : iconSize, 'text-green-500')} />,
+        <Clock className={cn(showLabel ? badgeIconSize : iconSize, 'text-cyan-500')} />,
         'Finalized',
-        'bg-emerald-50',
-        'border-emerald-200',
-        'text-emerald-700'
+        'bg-cyan-50',
+        'border-cyan-200',
+        'text-cyan-700'
       )
       statusMessage = 'Transaction finalized on chain'
       break
@@ -153,11 +153,11 @@ export const getTransactionStatus = (
       break
     case TransactionStatus.COMPLETED:
       statusIcon = createStatus(
-        <CheckCircle className={cn(showLabel ? badgeIconSize : iconSize, 'text-emerald-500')} />,
+        <Clock className={cn(showLabel ? badgeIconSize : iconSize, 'text-cyan-500')} />,
         'Completed',
-        'bg-emerald-50',
-        'border-emerald-200',
-        'text-emerald-700'
+        'bg-cyan-50',
+        'border-cyan-200',
+        'text-cyan-700'
       )
       statusMessage = 'Transaction completed'
       break
