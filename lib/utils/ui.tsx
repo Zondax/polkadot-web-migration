@@ -6,8 +6,21 @@ import { ExplorerLink } from '@/components/ExplorerLink'
 import { Spinner } from '@/components/icons'
 import type { AppId, Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
-import { type Registration, TransactionStatus } from '@/state/types/ledger'
+import { TransactionStatus, type Registration } from '@/state/types/ledger'
+import { cn } from '.'
 import { formatBalance } from './format'
+
+// Helper function to create status badge or icon
+export const createStatusBadge = (icon: React.ReactNode, label: string, bgColor: string, borderColor: string, textColor: string) => {
+  return (
+    <div
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full ${bgColor} border ${borderColor} ${textColor}`}
+    >
+      {icon}
+      <span>{label}</span>
+    </div>
+  )
+}
 
 /**
  * Returns a status icon and message corresponding to the given transaction status.
@@ -16,13 +29,15 @@ import { formatBalance } from './format'
  * @param txStatusMessage - An optional custom status message to display.
  * @param size - The size of the status icon ('sm', 'md', or 'lg'). Defaults to 'sm'.
  * @param txHash - Optional transaction hash for explorer links.
+ * @param showLabel - Whether to show the status label with the icon. Defaults to true (badge mode).
  * @returns An object containing the statusIcon (ReactNode), an optional statusMessage (string), and the txHash if available.
  */
 export const getTransactionStatus = (
   status?: TransactionStatus,
   txStatusMessage?: string,
   size: 'sm' | 'md' | 'lg' = 'sm',
-  txHash?: string
+  txHash?: string,
+  showLabel = true
 ): { statusIcon: React.ReactNode; statusMessage?: string; txHash?: string } => {
   let statusIcon: React.ReactNode | null = null
   let statusMessage = txStatusMessage
@@ -33,54 +48,135 @@ export const getTransactionStatus = (
     lg: 'h-8 w-8',
   }
 
+  const iconSizeClasses = {
+    sm: 'h-3.5 w-3.5',
+    md: 'h-4 w-4',
+    lg: 'h-5 w-5',
+  }
+
   const iconSize = sizeClasses[size]
+  const badgeIconSize = iconSizeClasses[size]
+
+  const createStatus = (icon: React.ReactNode, label: string, bgColor: string, borderColor: string, textColor: string) => {
+    if (showLabel) {
+      return createStatusBadge(icon, label, bgColor, borderColor, textColor)
+    }
+    return icon
+  }
 
   switch (status) {
     case TransactionStatus.IS_LOADING:
-      statusIcon = <Spinner />
-      statusMessage = 'Loading...'
+      statusIcon = createStatus(<Spinner />, 'Loading', 'bg-blue-50', 'border-blue-200', 'text-blue-700')
+      statusMessage = 'Loading transaction data...'
       break
     case TransactionStatus.PREPARING_TX:
-      statusIcon = <Spinner />
+      statusIcon = createStatus(<Spinner />, 'Preparing', 'bg-blue-50', 'border-blue-200', 'text-blue-700')
       statusMessage = 'Preparing transaction...'
       break
     case TransactionStatus.SIGNING:
-      statusIcon = <Spinner />
+      statusIcon = createStatus(<Spinner />, 'Signing', 'bg-purple-50', 'border-purple-200', 'text-purple-700')
       statusMessage = 'Please sign the transaction in your Ledger device'
       break
     case TransactionStatus.SUBMITTING:
-      statusIcon = <Spinner />
-      statusMessage = 'Submitting transaction...'
+      statusIcon = createStatus(<Spinner />, 'Submitting', 'bg-blue-50', 'border-blue-200', 'text-blue-700')
+      statusMessage = 'Submitting transaction to the network...'
       break
     case TransactionStatus.PENDING:
-      statusIcon = <Clock className={`${iconSize} text-muted-foreground`} />
-      statusMessage = 'Transaction pending...'
+      statusIcon = createStatus(
+        <Clock className={cn(showLabel ? badgeIconSize : iconSize, 'text-slate-500')} />,
+        'Pending',
+        'bg-slate-50',
+        'border-slate-200',
+        'text-slate-700'
+      )
+      statusMessage = 'Transaction pending in mempool...'
       break
     case TransactionStatus.IN_BLOCK:
-      statusIcon = <Clock className={`${iconSize} text-muted-foreground`} />
+      statusIcon = createStatus(
+        <Clock className={cn(showLabel ? badgeIconSize : iconSize, 'text-cyan-500')} />,
+        'In Block',
+        'bg-cyan-50',
+        'border-cyan-200',
+        'text-cyan-700'
+      )
+      statusMessage = 'Transaction included in block'
       break
     case TransactionStatus.FINALIZED:
-      statusIcon = <Clock className={`${iconSize} text-muted-foreground`} />
+      statusIcon = createStatus(
+        <Clock className={cn(showLabel ? badgeIconSize : iconSize, 'text-cyan-500')} />,
+        'Finalized',
+        'bg-cyan-50',
+        'border-cyan-200',
+        'text-cyan-700'
+      )
+      statusMessage = 'Transaction finalized on chain'
       break
     case TransactionStatus.SUCCESS:
-      statusIcon = <CheckCircle className={`${iconSize} text-green-500`} />
+      statusIcon = createStatus(
+        <CheckCircle className={cn(showLabel ? badgeIconSize : iconSize, 'text-green-500')} />,
+        'Success',
+        'bg-green-50',
+        'border-green-200',
+        'text-green-700'
+      )
+      statusMessage = 'Transaction completed successfully'
       break
     case TransactionStatus.FAILED:
-      statusIcon = <XCircle className={`${iconSize} text-red-500`} />
+      statusIcon = createStatus(
+        <XCircle className={cn(showLabel ? badgeIconSize : iconSize, 'text-red-500')} />,
+        'Failed',
+        'bg-red-50',
+        'border-red-200',
+        'text-red-700'
+      )
+      statusMessage = txStatusMessage || 'Transaction failed'
       break
     case TransactionStatus.ERROR:
-      statusIcon = <AlertCircle className={`${iconSize} text-red-500`} />
+      statusIcon = createStatus(
+        <AlertCircle className={cn(showLabel ? badgeIconSize : iconSize, 'text-red-500')} />,
+        'Error',
+        'bg-red-50',
+        'border-red-200',
+        'text-red-700'
+      )
+      statusMessage = txStatusMessage || 'An error occurred'
       break
     case TransactionStatus.WARNING:
-      statusIcon = <AlertCircle className={`${iconSize} text-yellow-500`} />
+      statusIcon = createStatus(
+        <AlertCircle className={cn(showLabel ? badgeIconSize : iconSize, 'text-yellow-500')} />,
+        'Warning',
+        'bg-amber-50',
+        'border-amber-200',
+        'text-amber-800'
+      )
+      statusMessage = txStatusMessage || 'Transaction completed with warnings'
       break
     case TransactionStatus.COMPLETED:
-      statusIcon = <Clock className={`${iconSize} text-muted-foreground`} />
+      statusIcon = createStatus(
+        <Clock className={cn(showLabel ? badgeIconSize : iconSize, 'text-cyan-500')} />,
+        'Completed',
+        'bg-cyan-50',
+        'border-cyan-200',
+        'text-cyan-700'
+      )
+      statusMessage = 'Transaction completed'
+      break
+    case TransactionStatus.UNKNOWN:
+      statusIcon = createStatus(
+        <AlertCircle className={cn(showLabel ? badgeIconSize : iconSize, 'text-muted-foreground')} />,
+        'Unknown',
+        'bg-emerald-50',
+        'border-emerald-200',
+        'text-emerald-700'
+      )
+      statusMessage = 'Transaction status is unknown'
       break
     default:
-      statusIcon = (
-        <span className="px-2 py-1 text-xs rounded-full bg-polkadot-lime text-black border border-storm-200">Ready to migrate</span>
-      )
+      statusIcon = showLabel ? (
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-violet-50 border border-violet-200 text-violet-700">
+          <span>Ready to migrate</span>
+        </div>
+      ) : null
   }
   return { statusIcon, statusMessage, txHash }
 }
