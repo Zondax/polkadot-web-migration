@@ -274,7 +274,7 @@
     "name": "Kusama Asset Hub",
     "bip44Path": "m/44'/434'/0'/0'/0'",
     "ss58Prefix": 2,
-    "rpcEndpoints": ["wss://asset-hub-kusama-rpc.dwellir.com", "wss://sys.ibp.network/asset-hub-polkadot"],
+    "rpcEndpoints": ["wss://assethub-kusama.api.onfinality.io/public-ws","wss://asset-hub-kusama-rpc.dwellir.com", "wss://sys.ibp.network/asset-hub-polkadot"],
     "token": {
       "symbol": "KSM",
       "decimals": 12,
