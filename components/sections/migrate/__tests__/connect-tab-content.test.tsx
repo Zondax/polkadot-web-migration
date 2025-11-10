@@ -97,7 +97,7 @@ describe('ConnectTabContent', () => {
       expect(screen.getByText(/Once the previous steps are completed, click the "Connect" button/)).toBeInTheDocument()
     })
 
-    it.skip('should render Ledger Live info section', () => {
+    it('should render Ledger Live info section', () => {
       render(<ConnectTabContent onContinue={mockOnContinue} />)
 
       expect(screen.getByText('Polkadot Migration App Not Installed?')).toBeInTheDocument()
