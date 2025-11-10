@@ -62,9 +62,6 @@ export const transactionScenarios = {
     fee: TEST_AMOUNTS.IDENTITY_REMOVAL_FEE,
     expected: {
       method: 'identity.clearIdentity',
-      args: {
-        target: TEST_ADDRESSES.ADDRESS_WITH_IDENTITY_AND_PARENT,
-      },
     },
   },
 

@@ -1,8 +1,8 @@
+import { InternalError } from '@/lib/utils'
+import { AccountType, BalanceType, TransactionStatus, type Address, type MultisigAddress, type NativeBalance } from '@/state/types/ledger'
 import { BN } from '@polkadot/util'
 import type { AppConfig } from 'config/apps'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { InternalError } from '@/lib/utils'
-import { AccountType, type Address, BalanceType, type MultisigAddress, type NativeBalance, TransactionStatus } from '@/state/types/ledger'
 import { ledgerClient } from '../ledger'
 
 // Mock all dependencies
@@ -92,8 +92,6 @@ import {
   createSignedExtrinsic,
   getApiAndProvider,
   getTxFee,
-  type PreparedTransaction,
-  type PreparedTransactionPayload,
   prepareApproveAsMultiTx,
   prepareAsMultiTx,
   prepareRemoveAccountIndexTransaction,
@@ -105,6 +103,8 @@ import {
   prepareWithdrawTransaction,
   submitAndHandleTransaction,
   validateCallDataMatchesHash,
+  type PreparedTransaction,
+  type PreparedTransactionPayload,
 } from '@/lib/account'
 import { ledgerService } from '@/lib/ledger/ledgerService'
 import { mockApi } from '@/tests/fixtures'
@@ -616,7 +616,7 @@ describe('Ledger Client', () => {
       await ledgerClient.removeIdentity('polkadot', mockAddress.address, mockAddress.path, mockUpdateTxStatus)
 
       expect(getApiAndProvider).toHaveBeenCalledWith(['wss://rpc.polkadot.io'])
-      expect(prepareRemoveIdentityTransaction).toHaveBeenCalledWith(mockApi, mockAddress.address)
+      expect(prepareRemoveIdentityTransaction).toHaveBeenCalledWith(mockApi)
       expect(prepareTransactionPayload).toHaveBeenCalledWith(mockApi, mockAddress.address, mockAppConfig, mockApiTransfer)
       expect(ledgerService.signTransaction).toHaveBeenCalledWith(
         mockAddress.path,
@@ -654,7 +654,7 @@ describe('Ledger Client', () => {
 
       expect(result).toStrictEqual(expectedFee)
       expect(getApiAndProvider).toHaveBeenCalledWith(['wss://rpc.polkadot.io'])
-      expect(prepareRemoveIdentityTransaction).toHaveBeenCalledWith(mockApi, mockAddress.address)
+      expect(prepareRemoveIdentityTransaction).toHaveBeenCalledWith(mockApi)
       expect(getTxFee).toHaveBeenCalledWith(mockApiTransfer, mockAddress.address)
     })
 

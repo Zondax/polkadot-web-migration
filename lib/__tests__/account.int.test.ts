@@ -227,14 +227,12 @@ describe('Account Integration', () => {
       if (!peopleApi || !peopleProvider || peopleError) {
         throw new Error('Failed to initialize API', { cause: peopleError })
       }
-      const address = TEST_ADDRESSES.ADDRESS10
-      const extrinsic = peopleApi.tx.identity.clearIdentity(address)
+      const extrinsic = peopleApi.tx.identity.clearIdentity()
 
       // Check that the extrinsic is of the correct type: SubmittableExtrinsic<'promise', ISubmittableResult>
       expect(typeof extrinsic.send).toBe('function')
       expect(typeof extrinsic.addSignature).toBe('function')
       expect(extrinsic.method).toBeDefined()
-      expect(extrinsic.args[0].toString()).toBe(address)
 
       // Check that method.toHex returns a string starting with '0x'
       expect(typeof extrinsic.method.toHex()).toBe('string')
