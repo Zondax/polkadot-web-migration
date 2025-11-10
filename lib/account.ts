@@ -24,13 +24,13 @@ import { errorAddresses, mockBalances } from 'config/mockData'
 import { getMultisigInfo } from 'lib/subscan'
 import {
   BalanceType,
-  Conviction,
   TransactionStatus,
   type AccountIndex,
   type AccountProxy,
   type Address,
   type AddressBalance,
   type Collection,
+  type Conviction,
   type ConvictionVotingInfo,
   type DelegationInfo,
   type IdentityInfo,
@@ -2124,8 +2124,7 @@ export async function getConvictionVotingInfo(address: string, api: ApiPromise):
         // Calculate unlock block if delegation has prior lock
         let unlockAt: number | undefined
         if (prior?.[0]) {
-          const lockPeriods = prior[0].toNumber()
-          unlockAt = currentBlockNumber + lockPeriods
+          unlockAt = prior[0].toNumber() // prior[0] is the unlock block directly
         }
 
         convictionVotingInfo.delegations.push({
@@ -2149,15 +2148,14 @@ export async function getConvictionVotingInfo(address: string, api: ApiPromise):
           const voteData = vote.asStandard
           const conviction = voteData.vote.conviction.toString() as Conviction
 
-          // Calculate unlock block based on conviction
-          const convictionLockPeriods = getConvictionLockPeriods(conviction)
+          // Note: Conviction locks only apply if you voted on the WINNING side.
+          // If you voted on the losing side, tokens unlock immediately when you remove the vote.
+          // Calculating accurate unlock times is complex because it requires:
+          // 1. The referendum's end block (not the current block)
+          // 2. Track-specific timing parameters (enactment periods vary by track)
+          // 3. Checking if the user voted on the winning or losing side
+          // For now, unlockAt is undefined. Users should remove their vote to check if tokens unlock.
           let unlockAt: number | undefined
-
-          if (!isOngoing && convictionLockPeriods > 0) {
-            // For finished referenda, calculate when tokens can be unlocked
-            const enactmentPeriod = (api.consts.referenda?.undecidingTimeout as any)?.toNumber() || 28800 // Default ~28 days at 6s blocks
-            unlockAt = currentBlockNumber + convictionLockPeriods * enactmentPeriod
-          }
 
           convictionVotingInfo.votes.push({
             trackId: trackId.toNumber(),
@@ -2168,7 +2166,7 @@ export async function getConvictionVotingInfo(address: string, api: ApiPromise):
               balance: new BN(voteData.balance.toString()),
             },
             referendumStatus: isOngoing ? 'ongoing' : 'finished',
-            canRemoveVote: isOngoing, // Can only remove vote if referendum is ongoing
+            canRemoveVote: true, // Can always remove votes (ongoing or finished)
             unlockAt,
           })
         }
@@ -2252,23 +2250,23 @@ export interface DelegationInfoExtended extends DelegationInfo {
   canUndelegate: boolean
 }
 
-/**
- * Get conviction lock periods based on conviction level
- * @param conviction The conviction level
- * @returns Number of enactment periods for the lock
- */
-function getConvictionLockPeriods(conviction: Conviction): number {
-  const lockPeriods: Record<Conviction, number> = {
-    [Conviction.None]: 0,
-    [Conviction.Locked1x]: 1,
-    [Conviction.Locked2x]: 2,
-    [Conviction.Locked3x]: 4,
-    [Conviction.Locked4x]: 8,
-    [Conviction.Locked5x]: 16,
-    [Conviction.Locked6x]: 32,
-  }
-  return lockPeriods[conviction] || 0
-}
+// /**
+//  * Get conviction lock periods based on conviction level
+//  * @param conviction The conviction level
+//  * @returns Number of enactment periods for the lock
+//  */
+// function getConvictionLockPeriods(conviction: Conviction): number {
+//   const lockPeriods: Record<Conviction, number> = {
+//     [Conviction.None]: 0,
+//     [Conviction.Locked1x]: 1,
+//     [Conviction.Locked2x]: 2,
+//     [Conviction.Locked3x]: 4,
+//     [Conviction.Locked4x]: 8,
+//     [Conviction.Locked5x]: 16,
+//     [Conviction.Locked6x]: 32,
+//   }
+//   return lockPeriods[conviction] || 0
+// }
 
 /**
  * Check if a referendum is still ongoing
