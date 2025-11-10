@@ -352,12 +352,30 @@ export async function prepareTransactionPayload(
   const metadataHash = merkleizedMetadata.digest()
   const nonceNumber = nonce as unknown as number
 
+  // Get current block to create mortal transaction
+  // For mortal transactions, we need the current block hash AND number
+  const signedBlock = await api.rpc.chain.getBlock()
+  const currentBlockHash = signedBlock.block.header.hash
+  const currentBlockNumber = signedBlock.block.header.number.toNumber()
+
+  console.debug('[prepareTransactionPayload] Current block:', currentBlockNumber)
+  console.debug('[prepareTransactionPayload] Current blockHash:', currentBlockHash.toHex())
+
+  // Create mortal era (64 blocks lifetime)
+  // This makes each transaction unique based on when it's created
+  const mortalPeriod = 64
+  const era = api.createType('ExtrinsicEra', { current: currentBlockNumber, period: mortalPeriod })
+  console.debug('[prepareTransactionPayload] Era:', era.toHuman())
+
   // Create the payload for signing
+  // IMPORTANT: For mortal transactions, blockHash must be the CURRENT block hash
+  // See: https://polkadot.js.org/docs/api/start/api.tx/
   const payload = api.createType('ExtrinsicPayload', {
     method: transfer.method.toHex(),
     nonce: nonceNumber,
     genesisHash: api.genesisHash,
-    blockHash: api.genesisHash,
+    blockHash: currentBlockHash,
+    era,
     transactionVersion: api.runtimeVersion.transactionVersion,
     specVersion: api.runtimeVersion.specVersion,
     runtimeVersion: api.runtimeVersion,
@@ -589,7 +607,7 @@ export function createSignedExtrinsic(
   const payloadValue: ExtrinsicPayloadValue = {
     era: payload.era,
     genesisHash: api.genesisHash,
-    blockHash: api.genesisHash,
+    blockHash: payload.blockHash,
     method: transfer.method.toHex(),
     nonce,
     specVersion: api.runtimeVersion.specVersion,

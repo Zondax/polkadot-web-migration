@@ -592,13 +592,43 @@ export const mockApi = {
       }),
     },
   },
+  rpc: {
+    chain: {
+      getBlock: vi.fn().mockResolvedValue({
+        block: {
+          header: {
+            hash: {
+              toHex: () => '0xabcdef1234567890',
+            },
+            number: {
+              toNumber: () => 1000,
+            },
+          },
+        },
+      }),
+    },
+  },
   runtimeVersion: {
     transactionVersion: 1,
     specVersion: 1,
   },
   genesisHash: '0x1234567890abcdef',
   extrinsicVersion: 4,
-  createType: vi.fn(() => ({
-    toU8a: () => new Uint8Array([1, 2, 3]),
-  })),
+  createType: vi.fn((type: string) => {
+    if (type === 'ExtrinsicEra') {
+      return {
+        toHuman: () => ({ period: 64, phase: 0 }),
+      }
+    }
+    if (type === 'ExtrinsicPayload') {
+      return {
+        toU8a: () => new Uint8Array([1, 2, 3]),
+        era: {},
+        blockHash: '0xabcdef1234567890',
+      }
+    }
+    return {
+      toU8a: () => new Uint8Array([1, 2, 3]),
+    }
+  }),
 }
