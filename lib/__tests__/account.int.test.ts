@@ -222,13 +222,13 @@ describe('Account Integration', () => {
   })
 
   // Used in: prepareRemoveIdentityTransaction
-  describe('api.tx.identity.killIdentity', () => {
+  describe('api.tx.identity.clearIdentity', () => {
     it('should create a valid remove identity extrinsic for ADDRESS10', async () => {
       if (!peopleApi || !peopleProvider || peopleError) {
         throw new Error('Failed to initialize API', { cause: peopleError })
       }
       const address = TEST_ADDRESSES.ADDRESS10
-      const extrinsic = peopleApi.tx.identity.killIdentity(address)
+      const extrinsic = peopleApi.tx.identity.clearIdentity(address)
 
       // Check that the extrinsic is of the correct type: SubmittableExtrinsic<'promise', ISubmittableResult>
       expect(typeof extrinsic.send).toBe('function')

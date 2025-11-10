@@ -111,9 +111,9 @@ export const mockApi = {
       })),
     },
     identity: {
-      killIdentity: vi.fn().mockImplementation(_address => ({
+      clearIdentity: vi.fn().mockImplementation(_address => ({
         paymentInfo: vi.fn().mockResolvedValue({ partialFee: new BN(15000000000) }),
-        method: { toHex: () => '0xidentity_kill', hash: { toHex: () => '0xkillidentityhash' } },
+        method: { toHex: () => '0xidentity_kill', hash: { toHex: () => '0xclearIdentityhash' } },
       })),
     },
     proxy: {

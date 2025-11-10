@@ -536,7 +536,7 @@ export async function prepareRemoveIdentityTransaction(
   api: ApiPromise,
   address: string
 ): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>> {
-  const removeIdentityTx = api.tx.identity?.killIdentity(address) as SubmittableExtrinsic<'promise', ISubmittableResult>
+  const removeIdentityTx = api.tx.identity?.clearIdentity(address) as SubmittableExtrinsic<'promise', ISubmittableResult>
 
   return removeIdentityTx
 }
