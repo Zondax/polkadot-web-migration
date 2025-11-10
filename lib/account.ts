@@ -550,11 +550,8 @@ export async function prepareWithdrawTransaction(
   return withdrawTx
 }
 
-export async function prepareRemoveIdentityTransaction(
-  api: ApiPromise,
-  address: string
-): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>> {
-  const removeIdentityTx = api.tx.identity?.killIdentity(address) as SubmittableExtrinsic<'promise', ISubmittableResult>
+export async function prepareRemoveIdentityTransaction(api: ApiPromise): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>> {
+  const removeIdentityTx = api.tx.identity?.clearIdentity() as SubmittableExtrinsic<'promise', ISubmittableResult>
 
   return removeIdentityTx
 }
