@@ -1,11 +1,11 @@
+import type { AppConfig } from '@/config/apps'
+import { appsConfigs } from '@/config/apps'
 import type { SubmittableExtrinsic } from '@polkadot/api/types'
 import type { ISubmittableResult } from '@polkadot/types/types'
 import { BN } from '@polkadot/util'
-import { type App, AppStatus } from 'state/ledger'
-import { type Address, BalanceType, type Collection, type MultisigAddress, type Native, type Nft, type Staking } from 'state/types/ledger'
+import { AppStatus, type App } from 'state/ledger'
+import { BalanceType, type Address, type Collection, type MultisigAddress, type Native, type Nft, type Staking } from 'state/types/ledger'
 import { vi } from 'vitest'
-import type { AppConfig } from '@/config/apps'
-import { appsConfigs } from '@/config/apps'
 
 // =========== Common Test Addresses ===========
 export const TEST_ADDRESSES = {
@@ -23,9 +23,11 @@ export const TEST_ADDRESSES = {
 }
 
 // test rpc endpoints
-export const KUSAMA_RPC = appsConfigs.get('kusama')?.rpcEndpoints?.[0] || 'wss://kusama-rpc.polkadot.io'
-export const KUSAMA_PEOPLE_RPC = appsConfigs.get('people-kusama')?.rpcEndpoints?.[0] || 'wss://kusama-people-rpc.polkadot.io'
-export const KUSAMA_ASSET_HUB_RPC = appsConfigs.get('kusama-asset-hub')?.rpcEndpoints?.[0] || 'wss://asset-hub-kusama-rpc.dwellir.com'
+export const KUSAMA_RPC = appsConfigs.get('kusama')?.rpcEndpoints || ['wss://kusama-rpc.polkadot.io']
+export const KUSAMA_PEOPLE_RPC = appsConfigs.get('people-kusama')?.rpcEndpoints || ['wss://kusama-people-rpc.polkadot.io']
+export const KUSAMA_ASSET_HUB_RPC = appsConfigs.get('kusama-asset-hub')?.rpcEndpoints || [
+  'wss://assethub-kusama.api.onfinality.io/public-ws',
+]
 
 // =========== Mock Staking ===========
 export const mockStaking: Staking = {
@@ -590,13 +592,43 @@ export const mockApi = {
       }),
     },
   },
+  rpc: {
+    chain: {
+      getBlock: vi.fn().mockResolvedValue({
+        block: {
+          header: {
+            hash: {
+              toHex: () => '0xabcdef1234567890',
+            },
+            number: {
+              toNumber: () => 1000,
+            },
+          },
+        },
+      }),
+    },
+  },
   runtimeVersion: {
     transactionVersion: 1,
     specVersion: 1,
   },
   genesisHash: '0x1234567890abcdef',
   extrinsicVersion: 4,
-  createType: vi.fn(() => ({
-    toU8a: () => new Uint8Array([1, 2, 3]),
-  })),
+  createType: vi.fn((type: string) => {
+    if (type === 'ExtrinsicEra') {
+      return {
+        toHuman: () => ({ period: 64, phase: 0 }),
+      }
+    }
+    if (type === 'ExtrinsicPayload') {
+      return {
+        toU8a: () => new Uint8Array([1, 2, 3]),
+        era: {},
+        blockHash: '0xabcdef1234567890',
+      }
+    }
+    return {
+      toU8a: () => new Uint8Array([1, 2, 3]),
+    }
+  }),
 }

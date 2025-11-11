@@ -18,47 +18,47 @@ vi.mock('@/components/icons', () => ({
 describe('getTransactionStatus', () => {
   it('returns Spinner and message for IS_LOADING', () => {
     const { statusIcon, statusMessage } = getTransactionStatus(TransactionStatus.IS_LOADING)
-    expect(statusMessage).toBe('Loading...')
+    expect(statusMessage).toBe('Loading transaction data...')
     expect(statusIcon).toMatchSnapshot()
   })
   it('returns Clock and message for PENDING', () => {
     const { statusIcon, statusMessage } = getTransactionStatus(TransactionStatus.PENDING)
-    expect(statusMessage).toBe('Transaction pending...')
+    expect(statusMessage).toBe('Transaction pending in mempool...')
     expect(statusIcon).toMatchSnapshot()
   })
   it('returns Clock for IN_BLOCK', () => {
     const { statusIcon, statusMessage } = getTransactionStatus(TransactionStatus.IN_BLOCK)
-    expect(statusMessage).toBeUndefined()
+    expect(statusMessage).toBe('Transaction included in block')
     expect(statusIcon).toMatchSnapshot()
   })
   it('returns Clock for FINALIZED', () => {
     const { statusIcon, statusMessage } = getTransactionStatus(TransactionStatus.FINALIZED)
-    expect(statusMessage).toBeUndefined()
+    expect(statusMessage).toBe('Transaction finalized on chain')
     expect(statusIcon).toMatchSnapshot()
   })
   it('returns CheckCircle for SUCCESS', () => {
     const { statusIcon, statusMessage } = getTransactionStatus(TransactionStatus.SUCCESS)
-    expect(statusMessage).toBeUndefined()
+    expect(statusMessage).toBe('Transaction completed successfully')
     expect(statusIcon).toMatchSnapshot()
   })
   it('returns XCircle for FAILED', () => {
     const { statusIcon, statusMessage } = getTransactionStatus(TransactionStatus.FAILED)
-    expect(statusMessage).toBeUndefined()
+    expect(statusMessage).toBe('Transaction failed')
     expect(statusIcon).toMatchSnapshot()
   })
   it('returns AlertCircle for ERROR', () => {
     const { statusIcon, statusMessage } = getTransactionStatus(TransactionStatus.ERROR)
-    expect(statusMessage).toBeUndefined()
+    expect(statusMessage).toBe('An error occurred')
     expect(statusIcon).toMatchSnapshot()
   })
   it('returns AlertCircle for WARNING', () => {
     const { statusIcon, statusMessage } = getTransactionStatus(TransactionStatus.WARNING)
-    expect(statusMessage).toBeUndefined()
+    expect(statusMessage).toBe('Transaction completed with warnings')
     expect(statusIcon).toMatchSnapshot()
   })
   it('returns Clock for COMPLETED', () => {
     const { statusIcon, statusMessage } = getTransactionStatus(TransactionStatus.COMPLETED)
-    expect(statusMessage).toBeUndefined()
+    expect(statusMessage).toBe('Transaction completed')
     expect(statusIcon).toMatchSnapshot()
   })
   it('returns default for undefined status', () => {
@@ -66,8 +66,8 @@ describe('getTransactionStatus', () => {
     expect(statusMessage).toBeUndefined()
     expect(statusIcon).toMatchSnapshot()
   })
-  it('returns custom message if provided', () => {
-    const { statusMessage } = getTransactionStatus(TransactionStatus.SUCCESS, 'Custom!')
+  it('returns custom message if provided for FAILED', () => {
+    const { statusMessage } = getTransactionStatus(TransactionStatus.FAILED, 'Custom!')
     expect(statusMessage).toBe('Custom!')
   })
   it('applies correct icon size', () => {

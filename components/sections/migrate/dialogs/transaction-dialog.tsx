@@ -52,7 +52,7 @@ function TransactionStatusBody({
     )
   }
 
-  const { statusIcon, statusMessage } = getTransactionStatus(status, txStatusMessage, 'lg')
+  const { statusIcon, statusMessage } = getTransactionStatus(status, txStatusMessage, 'lg', undefined, false)
 
   return (
     <div className="w-full flex flex-col items-center space-y-4">

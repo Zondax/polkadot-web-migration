@@ -412,7 +412,7 @@ export const ledgerClient = {
 
         updateTxStatus(TransactionStatus.PREPARING_TX)
 
-        const removeIdentityTx = await prepareRemoveIdentityTransaction(api, address)
+        const removeIdentityTx = await prepareRemoveIdentityTransaction(api)
 
         if (!removeIdentityTx) {
           throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
@@ -462,7 +462,7 @@ export const ledgerClient = {
             throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
           }
 
-          const removeIdentityTx = await prepareRemoveIdentityTransaction(api, address)
+          const removeIdentityTx = await prepareRemoveIdentityTransaction(api)
           if (!removeIdentityTx) {
             throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
           }

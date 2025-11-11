@@ -154,7 +154,7 @@ describe('TransactionStatusBody', () => {
 
       render(<TransactionStatusBody {...defaultProps} status={TransactionStatus.ERROR} statusMessage="Transaction failed" />)
 
-      expect(mockGetTransactionStatus).toHaveBeenCalledWith(TransactionStatus.ERROR, 'Transaction failed', 'lg')
+      expect(mockGetTransactionStatus).toHaveBeenCalledWith(TransactionStatus.ERROR, 'Transaction failed', 'lg', undefined, false)
     })
 
     it('should handle different transaction statuses', () => {

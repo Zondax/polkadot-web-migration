@@ -1,11 +1,12 @@
 'use client'
 
+import { useConnection } from '@/components/hooks/useConnection'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { motion } from 'framer-motion'
 import { Info } from 'lucide-react'
 import Link from 'next/link'
 import { useCallback } from 'react'
-import { useConnection } from '@/components/hooks/useConnection'
-import { Button } from '@/components/ui/button'
 
 interface ConnectTabContentProps {
   onContinue: () => void
@@ -95,24 +96,22 @@ export function ConnectTabContent({ onContinue }: ConnectTabContentProps) {
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8, delay: 0.5 }}
-          className="flex items-start bg-blue-50 border border-blue-200 rounded-lg p-4"
         >
-          <Info className="w-5 h-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" />
-          <div className="text-sm text-blue-900">
-            <span className="font-semibold">Polkadot Migration App Not Installed?</span>
-            <span className="ml-1">
+          <Alert variant="info">
+            <Info className="h-4 w-4" />
+            <AlertTitle>Polkadot Migration App Not Installed?</AlertTitle>
+            <AlertDescription className="mt-1">
               If you don't have the Polkadot Migration App on your Ledger device, you can install it via{' '}
               <Link
                 href="https://www.ledger.com/ledger-live"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline text-blue-700 hover:text-blue-900"
+                className="ml-1 text-blue-700 hover:text-blue-800 underline font-medium"
               >
-                Ledger Live
+                Learn more
               </Link>
-              .
-            </span>
-          </div>
+            </AlertDescription>
+          </Alert>
         </motion.div>
       </div>
       <Button
