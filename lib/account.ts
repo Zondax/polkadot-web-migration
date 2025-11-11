@@ -358,14 +358,10 @@ export async function prepareTransactionPayload(
   const currentBlockHash = signedBlock.block.header.hash
   const currentBlockNumber = signedBlock.block.header.number.toNumber()
 
-  console.debug('[prepareTransactionPayload] Current block:', currentBlockNumber)
-  console.debug('[prepareTransactionPayload] Current blockHash:', currentBlockHash.toHex())
-
   // Create mortal era (64 blocks lifetime)
   // This makes each transaction unique based on when it's created
   const mortalPeriod = 64
   const era = api.createType('ExtrinsicEra', { current: currentBlockNumber, period: mortalPeriod })
-  console.debug('[prepareTransactionPayload] Era:', era.toHuman())
 
   // Create the payload for signing
   // IMPORTANT: For mortal transactions, blockHash must be the CURRENT block hash
