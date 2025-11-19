@@ -437,7 +437,7 @@ export async function prepareTransaction(
           collectionId: nft.collectionId,
           itemId: nft.itemId,
           isUnique: nft.isUnique,
-          receiverAddress: balance.transaction?.destinationAddress,
+          receiverAddress: balance.transaction?.destinationAddress?.address,
         })
       }
     } else if (isNativeBalance(balance) && balance.balance.transferable.gt(new BN(0))) {
@@ -446,7 +446,7 @@ export async function prepareTransaction(
       }
       nativeTransfer = {
         amount: getActualTransferAmount(balance),
-        receiverAddress: balance.transaction.destinationAddress,
+        receiverAddress: balance.transaction.destinationAddress.address,
       }
     }
   }

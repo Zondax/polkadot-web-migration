@@ -62,7 +62,7 @@ export interface TransactionDetails {
  * Settings for preparing a blockchain transaction, such as destination and signatory addresses.
  */
 export interface TransactionSettings {
-  destinationAddress?: string
+  destinationAddress?: Address
   signatoryAddress?: string // Used in multisig transactions - address of the signatory address that will be used to sign the transaction
 }
 

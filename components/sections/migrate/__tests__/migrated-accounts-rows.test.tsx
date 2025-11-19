@@ -84,7 +84,11 @@ import MigratedAccountRows from '../migrated-accounts-rows'
 
 describe('MigratedAccountRows component', () => {
   const mockTransactionSettings = {
-    destinationAddress: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty',
+    destinationAddress: {
+      address: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty',
+      path: "m/44'/354'/0'/0'/0'",
+      pubKey: '0x8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48',
+    },
     signatoryAddress: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
   }
 

@@ -29,7 +29,7 @@ export interface ProcessedAccountData {
     uniques: Map<number, Collection>
     nfts: Map<number, Collection>
   }
-  polkadotAddressesForApp: string[]
+  polkadotAddressesForApp: Address[]
 }
 
 export interface AccountProcessingResult {
@@ -400,7 +400,7 @@ async function getBlockchainDataForMultisigAccounts(
  * @param {Address[]} addresses - Array of addresses to process
  * @param {AppConfig} appConfig - Blockchain application configuration
  * @param {ApiPromise} api - Connected blockchain API instance
- * @param {string[]} polkadotAddresses - Polkadot addresses for cross-chain migration
+ * @param {Address[]} polkadotAddresses - Polkadot accounts with addresses and paths for cross-chain migration
  * @param {boolean} [filterByBalance=true] - Whether to filter accounts by balance
  * @returns {Promise<AccountProcessingResult>} Result containing processed accounts and collections
  * @throws {InternalError} When the account processing pipeline fails
@@ -409,7 +409,7 @@ export async function processAccountsForApp(
   addresses: Address[],
   appConfig: AppConfig,
   api: ApiPromise,
-  polkadotAddresses: string[],
+  polkadotAddresses: Address[],
   filterByBalance = true
 ): Promise<AccountProcessingResult> {
   try {
@@ -460,12 +460,25 @@ export async function processAccountsForApp(
     const filteredAccounts = filterAccountsForApps(accounts, filterByBalance)
     const filteredMultisigAccounts = filterAccountsForApps(Array.from(multisigAccounts.values()), filterByBalance)
 
-    // Set default destination addresses
-    const polkadotAddressesForApp = polkadotAddresses.map(address => convertSS58Format(address, appConfig.ss58Prefix || 0))
+    // Set default destination addresses with path
+    const polkadotAddressesForApp = polkadotAddresses.map(account => ({
+      address: convertSS58Format(account.address, appConfig.ss58Prefix || 0),
+      path: account.path,
+      pubKey: '',
+    }))
+
+    // Create default destination address object with address and path
+    const defaultDestination = polkadotAddresses[0]
+      ? {
+          address: convertSS58Format(polkadotAddresses[0].address, appConfig.ss58Prefix || 0),
+          path: polkadotAddresses[0].path,
+          pubKey: '',
+        }
+      : undefined
 
     // Add default destination address and pending actions to accounts
     const processedAccounts = filteredAccounts.map(account => {
-      const modifiedAccount = setDefaultDestinationAddress(account, polkadotAddressesForApp[0])
+      const modifiedAccount = defaultDestination ? setDefaultDestinationAddress(account, defaultDestination) : account
       const pendingActions = getPendingActions({
         account: modifiedAccount,
         appId: appConfig.id,
@@ -477,7 +490,7 @@ export async function processAccountsForApp(
     })
 
     const processedMultisigAccounts = filteredMultisigAccounts.map(account => {
-      const modifiedAccount = setDefaultDestinationAddress(account, polkadotAddressesForApp[0])
+      const modifiedAccount = defaultDestination ? setDefaultDestinationAddress(account, defaultDestination) : account
       const pendingActions = getPendingActions({
         account: modifiedAccount,
         appId: appConfig.id,

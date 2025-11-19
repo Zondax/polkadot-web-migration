@@ -79,6 +79,8 @@ describe('SelectWithCustom', () => {
   ]
 
   const mockOnValueChange = vi.fn()
+  const getOptionValue = (option: { value: string; label: string }) => option.value
+  const getOptionLabel = (option: { value: string; label: string }) => option.label
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -86,7 +88,7 @@ describe('SelectWithCustom', () => {
 
   describe('Basic rendering', () => {
     it('should render with default props', () => {
-      render(<SelectWithCustom options={mockOptions} />)
+      render(<SelectWithCustom options={mockOptions} getOptionValue={getOptionValue} getOptionLabel={getOptionLabel} />)
 
       expect(screen.getByTestId('select')).toBeInTheDocument()
       expect(screen.getByTestId('select-value')).toBeInTheDocument()
@@ -94,13 +96,20 @@ describe('SelectWithCustom', () => {
 
     it('should render with custom placeholder', () => {
       const customPlaceholder = 'Choose an option'
-      render(<SelectWithCustom options={mockOptions} placeholder={customPlaceholder} />)
+      render(
+        <SelectWithCustom
+          options={mockOptions}
+          placeholder={customPlaceholder}
+          getOptionValue={getOptionValue}
+          getOptionLabel={getOptionLabel}
+        />
+      )
 
       expect(screen.getByText(customPlaceholder)).toBeInTheDocument()
     })
 
     it('should render as disabled when disabled prop is true', () => {
-      render(<SelectWithCustom options={mockOptions} disabled />)
+      render(<SelectWithCustom options={mockOptions} disabled getOptionValue={getOptionValue} getOptionLabel={getOptionLabel} />)
 
       const select = screen.getByTestId('select')
       expect(select).toHaveAttribute('data-disabled', 'true')
@@ -108,7 +117,9 @@ describe('SelectWithCustom', () => {
 
     it('should apply custom className', () => {
       const customClass = 'custom-select-class'
-      render(<SelectWithCustom options={mockOptions} className={customClass} />)
+      render(
+        <SelectWithCustom options={mockOptions} className={customClass} getOptionValue={getOptionValue} getOptionLabel={getOptionLabel} />
+      )
 
       const container = screen.getByTestId('select').parentElement
       expect(container).toHaveClass(customClass)
@@ -120,7 +131,14 @@ describe('SelectWithCustom', () => {
       // Create a more realistic test by directly testing the handler
       const testValue = 'option1'
 
-      render(<SelectWithCustom options={mockOptions} onValueChange={mockOnValueChange} />)
+      render(
+        <SelectWithCustom
+          options={mockOptions}
+          onValueChange={mockOnValueChange}
+          getOptionValue={getOptionValue}
+          getOptionLabel={getOptionLabel}
+        />
+      )
 
       // Simulate the component's internal logic for handling select change
       const handleSelectChange = (value: string) => {
@@ -137,13 +155,20 @@ describe('SelectWithCustom', () => {
 
     it('should render custom option content when renderOption is provided', () => {
       const renderOption = (option: any) => <div>Custom: {option.label}</div>
-      render(<SelectWithCustom options={mockOptions} renderOption={renderOption} />)
+      render(
+        <SelectWithCustom
+          options={mockOptions}
+          renderOption={renderOption}
+          getOptionValue={getOptionValue}
+          getOptionLabel={getOptionLabel}
+        />
+      )
 
       expect(screen.getByTestId('select-content')).toBeInTheDocument()
     })
 
     it('should render default option content when renderOption is not provided', () => {
-      render(<SelectWithCustom options={mockOptions} />)
+      render(<SelectWithCustom options={mockOptions} getOptionValue={getOptionValue} getOptionLabel={getOptionLabel} />)
 
       expect(screen.getByTestId('select-content')).toBeInTheDocument()
     })
@@ -151,7 +176,14 @@ describe('SelectWithCustom', () => {
 
   describe('Custom value mode', () => {
     it('should display custom value when in custom mode', () => {
-      render(<SelectWithCustom options={mockOptions} selectedValue="custom-value" />)
+      render(
+        <SelectWithCustom
+          options={mockOptions}
+          selectedValue="custom-value"
+          getOptionValue={getOptionValue}
+          getOptionLabel={getOptionLabel}
+        />
+      )
 
       expect(screen.getByText('custom-value')).toBeInTheDocument()
       expect(screen.getByTestId('badge')).toBeInTheDocument()
@@ -159,13 +191,28 @@ describe('SelectWithCustom', () => {
     })
 
     it('should show remove button in custom mode', () => {
-      render(<SelectWithCustom options={mockOptions} selectedValue="custom-value" />)
+      render(
+        <SelectWithCustom
+          options={mockOptions}
+          selectedValue="custom-value"
+          getOptionValue={getOptionValue}
+          getOptionLabel={getOptionLabel}
+        />
+      )
 
       expect(screen.getByTestId('x-icon')).toBeInTheDocument()
     })
 
     it('should call onValueChange with first option value when custom value is removed', () => {
-      render(<SelectWithCustom options={mockOptions} selectedValue="custom-value" onValueChange={mockOnValueChange} />)
+      render(
+        <SelectWithCustom
+          options={mockOptions}
+          selectedValue="custom-value"
+          onValueChange={mockOnValueChange}
+          getOptionValue={getOptionValue}
+          getOptionLabel={getOptionLabel}
+        />
+      )
 
       const removeButton = screen.getByTestId('button')
       fireEvent.click(removeButton)
@@ -278,7 +325,14 @@ describe('SelectWithCustom', () => {
 
   describe('Effects and state management', () => {
     it('should set custom mode when selectedValue is not in options', () => {
-      render(<SelectWithCustom options={mockOptions} selectedValue="custom-value" />)
+      render(
+        <SelectWithCustom
+          options={mockOptions}
+          selectedValue="custom-value"
+          getOptionValue={getOptionValue}
+          getOptionLabel={getOptionLabel}
+        />
+      )
 
       expect(screen.getByText('custom-value')).toBeInTheDocument()
       expect(screen.getByText('Custom')).toBeInTheDocument()
@@ -317,13 +371,13 @@ describe('SelectWithCustom', () => {
 
   describe('Edge cases', () => {
     it('should handle empty options array', () => {
-      render(<SelectWithCustom options={[]} />)
+      render(<SelectWithCustom options={[]} getOptionValue={getOptionValue} getOptionLabel={getOptionLabel} />)
 
       expect(screen.getByTestId('select')).toBeInTheDocument()
     })
 
     it('should handle undefined onValueChange', () => {
-      render(<SelectWithCustom options={mockOptions} />)
+      render(<SelectWithCustom options={mockOptions} getOptionValue={getOptionValue} getOptionLabel={getOptionLabel} />)
 
       const select = screen.getByTestId('select')
       expect(() => fireEvent.click(select)).not.toThrow()
@@ -357,13 +411,17 @@ describe('SelectWithCustom', () => {
 
   describe('Default value handling', () => {
     it('should use defaultValue when provided', () => {
-      render(<SelectWithCustom options={mockOptions} defaultValue="option2" />)
+      render(
+        <SelectWithCustom options={mockOptions} defaultValue="option2" getOptionValue={getOptionValue} getOptionLabel={getOptionLabel} />
+      )
 
       expect(screen.getByTestId('select')).toBeInTheDocument()
     })
 
     it('should handle defaultValue that matches an option', () => {
-      render(<SelectWithCustom options={mockOptions} defaultValue="option1" />)
+      render(
+        <SelectWithCustom options={mockOptions} defaultValue="option1" getOptionValue={getOptionValue} getOptionLabel={getOptionLabel} />
+      )
 
       // Should render in normal select mode, not custom mode
       expect(screen.getByTestId('select')).toBeInTheDocument()

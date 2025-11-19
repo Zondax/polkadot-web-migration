@@ -126,14 +126,15 @@ const MigratedAccountRows = ({ app, multisigAddresses, destinationAddressesStatu
             {balances.map((balance, balanceIndex) => (
               <div key={balance.type}>
                 {balanceIndex !== 0 && <hr className="border-gray-200 my-0" />}
-                <div className="py-4 px-8 flex items-center gap-1">
+                <div className="py-4 px-6 flex items-center gap-1">
                   <ExplorerLink
-                    value={balance.transaction?.destinationAddress || ''}
+                    value={balance.transaction?.destinationAddress?.address || ''}
                     appId={app.id as AppId}
                     explorerLinkType={ExplorerItemType.Address}
+                    tooltipBody={`${balance.transaction?.destinationAddress?.address} - ${balance.transaction?.destinationAddress?.path}`}
                   />
-                  {destinationAddressesStatus.find(address => address.address === balance.transaction?.destinationAddress)?.status ===
-                  VerificationStatus.VERIFIED ? (
+                  {destinationAddressesStatus.find(address => address.address === balance.transaction?.destinationAddress?.address)
+                    ?.status === VerificationStatus.VERIFIED ? (
                     <CustomTooltip tooltipBody="This address was verified on your device.">
                       <ShieldCheck className="h-4 w-4 text-green-500" />
                     </CustomTooltip>
