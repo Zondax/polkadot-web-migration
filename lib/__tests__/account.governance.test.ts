@@ -94,7 +94,7 @@ describe('Governance Functions', () => {
               target: { toString: () => '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty' },
               conviction: { toString: () => 'Locked3x' },
               balance: { toString: () => '1000000000000' },
-              prior: [{ toNumber: () => 100 }],
+              prior: [{ toNumber: () => 1000100 }],
             },
           })
         }
@@ -110,10 +110,10 @@ describe('Governance Functions', () => {
         target: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty',
         conviction: Conviction.Locked3x,
         balance: new BN('1000000000000'),
-        lockPeriod: 100,
+        lockPeriod: 1000100,
         trackId: 0,
         canUndelegate: true,
-        unlockAt: 1000100, // currentBlock (1000000) + lockPeriod (100)
+        unlockAt: 1000100, // prior[0] is the unlock block directly
       })
       expect(result?.totalLocked.toString()).toBe('1000000000000')
     })
