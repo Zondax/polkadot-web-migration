@@ -107,6 +107,13 @@ export function getPendingActions(params: GetPendingActionsParams): ActionType[]
     actionTypes.push(ActionType.GOVERNANCE)
   }
 
+  // 8. Governance refund action
+  // Show the action if there are ANY deposits (refundable or ongoing)
+  const hasGovernanceDeposits = (nativeBalance?.balance.reserved.governance?.deposits.length ?? 0) > 0
+  if (hasGovernanceDeposits) {
+    actionTypes.push(ActionType.GOVERNANCE_REFUND)
+  }
+
   return actionTypes
 }
 
@@ -258,6 +265,34 @@ export function buildPendingActions(actionTypes: ActionType[], params: GetPendin
             disabled: false,
           })
         }
+        break
+      }
+
+      case ActionType.GOVERNANCE_REFUND: {
+        const allDeposits = nativeBalance?.balance.reserved.governance?.deposits ?? []
+        const refundableDeposits = allDeposits.filter(d => d.canRefund)
+        const ongoingDeposits = allDeposits.filter(d => d.referendumStatus === 'ongoing')
+        const totalCount = allDeposits.length
+        const refundableCount = refundableDeposits.length
+
+        // Build tooltip based on deposit states
+        let tooltip = ''
+        if (refundableCount > 0 && ongoingDeposits.length > 0) {
+          tooltip = `${refundableCount} refundable deposit${refundableCount > 1 ? 's' : ''}, ${ongoingDeposits.length} ongoing`
+        } else if (refundableCount > 0) {
+          tooltip = `Reclaim ${refundableCount} refundable deposit${refundableCount > 1 ? 's' : ''}`
+        } else if (ongoingDeposits.length > 0) {
+          tooltip = `${ongoingDeposits.length} deposit${ongoingDeposits.length > 1 ? 's' : ''} in ongoing referendums (not yet refundable)`
+        } else {
+          tooltip = `${totalCount} deposit${totalCount > 1 ? 's' : ''} (not refundable)`
+        }
+
+        actions.push({
+          type: ActionType.GOVERNANCE_REFUND,
+          label: 'Refund Deposits',
+          tooltip,
+          disabled: refundableCount === 0, // Disable if no refundable deposits
+        })
         break
       }
     }
