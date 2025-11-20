@@ -49,7 +49,7 @@ describe('SubscanClient', () => {
       const client = new SubscanClient({ network: 'polkadot' })
       const result = await client.request('/test/endpoint', { key: 'test' })
 
-      expect(fetch).toHaveBeenCalledWith('https://polkadot.api.subscan.io/api/v2/test/endpoint', {
+      expect(fetch).toHaveBeenCalledWith('https://polkadot.api.subscan.io/api/test/endpoint', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -78,7 +78,7 @@ describe('SubscanClient', () => {
       })
       await client.request('/test/endpoint', { key: 'test' })
 
-      expect(fetch).toHaveBeenCalledWith('https://kusama.api.subscan.io/api/v2/test/endpoint', {
+      expect(fetch).toHaveBeenCalledWith('https://kusama.api.subscan.io/api/test/endpoint', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -268,7 +268,7 @@ describe('SubscanClient', () => {
         const client = new SubscanClient({ network, apiKey: 'test-key' })
         await client.request('/test', { key: 'test' })
 
-        expect(fetch).toHaveBeenCalledWith(`https://${network}.api.subscan.io/api/v2/test`, expect.any(Object))
+        expect(fetch).toHaveBeenCalledWith(`https://${network}.api.subscan.io/api/test`, expect.any(Object))
       }
     })
   })

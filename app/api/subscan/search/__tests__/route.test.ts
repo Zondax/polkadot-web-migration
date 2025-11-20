@@ -108,7 +108,7 @@ describe('/api/subscan/search/route', () => {
 
       expect(response.status).toBe(200)
       expect(data).toEqual(mockSubscanData)
-      expect(mockRequest).toHaveBeenCalledWith('/scan/search', {
+      expect(mockRequest).toHaveBeenCalledWith('/v2/scan/search', {
         key: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
       })
     })

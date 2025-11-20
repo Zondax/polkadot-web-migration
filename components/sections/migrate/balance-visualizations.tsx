@@ -5,8 +5,9 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import type { AppId, Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
-import { formatBalance } from '@/lib/utils'
-import type { ConvictionVotingInfo, Native, Reserved, Staking } from '@/state/types/ledger'
+import { cn, formatBalance } from '@/lib/utils'
+import { getGovernanceDepositBadgeProps } from '@/lib/utils/governance'
+import type { ConvictionVotingInfo, GovernanceDeposit, Native, Reserved, Staking } from '@/state/types/ledger'
 import { BN } from '@polkadot/util'
 import { LockClosedIcon } from '@radix-ui/react-icons'
 import { ArrowRightLeftIcon, BarChartIcon, Check, ClockIcon, Group, Hash, LockOpenIcon, User, UserCog } from 'lucide-react'
@@ -162,6 +163,35 @@ const ReservedDetails = ({ reservedData, token }: { reservedData: Reserved; toke
                 </span>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {reservedData.governance?.total.gtn(0) && (
+        <div className="flex flex-col gap-1">
+          {renderDetailsItem(
+            <LockClosedIcon className="w-4 h-4 text-polkadot-lime" />,
+            'Governance Deposit',
+            reservedData.governance.total,
+            token
+          )}
+          <div className="flex flex-col gap-1.5 px-2 max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            {reservedData.governance.deposits.map((deposit: GovernanceDeposit) => {
+              const { label, className } = getGovernanceDepositBadgeProps(deposit)
+              return (
+                <div key={`${deposit.type}-${deposit.referendumIndex}`} className={`${detailFlagStyle} bg-lime-50 border border-lime-200`}>
+                  <span className="flex items-center gap-1.5 min-w-0">
+                    <Hash className="w-3.5 h-3.5 text-lime-600 flex-shrink-0" />
+                    <span className="text-gray-700 capitalize">{deposit.type}:</span>
+                    <span className="text-gray-700">Ref #{deposit.referendumIndex}</span>
+                    <Badge className={cn(className, 'text-xs hover:bg-current/10')}>{label}</Badge>
+                  </span>
+                  <span className="font-mono font-medium text-sm flex-shrink-0">
+                    {formatBalance(deposit.deposit, token, token?.decimals, true)}
+                  </span>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

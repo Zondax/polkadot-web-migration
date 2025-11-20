@@ -11,6 +11,7 @@ vi.mock('@/lib/account', () => ({
   getProxyInfo: vi.fn(),
   getIndexInfo: vi.fn(),
   getMultisigAddresses: vi.fn(),
+  getGovernanceDeposits: vi.fn(),
 }))
 
 vi.mock('@/lib/utils/error', () => ({
@@ -75,7 +76,9 @@ describe('Account Processing Service', () => {
 
   describe('processAccountsForApp', () => {
     it('should process accounts for an app successfully', async () => {
-      const { getBalance, getIdentityInfo, getProxyInfo, getIndexInfo, getMultisigAddresses } = await import('@/lib/account')
+      const { getBalance, getIdentityInfo, getProxyInfo, getIndexInfo, getMultisigAddresses, getGovernanceDeposits } = await import(
+        '@/lib/account'
+      )
 
       const mockBalance = {
         balances: [],
@@ -88,6 +91,7 @@ describe('Account Processing Service', () => {
       vi.mocked(getProxyInfo).mockResolvedValue(undefined)
       vi.mocked(getIndexInfo).mockResolvedValue(undefined)
       vi.mocked(getMultisigAddresses).mockResolvedValue([])
+      vi.mocked(getGovernanceDeposits).mockResolvedValue([])
 
       const addresses = [mockAddress]
       const polkadotAddresses = ['5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty']

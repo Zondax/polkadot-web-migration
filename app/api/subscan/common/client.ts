@@ -147,7 +147,7 @@ export class SubscanClient {
   }
 
   constructor(config: SubscanClientConfig) {
-    this.baseUrl = `https://${config.network}.api.subscan.io/api/v2`
+    this.baseUrl = `https://${config.network}.api.subscan.io/api`
     this.headers = {
       'Content-Type': 'application/json',
       ...(config.apiKey && { 'X-API-Key': config.apiKey }),
