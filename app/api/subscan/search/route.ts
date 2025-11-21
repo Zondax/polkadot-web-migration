@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       apiKey: process.env.SUBSCAN_API_KEY,
     })
 
-    const data = await client.request('/scan/search', { key: address })
+    const data = await client.request('/v2/scan/search', { key: address })
 
     return NextResponse.json(data)
   } catch (error) {
