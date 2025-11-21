@@ -18,16 +18,14 @@ concurrency:
 
 jobs:
   ts-checks:
-    uses: zondax/_workflows/.github/workflows/_checks-ts.yaml@main
-    with:
-      package_manager: pnpm
+    uses: zondax/_workflows/.github/workflows/_checks-ts.yaml@v4
 
   logo-size-check:
     uses: ./.github/workflows/logo-check.yml
 
   playwright-tests:
     needs: [ts-checks, logo-size-check]
-    uses: zondax/_workflows/.github/workflows/_checks-playwright.yaml@main
+    uses: zondax/_workflows/.github/workflows/_checks-playwright.yaml@v4
     secrets: 
       env_local: |
         # Project-specific variables
