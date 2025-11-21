@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import type { AppId, Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { formatBalance } from '@/lib/utils'
-import type { ConvictionVotingInfo, Native, Reserved, Staking } from '@/state/types/ledger'
+import type { ConvictionVotingInfo, GovernanceDeposit, Native, Reserved, Staking } from '@/state/types/ledger'
 import { BN } from '@polkadot/util'
 import { LockClosedIcon } from '@radix-ui/react-icons'
 import { ArrowRightLeftIcon, BarChartIcon, Check, ClockIcon, Group, Hash, LockOpenIcon, User, UserCog } from 'lucide-react'
@@ -159,6 +159,42 @@ const ReservedDetails = ({ reservedData, token }: { reservedData: Reserved; toke
                   <Group className="w-3.5 h-3.5 text-lime-600 flex-shrink-0" />
                   <span className="text-gray-700">Call Hash:</span>
                   <ExplorerLink value={deposit.callHash} disableLink disableTooltip truncate size="xs" />
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {reservedData.governance?.total.gtn(0) && (
+        <div className="flex flex-col gap-1">
+          {renderDetailsItem(
+            <LockClosedIcon className="w-4 h-4 text-polkadot-lime" />,
+            'Governance Deposit',
+            reservedData.governance.total,
+            token
+          )}
+          <div className="flex flex-col gap-1.5 px-2 max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            {reservedData.governance.deposits.map((deposit: GovernanceDeposit) => (
+              <div key={`${deposit.type}-${deposit.referendumIndex}`} className={`${detailFlagStyle} bg-lime-50 border border-lime-200`}>
+                <span className="flex items-center gap-1.5 min-w-0">
+                  <Hash className="w-3.5 h-3.5 text-lime-600 flex-shrink-0" />
+                  <span className="text-gray-700 capitalize">{deposit.type}:</span>
+                  <span className="text-gray-700">Ref #{deposit.referendumIndex}</span>
+                  {deposit.canRefund && (
+                    <Badge variant="light-gray" className="bg-green-100 text-green-800 border-green-300 text-xs hover:bg-green-100">
+                      Refundable
+                    </Badge>
+                  )}
+                  {!deposit.canRefund && deposit.referendumStatus === 'ongoing' && (
+                    <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-100 text-xs">Ongoing</Badge>
+                  )}
+                  {!deposit.canRefund && deposit.referendumStatus !== 'ongoing' && (
+                    <Badge className="bg-red-100 text-red-800 border-red-300 hover:bg-red-100 text-xs">Not Refundable</Badge>
+                  )}
+                </span>
+                <span className="font-mono font-medium text-sm flex-shrink-0">
+                  {formatBalance(deposit.deposit, token, token?.decimals, true)}
                 </span>
               </div>
             ))}

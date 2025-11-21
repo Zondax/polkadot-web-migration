@@ -85,6 +85,8 @@ export enum InternalErrorType {
   CONVICTION_LOCK_ACTIVE = 'conviction_lock_active',
   TRANSACTION_FAILED = 'transaction_failed',
   OPERATION_CANCELLED = 'operation_cancelled',
+  GOVERNANCE_REFUND_ERROR = 'governance_refund_error',
+  GET_GOVERNANCE_REFUND_FEE_ERROR = 'get_governance_refund_fee_error',
 }
 
 /**
@@ -527,5 +529,16 @@ export const errorDetails: ErrorDetailsMap = {
     title: 'Transaction Failed',
     description: 'The transaction has failed.',
     content: 'Please try again later.',
+  },
+  governance_refund_error: {
+    title: 'Governance Refund Failed',
+    description: 'Unable to refund your governance deposits.',
+    content:
+      'This may be due to network issues or the deposits may not be refundable yet. Please verify the referendum status and try again.',
+  },
+  get_governance_refund_fee_error: {
+    title: 'Refund Fee Calculation Failed',
+    description: 'Unable to calculate the fee for refunding your governance deposits.',
+    content: 'This may be a temporary network issue. Please try again in a moment.',
   },
 }

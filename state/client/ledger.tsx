@@ -6,6 +6,8 @@ import {
   prepareAsMultiTx,
   prepareNestedAsMultiTx,
   prepareNestedMultisigTx,
+  prepareRefundDecisionDepositTransaction,
+  prepareRefundSubmissionDepositTransaction,
   prepareRemoveAccountIndexTransaction,
   prepareRemoveIdentityTransaction,
   prepareRemoveProxiesTransaction,
@@ -34,6 +36,7 @@ import { InternalErrorType } from 'config/errors'
 import {
   TransactionStatus,
   type Address,
+  type GovernanceDeposit,
   type MultisigAddress,
   type PreTxInfo,
   type TransactionDetails,
@@ -1241,6 +1244,134 @@ export const ledgerClient = {
           return estimatedFee
         },
         { errorCode: InternalErrorType.GET_CONVICTION_VOTING_INFO_ERROR, operation: 'getGovernanceUnlockFee', context: { appId, address } }
+      )
+    } catch {
+      return undefined
+    }
+  },
+
+  async refundGovernanceDeposits(
+    appId: AppId,
+    address: string,
+    path: string,
+    deposits: GovernanceDeposit[],
+    updateTxStatus: UpdateTransactionStatus
+  ) {
+    const appConfig = appsConfigs.get(appId)
+    if (!appConfig?.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
+      throw new InternalError(InternalErrorType.APP_CONFIG_NOT_FOUND)
+    }
+
+    return withErrorHandling(
+      async () => {
+        const { api } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
+        if (!api) {
+          throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
+        }
+
+        updateTxStatus(TransactionStatus.PREPARING_TX)
+
+        // Prepare all refund transactions and batch them
+        const refundTxs = await Promise.all(
+          deposits.map(async deposit => {
+            if (deposit.type === 'submission') {
+              return await prepareRefundSubmissionDepositTransaction(api, deposit.referendumIndex)
+            }
+            return await prepareRefundDecisionDepositTransaction(api, deposit.referendumIndex)
+          })
+        )
+
+        // Filter out any undefined transactions
+        const validRefundTxs = refundTxs.filter((tx): tx is SubmittableExtrinsic<'promise', ISubmittableResult> => tx !== undefined)
+
+        if (validRefundTxs.length === 0) {
+          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
+        }
+
+        // Batch all refund transactions into a single transaction
+        // We use batchAll instead of batch to ensure atomicity:
+        // - batchAll: If ANY transaction fails, the entire batch is reverted (atomic)
+        // - batch: Transactions execute independently, some may succeed while others fail
+        // For refunds, we want atomicity to maintain consistent state
+        const batchTx = validRefundTxs.length === 1 ? validRefundTxs[0] : api.tx.utility.batchAll(validRefundTxs)
+
+        // Prepare transaction payload
+        const preparedTx = await prepareTransactionPayload(api, address, appConfig, batchTx)
+        if (!preparedTx) {
+          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
+        }
+        const { transfer, payload, metadataHash, nonce, proof1, payloadBytes } = preparedTx
+
+        // Get chain ID from app config
+        const chainId = appConfig.token.symbol.toLowerCase()
+
+        updateTxStatus(TransactionStatus.SIGNING)
+
+        // Sign transaction with Ledger
+        const { signature } = await ledgerService.signTransaction(path, payloadBytes, chainId, proof1)
+        if (!signature) {
+          throw new InternalError(InternalErrorType.SIGN_TX_ERROR)
+        }
+
+        // Create signed extrinsic
+        createSignedExtrinsic(api, transfer, address, signature, payload, nonce, metadataHash)
+
+        updateTxStatus(TransactionStatus.SUBMITTING)
+
+        // Create and wait for transaction to be submitted
+        await submitAndHandleTransaction(transfer, updateTxStatus, api)
+      },
+      {
+        errorCode: InternalErrorType.GOVERNANCE_REFUND_ERROR,
+        operation: 'refundGovernanceDeposits',
+        context: { appId, address, path, depositCount: deposits.length },
+      }
+    )
+  },
+
+  async getGovernanceRefundFee(appId: AppId, address: string, deposits: GovernanceDeposit[]): Promise<BN | undefined> {
+    const appConfig = appsConfigs.get(appId)
+    if (!appConfig?.rpcEndpoints || appConfig.rpcEndpoints.length === 0) {
+      return undefined
+    }
+
+    try {
+      return await withErrorHandling(
+        async () => {
+          const { api } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
+          if (!api) {
+            throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
+          }
+
+          // Prepare all refund transactions
+          const refundTxs = await Promise.all(
+            deposits.map(async deposit => {
+              if (deposit.type === 'submission') {
+                return await prepareRefundSubmissionDepositTransaction(api, deposit.referendumIndex)
+              }
+              return await prepareRefundDecisionDepositTransaction(api, deposit.referendumIndex)
+            })
+          )
+
+          // Filter out any undefined transactions
+          const validRefundTxs = refundTxs.filter(tx => tx !== undefined)
+
+          if (validRefundTxs.length === 0) {
+            throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
+          }
+
+          // Batch all refund transactions if multiple
+          const batchTx = validRefundTxs.length === 1 ? validRefundTxs[0] : api.tx.utility.batchAll(validRefundTxs)
+
+          const estimatedFee = await getTxFee(batchTx, address)
+
+          return estimatedFee
+        },
+        {
+          errorCode: InternalErrorType.GET_GOVERNANCE_REFUND_FEE_ERROR,
+          operation: 'getGovernanceRefundFee',
+          context: { appId, address, depositCount: deposits.length },
+        }
       )
     } catch {
       return undefined

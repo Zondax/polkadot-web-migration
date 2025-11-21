@@ -73,3 +73,60 @@ export async function getMultisigInfo(address: string, network: string): Promise
   // If no multisig data found, return undefined
   return undefined
 }
+
+/**
+ * Helper function to fetch all referendum indices
+ * @param network The network name for Subscan
+ * @param address The address to check for referendums
+ * @returns Array of referendum indices
+ */
+export async function getReferendumIndices(network: string, address: string): Promise<number[]> {
+  try {
+    const indices: number[] = []
+    let page = 0
+    const pageSize = 100 // Fetch 100 referendums per page
+    let hasMore = true
+
+    while (hasMore) {
+      const response = await fetch('/api/subscan/referenda', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          network,
+          page,
+          row: pageSize,
+          address,
+        }),
+      })
+
+      if (!response.ok) {
+        break
+      }
+
+      const data = await response.json()
+
+      if (data.code !== 0) {
+        break
+      }
+
+      if (data.data?.list && data.data.list.length > 0) {
+        // Extract referendum indices from the list
+        const pageIndices = data.data.list.map((item: any) => item.referendum_index)
+        indices.push(...pageIndices)
+
+        // Check if there are more pages
+        const totalCount = data.data.count || 0
+        hasMore = indices.length < totalCount
+        page++
+      } else {
+        hasMore = false
+      }
+    }
+
+    return indices
+  } catch (error) {
+    return []
+  }
+}

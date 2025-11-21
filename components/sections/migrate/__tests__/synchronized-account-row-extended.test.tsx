@@ -33,6 +33,11 @@ vi.mock('lucide-react', () => ({
       🕒
     </div>
   ),
+  DollarSign: ({ size, className }: any) => (
+    <div data-testid="dollar-sign" className={className}>
+      💵
+    </div>
+  ),
   Group: () => <div data-testid="group">👥</div>,
   Hash: () => <div data-testid="hash">#</div>,
   Info: () => <div data-testid="info">ℹ</div>,
