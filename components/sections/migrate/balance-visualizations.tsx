@@ -2,22 +2,15 @@
 
 import { ExplorerLink } from '@/components/ExplorerLink'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
 import type { AppId, Token } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
 import { formatBalance } from '@/lib/utils'
 import type { ConvictionVotingInfo, Native, Reserved, Staking } from '@/state/types/ledger'
 import { BN } from '@polkadot/util'
 import { LockClosedIcon } from '@radix-ui/react-icons'
-import { ArrowRightLeftIcon, BarChartIcon, Check, ClockIcon, Group, Hash, LockOpenIcon, User, UserCog } from 'lucide-react'
+import { BarChartIcon, Check, ClockIcon, Group, Hash, LockOpenIcon, User, UserCog } from 'lucide-react'
 import type { ReactNode } from 'react'
-
-export enum BalanceType {
-  Transferable = 'transferable',
-  Staking = 'staking',
-  Reserved = 'reserved',
-  Governance = 'governance',
-}
+import { BALANCE_TYPE_CONFIG, BalanceType } from './balance-config'
 
 interface NativeBalanceVisualizationProps {
   data: Native
@@ -49,26 +42,28 @@ const BalanceCard = ({ value, total, label, icon, colorScheme, details, hidePerc
   const percentage = !total || total.isZero() ? '0.00' : Number(value.div(total).mul(new BN(100)).toString()).toFixed(2)
 
   return (
-    <Card
-      className={`w-full min-w-[150px] p-4 bg-linear-to-br ${colorScheme.gradient} ${colorScheme.border} transition-all duration-300 hover:shadow-md`}
+    <div
+      className={`w-full bg-gradient-to-br ${colorScheme.gradient} rounded-lg border ${colorScheme.border} transition-all duration-200 hover:shadow-md`}
     >
-      <CardContent className="p-0 flex flex-col items-center justify-between min-h-[150px]">
-        <div className="flex flex-col items-center justify-center">
-          <div className={`${colorScheme.iconColor} mb-2`}>{icon}</div>
-          <div className="text-2xl font-mono text-center font-semibold mb-1">{formatBalance(value, token, token?.decimals, true)}</div>
-          <div className="text-sm text-gray-600 mb-2">{label}</div>
+      {/* Compact header bar */}
+      <div className="flex items-center justify-between px-3 py-1.5 bg-white/50 backdrop-blur-sm border-b border-gray-200/50 rounded-t-lg">
+        <div className="flex items-center gap-1.5">
+          <div className={`${colorScheme.iconColor}`}>{icon}</div>
+          <span className="text-sm font-semibold text-gray-700">{label}</span>
         </div>
-        {details && <div className="w-full mt-1">{details}</div>}
-        {!hidePercentage && (
-          <Badge
-            variant="outline"
-            className={`${colorScheme.badgeBg} ${colorScheme.badgeText} ${colorScheme.badgeBorder} text-xs font-medium px-3 py-0.5 rounded-full mt-2`}
-          >
-            {percentage}%
-          </Badge>
-        )}
-      </CardContent>
-    </Card>
+        {!hidePercentage && <span className="text-xs font-medium text-gray-600">{percentage}%</span>}
+      </div>
+
+      {/* Main balance value */}
+      <div className={`px-3 py-2 ${!details ? 'rounded-b-lg' : ''}`}>
+        <div className="text-base sm:text-lg font-mono font-bold text-gray-900 break-words">
+          {formatBalance(value, token, token?.decimals, true)}
+        </div>
+      </div>
+
+      {/* Expandable details */}
+      {details && <div className="border-t border-gray-200/50 bg-white/30 rounded-b-lg px-3">{details}</div>}
+    </div>
   )
 }
 
@@ -171,37 +166,17 @@ const ReservedDetails = ({ reservedData, token }: { reservedData: Reserved; toke
 
 const GovernanceDetails = ({ convictionVoting, token, appId }: { convictionVoting: ConvictionVotingInfo; token: Token; appId: AppId }) => {
   if (!convictionVoting) return null
-  const { votes = [], delegations = [], totalLocked } = convictionVoting
+  const { delegations = [], totalLocked } = convictionVoting
   return (
     <div className="w-full text-sm border-t border-gray-100 pt-2 mb-2 flex flex-col gap-2">
-      {totalLocked?.gtn(0) && renderDetailsItem(<LockClosedIcon className="w-4 h-4 text-polkadot-magenta" />, 'Locked', totalLocked, token)}
+      {totalLocked?.gtn(0) && renderDetailsItem(<LockClosedIcon className="w-4 h-4 text-storm-700" />, 'Locked', totalLocked, token)}
 
-      {votes.length > 0 && (
-        <div className="flex flex-col gap-1">
-          <div className="font-semibold text-xs text-polkadot-magenta">Votes</div>
-          <div className="flex flex-col gap-1 px-1 max-h-48 overflow-y-auto">
-            {votes.map((vote: any) => (
-              <div key={vote.referendumIndex} className={`${detailFlagStyle} bg-polkadot-magenta/10`}>
-                <span className="flex items-center gap-1.5">
-                  <Hash className="w-3.5 h-3.5 text-gray-600" />
-                  Ref #{vote.referendumIndex}
-                  <Badge variant="outline" className="text-xs">
-                    {vote.vote.conviction}
-                  </Badge>
-                  <span className="ml-2 text-xs">{vote.vote.aye ? 'Aye' : 'Nay'}</span>
-                </span>
-                <span className="font-mono font-medium">{formatBalance(vote.vote.balance, token, token?.decimals, true)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
       {delegations.length > 0 && (
         <div className="flex flex-col gap-1">
-          <div className="font-semibold text-xs text-polkadot-magenta">Delegations</div>
+          <div className="font-semibold text-xs text-storm-700">Delegations</div>
           <div className="flex flex-col gap-1 px-1 max-h-48 overflow-y-auto">
             {delegations.map((delegation: any) => (
-              <div key={`${delegation.trackId}-${delegation.target}`} className={`${detailFlagStyle} bg-polkadot-magenta/5`}>
+              <div key={`${delegation.trackId}-${delegation.target}`} className={`${detailFlagStyle} bg-gray-100`}>
                 <span className="flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5 text-gray-600" />
                   <ExplorerLink value={delegation.target} explorerLinkType={ExplorerItemType.Address} appId={appId} size="xs" truncate />
@@ -230,76 +205,40 @@ export const NativeBalanceVisualization = ({
     {
       id: BalanceType.Transferable,
       value: data.transferable,
-      label: 'Transferable',
-      icon: <ArrowRightLeftIcon className="w-6 h-6" />,
-      colorScheme: {
-        gradient: 'from-polkadot-green/5 to-polkadot-green/15',
-        border: 'border border-polkadot-green/20 hover:border-polkadot-green/40',
-        iconColor: 'text-polkadot-green',
-        badgeBg: 'bg-polkadot-green/70',
-        badgeText: 'text-black font-semibold',
-        badgeBorder: 'border-polkadot-green/30',
-      },
+      label: BALANCE_TYPE_CONFIG[BalanceType.Transferable].label,
+      icon: BALANCE_TYPE_CONFIG[BalanceType.Transferable].icon,
+      colorScheme: BALANCE_TYPE_CONFIG[BalanceType.Transferable].colors.card,
     },
     {
       id: BalanceType.Staking,
       value: data.staking?.total || new BN(0),
-      label: 'Staked',
-      icon: <BarChartIcon className="w-6 h-6" />,
-      colorScheme: {
-        gradient: 'from-polkadot-cyan/5 to-polkadot-cyan/15',
-        border: 'border border-polkadot-cyan/20 hover:border-polkadot-cyan/40',
-        iconColor: 'text-polkadot-cyan',
-        badgeBg: 'bg-polkadot-cyan/70',
-        badgeText: 'text-black font-semibold',
-        badgeBorder: 'border-polkadot-cyan/30',
-      },
+      label: BALANCE_TYPE_CONFIG[BalanceType.Staking].label,
+      icon: BALANCE_TYPE_CONFIG[BalanceType.Staking].icon,
+      colorScheme: BALANCE_TYPE_CONFIG[BalanceType.Staking].colors.card,
       details: data.staking && <StakingDetails stakingData={data.staking} token={token} />,
     },
     {
       id: BalanceType.Reserved,
       value: data.reserved.total,
-      label: 'Reserved',
-      icon: <LockClosedIcon className="w-6 h-6" />,
-      colorScheme: {
-        gradient: 'from-polkadot-lime/5 to-polkadot-lime/15',
-        border: 'border border-polkadot-lime/20 hover:border-polkadot-lime/40',
-        iconColor: 'text-polkadot-lime',
-        badgeBg: 'bg-polkadot-lime/70',
-        badgeText: 'text-black font-semibold',
-        badgeBorder: 'border-polkadot-lime/30',
-      },
+      label: BALANCE_TYPE_CONFIG[BalanceType.Reserved].label,
+      icon: BALANCE_TYPE_CONFIG[BalanceType.Reserved].icon,
+      colorScheme: BALANCE_TYPE_CONFIG[BalanceType.Reserved].colors.card,
       details: <ReservedDetails reservedData={data.reserved} token={token} />,
     },
     {
       id: BalanceType.Governance,
       value: data.convictionVoting?.totalLocked || new BN(0),
-      label: 'Governance',
-      icon: <Group className="w-6 h-6" />,
-      colorScheme: {
-        gradient: 'from-polkadot-magenta/5 to-polkadot-magenta/15',
-        border: 'border border-polkadot-magenta/20 hover:border-polkadot-magenta/40',
-        iconColor: 'text-polkadot-magenta',
-        badgeBg: 'bg-polkadot-magenta/70',
-        badgeText: 'text-black font-semibold',
-        badgeBorder: 'border-polkadot-magenta/30',
-      },
+      label: BALANCE_TYPE_CONFIG[BalanceType.Governance].label,
+      icon: BALANCE_TYPE_CONFIG[BalanceType.Governance].icon,
+      colorScheme: BALANCE_TYPE_CONFIG[BalanceType.Governance].colors.card,
       details: data.convictionVoting && <GovernanceDetails convictionVoting={data.convictionVoting} token={token} appId={appId} />,
     },
   ]
 
   const filteredBalanceTypes = balanceTypes.filter(type => types.includes(type.id))
-  // The properties can't be dynamic in tailwind, so we need to use a record
-  type GridColumnCount = 1 | 2 | 3 | 4
-  const gridCols: Record<GridColumnCount, string> = {
-    1: 'sm:grid-cols-1',
-    2: 'sm:grid-cols-2',
-    3: 'sm:grid-cols-3',
-    4: 'sm:grid-cols-4',
-  }
 
   return (
-    <div className={`grid grid-cols-1 ${gridCols[filteredBalanceTypes.length as GridColumnCount]} gap-3 p-2`}>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-2">
       {filteredBalanceTypes.map(type => (
         <BalanceCard
           key={type.label}

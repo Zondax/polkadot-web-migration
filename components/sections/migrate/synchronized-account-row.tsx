@@ -20,8 +20,8 @@ import { AlertCircle, AlertTriangle, Banknote, Check, Group, Hash, Info, KeyRoun
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Collections } from 'state/ledger'
 import { ActionType, type Address, type AddressBalance, type MultisigAddress, type MultisigMember } from 'state/types/ledger'
-import { BalanceHoverCard, NativeBalanceHoverCard } from './balance-hover-card'
-import { BalanceType } from './balance-visualizations'
+import { BalanceHoverCard } from './balance-hover-card'
+import { BalanceSummary } from './balance-summary'
 import DestinationAddressSelect from './destination-address-select'
 import ApproveMultisigCallDialog from './dialogs/approve-multisig-call-dialog'
 import GovernanceUnlockDialog from './dialogs/governance-unlock-dialog'
@@ -82,7 +82,6 @@ const SynchronizedAccountRow = ({
   const isNative = isNativeBalance(balance)
   const stakingActive: BN | undefined = isNative ? balance?.balance.staking?.active : undefined
   const maxUnstake: BN = stakingActive ?? new BN(0)
-  const totalBalance: BN = isNative ? balance.balance.total : new BN(0)
   const isMultisigMember: boolean = (account.memberMultisigAddresses && account.memberMultisigAddresses.length > 0) ?? false
   const isMultisigAddress: boolean = isMultisigAddressFunction(account)
   const internalMultisigMembers: MultisigMember[] = (account as MultisigAddress).members?.filter(member => member.internal) ?? []
@@ -239,19 +238,6 @@ const SynchronizedAccountRow = ({
   }
 
   const transferableBalance: BN = isNative && balance?.balance.transferable ? balance.balance.transferable : new BN(0)
-
-  const renderTransferableBalance = () => {
-    const balances: AddressBalance[] = balance ? [balance] : []
-
-    return (
-      <div className="flex flex-row items-center justify-end gap-2">
-        <CustomTooltip tooltipBody={formatBalance(transferableBalance, token, token?.decimals, true)}>
-          <span className="font-mono">{formatBalance(transferableBalance, token)}</span>
-        </CustomTooltip>
-        {!isNative ? <BalanceHoverCard balances={balances} collections={collections} token={token} appId={appId} isMigration /> : null}
-      </div>
-    )
-  }
 
   const tooltipAddress = (): React.ReactNode => {
     const items: TooltipItem[] = [
@@ -455,6 +441,22 @@ const SynchronizedAccountRow = ({
     )
   }
 
+  const renderBalance = () => {
+    if (isNative && balance?.balance) {
+      return <BalanceSummary balance={balance.balance} token={token} appId={appId} />
+    }
+
+    if (balance !== undefined) {
+      return (
+        <div className="flex flex-row items-center justify-end">
+          <BalanceHoverCard balances={[balance]} collections={collections} token={token} appId={appId} isMigration />
+        </div>
+      )
+    }
+
+    return '-'
+  }
+
   const renderAction = (action: Action): React.ReactNode => {
     const button = (
       <Button key={action.label} variant={action.variant ?? 'secondary'} size="sm" onClick={action.onClick} disabled={action.disabled}>
@@ -475,9 +477,9 @@ const SynchronizedAccountRow = ({
 
   return (
     <TableRow key={`${account.address ?? accountIndex}-${balance?.type}`}>
-      {/* Source Address */}
+      {/* Source Address - Maximum width includes all possible icons */}
       {isFirst && (
-        <TableCell className="py-2 text-sm" rowSpan={rowSpan}>
+        <TableCell className="py-2 text-sm min-w-[360px]" rowSpan={rowSpan}>
           <div className="flex items-center gap-2">
             {isCheckboxDisabled ? (
               <CustomTooltip tooltipBody="Cannot select this account because there are pending multisig calls that need approval from external signers">
@@ -518,7 +520,7 @@ const SynchronizedAccountRow = ({
         </TableCell>
       )}
       {/* Destination Address */}
-      <TableCell className="py-2 text-sm">
+      <TableCell className="py-2 text-sm min-w-[350px] max-w-[350px]">
         {balance !== undefined && balanceIndex !== undefined ? (
           <DestinationAddressSelect
             appId={appId}
@@ -537,42 +539,8 @@ const SynchronizedAccountRow = ({
       {isMultisigAddress && internalMultisigMembers.length > 0 && (
         <TableCell className="py-2 text-sm">{renderMultisigSignatoryAddress()}</TableCell>
       )}
-      {/* Total Balance */}
-      <TableCell className="py-2 text-sm text-right w-1/4 font-mono">
-        {balance !== undefined ? (
-          <CustomTooltip tooltipBody={formatBalance(totalBalance, token, token?.decimals, true)}>
-            <span>{formatBalance(totalBalance, token)}</span>
-          </CustomTooltip>
-        ) : (
-          '-'
-        )}
-      </TableCell>
-      {/* Transferable */}
-      <TableCell className="py-2 text-sm text-right w-1/4">{balance !== undefined ? renderTransferableBalance() : '-'}</TableCell>
-      {/* Staked */}
-      <TableCell className="py-2 text-sm text-right w-1/4">
-        {isNative && balance?.balance.staking?.total?.gt(new BN(0)) ? (
-          <NativeBalanceHoverCard balance={balance.balance} token={token} type={BalanceType.Staking} appId={appId} />
-        ) : (
-          '-'
-        )}
-      </TableCell>
-      {/* Reserved */}
-      <TableCell className="py-2 text-sm text-right w-1/4">
-        {isNative && balance?.balance.reserved?.total?.gt(new BN(0)) ? (
-          <NativeBalanceHoverCard balance={balance.balance} token={token} type={BalanceType.Reserved} appId={appId} />
-        ) : (
-          '-'
-        )}
-      </TableCell>
-      {/* Governance */}
-      <TableCell className="py-2 text-sm text-right w-1/4">
-        {isNative && balance?.balance.convictionVoting?.totalLocked?.gt(new BN(0)) ? (
-          <NativeBalanceHoverCard balance={balance.balance} token={token} type={BalanceType.Governance} appId={appId} />
-        ) : (
-          '-'
-        )}
-      </TableCell>
+      {/* Balance */}
+      <TableCell className="py-2 text-sm text-right min-w-[400px]">{renderBalance()}</TableCell>
       {/* Actions - Only for the first account */}
       <TableCell>
         {isFirst && (
