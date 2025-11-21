@@ -23,6 +23,13 @@ vi.mock('@polkadot-api/merkleize-metadata', () => ({
 // Use imported mockAppConfig
 const mockAppConfig = importedMockAppConfig
 
+// Mock receiver address
+const mockReceiverAddress = {
+  address: 'receiver',
+  path: "m/44'/354'/0'/0'/0'",
+  pubKey: '0x00',
+}
+
 describe('prepareTransaction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -61,17 +68,17 @@ describe('prepareTransaction', () => {
       {
         type: BalanceType.NATIVE,
         balance: { ...mockFreeNativeBalance, transferable: new BN(100) },
-        transaction: { destinationAddress: 'receiver' },
+        transaction: { destinationAddress: mockReceiverAddress },
       },
       {
         type: BalanceType.NFT,
         balance: [mockNft1],
-        transaction: { destinationAddress: 'receiver' },
+        transaction: { destinationAddress: mockReceiverAddress },
       },
       {
         type: BalanceType.UNIQUE,
         balance: [{ ...mockNft2, isUnique: true }],
-        transaction: { destinationAddress: 'receiver' },
+        transaction: { destinationAddress: mockReceiverAddress },
       },
     ]
     await expect(prepareTransaction(api as unknown as ApiPromise, 'sender', balances, new BN(105), mockAppConfig)).rejects.toThrow(
@@ -93,12 +100,12 @@ describe('prepareTransaction', () => {
       {
         type: BalanceType.NFT,
         balance: [mockNft1],
-        transaction: { destinationAddress: 'receiver' },
+        transaction: { destinationAddress: mockReceiverAddress },
       },
       {
         type: BalanceType.UNIQUE,
         balance: [{ ...mockNft2, isUnique: true }],
-        transaction: { destinationAddress: 'receiver' },
+        transaction: { destinationAddress: mockReceiverAddress },
       },
     ]
     await expect(prepareTransaction(api as unknown as ApiPromise, 'sender', balances, new BN(5), mockAppConfig)).rejects.toThrow(
@@ -125,17 +132,17 @@ describe('prepareTransaction', () => {
       {
         type: BalanceType.NATIVE,
         balance: { ...mockFreeNativeBalance, transferable: new BN(10) },
-        transaction: { destinationAddress: 'receiver' },
+        transaction: { destinationAddress: mockReceiverAddress },
       },
       {
         type: BalanceType.NFT,
         balance: [mockNft1],
-        transaction: { destinationAddress: 'receiver' },
+        transaction: { destinationAddress: mockReceiverAddress },
       },
       {
         type: BalanceType.UNIQUE,
         balance: [{ ...mockNft2, isUnique: true }],
-        transaction: { destinationAddress: 'receiver' },
+        transaction: { destinationAddress: mockReceiverAddress },
       },
     ]
     await expect(prepareTransaction(api as unknown as ApiPromise, 'sender', balances, new BN(10), mockAppConfig)).rejects.toThrow(
@@ -160,17 +167,17 @@ describe('prepareTransaction', () => {
       {
         type: BalanceType.NATIVE,
         balance: { ...mockFreeNativeBalance, transferable: new BN(100) },
-        transaction: { destinationAddress: 'receiver' },
+        transaction: { destinationAddress: mockReceiverAddress },
       },
       {
         type: BalanceType.NFT,
         balance: [mockNft1],
-        transaction: { destinationAddress: 'receiver' },
+        transaction: { destinationAddress: mockReceiverAddress },
       },
       {
         type: BalanceType.UNIQUE,
         balance: [{ ...mockNft2, isUnique: true }],
-        transaction: { destinationAddress: 'receiver' },
+        transaction: { destinationAddress: mockReceiverAddress },
       },
     ]
     const result = await prepareTransaction(api as unknown as ApiPromise, 'sender', balances, new BN(200), mockAppConfig)
@@ -191,12 +198,12 @@ describe('prepareTransaction', () => {
       {
         type: BalanceType.NFT,
         balance: [mockNft1],
-        transaction: { destinationAddress: 'receiver' },
+        transaction: { destinationAddress: mockReceiverAddress },
       },
       {
         type: BalanceType.UNIQUE,
         balance: [{ ...mockNft2, isUnique: true }],
-        transaction: { destinationAddress: 'receiver' },
+        transaction: { destinationAddress: mockReceiverAddress },
       },
     ]
     const result = await prepareTransaction(api as unknown as ApiPromise, 'sender', balances, new BN(100), mockAppConfig)
@@ -222,17 +229,17 @@ describe('prepareTransaction', () => {
       {
         type: BalanceType.NATIVE,
         balance: { ...mockFreeNativeBalance, transferable: new BN(110) },
-        transaction: { destinationAddress: 'receiver' },
+        transaction: { destinationAddress: mockReceiverAddress },
       },
       {
         type: BalanceType.NFT,
         balance: [mockNft1],
-        transaction: { destinationAddress: 'receiver' },
+        transaction: { destinationAddress: mockReceiverAddress },
       },
       {
         type: BalanceType.UNIQUE,
         balance: [{ ...mockNft2, isUnique: true }],
-        transaction: { destinationAddress: 'receiver' },
+        transaction: { destinationAddress: mockReceiverAddress },
       },
     ]
     const result = await prepareTransaction(api as unknown as ApiPromise, 'sender', balances, new BN(110), mockAppConfig)

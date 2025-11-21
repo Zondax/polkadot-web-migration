@@ -139,10 +139,11 @@ export const MigrationProgressDialog = observer(function MigrationProgressDialog
                       <TableCell>
                         {balance.transaction?.destinationAddress ? (
                           <ExplorerLink
-                            value={balance.transaction.destinationAddress}
+                            value={balance.transaction.destinationAddress.address}
                             appId={migratingItem.appId}
                             explorerLinkType={ExplorerItemType.Address}
                             size="xs"
+                            tooltipBody={`${balance.transaction.destinationAddress.address} - ${balance.transaction.destinationAddress.path}`}
                           />
                         ) : (
                           <span className="text-gray-400">-</span>

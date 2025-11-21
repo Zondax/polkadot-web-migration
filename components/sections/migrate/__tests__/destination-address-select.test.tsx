@@ -3,7 +3,7 @@ import type { AddressBalance } from 'state/types/ledger'
 import { BalanceType } from 'state/types/ledger'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ExplorerItemType } from '@/config/explorers'
-import { TEST_ADDRESSES } from '@/tests/fixtures/addresses'
+import { TEST_ADDRESSES, TEST_PATHS, createTestAddress } from '@/tests/fixtures/addresses'
 import DestinationAddressSelect from '../destination-address-select'
 
 // Mock the dependencies
@@ -12,8 +12,15 @@ vi.mock('@legendapp/state/react', () => ({
 }))
 
 vi.mock('@/components/ExplorerLink', () => ({
-  ExplorerLink: vi.fn(({ value, disableTooltip, hasCopyButton }) => (
-    <span data-testid="explorer-link" data-value={value} data-disable-tooltip={disableTooltip} data-has-copy={hasCopyButton}>
+  ExplorerLink: vi.fn(({ value, appId, explorerLinkType, disableTooltip, hasCopyButton }) => (
+    <span
+      data-testid="explorer-link"
+      data-value={value}
+      data-app-id={appId}
+      data-explorer-link-type={explorerLinkType}
+      data-disable-tooltip={disableTooltip}
+      data-has-copy={hasCopyButton}
+    >
       {value}
     </span>
   )),
@@ -21,7 +28,18 @@ vi.mock('@/components/ExplorerLink', () => ({
 
 vi.mock('@/components/SelectWithCustom', () => ({
   SelectWithCustom: vi.fn(
-    ({ options, _placeholder, _customPlaceholder, onValueChange, _renderOption, selectedValue, defaultValue, disabled }) => {
+    ({
+      options,
+      _placeholder,
+      _customPlaceholder,
+      onValueChange,
+      _renderOption,
+      selectedValue,
+      defaultValue,
+      disabled,
+      getOptionValue,
+      getOptionLabel,
+    }) => {
       const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         onValueChange(e.target.value)
       }
@@ -38,8 +56,8 @@ vi.mock('@/components/SelectWithCustom', () => ({
           >
             <option value="">Select...</option>
             {options.map((option: any, _index: number) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
+              <option key={getOptionValue(option)} value={getOptionValue(option)}>
+                {getOptionLabel(option)}
               </option>
             ))}
           </select>
@@ -68,15 +86,19 @@ const mockObserver = observer as MockedFunction<typeof observer>
 describe('DestinationAddressSelect component', () => {
   const mockOnDestinationChange = vi.fn()
 
+  const mockPolkadotAddresses = [
+    createTestAddress(TEST_ADDRESSES.ALICE, TEST_PATHS.DEFAULT),
+    createTestAddress(TEST_ADDRESSES.ADDRESS1, TEST_PATHS.SECOND_ACCOUNT),
+    createTestAddress(TEST_ADDRESSES.ADDRESS2, "m/44'/354'/0'/0'/2'"),
+  ]
+
   const mockBalance: AddressBalance = {
     type: BalanceType.NATIVE,
     id: 'native',
     transaction: {
-      destinationAddress: TEST_ADDRESSES.ALICE,
+      destinationAddress: mockPolkadotAddresses[0],
     },
   } as AddressBalance
-
-  const mockPolkadotAddresses = [TEST_ADDRESSES.ALICE, TEST_ADDRESSES.ADDRESS1, TEST_ADDRESSES.ADDRESS2]
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -111,7 +133,7 @@ describe('DestinationAddressSelect component', () => {
       )
 
       const select = screen.getByTestId('select') as HTMLSelectElement
-      expect(select.value).toBe(TEST_ADDRESSES.ALICE)
+      expect(select.value).toBe(mockPolkadotAddresses[0].address)
     })
 
     it('should render without pre-selected address and use first address as default', () => {
@@ -131,7 +153,7 @@ describe('DestinationAddressSelect component', () => {
       )
 
       const select = screen.getByTestId('select') as HTMLSelectElement
-      expect(select.value).toBe(TEST_ADDRESSES.ALICE)
+      expect(select.value).toBe(mockPolkadotAddresses[0].address)
     })
 
     it('should render disabled when no balance', () => {
@@ -195,9 +217,9 @@ describe('DestinationAddressSelect component', () => {
       )
 
       const select = screen.getByTestId('select') as HTMLSelectElement
-      fireEvent.change(select, { target: { value: TEST_ADDRESSES.ADDRESS1 } })
+      fireEvent.change(select, { target: { value: mockPolkadotAddresses[1].address } })
 
-      expect(mockOnDestinationChange).toHaveBeenCalledWith(TEST_ADDRESSES.ADDRESS1, 2)
+      expect(mockOnDestinationChange).toHaveBeenCalledWith(mockPolkadotAddresses[1], 2)
     })
 
     it('should update local state when balance changes', async () => {
@@ -212,12 +234,12 @@ describe('DestinationAddressSelect component', () => {
       )
 
       const select = screen.getByTestId('select') as HTMLSelectElement
-      expect(select.value).toBe(TEST_ADDRESSES.ALICE)
+      expect(select.value).toBe(mockPolkadotAddresses[0].address)
 
       const updatedBalance: AddressBalance = {
         ...mockBalance,
         transaction: {
-          destinationAddress: TEST_ADDRESSES.ADDRESS1,
+          destinationAddress: mockPolkadotAddresses[1],
         },
       }
 
@@ -232,7 +254,7 @@ describe('DestinationAddressSelect component', () => {
       )
 
       await waitFor(() => {
-        expect(select.value).toBe(TEST_ADDRESSES.ADDRESS1)
+        expect(select.value).toBe(mockPolkadotAddresses[1].address)
       })
     })
   })
@@ -251,15 +273,11 @@ describe('DestinationAddressSelect component', () => {
 
       expect(mockSelectWithCustom).toHaveBeenCalledWith(
         expect.objectContaining({
-          options: [
-            { value: TEST_ADDRESSES.ALICE, label: TEST_ADDRESSES.ALICE },
-            { value: TEST_ADDRESSES.ADDRESS1, label: TEST_ADDRESSES.ADDRESS1 },
-            { value: TEST_ADDRESSES.ADDRESS2, label: TEST_ADDRESSES.ADDRESS2 },
-          ],
+          options: mockPolkadotAddresses,
           placeholder: 'Select a Polkadot address...',
           customPlaceholder: 'Enter custom Polkadot address',
-          selectedValue: TEST_ADDRESSES.ALICE,
-          defaultValue: TEST_ADDRESSES.ALICE,
+          selectedValue: mockPolkadotAddresses[0].address,
+          defaultValue: mockPolkadotAddresses[0].address,
           disabled: false,
         }),
         undefined
@@ -280,12 +298,13 @@ describe('DestinationAddressSelect component', () => {
       const renderOption = mockSelectWithCustom.mock.calls[0][0].renderOption
       expect(typeof renderOption).toBe('function')
 
-      // Test the renderOption function
-      const optionElement = renderOption({ value: 'test-address', label: 'test-address' }, 2)
+      // Test the renderOption function - renderOption receives Address objects not { value, label }
+      const testAddress = { address: 'test-address-123', path: "m/44'/354'/0'/0'/2'", pubKey: '' }
+      const optionElement = renderOption(testAddress, 2)
 
       const { container } = render(optionElement)
       expect(container.textContent).toContain('Polkadot 3:')
-      expect(screen.getByTestId('explorer-link')).toHaveAttribute('data-value', 'test-address')
+      expect(screen.getByTestId('explorer-link')).toHaveAttribute('data-value', 'test-address-123')
     })
   })
 
@@ -326,11 +345,14 @@ describe('DestinationAddressSelect component', () => {
       )
 
       const select = screen.getByTestId('select') as HTMLSelectElement
-      expect(select.value).toBe(TEST_ADDRESSES.ALICE) // Should use first address as default
+      expect(select.value).toBe(mockPolkadotAddresses[0].address) // Should use first address as default
     })
 
     it('should handle very long addresses', () => {
-      const longAddresses = ['a'.repeat(100), 'b'.repeat(100)]
+      const longAddresses = [
+        createTestAddress('a'.repeat(100), TEST_PATHS.DEFAULT),
+        createTestAddress('b'.repeat(100), TEST_PATHS.SECOND_ACCOUNT),
+      ]
 
       render(
         <DestinationAddressSelect
@@ -344,10 +366,7 @@ describe('DestinationAddressSelect component', () => {
 
       expect(mockSelectWithCustom).toHaveBeenCalledWith(
         expect.objectContaining({
-          options: [
-            { value: 'a'.repeat(100), label: 'a'.repeat(100) },
-            { value: 'b'.repeat(100), label: 'b'.repeat(100) },
-          ],
+          options: longAddresses,
         }),
         undefined
       )
@@ -386,7 +405,7 @@ describe('DestinationAddressSelect component', () => {
 
       await waitFor(() => {
         const select = screen.getByTestId('select') as HTMLSelectElement
-        expect(select.value).toBe(mockPolkadotAddresses[1])
+        expect(select.value).toBe(mockPolkadotAddresses[1].address)
       })
     })
   })
@@ -453,7 +472,8 @@ describe('DestinationAddressSelect component', () => {
       )
 
       const renderOption = mockSelectWithCustom.mock.calls[0][0].renderOption
-      const optionElement = renderOption({ value: 'test-address-123', label: 'test-address-123' }, 5)
+      const testAddress = { address: 'test-address-123', path: "m/44'/434'/0'/0'/5'", pubKey: '0x05' }
+      const optionElement = renderOption(testAddress, 5)
 
       render(optionElement)
 

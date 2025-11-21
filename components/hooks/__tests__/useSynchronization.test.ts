@@ -198,7 +198,7 @@ describe('useSynchronization hook', () => {
       // Test calling it with valid parameters doesn't throw
       expect(() => {
         result.current.updateTransaction(
-          { destinationAddress: 'DESTINATION_TEST_ADDRESS' },
+          { destinationAddress: { address: 'DESTINATION_TEST_ADDRESS', path: "m/44'/354'/0'/0'/0'", pubKey: '' } },
           'polkadot',
           0, // accountIndex
           0, // balanceIndex

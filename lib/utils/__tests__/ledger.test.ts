@@ -265,7 +265,7 @@ describe('ledger utilities', () => {
               balances: [
                 {
                   ...safeMockAddressBalances[0],
-                  transaction: { destinationAddress: '5GDest1' },
+                  transaction: { destinationAddress: { address: '5GDest1', path: "m/44'/354'/0'/0'/0'", pubKey: '0x00' } },
                 },
               ],
             },
@@ -275,7 +275,7 @@ describe('ledger utilities', () => {
               balances: [
                 {
                   ...safeMockAddressBalances[0],
-                  transaction: { destinationAddress: '5GDest2' },
+                  transaction: { destinationAddress: { address: '5GDest2', path: "m/44'/354'/0'/0'/1'", pubKey: '0x01' } },
                 },
               ],
             },
@@ -297,7 +297,7 @@ describe('ledger utilities', () => {
               balances: [
                 {
                   ...safeMockMultisigBalances[0],
-                  transaction: { destinationAddress: '5GDest3' },
+                  transaction: { destinationAddress: { address: '5GDest3', path: "m/44'/354'/0'/0'/2'", pubKey: '0x02' } },
                 },
               ],
             },
@@ -307,7 +307,7 @@ describe('ledger utilities', () => {
               balances: [
                 {
                   ...safeMockMultisigBalances[0],
-                  transaction: { destinationAddress: '5GDest4' },
+                  transaction: { destinationAddress: { address: '5GDest4', path: "m/44'/354'/0'/0'/3'", pubKey: '0x03' } },
                 },
               ],
             },
@@ -332,10 +332,10 @@ describe('ledger utilities', () => {
       expect(result[0]?.multisigAccounts?.length).toBe(1)
       expect(result[0]?.accounts?.[0]?.selected).toBe(true)
       const accBalances = result[0]?.accounts?.[0]?.balances ?? []
-      expect(accBalances.length > 0 && accBalances[0]?.transaction?.destinationAddress).toBe('5GDest1')
+      expect(accBalances.length > 0 && accBalances[0]?.transaction?.destinationAddress?.address).toBe('5GDest1')
       expect(result[0]?.multisigAccounts?.[0]?.selected).toBe(true)
       const msBalances = result[0]?.multisigAccounts?.[0]?.balances ?? []
-      expect(msBalances.length > 0 && msBalances[0]?.transaction?.destinationAddress).toBe('5GDest3')
+      expect(msBalances.length > 0 && msBalances[0]?.transaction?.destinationAddress?.address).toBe('5GDest3')
     })
 
     it('should exclude apps with no selected accounts with balances and destination address', () => {
@@ -351,7 +351,7 @@ describe('ledger utilities', () => {
               balances: [
                 {
                   ...safeMockAddressBalances[0],
-                  transaction: { destinationAddress: '5GDest1' },
+                  transaction: { destinationAddress: { address: '5GDest1', path: "m/44'/354'/0'/0'/0'", pubKey: '0x00' } },
                 },
               ],
             },
@@ -373,7 +373,7 @@ describe('ledger utilities', () => {
               balances: [
                 {
                   ...safeMockMultisigBalances[0],
-                  transaction: { destinationAddress: '5GDest2' },
+                  transaction: { destinationAddress: { address: '5GDest2', path: "m/44'/354'/0'/0'/1'", pubKey: '0x01' } },
                 },
               ],
             },
@@ -641,20 +641,23 @@ describe('ledger utilities', () => {
   })
 
   describe('setDefaultDestinationAddress', () => {
+    const newAddress = { address: '5GNewAddress', path: "m/44'/354'/0'/0'/0'", pubKey: '0x00' }
+    const existingAddress = { address: '5GExistingAddress', path: "m/44'/354'/0'/0'/1'", pubKey: '0x01' }
+
     it('should set destination address for balances without one', () => {
       const account = {
         ...mockAddress,
         balances: [
           {
             ...mockAddress.balances?.[0],
-            transaction: { destinationAddress: '' },
+            transaction: { destinationAddress: undefined },
           },
         ] as AddressBalance[],
       }
 
-      const result = setDefaultDestinationAddress(account, '5GNewAddress')
+      const result = setDefaultDestinationAddress(account, newAddress)
 
-      expect(result.balances?.[0].transaction?.destinationAddress).toBe('5GNewAddress')
+      expect(result.balances?.[0].transaction?.destinationAddress).toEqual(newAddress)
     })
 
     it('should not override existing destination addresses', () => {
@@ -663,14 +666,14 @@ describe('ledger utilities', () => {
         balances: [
           {
             ...mockAddress.balances?.[0],
-            transaction: { destinationAddress: '5GExistingAddress' },
+            transaction: { destinationAddress: existingAddress },
           },
         ] as AddressBalance[],
       }
 
-      const result = setDefaultDestinationAddress(account, '5GNewAddress')
+      const result = setDefaultDestinationAddress(account, newAddress)
 
-      expect(result.balances?.[0].transaction?.destinationAddress).toBe('5GExistingAddress')
+      expect(result.balances?.[0].transaction?.destinationAddress).toEqual(existingAddress)
     })
 
     it('should handle accounts without balances', () => {
@@ -679,7 +682,7 @@ describe('ledger utilities', () => {
         balances: undefined,
       }
 
-      const result = setDefaultDestinationAddress(account, '5GNewAddress')
+      const result = setDefaultDestinationAddress(account, newAddress)
 
       expect(result).toEqual(account)
     })
@@ -695,14 +698,17 @@ describe('ledger utilities', () => {
         ] as AddressBalance[],
       }
 
-      const result = setDefaultDestinationAddress(account, '5GNewAddress')
+      const result = setDefaultDestinationAddress(account, newAddress)
 
-      expect(result.balances?.[0].transaction?.destinationAddress).toBe('5GNewAddress')
+      expect(result.balances?.[0].transaction?.destinationAddress).toEqual(newAddress)
     })
   })
 
   describe('addDestinationAddressesFromAccounts', () => {
-    const polkadotAddresses = ['5GAddress1', '5GAddress2']
+    const polkadotAddresses = [
+      { address: '5GAddress1', path: "m/44'/354'/0'/0'/0'", pubKey: '0x00' },
+      { address: '5GAddress2', path: "m/44'/354'/0'/0'/1'", pubKey: '0x01' },
+    ]
 
     it('should add unique destination addresses to the map', () => {
       const addressMap = new Map<string, AddressWithVerificationStatus>()
@@ -727,7 +733,7 @@ describe('ledger utilities', () => {
       expect(addressMap.size).toBe(2)
       expect(addressMap.get('5GAddress1')).toEqual({
         address: '5GAddress1',
-        path: mockAddress.path,
+        path: "m/44'/354'/0'/0'/0'",
         status: VerificationStatus.PENDING,
       })
     })
@@ -746,7 +752,7 @@ describe('ledger utilities', () => {
           balances: [
             {
               ...mockAddress.balances?.[0],
-              transaction: { destinationAddress: '5GAddress1' },
+              transaction: { destinationAddress: polkadotAddresses[0] },
             },
           ] as AddressBalance[],
         },
@@ -774,7 +780,7 @@ describe('ledger utilities', () => {
           balances: [
             {
               ...mockAddress.balances?.[0],
-              transaction: { destinationAddress: '' },
+              transaction: { destinationAddress: undefined },
             },
           ] as AddressBalance[],
         },

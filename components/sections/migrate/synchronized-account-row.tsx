@@ -40,7 +40,7 @@ interface AccountBalanceRowProps {
   rowSpan: number
   collections?: Collections
   token: Token
-  polkadotAddresses: string[]
+  polkadotAddresses: Address[]
   updateTransaction: UpdateTransaction
   appId: AppId
   toggleAccountSelection: ToggleAccountSelection

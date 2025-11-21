@@ -265,7 +265,7 @@ export function filterAccountsForApps<T extends Address | MultisigAddress>(accou
  * @param defaultDestinationAddress The default destination address to set
  * @returns The account with updated transaction destination addresses
  */
-export function setDefaultDestinationAddress<T extends { balances?: AddressBalance[] }>(account: T, defaultDestinationAddress: string): T {
+export function setDefaultDestinationAddress<T extends { balances?: AddressBalance[] }>(account: T, defaultDestinationAddress: Address): T {
   if (!account.balances) {
     return account
   }
@@ -291,20 +291,17 @@ export function setDefaultDestinationAddress<T extends { balances?: AddressBalan
 export function addDestinationAddressesFromAccounts(
   accounts: Address[] | MultisigAddress[] | undefined,
   addressMap: Map<string, AddressWithVerificationStatus>,
-  polkadotAddresses: string[]
+  polkadotAddresses: Address[]
 ): void {
   if (!accounts) return
   for (const account of accounts) {
     if (account.balances && account.balances.length > 0) {
       for (const balance of account.balances) {
-        if (
-          balance.transaction?.destinationAddress &&
-          !addressMap.has(balance.transaction.destinationAddress) &&
-          polkadotAddresses.includes(balance.transaction.destinationAddress)
-        ) {
-          addressMap.set(balance.transaction.destinationAddress, {
-            address: balance.transaction.destinationAddress,
-            path: account.path,
+        const destAddr = balance.transaction?.destinationAddress
+        if (destAddr && !addressMap.has(destAddr.address) && polkadotAddresses.some(addr => addr.address === destAddr.address)) {
+          addressMap.set(destAddr.address, {
+            address: destAddr.address,
+            path: destAddr.path,
             status: VerificationStatus.PENDING,
           })
         }

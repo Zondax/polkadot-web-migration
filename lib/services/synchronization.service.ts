@@ -181,20 +181,20 @@ async function fetchAddressesFromLedgerWithIndices(
  * retrieves account balances, identity info, proxy info, and multisig data.
  *
  * @param {AppConfig} appConfig - The blockchain application configuration
- * @param {string[]} polkadotAddresses - Array of Polkadot addresses for cross-chain migration
+ * @param {Address[]} polkadotAddresses - Array of Polkadot accounts with addresses and paths for cross-chain migration
  * @param {boolean} [filterByBalance=true] - Whether to filter out accounts with zero balance
  * @returns {Promise<App>} Complete app object with synchronized account data
  * @throws {InternalError} When any step of the synchronization process fails
  */
 export async function synchronizeAppAccounts(
   appConfig: AppConfig,
-  polkadotAddresses: string[],
+  polkadotAddresses: Address[],
   filterByBalance = true,
   onCancel?: () => boolean,
   preloadedAddresses?: Address[]
 ): Promise<{
   app: App
-  polkadotAddressesForApp: string[]
+  polkadotAddressesForApp: Address[]
 }> {
   try {
     // Check for cancellation before starting
@@ -443,12 +443,12 @@ export async function deepScanAllApps(
   accountIndices: number[],
   addressIndices: number[],
   currentApps: App[],
-  preloadedPolkadotAddresses: string[],
+  preloadedPolkadotAddresses: Address[],
   onProgress?: (progress: SyncProgress) => void,
   onCancel?: () => boolean,
   onAppStart?: (app: App & { originalAccountCount: number }) => void,
   onProcessingAccountsStart?: () => void,
-  onAppUpdate?: (app: App & { originalAccountCount: number }, polkadotAddresses?: string[]) => void
+  onAppUpdate?: (app: App & { originalAccountCount: number }, polkadotAddresses?: Address[]) => void
 ): Promise<DeepScanResult> {
   try {
     // Validate inputs
@@ -460,7 +460,7 @@ export async function deepScanAllApps(
     }
 
     // Get polkadot addresses for cross-chain migration
-    let polkadotAddresses: string[] = preloadedPolkadotAddresses
+    let polkadotAddresses: Address[] = preloadedPolkadotAddresses
     let polkadotApp: App | undefined
 
     // If Polkadot addresses are not available, synchronize them first
@@ -479,7 +479,7 @@ export async function deepScanAllApps(
 
     // Extract addresses
     if (polkadotApp?.accounts) {
-      polkadotAddresses = polkadotApp.accounts.map(account => account.address)
+      polkadotAddresses = polkadotApp.accounts
     }
 
     // Get all scannable apps (apps with valid RPC endpoints)
@@ -775,7 +775,7 @@ export async function synchronizeAllApps(
   onCancel?: () => boolean,
   onAppStart?: (app: App) => void,
   onProcessingAccountsStart?: () => void,
-  onUpdateApp?: (app: App, polkadotAddresses?: string[]) => void
+  onUpdateApp?: (app: App, polkadotAddresses?: Address[]) => void
 ): Promise<SyncResult> {
   try {
     // Show initial notification
@@ -803,7 +803,6 @@ export async function synchronizeAllApps(
     })
 
     const polkadotAddressesFromLedger = await fetchAddressesFromLedger(polkadotAppConfig, onCancel)
-    const polkadotAddresses = polkadotAddressesFromLedger.map(account => account.address)
 
     // Notify Polkadot app
     onAppStart?.({
@@ -903,7 +902,7 @@ export async function synchronizeAllApps(
       const promise = (async () => {
         try {
           const preloadedAddresses = addressesByApp.get(appConfig.id)
-          const result = await synchronizeAppAccounts(appConfig, polkadotAddresses, true, onCancel, preloadedAddresses)
+          const result = await synchronizeAppAccounts(appConfig, polkadotAddressesFromLedger, true, onCancel, preloadedAddresses)
 
           // Update progress
           processedAppsCount++
