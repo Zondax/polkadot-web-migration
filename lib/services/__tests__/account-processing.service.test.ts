@@ -76,7 +76,9 @@ describe('Account Processing Service', () => {
 
   describe('processAccountsForApp', () => {
     it('should process accounts for an app successfully', async () => {
-      const { getBalance, getIdentityInfo, getProxyInfo, getIndexInfo, getMultisigAddresses, getGovernanceDeposits } = await import('@/lib/account')
+      const { getBalance, getIdentityInfo, getProxyInfo, getIndexInfo, getMultisigAddresses, getGovernanceDeposits } = await import(
+        '@/lib/account'
+      )
 
       const mockBalance = {
         balances: [],

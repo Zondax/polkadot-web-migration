@@ -21,7 +21,7 @@ import { DEFAULT_ERA_TIME_IN_HOURS, getEraTimeByAppId } from 'config/apps'
 import { MULTISIG_WEIGHT_BUFFER, defaultWeights } from 'config/config'
 import { InternalErrorType, errorDetails } from 'config/errors'
 import { errorAddresses, mockBalances } from 'config/mockData'
-import { getMultisigInfo } from 'lib/subscan'
+import { getMultisigInfo, getReferendumIndices } from 'lib/subscan'
 import {
   BalanceType,
   Conviction,
@@ -2128,38 +2128,36 @@ export async function getIndexInfo(address: string, api: ApiPromise): Promise<Ac
  * Gets governance deposits (decision and submission) for an address
  * @param address The address to query
  * @param api The Polkadot API instance
+ * @param network The network name for Subscan (e.g., 'kusama', 'polkadot')
  * @returns Array of governance deposits or empty array if not available
  */
-export async function getGovernanceDeposits(address: string, api: ApiPromise): Promise<GovernanceDeposit[]> {
+export async function getGovernanceDeposits(address: string, api: ApiPromise, network: string): Promise<GovernanceDeposit[]> {
   try {
     // Check if referenda pallet is available
     if (!api.query.referenda?.referendumInfoFor) {
-      console.debug('Referenda pallet is not available on this chain')
+      console.debug(`Referenda pallet is not available on this chain: ${network}`)
       return []
     }
 
     const deposits: GovernanceDeposit[] = []
 
-    // Get the total number of referendums to iterate through
-    const referendumCount = (await api.query.referenda.referendumCount()) as any
-    const count = referendumCount?.toNumber ? referendumCount.toNumber() : 0
+    // Get referendum indices from Subscan
+    // This is much more efficient than querying all referendums on-chain
+    const referendumIndices = await getReferendumIndices(network, address)
 
-    // PERFORMANCE NOTE:
-    // This function queries ALL referendums on the chain (1700+ on Polkadot as of 2025).
-    // Unfortunately, there's no native Polkadot API to query deposits by account address.
-    // Potential improvements:
-    // 1. Use an indexer API (Subscan, SubQuery, Subsquid) if available
-    // 2. Implement pagination (only query recent referendums, e.g., last 100)
-    // 3. Cache results to avoid repeated queries
-    // For now, we query all in parallel to minimize latency.
-    const referendumQueries = []
-    for (let i = 0; i < count; i++) {
-      referendumQueries.push(api.query.referenda.referendumInfoFor(i))
+    if (referendumIndices.length === 0) {
+      return []
     }
+
+    console.debug(`Found ${referendumIndices.length} referendums for ${address}, querying for deposits`)
+
+    // Query referendum info for each index in parallel
+    const referendumQueries = referendumIndices.map(index => api.query.referenda.referendumInfoFor(index))
     const results = await Promise.all(referendumQueries)
 
     // Process results
     for (let i = 0; i < results.length; i++) {
+      const referendumIndex = referendumIndices[i]
       const referendumInfo = results[i] as any
 
       if (!referendumInfo || !referendumInfo.isSome) {
@@ -2274,7 +2272,7 @@ export async function getGovernanceDeposits(address: string, api: ApiPromise): P
       const submissionDeposit = extractDeposit(submissionDepositInfo)
       if (submissionDeposit?.who?.toString() === address && submissionDeposit.amount) {
         deposits.push({
-          referendumIndex: i,
+          referendumIndex,
           type: 'submission',
           deposit: new BN(submissionDeposit.amount.toString()),
           canRefund: canRefundSubmission,
@@ -2286,7 +2284,7 @@ export async function getGovernanceDeposits(address: string, api: ApiPromise): P
       const decisionDeposit = extractDeposit(decisionDepositInfo)
       if (decisionDeposit?.who?.toString() === address && decisionDeposit.amount) {
         deposits.push({
-          referendumIndex: i,
+          referendumIndex,
           type: 'decision',
           deposit: new BN(decisionDeposit.amount.toString()),
           canRefund: canRefundDecision,

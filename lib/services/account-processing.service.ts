@@ -168,7 +168,7 @@ async function getBlockchainDataForAccount(
       getIdentityInfo(address.address, api),
       getProxyInfo(address.address, api),
       getIndexInfo(address.address, api),
-      getGovernanceDeposits(address.address, api),
+      getGovernanceDeposits(address.address, api, appConfig.explorer?.network || appConfig.id),
       appConfig.explorer?.id === 'subscan'
         ? getMultisigAddresses(address.address, address.path, appConfig.explorer.network || appConfig.id, api)
         : Promise.resolve(undefined),
