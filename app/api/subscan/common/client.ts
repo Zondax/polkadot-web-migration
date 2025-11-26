@@ -30,11 +30,107 @@ interface RateLimitInfo {
   reset?: number
 }
 
+/**
+ * Shared queue manager to ensure rate limiting works across all SubscanClient instances.
+ * This is critical because Subscan rate limits are global (shared across all APIs, networks, and IPs).
+ * Without a shared queue, multiple client instances would each have their own queue,
+ * causing them to exceed rate limits when making concurrent requests.
+ */
+class SharedQueueManager {
+  private static instance: SharedQueueManager
+  private queue: PQueue
+  private rateLimitInfo: RateLimitInfo = {}
+  private hasApiKey = false
+
+  private constructor() {
+    // Start with conservative settings (no API key assumed)
+    // Will be upgraded when first client with API key is created
+    this.queue = new PQueue({
+      concurrency: 1,
+      interval: 500,
+      intervalCap: 1,
+    })
+  }
+
+  static getInstance(): SharedQueueManager {
+    if (!SharedQueueManager.instance) {
+      SharedQueueManager.instance = new SharedQueueManager()
+    }
+    return SharedQueueManager.instance
+  }
+
+  /**
+   * Resets the singleton instance. Only for testing purposes.
+   * @internal
+   */
+  static resetInstance(): void {
+    // Clear the queue before resetting
+    if (SharedQueueManager.instance) {
+      SharedQueueManager.instance.queue.clear()
+    }
+    SharedQueueManager.instance = undefined as unknown as SharedQueueManager
+  }
+
+  /**
+   * Upgrades the queue settings when an API key is provided.
+   * Once upgraded, we use higher limits (5 req/s per Subscan free plan).
+   */
+  upgradeForApiKey(): void {
+    if (this.hasApiKey) return // Already upgraded
+
+    this.hasApiKey = true
+    // Reconfigure queue for authenticated requests
+    // Note: PQueue doesn't support changing interval after creation,
+    // so we create a new queue (existing queued items will complete on old queue)
+    this.queue = new PQueue({
+      concurrency: 5,
+      interval: 1000,
+      intervalCap: 5,
+    })
+  }
+
+  getQueue(): PQueue {
+    return this.queue
+  }
+
+  getRateLimitInfo(): RateLimitInfo {
+    return { ...this.rateLimitInfo }
+  }
+
+  updateRateLimits(response: Response): void {
+    const limit = response.headers.get('ratelimit-limit')
+    const remaining = response.headers.get('ratelimit-remaining')
+    const reset = response.headers.get('ratelimit-reset')
+
+    if (limit) this.rateLimitInfo.limit = Number.parseInt(limit)
+    if (remaining) this.rateLimitInfo.remaining = Number.parseInt(remaining)
+    if (reset) this.rateLimitInfo.reset = Number.parseInt(reset)
+
+    // Only dynamically adjust concurrency if we have an API key
+    if (!this.hasApiKey) return
+
+    if (this.rateLimitInfo.remaining !== undefined && this.rateLimitInfo.limit !== undefined && this.rateLimitInfo.limit > 0) {
+      const remainingPercent = this.rateLimitInfo.remaining / this.rateLimitInfo.limit
+
+      if (remainingPercent < 0.2) {
+        this.queue.concurrency = 2
+      } else if (remainingPercent < 0.5) {
+        this.queue.concurrency = 3
+      } else {
+        this.queue.concurrency = 5
+      }
+    }
+  }
+
+  hasApiKeyConfigured(): boolean {
+    return this.hasApiKey
+  }
+}
+
 export class SubscanClient {
   private baseUrl: string
   private headers: Record<string, string>
-  private queue: PQueue
-  private rateLimitInfo: RateLimitInfo = {}
+  private queueManager: SharedQueueManager
 
   private getHttpStatusFromSubscanCode(code: number): number {
     switch (code) {
@@ -57,42 +153,13 @@ export class SubscanClient {
       ...(config.apiKey && { 'X-API-Key': config.apiKey }),
     }
 
-    // Initialize queue with conservative defaults
-    // These will be dynamically adjusted based on response headers
-    this.queue = new PQueue({
-      concurrency: 5, // Max 5 concurrent requests
-      interval: 1000, // Per 1 second
-      intervalCap: 5, // Max 5 requests per interval
-    })
-  }
+    // Use the shared queue manager to ensure rate limiting works across all client instances
+    // This is critical because Subscan rate limits are global
+    this.queueManager = SharedQueueManager.getInstance()
 
-  /**
-   * Updates rate limit info from response headers and dynamically adjusts queue settings
-   * Based on Subscan API documentation: https://support.subscan.io/doc-362600
-   */
-  private updateRateLimits(response: Response): void {
-    const limit = response.headers.get('ratelimit-limit')
-    const remaining = response.headers.get('ratelimit-remaining')
-    const reset = response.headers.get('ratelimit-reset')
-
-    if (limit) this.rateLimitInfo.limit = Number.parseInt(limit)
-    if (remaining) this.rateLimitInfo.remaining = Number.parseInt(remaining)
-    if (reset) this.rateLimitInfo.reset = Number.parseInt(reset)
-
-    // Dynamically adjust queue concurrency based on remaining capacity
-    if (this.rateLimitInfo.remaining !== undefined && this.rateLimitInfo.limit !== undefined) {
-      const remainingPercent = this.rateLimitInfo.remaining / this.rateLimitInfo.limit
-
-      if (remainingPercent < 0.2) {
-        // Less than 20% remaining - slow down significantly
-        this.queue.concurrency = 2
-      } else if (remainingPercent < 0.5) {
-        // Less than 50% remaining - moderate slowdown
-        this.queue.concurrency = 3
-      } else {
-        // Plenty of quota - use default settings
-        this.queue.concurrency = 5
-      }
+    // Upgrade queue settings if API key is provided
+    if (config.apiKey) {
+      this.queueManager.upgradeForApiKey()
     }
   }
 
@@ -103,7 +170,7 @@ export class SubscanClient {
   async request<T extends SubscanBaseResponse, B extends Record<string, unknown>>(endpoint: string, body: B): Promise<T> {
     const requestId = `${endpoint}-${Date.now()}`
 
-    return this.queue.add(() =>
+    return this.queueManager.getQueue().add(() =>
       pRetry(
         async attemptNumber => {
           let response: Response | undefined
@@ -120,7 +187,7 @@ export class SubscanClient {
             }
 
             // Update rate limit tracking from response headers
-            this.updateRateLimits(response)
+            this.queueManager.updateRateLimits(response)
 
             // Handle HTTP errors
             if (!response.ok) {
@@ -155,12 +222,12 @@ export class SubscanClient {
               throw error
             }
 
-            // For other errors (network errors, JSON parsing errors, etc.)
-            // wrap them and mark them as non-retryable by using a 400 status
+            // For network errors (connection failures, timeouts, etc.)
+            // wrap them with 503 status to allow retries since these are typically transient
             throw new SubscanError(
               error instanceof Error ? error.message : 'Unknown error',
               0,
-              400 // 4xx errors won't be retried
+              503 // Service unavailable - will be retried
             )
           }
         },
@@ -169,31 +236,23 @@ export class SubscanClient {
           minTimeout: 1000, // Minimum 1 second between retries
           maxTimeout: 60000, // Maximum 60 seconds between retries
           factor: 2, // Exponential backoff factor
-          onFailedAttempt: async (error: any) => {
-            // p-retry wraps the original error in error.error property
-            const subscanError = error.error
+          onFailedAttempt: (error: any) => {
             // p-retry adds retriesLeft to the error
             const retriesLeft = error.retriesLeft || 0
-
-            if (subscanError instanceof SubscanError) {
-              if (subscanError.httpStatus === 429) {
-                // If we have a retry-after value from 429 response, use it
-                if (subscanError.retryAfter) {
-                  await new Promise(resolve => setTimeout(resolve, subscanError.retryAfter))
-                }
-              }
-            }
 
             if (retriesLeft === 0) {
               console.warn('[Subscan API] All retry attempts exhausted, request will fail')
             }
           },
-          // Only retry on rate limit (429) or server errors (5xx)
+          // Only retry on rate limit (429) or specific server errors (502, 503, 504)
+          // Note: 500 (Internal Server Error) and 501 (Not Implemented) are not retryable
+          // as they typically indicate server-side bugs rather than transient issues
           shouldRetry: (error: any) => {
             const subscanError = error.error
             if (subscanError instanceof SubscanError) {
-              const willRetry = subscanError.httpStatus === 429 || subscanError.httpStatus >= 500
-              return willRetry
+              const status = subscanError.httpStatus
+              const isRetryable = status === 429 || status === 502 || status === 503 || status === 504
+              return isRetryable
             }
             return false // Don't retry on other errors
           },
@@ -207,7 +266,7 @@ export class SubscanClient {
    * Useful for monitoring and debugging
    */
   getRateLimitInfo(): RateLimitInfo {
-    return { ...this.rateLimitInfo }
+    return this.queueManager.getRateLimitInfo()
   }
 
   /**
@@ -215,10 +274,19 @@ export class SubscanClient {
    * Useful for monitoring and debugging
    */
   getQueueStats() {
+    const queue = this.queueManager.getQueue()
     return {
-      size: this.queue.size,
-      pending: this.queue.pending,
-      concurrency: this.queue.concurrency,
+      size: queue.size,
+      pending: queue.pending,
+      concurrency: queue.concurrency,
     }
   }
+}
+
+/**
+ * Resets the shared queue manager singleton. Only for testing purposes.
+ * @internal
+ */
+export function resetSharedQueueManager(): void {
+  SharedQueueManager.resetInstance()
 }
