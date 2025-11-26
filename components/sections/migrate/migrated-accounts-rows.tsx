@@ -11,7 +11,13 @@ import { muifyHtml } from '@/lib/utils/html'
 import { createStatusBadge, getTransactionStatus } from '@/lib/utils/ui'
 import { AlertCircle, ShieldCheck } from 'lucide-react'
 import type { App } from 'state/ledger'
-import { VerificationStatus, type AddressWithVerificationStatus, type MultisigAddress, type Transaction } from 'state/types/ledger'
+import {
+  TransactionStatus,
+  VerificationStatus,
+  type AddressWithVerificationStatus,
+  type MultisigAddress,
+  type Transaction,
+} from 'state/types/ledger'
 import { BalanceHoverCard } from './balance-hover-card'
 import TransactionDropdown from './transaction-dropdown'
 
@@ -50,6 +56,7 @@ const MigratedAccountRows = ({ app, multisigAddresses, destinationAddressesStatu
   const renderStatusIcon = (transaction: Transaction | undefined, hasPendingActions: boolean) => {
     const txStatus = transaction?.status
     const txStatusMessage = transaction?.statusMessage
+    const txDispatchError = transaction?.dispatchError
 
     if (hasPendingActions && !txStatus) {
       return <PendingActionsWarning />
@@ -57,7 +64,22 @@ const MigratedAccountRows = ({ app, multisigAddresses, destinationAddressesStatu
 
     const { statusIcon, statusMessage } = getTransactionStatus(txStatus, txStatusMessage)
 
-    return statusMessage ? <CustomTooltip tooltipBody={statusMessage}>{statusIcon}</CustomTooltip> : statusIcon
+    return statusMessage ? (
+      <CustomTooltip
+        tooltipBody={
+          <>
+            <p>{statusMessage}</p>
+            {txStatus && [TransactionStatus.FAILED, TransactionStatus.ERROR].includes(txStatus) && txDispatchError && (
+              <div className="p-2 bg-muted/50 rounded text-xs font-mono break-all select-all">{txDispatchError}</div>
+            )}
+          </>
+        }
+      >
+        {statusIcon}
+      </CustomTooltip>
+    ) : (
+      statusIcon
+    )
   }
 
   return accounts.map((account, accountIndex) => {

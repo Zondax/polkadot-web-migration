@@ -8,7 +8,8 @@ import { BalanceType, TransactionStatus } from '@/state/types/ledger'
 // Mock dependencies
 vi.mock('@/components/CustomTooltip', () => ({
   CustomTooltip: ({ children, tooltipBody }: any) => (
-    <div data-testid="custom-tooltip" data-tooltip-body={tooltipBody}>
+    <div data-testid="custom-tooltip">
+      <div data-testid="tooltip-body">{tooltipBody}</div>
       {children}
     </div>
   ),
@@ -372,7 +373,8 @@ describe('MigratedAccountRows component', () => {
       renderInTable(<MigratedAccountRows app={mockApp} destinationAddressesStatus={[]} />)
 
       const tooltip = screen.getByTestId('custom-tooltip')
-      expect(tooltip).toHaveAttribute('data-tooltip-body', 'Transaction completed')
+      const tooltipBody = screen.getByTestId('tooltip-body')
+      expect(tooltipBody).toHaveTextContent('Transaction completed')
       expect(tooltip.querySelector('[data-testid="status-icon"]')).toBeInTheDocument()
     })
 
