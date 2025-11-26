@@ -241,7 +241,7 @@ export class SubscanClient {
             const retriesLeft = error.retriesLeft || 0
 
             if (retriesLeft === 0) {
-              console.warn('[Subscan API] All retry attempts exhausted, request will fail')
+              console.warn(`[Subscan API] Request ${requestId} - All retry attempts exhausted, request will fail`)
             }
             const subscanError = error.error
             if (subscanError instanceof SubscanError && subscanError.retryAfter) {
