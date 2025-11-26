@@ -1614,7 +1614,9 @@ export async function getMultisigAddresses(
 
     return multisigAddresses
   } catch (error) {
-    console.warn('[getMultisigAddresses] Failed to get multisig addresses:', error)
+    if (error instanceof Error && !error.message.includes('404')) {
+      console.warn('[getMultisigAddresses] Failed to get multisig addresses:', error)
+    }
     return undefined
   } finally {
     console.debug(`[getMultisigAddresses] Completed multisig detection for address ${address}`)
