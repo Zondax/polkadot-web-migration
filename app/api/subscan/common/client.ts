@@ -102,9 +102,9 @@ class SharedQueueManager {
     const remaining = response.headers.get('ratelimit-remaining')
     const reset = response.headers.get('ratelimit-reset')
 
-    if (limit) this.rateLimitInfo.limit = Number.parseInt(limit)
-    if (remaining) this.rateLimitInfo.remaining = Number.parseInt(remaining)
-    if (reset) this.rateLimitInfo.reset = Number.parseInt(reset)
+    if (limit) this.rateLimitInfo.limit = Number.parseInt(limit, 10)
+    if (remaining) this.rateLimitInfo.remaining = Number.parseInt(remaining, 10)
+    if (reset) this.rateLimitInfo.reset = Number.parseInt(reset, 10)
 
     // Only dynamically adjust concurrency if we have an API key
     if (!this.hasApiKey) return
@@ -236,12 +236,16 @@ export class SubscanClient {
           minTimeout: 1000, // Minimum 1 second between retries
           maxTimeout: 60000, // Maximum 60 seconds between retries
           factor: 2, // Exponential backoff factor
-          onFailedAttempt: (error: any) => {
+          onFailedAttempt: async (error: any) => {
             // p-retry adds retriesLeft to the error
             const retriesLeft = error.retriesLeft || 0
 
             if (retriesLeft === 0) {
               console.warn('[Subscan API] All retry attempts exhausted, request will fail')
+            }
+            const subscanError = error.error
+            if (subscanError instanceof SubscanError && subscanError.retryAfter) {
+              await new Promise(resolve => setTimeout(resolve, subscanError.retryAfter))
             }
           },
           // Only retry on rate limit (429) or specific server errors (502, 503, 504)
