@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { POST } from '../route'
 import { SubscanClient, SubscanError } from '../../common/client'
+import { POST } from '../route'
 
 // Mock the SubscanClient
 vi.mock('../../common/client', () => ({
@@ -126,7 +126,7 @@ describe('Subscan Referenda API Route', () => {
       const responseData = await response.json()
 
       expect(response.status).toBe(400)
-      expect(responseData).toEqual({ error: 'Network is required' })
+      expect(responseData).toEqual({ error: 'Network and address are required' })
     })
 
     it('should return 400 if address is missing', async () => {
@@ -142,7 +142,7 @@ describe('Subscan Referenda API Route', () => {
       const responseData = await response.json()
 
       expect(response.status).toBe(400)
-      expect(responseData).toEqual({ error: 'Network is required' })
+      expect(responseData).toEqual({ error: 'Network and address are required' })
     })
 
     it('should handle SubscanError', async () => {
