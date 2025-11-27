@@ -31,6 +31,7 @@ import {
   fetchFromIpfs,
   getApiAndProvider,
   getEnrichedNftMetadata,
+  getGovernanceDeposits,
   getIndexInfo,
   getNativeBalance,
   ipfsToHttpUrl,
@@ -63,6 +64,11 @@ vi.mock('@polkadot/api', () => {
 
 // Mock global fetch
 vi.stubGlobal('fetch', vi.fn())
+
+// Mock the getReferendumIndices function from subscan
+vi.mock('../subscan', () => ({
+  getReferendumIndices: vi.fn(),
+}))
 
 // Set test environment
 process.env.NEXT_PUBLIC_NODE_ENV = 'development'
@@ -1053,5 +1059,483 @@ describe('getApiAndProvider fallback logic', () => {
     expect(result.api).toBe(mockApi)
     expect(result.provider).toBe(mockProvider)
     expect(vi.mocked(ApiPromise.create)).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('getGovernanceDeposits', () => {
+  const testAddress = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'
+  const testNetwork = 'polkadot'
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should return empty array if referenda pallet is not available', async () => {
+    const mockApi = {
+      query: {
+        // No referenda pallet
+      },
+    } as any
+
+    const result = await getGovernanceDeposits(testAddress, mockApi, testNetwork)
+
+    expect(result).toEqual([])
+  })
+
+  it('should return empty array if referendumInfoFor is not available', async () => {
+    const mockApi = {
+      query: {
+        referenda: {},
+      },
+    } as any
+
+    const result = await getGovernanceDeposits(testAddress, mockApi, testNetwork)
+
+    expect(result).toEqual([])
+  })
+
+  it('should return empty array if getReferendumIndices returns no indices', async () => {
+    const { getReferendumIndices } = await import('../subscan')
+    vi.mocked(getReferendumIndices).mockResolvedValue([])
+
+    const mockApi = {
+      query: {
+        referenda: {
+          referendumInfoFor: vi.fn(),
+        },
+      },
+    } as any
+
+    const result = await getGovernanceDeposits(testAddress, mockApi, testNetwork)
+
+    expect(result).toEqual([])
+    expect(getReferendumIndices).toHaveBeenCalledWith(testNetwork, testAddress)
+  })
+
+  it('should process ongoing referendum with submission deposit', async () => {
+    const { getReferendumIndices } = await import('../subscan')
+    vi.mocked(getReferendumIndices).mockResolvedValue([617])
+
+    const mockReferendumInfo = {
+      isSome: true,
+      unwrap: vi.fn().mockReturnValue({
+        isOngoing: true,
+        isApproved: false,
+        isRejected: false,
+        isCancelled: false,
+        isTimedOut: false,
+        isKilled: false,
+        asOngoing: {
+          submissionDeposit: {
+            who: { toString: () => testAddress },
+            amount: { toString: () => '100000000000' },
+          },
+          decisionDeposit: null,
+        },
+      }),
+    }
+
+    const mockApi = {
+      query: {
+        referenda: {
+          referendumInfoFor: vi.fn().mockResolvedValue(mockReferendumInfo),
+        },
+      },
+    } as any
+
+    const result = await getGovernanceDeposits(testAddress, mockApi, testNetwork)
+
+    expect(result).toHaveLength(1)
+    expect(result[0]).toMatchObject({
+      referendumIndex: 617,
+      type: 'submission',
+      canRefund: false,
+      referendumStatus: 'ongoing',
+    })
+    expect(result[0].deposit.toString()).toBe('100000000000')
+  })
+
+  it('should process approved referendum with both deposits', async () => {
+    const { getReferendumIndices } = await import('../subscan')
+    vi.mocked(getReferendumIndices).mockResolvedValue([618])
+
+    const mockSubmissionDeposit = {
+      isSome: true,
+      unwrap: vi.fn().mockReturnValue({
+        who: { toString: () => testAddress },
+        amount: { toString: () => '100000000000' },
+      }),
+    }
+
+    const mockDecisionDeposit = {
+      isSome: true,
+      unwrap: vi.fn().mockReturnValue({
+        who: { toString: () => testAddress },
+        amount: { toString: () => '200000000000' },
+      }),
+    }
+
+    const mockReferendumInfo = {
+      isSome: true,
+      unwrap: vi.fn().mockReturnValue({
+        isOngoing: false,
+        isApproved: true,
+        isRejected: false,
+        isCancelled: false,
+        isTimedOut: false,
+        isKilled: false,
+        asApproved: [
+          12345, // timestamp
+          mockSubmissionDeposit,
+          mockDecisionDeposit,
+        ],
+      }),
+    }
+
+    const mockApi = {
+      query: {
+        referenda: {
+          referendumInfoFor: vi.fn().mockResolvedValue(mockReferendumInfo),
+        },
+      },
+    } as any
+
+    const result = await getGovernanceDeposits(testAddress, mockApi, testNetwork)
+
+    expect(result).toHaveLength(2)
+    expect(result[0]).toMatchObject({
+      referendumIndex: 618,
+      type: 'submission',
+      canRefund: true,
+      referendumStatus: 'approved',
+    })
+    expect(result[0].deposit.toString()).toBe('100000000000')
+    expect(result[1]).toMatchObject({
+      referendumIndex: 618,
+      type: 'decision',
+      canRefund: true,
+      referendumStatus: 'approved',
+    })
+    expect(result[1].deposit.toString()).toBe('200000000000')
+  })
+
+  it('should process rejected referendum with correct refund rules', async () => {
+    const { getReferendumIndices } = await import('../subscan')
+    vi.mocked(getReferendumIndices).mockResolvedValue([619])
+
+    const mockSubmissionDeposit = {
+      isSome: true,
+      unwrap: vi.fn().mockReturnValue({
+        who: { toString: () => testAddress },
+        amount: { toString: () => '100000000000' },
+      }),
+    }
+
+    const mockDecisionDeposit = {
+      isSome: true,
+      unwrap: vi.fn().mockReturnValue({
+        who: { toString: () => testAddress },
+        amount: { toString: () => '200000000000' },
+      }),
+    }
+
+    const mockReferendumInfo = {
+      isSome: true,
+      unwrap: vi.fn().mockReturnValue({
+        isOngoing: false,
+        isApproved: false,
+        isRejected: true,
+        isCancelled: false,
+        isTimedOut: false,
+        isKilled: false,
+        asRejected: [12345, mockSubmissionDeposit, mockDecisionDeposit],
+      }),
+    }
+
+    const mockApi = {
+      query: {
+        referenda: {
+          referendumInfoFor: vi.fn().mockResolvedValue(mockReferendumInfo),
+        },
+      },
+    } as any
+
+    const result = await getGovernanceDeposits(testAddress, mockApi, testNetwork)
+
+    expect(result).toHaveLength(2)
+    // Submission deposit cannot be refunded for rejected referendums
+    expect(result[0]).toMatchObject({
+      referendumIndex: 619,
+      type: 'submission',
+      canRefund: false,
+      referendumStatus: 'rejected',
+    })
+    // Decision deposit can be refunded for rejected referendums
+    expect(result[1]).toMatchObject({
+      referendumIndex: 619,
+      type: 'decision',
+      canRefund: true,
+      referendumStatus: 'rejected',
+    })
+  })
+
+  it('should process cancelled referendum with correct refund rules', async () => {
+    const { getReferendumIndices } = await import('../subscan')
+    vi.mocked(getReferendumIndices).mockResolvedValue([620])
+
+    const mockSubmissionDeposit = {
+      isSome: true,
+      unwrap: vi.fn().mockReturnValue({
+        who: { toString: () => testAddress },
+        amount: { toString: () => '100000000000' },
+      }),
+    }
+
+    const mockReferendumInfo = {
+      isSome: true,
+      unwrap: vi.fn().mockReturnValue({
+        isOngoing: false,
+        isApproved: false,
+        isRejected: false,
+        isCancelled: true,
+        isTimedOut: false,
+        isKilled: false,
+        asCancelled: [
+          12345,
+          mockSubmissionDeposit,
+          { isSome: false }, // No decision deposit
+        ],
+      }),
+    }
+
+    const mockApi = {
+      query: {
+        referenda: {
+          referendumInfoFor: vi.fn().mockResolvedValue(mockReferendumInfo),
+        },
+      },
+    } as any
+
+    const result = await getGovernanceDeposits(testAddress, mockApi, testNetwork)
+
+    expect(result).toHaveLength(1)
+    expect(result[0]).toMatchObject({
+      referendumIndex: 620,
+      type: 'submission',
+      canRefund: true,
+      referendumStatus: 'cancelled',
+    })
+  })
+
+  it('should process killed referendum with no refunds', async () => {
+    const { getReferendumIndices } = await import('../subscan')
+    vi.mocked(getReferendumIndices).mockResolvedValue([621])
+
+    const mockReferendumInfo = {
+      isSome: true,
+      unwrap: vi.fn().mockReturnValue({
+        isOngoing: false,
+        isApproved: false,
+        isRejected: false,
+        isCancelled: false,
+        isTimedOut: false,
+        isKilled: true,
+        asKilled: 12345, // Just timestamp, no deposits
+      }),
+    }
+
+    const mockApi = {
+      query: {
+        referenda: {
+          referendumInfoFor: vi.fn().mockResolvedValue(mockReferendumInfo),
+        },
+      },
+    } as any
+
+    const result = await getGovernanceDeposits(testAddress, mockApi, testNetwork)
+
+    expect(result).toEqual([])
+  })
+
+  it('should filter out deposits not belonging to the address', async () => {
+    const { getReferendumIndices } = await import('../subscan')
+    vi.mocked(getReferendumIndices).mockResolvedValue([622])
+
+    const differentAddress = '5DifferentAddress123456789'
+
+    const mockReferendumInfo = {
+      isSome: true,
+      unwrap: vi.fn().mockReturnValue({
+        isOngoing: true,
+        isApproved: false,
+        isRejected: false,
+        isCancelled: false,
+        isTimedOut: false,
+        isKilled: false,
+        asOngoing: {
+          submissionDeposit: {
+            who: { toString: () => differentAddress },
+            amount: { toString: () => '100000000000' },
+          },
+          decisionDeposit: null,
+        },
+      }),
+    }
+
+    const mockApi = {
+      query: {
+        referenda: {
+          referendumInfoFor: vi.fn().mockResolvedValue(mockReferendumInfo),
+        },
+      },
+    } as any
+
+    const result = await getGovernanceDeposits(testAddress, mockApi, testNetwork)
+
+    expect(result).toEqual([])
+  })
+
+  it('should handle multiple referendums in parallel', async () => {
+    const { getReferendumIndices } = await import('../subscan')
+    vi.mocked(getReferendumIndices).mockResolvedValue([617, 618, 619])
+
+    const mockReferendumInfo1 = {
+      isSome: true,
+      unwrap: vi.fn().mockReturnValue({
+        isOngoing: true,
+        isApproved: false,
+        isRejected: false,
+        isCancelled: false,
+        isTimedOut: false,
+        isKilled: false,
+        asOngoing: {
+          submissionDeposit: {
+            who: { toString: () => testAddress },
+            amount: { toString: () => '100000000000' },
+          },
+          decisionDeposit: null,
+        },
+      }),
+    }
+
+    const mockReferendumInfo2 = {
+      isSome: true,
+      unwrap: vi.fn().mockReturnValue({
+        isOngoing: true,
+        isApproved: false,
+        isRejected: false,
+        isCancelled: false,
+        isTimedOut: false,
+        isKilled: false,
+        asOngoing: {
+          submissionDeposit: null,
+          decisionDeposit: {
+            who: { toString: () => testAddress },
+            amount: { toString: () => '200000000000' },
+          },
+        },
+      }),
+    }
+
+    const mockReferendumInfo3 = {
+      isSome: false,
+    }
+
+    const mockApi = {
+      query: {
+        referenda: {
+          referendumInfoFor: vi
+            .fn()
+            .mockResolvedValueOnce(mockReferendumInfo1)
+            .mockResolvedValueOnce(mockReferendumInfo2)
+            .mockResolvedValueOnce(mockReferendumInfo3),
+        },
+      },
+    } as any
+
+    const result = await getGovernanceDeposits(testAddress, mockApi, testNetwork)
+
+    expect(result).toHaveLength(2)
+    expect(result[0].referendumIndex).toBe(617)
+    expect(result[0].type).toBe('submission')
+    expect(result[1].referendumIndex).toBe(618)
+    expect(result[1].type).toBe('decision')
+  })
+
+  it('should handle errors and return empty array', async () => {
+    const { getReferendumIndices } = await import('../subscan')
+    vi.mocked(getReferendumIndices).mockRejectedValue(new Error('Network error'))
+
+    const mockApi = {
+      query: {
+        referenda: {
+          referendumInfoFor: vi.fn(),
+        },
+      },
+    } as any
+
+    const result = await getGovernanceDeposits(testAddress, mockApi, testNetwork)
+
+    expect(result).toEqual([])
+  })
+
+  it('should process timedout referendum with correct refund rules', async () => {
+    const { getReferendumIndices } = await import('../subscan')
+    vi.mocked(getReferendumIndices).mockResolvedValue([623])
+
+    const mockSubmissionDeposit = {
+      isSome: true,
+      unwrap: vi.fn().mockReturnValue({
+        who: { toString: () => testAddress },
+        amount: { toString: () => '100000000000' },
+      }),
+    }
+
+    const mockDecisionDeposit = {
+      isSome: true,
+      unwrap: vi.fn().mockReturnValue({
+        who: { toString: () => testAddress },
+        amount: { toString: () => '200000000000' },
+      }),
+    }
+
+    const mockReferendumInfo = {
+      isSome: true,
+      unwrap: vi.fn().mockReturnValue({
+        isOngoing: false,
+        isApproved: false,
+        isRejected: false,
+        isCancelled: false,
+        isTimedOut: true,
+        isKilled: false,
+        asTimedOut: [12345, mockSubmissionDeposit, mockDecisionDeposit],
+      }),
+    }
+
+    const mockApi = {
+      query: {
+        referenda: {
+          referendumInfoFor: vi.fn().mockResolvedValue(mockReferendumInfo),
+        },
+      },
+    } as any
+
+    const result = await getGovernanceDeposits(testAddress, mockApi, testNetwork)
+
+    expect(result).toHaveLength(2)
+    // Submission deposit cannot be refunded for timed out referendums
+    expect(result[0]).toMatchObject({
+      referendumIndex: 623,
+      type: 'submission',
+      canRefund: false,
+      referendumStatus: 'timedout',
+    })
+    // Decision deposit can be refunded for timed out referendums
+    expect(result[1]).toMatchObject({
+      referendumIndex: 623,
+      type: 'decision',
+      canRefund: true,
+      referendumStatus: 'timedout',
+    })
   })
 })

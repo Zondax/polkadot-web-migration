@@ -21,7 +21,7 @@ import { DEFAULT_ERA_TIME_IN_HOURS, getEraTimeByAppId } from 'config/apps'
 import { MULTISIG_WEIGHT_BUFFER, defaultWeights } from 'config/config'
 import { InternalErrorType, errorDetails } from 'config/errors'
 import { errorAddresses, mockBalances } from 'config/mockData'
-import { getMultisigInfo } from 'lib/subscan'
+import { getMultisigInfo, getReferendumIndices } from 'lib/subscan'
 import {
   BalanceType,
   Conviction,
@@ -33,6 +33,7 @@ import {
   type Collection,
   type ConvictionVotingInfo,
   type DelegationInfo,
+  type GovernanceDeposit,
   type IdentityInfo,
   type MultisigAddress,
   type MultisigCall,
@@ -266,8 +267,8 @@ export async function getNativeBalance(addressString: string, api: ApiPromise, a
       // https://wiki.polkadot.network/learn/learn-guides-accounts/#query-account-data-in-polkadot-js
       // The Existential Deposit is not taking into account to calculate the transferable balance because it is not necessary to keep the account alive
       const freeBN = new BN(free.toString())
-      const reservedBN = new BN(reserved.toString())
-      const frozenBN = new BN(frozen.toString())
+      const reservedBN = new BN(reserved?.toString() ?? 0)
+      const frozenBN = new BN(frozen?.toString() ?? 0)
       const totalBN = freeBN.add(reservedBN)
       // transferable = free - max(frozen - reserved, 0)
       const frozenMinusReserved = frozenBN.sub(reservedBN)
@@ -556,6 +557,44 @@ export async function prepareRemoveProxiesTransaction(api: ApiPromise): Promise<
   const removeProxyTx = api.tx.proxy.removeProxies() as SubmittableExtrinsic<'promise', ISubmittableResult>
 
   return removeProxyTx
+}
+
+/**
+ * Prepares a transaction to refund a referendum submission deposit
+ * @param api The Polkadot API instance
+ * @param referendumIndex The index of the referendum
+ * @returns The prepared transaction or undefined if the referenda pallet is not available
+ */
+export async function prepareRefundSubmissionDepositTransaction(
+  api: ApiPromise,
+  referendumIndex: number
+): Promise<SubmittableExtrinsic<'promise', ISubmittableResult> | undefined> {
+  if (!api.tx.referenda?.refundSubmissionDeposit) {
+    console.debug('Referenda pallet or refundSubmissionDeposit extrinsic is not available on this chain')
+    return undefined
+  }
+
+  const refundTx = api.tx.referenda.refundSubmissionDeposit(referendumIndex) as SubmittableExtrinsic<'promise', ISubmittableResult>
+  return refundTx
+}
+
+/**
+ * Prepares a transaction to refund a referendum decision deposit
+ * @param api The Polkadot API instance
+ * @param referendumIndex The index of the referendum
+ * @returns The prepared transaction or undefined if the referenda pallet is not available
+ */
+export async function prepareRefundDecisionDepositTransaction(
+  api: ApiPromise,
+  referendumIndex: number
+): Promise<SubmittableExtrinsic<'promise', ISubmittableResult> | undefined> {
+  if (!api.tx.referenda?.refundDecisionDeposit) {
+    console.debug('Referenda pallet or refundDecisionDeposit extrinsic is not available on this chain')
+    return undefined
+  }
+
+  const refundTx = api.tx.referenda.refundDecisionDeposit(referendumIndex) as SubmittableExtrinsic<'promise', ISubmittableResult>
+  return refundTx
 }
 
 /**
@@ -2084,6 +2123,182 @@ export async function getIndexInfo(address: string, api: ApiPromise): Promise<Ac
 }
 
 /**
+ * Gets governance deposits (decision and submission) for an address
+ * @param address The address to query
+ * @param api The Polkadot API instance
+ * @param network The network name for Subscan (e.g., 'kusama', 'polkadot')
+ * @returns Array of governance deposits or empty array if not available
+ */
+export async function getGovernanceDeposits(address: string, api: ApiPromise, network: string): Promise<GovernanceDeposit[]> {
+  try {
+    // Check if referenda pallet is available
+    if (!api.query.referenda?.referendumInfoFor) {
+      console.debug(`Referenda pallet is not available on this chain: ${network}`)
+      return []
+    }
+
+    const deposits: GovernanceDeposit[] = []
+
+    // Get referendum indices from Subscan
+    // This is much more efficient than querying all referendums on-chain
+    const referendumIndices = await getReferendumIndices(network, address)
+
+    if (referendumIndices.length === 0) {
+      return []
+    }
+
+    console.debug(`Found ${referendumIndices.length} referendums for ${address}, querying for deposits`)
+
+    // Query referendum info for each index in parallel
+    const referendumQueries = referendumIndices.map(index => api.query.referenda.referendumInfoFor(index))
+    const results = await Promise.all(referendumQueries)
+
+    // Process results
+    for (let i = 0; i < results.length; i++) {
+      const referendumIndex = referendumIndices[i]
+      const referendumInfo = results[i] as any
+
+      if (!referendumInfo || !referendumInfo.isSome) {
+        continue
+      }
+
+      const info = referendumInfo.unwrap()
+
+      // Determine referendum status and refundability rules
+      // Based on Polkadot OpenGov official documentation:
+      // https://wiki.polkadot.com/docs/learn-polkadot-opengov
+      // https://github.com/paritytech/polkadot-sdk/issues/1690
+      //
+      // Submission Deposit Refund Rules:
+      // - Refundable ONLY if: Approved or Cancelled
+      // - NOT refundable if: Rejected, TimedOut, Killed, or Ongoing
+      //
+      // Decision Deposit Refund Rules:
+      // - Refundable if referendum is finished: Approved, Rejected, Cancelled, or TimedOut
+      // - NOT refundable if: Killed (slashed) or Ongoing
+      let status: 'ongoing' | 'approved' | 'rejected' | 'cancelled' | 'timedout' | 'killed' = 'ongoing'
+      let canRefundSubmission = false
+      let canRefundDecision = false
+
+      if (info.isOngoing) {
+        status = 'ongoing'
+        // Ongoing referendums cannot refund deposits
+        canRefundSubmission = false
+        canRefundDecision = false
+      } else if (info.isApproved) {
+        status = 'approved'
+        // Approved: both deposits can be refunded
+        canRefundSubmission = true
+        canRefundDecision = true
+      } else if (info.isRejected) {
+        status = 'rejected'
+        // Rejected: submission deposit is lost, decision deposit can be refunded
+        canRefundSubmission = false
+        canRefundDecision = true
+      } else if (info.isCancelled) {
+        status = 'cancelled'
+        // Cancelled: both deposits can be refunded
+        canRefundSubmission = true
+        canRefundDecision = true
+      } else if (info.isTimedOut) {
+        status = 'timedout'
+        // TimedOut: submission deposit is lost, decision deposit can be refunded
+        canRefundSubmission = false
+        canRefundDecision = true
+      } else if (info.isKilled) {
+        status = 'killed'
+        // Killed: deposits are slashed, cannot be refunded
+        canRefundSubmission = false
+        canRefundDecision = false
+      }
+
+      // Extract deposit information based on referendum state
+      // Note: Ongoing referendums have deposits as direct Deposit objects
+      // Finished referendums (Approved, Rejected, etc.) have deposits as Option<Deposit> in tuple fields
+      let submissionDepositInfo: any = null
+      let decisionDepositInfo: any = null
+
+      if (info.isOngoing) {
+        const ongoing = info.asOngoing
+        submissionDepositInfo = ongoing.submissionDeposit
+        decisionDepositInfo = ongoing.decisionDeposit
+      } else if (info.isApproved) {
+        const approved = info.asApproved
+        // Approved state: (Moment, Option<Deposit>, Option<Deposit>)
+        submissionDepositInfo = approved[1] // submissionDeposit is the second field
+        decisionDepositInfo = approved[2] // decisionDeposit is the third field
+      } else if (info.isRejected) {
+        const rejected = info.asRejected
+        // Rejected state: (Moment, Option<Deposit>, Option<Deposit>)
+        submissionDepositInfo = rejected[1]
+        decisionDepositInfo = rejected[2]
+      } else if (info.isCancelled) {
+        const cancelled = info.asCancelled
+        // Cancelled state: (Moment, Option<Deposit>, Option<Deposit>)
+        submissionDepositInfo = cancelled[1]
+        decisionDepositInfo = cancelled[2]
+      } else if (info.isTimedOut) {
+        const timedOut = info.asTimedOut
+        // TimedOut state: (Moment, Option<Deposit>, Option<Deposit>)
+        submissionDepositInfo = timedOut[1]
+        decisionDepositInfo = timedOut[2]
+      } else if (info.isKilled) {
+        // Killed state only contains the moment (timestamp), no deposit info
+        // Deposits are slashed and cannot be refunded
+        submissionDepositInfo = null
+        decisionDepositInfo = null
+      }
+
+      // Helper function to extract deposit from either Option<Deposit> or direct Deposit object
+      const extractDeposit = (depositInfo: any): any | null => {
+        if (!depositInfo) return null
+
+        // Check if it's an Option<Deposit> (finished referendums)
+        if (depositInfo.isSome !== undefined) {
+          return depositInfo.isSome ? depositInfo.unwrap() : null
+        }
+
+        // Check if it's a direct Deposit object (ongoing referendums)
+        if (depositInfo.who) {
+          return depositInfo
+        }
+
+        return null
+      }
+
+      // Process submission deposit
+      const submissionDeposit = extractDeposit(submissionDepositInfo)
+      if (submissionDeposit?.who?.toString() === address && submissionDeposit.amount) {
+        deposits.push({
+          referendumIndex,
+          type: 'submission',
+          deposit: new BN(submissionDeposit.amount.toString()),
+          canRefund: canRefundSubmission,
+          referendumStatus: status,
+        })
+      }
+
+      // Process decision deposit
+      const decisionDeposit = extractDeposit(decisionDepositInfo)
+      if (decisionDeposit?.who?.toString() === address && decisionDeposit.amount) {
+        deposits.push({
+          referendumIndex,
+          type: 'decision',
+          deposit: new BN(decisionDeposit.amount.toString()),
+          canRefund: canRefundDecision,
+          referendumStatus: status,
+        })
+      }
+    }
+
+    return deposits
+  } catch (error) {
+    console.error('Error fetching governance deposits:', error)
+    return []
+  }
+}
+
+/**
  * Gets conviction voting information for an address including votes and delegations
  * @param address The address to query
  * @param api The Polkadot API instance
@@ -2141,8 +2356,7 @@ export async function getConvictionVotingInfo(address: string, api: ApiPromise):
           const referendumIndex = refIndex.toNumber()
 
           // Check referendum status
-          const referendumInfo = await api.query.referenda.referendumInfoFor(referendumIndex)
-          const isOngoing = (referendumInfo as any).isSome && (referendumInfo as any).unwrap().isOngoing
+          const isOngoing = await isReferendumOngoing(api, referendumIndex)
 
           const voteData = vote.asStandard
           const conviction = voteData.vote.conviction.toString() as Conviction

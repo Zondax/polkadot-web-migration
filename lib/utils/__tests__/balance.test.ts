@@ -728,9 +728,10 @@ describe('balance utilities', () => {
       const multisig = new BN(200)
       const proxy = new BN(50)
       const index = new BN(25)
+      const governance = new BN(0)
       const total = new BN(375)
 
-      const result = validateReservedBreakdown(identity, multisig, proxy, index, total)
+      const result = validateReservedBreakdown(identity, multisig, proxy, index, governance, total)
 
       expect(result).toBe(true)
     })
@@ -740,9 +741,10 @@ describe('balance utilities', () => {
       const multisig = new BN(200)
       const proxy = new BN(50)
       const index = new BN(25)
+      const governance = new BN(0)
       const total = new BN(400)
 
-      const result = validateReservedBreakdown(identity, multisig, proxy, index, total)
+      const result = validateReservedBreakdown(identity, multisig, proxy, index, governance, total)
 
       expect(result).toBe(true)
     })
@@ -752,9 +754,10 @@ describe('balance utilities', () => {
       const multisig = new BN(200)
       const proxy = new BN(50)
       const index = new BN(25)
+      const governance = new BN(0)
       const total = new BN(300)
 
-      const result = validateReservedBreakdown(identity, multisig, proxy, index, total)
+      const result = validateReservedBreakdown(identity, multisig, proxy, index, governance, total)
 
       expect(result).toBe(false)
     })
@@ -764,9 +767,10 @@ describe('balance utilities', () => {
       const multisig = new BN(200)
       const proxy = new BN(50)
       const index = new BN(25)
+      const governance = new BN(0)
       const total = new BN(175)
 
-      const result = validateReservedBreakdown(identity, multisig, proxy, index, total)
+      const result = validateReservedBreakdown(identity, multisig, proxy, index, governance, total)
 
       expect(result).toBe(false)
     })
@@ -776,9 +780,10 @@ describe('balance utilities', () => {
       const multisig = new BN(200)
       const proxy = new BN(50)
       const index = new BN(25)
+      const governance = new BN(0)
       const total = new BN(-375)
 
-      const result = validateReservedBreakdown(identity, multisig, proxy, index, total)
+      const result = validateReservedBreakdown(identity, multisig, proxy, index, governance, total)
 
       expect(result).toBe(false)
     })
@@ -788,9 +793,10 @@ describe('balance utilities', () => {
       const multisig = new BN(0)
       const proxy = new BN(0)
       const index = new BN(0)
+      const governance = new BN(0)
       const total = new BN(0)
 
-      const result = validateReservedBreakdown(identity, multisig, proxy, index, total)
+      const result = validateReservedBreakdown(identity, multisig, proxy, index, governance, total)
 
       expect(result).toBe(true)
     })

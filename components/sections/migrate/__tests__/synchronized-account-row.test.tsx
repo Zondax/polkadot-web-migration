@@ -1,8 +1,8 @@
+import { TEST_ADDRESSES } from '@/tests/fixtures/addresses'
+import { TEST_AMOUNTS } from '@/tests/fixtures/balances'
 import type { BN } from '@polkadot/util'
 import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { TEST_ADDRESSES } from '@/tests/fixtures/addresses'
-import { TEST_AMOUNTS } from '@/tests/fixtures/balances'
 
 // Mock all external dependencies
 vi.mock('@legendapp/state/react', () => ({
@@ -17,6 +17,7 @@ vi.mock('lucide-react', () => ({
   Check: () => null,
   CheckCircle: () => null,
   Clock: () => null,
+  Vote: () => null,
   Group: () => null,
   Hash: () => null,
   Info: () => null,
@@ -29,7 +30,6 @@ vi.mock('lucide-react', () => ({
   User: () => null,
   UserCog: () => null,
   Users: () => null,
-  Vote: () => null,
   X: () => null,
 }))
 

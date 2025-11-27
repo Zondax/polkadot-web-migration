@@ -20,6 +20,7 @@ import {
   TransactionStatus,
   type Address,
   type Collection,
+  type GovernanceDeposit,
   type MigratingItem,
   type MultisigAddress,
   type SyncProgress,
@@ -990,6 +991,29 @@ export const ledgerState$ = observable({
       return await ledgerClient.getGovernanceUnlockFee(appId, address, actions)
     } catch (error) {
       console.warn('[ledgerState$] Failed to get governance unlock fee:', error)
+      return undefined
+    }
+  },
+
+  async refundGovernanceDeposits(
+    appId: AppId,
+    address: string,
+    path: string,
+    deposits: GovernanceDeposit[],
+    updateTxStatus: UpdateTransactionStatus
+  ) {
+    try {
+      await ledgerClient.refundGovernanceDeposits(appId, address, path, deposits, updateTxStatus)
+    } catch (error) {
+      handleTransactionError(error, InternalErrorType.GOVERNANCE_REFUND_ERROR, updateTxStatus)
+    }
+  },
+
+  async getGovernanceRefundFee(appId: AppId, address: string, deposits: GovernanceDeposit[]): Promise<BN | undefined> {
+    try {
+      return await ledgerClient.getGovernanceRefundFee(appId, address, deposits)
+    } catch (error) {
+      console.warn('[ledgerState$] Failed to get governance refund fee:', error)
       return undefined
     }
   },
