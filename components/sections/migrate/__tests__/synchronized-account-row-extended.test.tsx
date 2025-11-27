@@ -1,8 +1,8 @@
+import { TEST_ADDRESSES } from '@/tests/fixtures/addresses'
+import { TEST_AMOUNTS } from '@/tests/fixtures/balances'
 import { BN } from '@polkadot/util'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { TEST_ADDRESSES } from '@/tests/fixtures/addresses'
-import { TEST_AMOUNTS } from '@/tests/fixtures/balances'
 
 // Mock all external dependencies
 vi.mock('@legendapp/state/react', () => ({

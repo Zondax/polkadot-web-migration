@@ -1,5 +1,5 @@
 import type { BN } from '@polkadot/util'
-import { Conviction } from 'state/types/ledger'
+import { Conviction, type GovernanceDeposit } from 'state/types/ledger'
 
 /**
  * Maps conviction enum to multiplier value
@@ -91,4 +91,31 @@ export function groupVotesByTrack(votes: Array<{ referendumIndex: number; trackI
   }
 
   return votesByTrack
+}
+
+/**
+ * Gets the appropriate badge variant for a governance deposit based on its status
+ * @param deposit The governance deposit
+ * @returns Object with className for the badge
+ */
+export function getGovernanceDepositBadgeProps(deposit: GovernanceDeposit): {
+  label: string
+  className: string
+} {
+  if (deposit.canRefund) {
+    return {
+      label: 'Refundable',
+      className: 'bg-green-100 text-green-800 border-green-300 hover:bg-green-100',
+    }
+  }
+  if (deposit.referendumStatus === 'ongoing') {
+    return {
+      label: 'Ongoing',
+      className: 'bg-blue-100 text-blue-800 border-blue-300 hover:bg-blue-100',
+    }
+  }
+  return {
+    label: 'Not Refundable',
+    className: 'bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-100',
+  }
 }

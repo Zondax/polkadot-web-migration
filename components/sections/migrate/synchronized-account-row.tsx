@@ -24,6 +24,7 @@ import { BalanceHoverCard, NativeBalanceHoverCard } from './balance-hover-card'
 import { BalanceType } from './balance-visualizations'
 import DestinationAddressSelect from './destination-address-select'
 import ApproveMultisigCallDialog from './dialogs/approve-multisig-call-dialog'
+import GovernanceRefundDialog from './dialogs/governance-refund-dialog'
 import GovernanceUnlockDialog from './dialogs/governance-unlock-dialog'
 import RemoveAccountIndexDialog from './dialogs/remove-account-index-dialog'
 import RemoveIdentityDialog from './dialogs/remove-identity-dialog'
@@ -40,7 +41,7 @@ interface AccountBalanceRowProps {
   rowSpan: number
   collections?: Collections
   token: Token
-  polkadotAddresses: string[]
+  polkadotAddresses: Address[]
   updateTransaction: UpdateTransaction
   appId: AppId
   toggleAccountSelection: ToggleAccountSelection
@@ -77,6 +78,7 @@ const SynchronizedAccountRow = ({
   const [removeProxyOpen, setRemoveProxyOpen] = useState<boolean>(false)
   const [removeAccountIndexOpen, setRemoveAccountIndexOpen] = useState<boolean>(false)
   const [governanceUnlockOpen, setGovernanceUnlockOpen] = useState<boolean>(false)
+  const [governanceRefundOpen, setGovernanceRefundOpen] = useState<boolean>(false)
   const isNoBalance: boolean = balance === undefined
   const isFirst: boolean = balanceIndex === 0 || isNoBalance
   const isNative = isNativeBalance(balance)
@@ -114,6 +116,7 @@ const SynchronizedAccountRow = ({
       [ActionType.ACCOUNT_INDEX]: () => setRemoveAccountIndexOpen(true),
       [ActionType.PROXY]: () => setRemoveProxyOpen(true),
       [ActionType.GOVERNANCE]: () => setGovernanceUnlockOpen(true),
+      [ActionType.GOVERNANCE_REFUND]: () => setGovernanceRefundOpen(true),
     }),
     []
   )
@@ -660,6 +663,17 @@ const SynchronizedAccountRow = ({
           appId={appId}
           token={token}
           convictionVoting={convictionVoting}
+        />
+      )}
+      {isNative && balance?.balance.reserved.governance?.deposits && (
+        <GovernanceRefundDialog
+          open={governanceRefundOpen}
+          setOpen={setGovernanceRefundOpen}
+          account={account}
+          appId={appId}
+          token={token}
+          transferableBalance={transferableBalance}
+          deposits={balance.balance.reserved.governance.deposits}
         />
       )}
     </TableRow>

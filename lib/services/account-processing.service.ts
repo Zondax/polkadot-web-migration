@@ -1,4 +1,4 @@
-import { getBalance, getIdentityInfo, getIndexInfo, getMultisigAddresses, getProxyInfo } from '@/lib/account'
+import { getBalance, getGovernanceDeposits, getIdentityInfo, getIndexInfo, getMultisigAddresses, getProxyInfo } from '@/lib/account'
 import { convertSS58Format } from '@/lib/utils/address'
 import { hasAddressBalance, hasBalance, hasNegativeBalance, validateReservedBreakdown } from '@/lib/utils/balance'
 import { InternalError } from '@/lib/utils/error'
@@ -11,6 +11,7 @@ import {
   type Address,
   type AddressBalance,
   type Collection,
+  type GovernanceDeposit,
   type MultisigAddress,
   type Native,
   type Registration,
@@ -29,7 +30,7 @@ export interface ProcessedAccountData {
     uniques: Map<number, Collection>
     nfts: Map<number, Collection>
   }
-  polkadotAddressesForApp: string[]
+  polkadotAddressesForApp: Address[]
 }
 
 export interface AccountProcessingResult {
@@ -163,10 +164,11 @@ async function getBlockchainDataForAccount(
     }
 
     // Fetch account metadata in parallel
-    const [registration, proxy, indexInfo, multisigAddresses] = await Promise.all([
+    const [registration, proxy, indexInfo, governanceDeposits, multisigAddresses] = await Promise.all([
       getIdentityInfo(address.address, api),
       getProxyInfo(address.address, api),
       getIndexInfo(address.address, api),
+      getGovernanceDeposits(address.address, api, appConfig.explorer?.network || appConfig.id),
       appConfig.explorer?.id === 'subscan'
         ? getMultisigAddresses(address.address, address.path, appConfig.explorer.network || appConfig.id, api)
         : Promise.resolve(undefined),
@@ -193,7 +195,14 @@ async function getBlockchainDataForAccount(
     }
 
     // Process reserved balance breakdown
-    const processedBalances = processReservedBalanceBreakdown(balances, registration, proxy, indexInfo, multisigDeposits)
+    const processedBalances = processReservedBalanceBreakdown(
+      balances,
+      registration,
+      proxy,
+      indexInfo,
+      multisigDeposits,
+      governanceDeposits
+    )
 
     return {
       account: {
@@ -223,7 +232,7 @@ async function getBlockchainDataForAccount(
  * Processes and structures reserved balance breakdown information.
  *
  * @description Analyzes reserved balances and creates a detailed breakdown showing
- * how much is reserved for identity, multisig operations, proxies, and account indices.
+ * how much is reserved for identity, multisig operations, proxies, account indices, and governance deposits.
  * Only updates the balance if the breakdown validation passes.
  *
  * @param {AddressBalance[]} balances - Array of account balances
@@ -231,12 +240,13 @@ async function getBlockchainDataForAccount(
  * @param {AccountProxy | undefined} proxy - Proxy configuration data
  * @param {AccountIndex | undefined} indexInfo - Account index information
  * @param {Array<{callHash: string, deposit: BN}>} multisigDeposits - Multisig call deposits
+ * @param {GovernanceDeposit[]} governanceDeposits - Governance deposits (decision and submission)
  * @returns {AddressBalance[]} Updated balances with reserved breakdown details
  *
  * @example
  * ```typescript
  * const balances = processReservedBalanceBreakdown(
- *   accountBalances, identity, proxy, index, multisigDeposits
+ *   accountBalances, identity, proxy, index, multisigDeposits, governanceDeposits
  * )
  * ```
  */
@@ -245,9 +255,11 @@ function processReservedBalanceBreakdown(
   registration: Registration | undefined,
   proxy: AccountProxy | undefined,
   indexInfo: AccountIndex | undefined,
-  multisigDeposits: { callHash: string; deposit: BN }[]
+  multisigDeposits: { callHash: string; deposit: BN }[],
+  governanceDeposits: GovernanceDeposit[]
 ): AddressBalance[] {
-  const hasReservedBalance = registration?.deposit || multisigDeposits.length > 0 || proxy?.deposit || indexInfo?.deposit
+  const hasReservedBalance =
+    registration?.deposit || multisigDeposits.length > 0 || proxy?.deposit || indexInfo?.deposit || governanceDeposits.length > 0
   const nativeBalanceIndex = balances.findIndex(balance => balance.type === BalanceType.NATIVE)
 
   if (hasReservedBalance && nativeBalanceIndex !== -1) {
@@ -257,12 +269,15 @@ function processReservedBalanceBreakdown(
       multisigDeposits.length > 0 ? multisigDeposits.reduce((sum, deposit) => sum.add(deposit.deposit), new BN(0)) : new BN(0)
     const proxyDeposit = proxy?.deposit ?? new BN(0)
     const indexDeposit = indexInfo?.deposit ?? new BN(0)
+    const governanceDeposit =
+      governanceDeposits.length > 0 ? governanceDeposits.reduce((sum, deposit) => sum.add(deposit.deposit), new BN(0)) : new BN(0)
 
     const isBreakdownValid = validateReservedBreakdown(
       identityDeposit,
       multisigDeposit,
       proxyDeposit,
       indexDeposit,
+      governanceDeposit,
       nativeBalance.reserved.total
     )
 
@@ -277,6 +292,7 @@ function processReservedBalanceBreakdown(
             : undefined,
           proxy: proxyDeposit.gtn(0) ? { deposit: proxyDeposit } : undefined,
           index: indexDeposit.gtn(0) ? { deposit: indexDeposit } : undefined,
+          governance: governanceDeposit.gtn(0) ? { total: governanceDeposit, deposits: governanceDeposits } : undefined,
         },
       }
     } else {
@@ -400,7 +416,7 @@ async function getBlockchainDataForMultisigAccounts(
  * @param {Address[]} addresses - Array of addresses to process
  * @param {AppConfig} appConfig - Blockchain application configuration
  * @param {ApiPromise} api - Connected blockchain API instance
- * @param {string[]} polkadotAddresses - Polkadot addresses for cross-chain migration
+ * @param {Address[]} polkadotAddresses - Polkadot accounts with addresses and paths for cross-chain migration
  * @param {boolean} [filterByBalance=true] - Whether to filter accounts by balance
  * @returns {Promise<AccountProcessingResult>} Result containing processed accounts and collections
  * @throws {InternalError} When the account processing pipeline fails
@@ -409,7 +425,7 @@ export async function processAccountsForApp(
   addresses: Address[],
   appConfig: AppConfig,
   api: ApiPromise,
-  polkadotAddresses: string[],
+  polkadotAddresses: Address[],
   filterByBalance = true
 ): Promise<AccountProcessingResult> {
   try {
@@ -460,12 +476,25 @@ export async function processAccountsForApp(
     const filteredAccounts = filterAccountsForApps(accounts, filterByBalance)
     const filteredMultisigAccounts = filterAccountsForApps(Array.from(multisigAccounts.values()), filterByBalance)
 
-    // Set default destination addresses
-    const polkadotAddressesForApp = polkadotAddresses.map(address => convertSS58Format(address, appConfig.ss58Prefix || 0))
+    // Set default destination addresses with path
+    const polkadotAddressesForApp = polkadotAddresses.map(account => ({
+      address: convertSS58Format(account.address, appConfig.ss58Prefix || 0),
+      path: account.path,
+      pubKey: '',
+    }))
+
+    // Create default destination address object with address and path
+    const defaultDestination = polkadotAddresses[0]
+      ? {
+          address: convertSS58Format(polkadotAddresses[0].address, appConfig.ss58Prefix || 0),
+          path: polkadotAddresses[0].path,
+          pubKey: '',
+        }
+      : undefined
 
     // Add default destination address and pending actions to accounts
     const processedAccounts = filteredAccounts.map(account => {
-      const modifiedAccount = setDefaultDestinationAddress(account, polkadotAddressesForApp[0])
+      const modifiedAccount = defaultDestination ? setDefaultDestinationAddress(account, defaultDestination) : account
       const pendingActions = getPendingActions({
         account: modifiedAccount,
         appId: appConfig.id,
@@ -477,7 +506,7 @@ export async function processAccountsForApp(
     })
 
     const processedMultisigAccounts = filteredMultisigAccounts.map(account => {
-      const modifiedAccount = setDefaultDestinationAddress(account, polkadotAddressesForApp[0])
+      const modifiedAccount = defaultDestination ? setDefaultDestinationAddress(account, defaultDestination) : account
       const pendingActions = getPendingActions({
         account: modifiedAccount,
         appId: appConfig.id,

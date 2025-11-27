@@ -11,7 +11,13 @@ import { muifyHtml } from '@/lib/utils/html'
 import { createStatusBadge, getTransactionStatus } from '@/lib/utils/ui'
 import { AlertCircle, ShieldCheck } from 'lucide-react'
 import type { App } from 'state/ledger'
-import { VerificationStatus, type AddressWithVerificationStatus, type MultisigAddress, type Transaction } from 'state/types/ledger'
+import {
+  TransactionStatus,
+  VerificationStatus,
+  type AddressWithVerificationStatus,
+  type MultisigAddress,
+  type Transaction,
+} from 'state/types/ledger'
 import { BalanceHoverCard } from './balance-hover-card'
 import TransactionDropdown from './transaction-dropdown'
 
@@ -50,6 +56,7 @@ const MigratedAccountRows = ({ app, multisigAddresses, destinationAddressesStatu
   const renderStatusIcon = (transaction: Transaction | undefined, hasPendingActions: boolean) => {
     const txStatus = transaction?.status
     const txStatusMessage = transaction?.statusMessage
+    const txDispatchError = transaction?.dispatchError
 
     if (hasPendingActions && !txStatus) {
       return <PendingActionsWarning />
@@ -57,7 +64,22 @@ const MigratedAccountRows = ({ app, multisigAddresses, destinationAddressesStatu
 
     const { statusIcon, statusMessage } = getTransactionStatus(txStatus, txStatusMessage)
 
-    return statusMessage ? <CustomTooltip tooltipBody={statusMessage}>{statusIcon}</CustomTooltip> : statusIcon
+    return statusMessage ? (
+      <CustomTooltip
+        tooltipBody={
+          <>
+            <p>{statusMessage}</p>
+            {txStatus && [TransactionStatus.FAILED, TransactionStatus.ERROR].includes(txStatus) && txDispatchError && (
+              <div className="p-2 bg-muted/50 rounded text-xs font-mono break-all select-all">{txDispatchError}</div>
+            )}
+          </>
+        }
+      >
+        {statusIcon}
+      </CustomTooltip>
+    ) : (
+      statusIcon
+    )
   }
 
   return accounts.map((account, accountIndex) => {
@@ -126,14 +148,15 @@ const MigratedAccountRows = ({ app, multisigAddresses, destinationAddressesStatu
             {balances.map((balance, balanceIndex) => (
               <div key={balance.type}>
                 {balanceIndex !== 0 && <hr className="border-gray-200 my-0" />}
-                <div className="py-4 px-8 flex items-center gap-1">
+                <div className="py-4 px-6 flex items-center gap-1">
                   <ExplorerLink
-                    value={balance.transaction?.destinationAddress || ''}
+                    value={balance.transaction?.destinationAddress?.address || ''}
                     appId={app.id as AppId}
                     explorerLinkType={ExplorerItemType.Address}
+                    tooltipBody={`${balance.transaction?.destinationAddress?.address} - ${balance.transaction?.destinationAddress?.path}`}
                   />
-                  {destinationAddressesStatus.find(address => address.address === balance.transaction?.destinationAddress)?.status ===
-                  VerificationStatus.VERIFIED ? (
+                  {destinationAddressesStatus.find(address => address.address === balance.transaction?.destinationAddress?.address)
+                    ?.status === VerificationStatus.VERIFIED ? (
                     <CustomTooltip tooltipBody="This address was verified on your device.">
                       <ShieldCheck className="h-4 w-4 text-green-500" />
                     </CustomTooltip>

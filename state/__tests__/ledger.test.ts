@@ -539,7 +539,7 @@ describe('Ledger State', () => {
     })
 
     it('should return false when address not found in polkadot addresses', async () => {
-      ledgerState$.polkadotAddresses.polkadot.set(['1other'])
+      ledgerState$.polkadotAddresses.polkadot.set([{ address: '1other', path: "m/44'/354'/0'/0'/1'", pubKey: '0x01' }])
 
       const result = await ledgerState$.verifyDestinationAddresses('polkadot', '1test', "m/44'/354'/0'/0'/0'")
       expect(result.isVerified).toBe(false)
@@ -857,7 +857,7 @@ describe('Ledger State', () => {
 
     it('should handle polkadot addresses verification - successful case', async () => {
       const { ledgerClient } = await import('../client/ledger')
-      ledgerState$.polkadotAddresses.polkadot.set(['1test'])
+      ledgerState$.polkadotAddresses.polkadot.set([{ address: '1test', path: "m/44'/354'/0'/0'/0'", pubKey: '0x00' }])
 
       // Mock successful address verification
       vi.mocked(ledgerClient.getAccountAddress).mockResolvedValueOnce({
@@ -882,7 +882,7 @@ describe('Ledger State', () => {
           ],
         },
       ])
-      ledgerState$.polkadotAddresses.polkadot.set(['1test'])
+      ledgerState$.polkadotAddresses.polkadot.set([{ address: '1test', path: "m/44'/354'/0'/0'/0'", pubKey: '0x00' }])
 
       // Clear synchronization
       ledgerState$.clearSynchronization()
@@ -946,7 +946,7 @@ describe('Ledger State', () => {
       // Mock getAccountAddress to throw error
       vi.mocked(ledgerClient.getAccountAddress).mockRejectedValueOnce(new Error('Verification failed'))
 
-      ledgerState$.polkadotAddresses.polkadot.set(['1test'])
+      ledgerState$.polkadotAddresses.polkadot.set([{ address: '1test', path: "m/44'/354'/0'/0'/0'", pubKey: '0x00' }])
       const result = await ledgerState$.verifyDestinationAddresses('polkadot', '1test', "m/44'/354'/0'/0'/0'")
 
       expect(result.isVerified).toBe(false)

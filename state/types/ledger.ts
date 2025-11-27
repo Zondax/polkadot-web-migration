@@ -62,7 +62,7 @@ export interface TransactionDetails {
  * Settings for preparing a blockchain transaction, such as destination and signatory addresses.
  */
 export interface TransactionSettings {
-  destinationAddress?: string
+  destinationAddress?: Address
   signatoryAddress?: string // Used in multisig transactions - address of the signatory address that will be used to sign the transaction
 }
 
@@ -136,6 +136,7 @@ export enum ActionType {
   ACCOUNT_INDEX = 'account-index',
   PROXY = 'proxy',
   GOVERNANCE = 'governance',
+  GOVERNANCE_REFUND = 'governance-refund',
 }
 
 /**
@@ -238,6 +239,17 @@ export interface Staking {
 }
 
 /**
+ * Information about a governance deposit (decision or submission)
+ */
+export interface GovernanceDeposit {
+  referendumIndex: number
+  type: 'decision' | 'submission'
+  deposit: BN
+  canRefund: boolean
+  referendumStatus: 'ongoing' | 'approved' | 'rejected' | 'cancelled' | 'timedout' | 'killed'
+}
+
+/**
  * Information about the reserved balance, including breakdown by source.
  */
 export interface Reserved {
@@ -246,6 +258,7 @@ export interface Reserved {
   identity?: { deposit: BN }
   multisig?: { total: BN; deposits: { callHash: string; deposit: BN }[] }
   index?: { deposit: BN }
+  governance?: { total: BN; deposits: GovernanceDeposit[] }
 }
 
 /**

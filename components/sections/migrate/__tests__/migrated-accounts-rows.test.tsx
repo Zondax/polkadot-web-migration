@@ -8,7 +8,8 @@ import { BalanceType, TransactionStatus } from '@/state/types/ledger'
 // Mock dependencies
 vi.mock('@/components/CustomTooltip', () => ({
   CustomTooltip: ({ children, tooltipBody }: any) => (
-    <div data-testid="custom-tooltip" data-tooltip-body={tooltipBody}>
+    <div data-testid="custom-tooltip">
+      <div data-testid="tooltip-body">{tooltipBody}</div>
       {children}
     </div>
   ),
@@ -84,7 +85,11 @@ import MigratedAccountRows from '../migrated-accounts-rows'
 
 describe('MigratedAccountRows component', () => {
   const mockTransactionSettings = {
-    destinationAddress: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty',
+    destinationAddress: {
+      address: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty',
+      path: "m/44'/354'/0'/0'/0'",
+      pubKey: '0x8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48',
+    },
     signatoryAddress: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
   }
 
@@ -368,7 +373,8 @@ describe('MigratedAccountRows component', () => {
       renderInTable(<MigratedAccountRows app={mockApp} destinationAddressesStatus={[]} />)
 
       const tooltip = screen.getByTestId('custom-tooltip')
-      expect(tooltip).toHaveAttribute('data-tooltip-body', 'Transaction completed')
+      const tooltipBody = screen.getByTestId('tooltip-body')
+      expect(tooltipBody).toHaveTextContent('Transaction completed')
       expect(tooltip.querySelector('[data-testid="status-icon"]')).toBeInTheDocument()
     })
 

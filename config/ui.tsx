@@ -59,4 +59,5 @@ export const ActionTypeMap: Record<ActionType, React.ReactNode> = {
   [ActionType.ACCOUNT_INDEX]: <Trash2 size={16} />,
   [ActionType.PROXY]: <Trash2 size={16} />,
   [ActionType.GOVERNANCE]: <Vote size={16} />,
+  [ActionType.GOVERNANCE_REFUND]: <Vote size={16} />,
 }

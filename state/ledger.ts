@@ -20,6 +20,7 @@ import {
   TransactionStatus,
   type Address,
   type Collection,
+  type GovernanceDeposit,
   type MigratingItem,
   type MultisigAddress,
   type SyncProgress,
@@ -102,7 +103,7 @@ interface LedgerState {
     currentMigratedItem?: MigratingItem
   }
   deepScan: DeepScan
-  polkadotAddresses: Partial<Record<AppId, string[]>>
+  polkadotAddresses: Partial<Record<AppId, Address[]>>
 }
 
 const initialPolkadotApp = {
@@ -165,7 +166,7 @@ function updateApp(appId: AppId, update: Partial<App>) {
 }
 
 // Update Polkadot Addresses
-function updatePolkadotAddresses(appId: AppId, addresses: string[]) {
+function updatePolkadotAddresses(appId: AppId, addresses: Address[]) {
   ledgerState$.polkadotAddresses[appId].set(addresses)
 }
 
@@ -437,9 +438,8 @@ export const ledgerState$ = observable({
       updateApp(appId, { status: AppStatus.LOADING, error: undefined })
 
       const polkadotAccounts = ledgerState$.apps.polkadotApp.get().accounts || []
-      const polkadotAddresses = polkadotAccounts.map(account => account.address)
 
-      const { app, polkadotAddressesForApp } = await synchronizeAppAccounts(appConfig, polkadotAddresses, true, () =>
+      const { app, polkadotAddressesForApp } = await synchronizeAppAccounts(appConfig, polkadotAccounts, true, () =>
         ledgerState$.apps.isSyncCancelRequested.get()
       )
       if (app) {
@@ -674,7 +674,7 @@ export const ledgerState$ = observable({
     }
 
     // Find the index of the address in the polkadotAddresses array
-    const addressIndex = polkadotAddresses.findIndex(addr => addr === address)
+    const addressIndex = polkadotAddresses.findIndex(addr => addr.address === address)
     if (addressIndex === -1) {
       console.error(`Address ${address} not found in Polkadot addresses for app ${appId}.`)
       return { isVerified: false }
@@ -995,6 +995,29 @@ export const ledgerState$ = observable({
     }
   },
 
+  async refundGovernanceDeposits(
+    appId: AppId,
+    address: string,
+    path: string,
+    deposits: GovernanceDeposit[],
+    updateTxStatus: UpdateTransactionStatus
+  ) {
+    try {
+      await ledgerClient.refundGovernanceDeposits(appId, address, path, deposits, updateTxStatus)
+    } catch (error) {
+      handleTransactionError(error, InternalErrorType.GOVERNANCE_REFUND_ERROR, updateTxStatus)
+    }
+  },
+
+  async getGovernanceRefundFee(appId: AppId, address: string, deposits: GovernanceDeposit[]): Promise<BN | undefined> {
+    try {
+      return await ledgerClient.getGovernanceRefundFee(appId, address, deposits)
+    } catch (error) {
+      console.warn('[ledgerState$] Failed to get governance refund fee:', error)
+      return undefined
+    }
+  },
+
   // Deep Scan functionality
   cancelDeepScan() {
     ledgerState$.deepScan.cancelRequested.set(true)
@@ -1056,7 +1079,7 @@ export const ledgerState$ = observable({
     try {
       // Get current synchronized apps
       const currentApps = ledgerState$.apps.apps.get()
-      const polkadotAddresses = ledgerState$.apps.polkadotApp.accounts.get()?.map(account => account.address) || []
+      const polkadotAddresses = ledgerState$.apps.polkadotApp.accounts.get() || []
 
       // Use the synchronization service to handle the deep scan process
       const result = await deepScanAllApps(

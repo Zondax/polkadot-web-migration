@@ -5,43 +5,50 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { Check, Plus, X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Badge } from './ui/badge'
 
-interface Option {
-  value: string
-  label: string
-}
-
-interface SelectWithCustomProps {
-  options: Option[]
+interface SelectWithCustomProps<T> {
+  options: T[]
   placeholder?: string
   customPlaceholder?: string
   selectedValue?: string
   defaultValue?: string
   onValueChange?: (value: string) => void
-  renderOption?: (option: Option, index: number) => React.ReactNode
+  renderOption?: (option: T, index: number) => React.ReactNode
+  renderSelectedValue?: (option: T) => React.ReactNode
+  getOptionValue: (option: T) => string
+  getOptionLabel: (option: T) => string
   className?: string
   disabled?: boolean
 }
 
-export function SelectWithCustom({
+export function SelectWithCustom<T>({
   options,
   placeholder = 'Select an option...',
   customPlaceholder = 'Enter custom value',
   onValueChange,
   renderOption,
+  renderSelectedValue,
+  getOptionValue,
+  getOptionLabel,
   selectedValue,
   defaultValue,
   className,
   disabled,
-}: SelectWithCustomProps) {
+}: SelectWithCustomProps<T>) {
   const [customValue, setCustomValue] = useState<string>('')
   const [isCustomMode, setIsCustomMode] = useState(false)
   const [isAddingCustom, setIsAddingCustom] = useState(false)
   const [customInput, setCustomInput] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const customValueKey = '__add_custom__'
+
+  // Find the selected option for custom rendering
+  const selectedOption = useMemo(() => {
+    if (!selectedValue) return null
+    return options.find(option => getOptionValue(option) === selectedValue)
+  }, [selectedValue, options, getOptionValue])
 
   useEffect(() => {
     if (isAddingCustom && inputRef.current) {
@@ -83,18 +90,18 @@ export function SelectWithCustom({
   const handleRemoveCustom = () => {
     setCustomValue('')
     setIsCustomMode(false)
-    onValueChange?.(options[0]?.value ?? '')
+    onValueChange?.(options[0] ? getOptionValue(options[0]) : '')
   }
 
   useEffect(() => {
-    if (selectedValue && !options.find(option => option.value === selectedValue)) {
+    if (selectedValue && !options.find(option => getOptionValue(option) === selectedValue)) {
       setCustomValue(selectedValue)
       setIsCustomMode(true)
     } else {
       setIsCustomMode(false)
       setCustomValue('')
     }
-  }, [selectedValue, options])
+  }, [selectedValue, options, getOptionValue])
 
   if (isCustomMode && customValue) {
     return (
@@ -153,19 +160,23 @@ export function SelectWithCustom({
 
   return (
     <div className={cn('relative', className)}>
-      <Select onValueChange={handleSelectChange} defaultValue={defaultValue} disabled={disabled}>
+      <Select onValueChange={handleSelectChange} value={selectedValue} defaultValue={defaultValue} disabled={disabled}>
         <SelectTrigger>
-          <SelectValue placeholder={placeholder} />
+          {renderSelectedValue && selectedOption ? (
+            <div className="w-full text-left">{renderSelectedValue(selectedOption)}</div>
+          ) : (
+            <SelectValue placeholder={placeholder} />
+          )}
         </SelectTrigger>
         <SelectContent>
           {options.map((option, index) => (
-            <SelectItem key={option.value} value={option.value}>
+            <SelectItem key={getOptionValue(option)} value={getOptionValue(option)}>
               {renderOption ? (
                 renderOption(option, index)
               ) : (
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-muted-foreground/50" />
-                  {option.label}
+                  {getOptionLabel(option)}
                 </div>
               )}
             </SelectItem>

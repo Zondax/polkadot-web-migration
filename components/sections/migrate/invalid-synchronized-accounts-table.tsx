@@ -1,16 +1,16 @@
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import type { AppId, Token } from '@/config/apps'
 import { observer } from '@legendapp/state/react'
 import { motion } from 'framer-motion'
 import { useCallback } from 'react'
 import type { Collections } from 'state/ledger'
 import type { Address, MultisigAddress } from 'state/types/ledger'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import type { AppId, Token } from '@/config/apps'
 import InvalidSynchronizedAccountRow from './invalid-synchronized-account-row'
 
 interface InvalidSynchronizedAccountsTableProps {
   accounts: Address[] | MultisigAddress[] | undefined
   token: Token
-  polkadotAddresses: string[]
+  polkadotAddresses: Address[]
   collections?: Collections
   appId: AppId
   isMultisig?: boolean
