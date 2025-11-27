@@ -94,7 +94,7 @@ function GovernanceRefundForm({
               className={cn('flex items-center justify-between text-xs p-2 rounded-lg', getDepositBadgeStyle(deposit))}
             >
               <span className="flex items-center gap-1.5">
-                <Badge className="bg-white border-gray-300 text-gray-700 text-xs capitalize">{deposit.type}</Badge>
+                <Badge className="bg-white border-gray-300 text-gray-700 text-xs capitalize hover:bg-white">{deposit.type}</Badge>
                 <span className="text-gray-700">Ref #{deposit.referendumIndex}</span>
                 {getDepositBadge(deposit)}
               </span>

@@ -267,8 +267,8 @@ export async function getNativeBalance(addressString: string, api: ApiPromise, a
       // https://wiki.polkadot.network/learn/learn-guides-accounts/#query-account-data-in-polkadot-js
       // The Existential Deposit is not taking into account to calculate the transferable balance because it is not necessary to keep the account alive
       const freeBN = new BN(free.toString())
-      const reservedBN = new BN(reserved.toString())
-      const frozenBN = new BN(frozen.toString())
+      const reservedBN = new BN(reserved?.toString() ?? 0)
+      const frozenBN = new BN(frozen?.toString() ?? 0)
       const totalBN = freeBN.add(reservedBN)
       // transferable = free - max(frozen - reserved, 0)
       const frozenMinusReserved = frozenBN.sub(reservedBN)
