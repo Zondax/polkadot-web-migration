@@ -66,14 +66,6 @@ describe('Header component', () => {
       expect(title).toBeInTheDocument()
       expect(title).toHaveClass('font-bold', 'text-lg', 'text-white')
     })
-
-    it('should render the beta badge', () => {
-      render(<Header />)
-
-      const betaBadge = screen.getByText('BETA')
-      expect(betaBadge).toBeInTheDocument()
-      expect(betaBadge).toHaveClass('text-xs', 'px-2', 'py-0.5', 'bg-[#FF2670]', 'text-white', 'rounded-full')
-    })
   })
 
   describe('logo design', () => {
@@ -119,43 +111,6 @@ describe('Header component', () => {
 
       const link = screen.getByRole('link')
       expect(link).toHaveClass('group')
-    })
-  })
-
-  describe('tooltip functionality', () => {
-    it('should render tooltip provider', () => {
-      render(<Header />)
-
-      const tooltipProvider = screen.getByTestId('tooltip-provider')
-      expect(tooltipProvider).toBeInTheDocument()
-    })
-
-    it('should render tooltip wrapper', () => {
-      render(<Header />)
-
-      const tooltip = screen.getByTestId('tooltip')
-      expect(tooltip).toBeInTheDocument()
-    })
-
-    it('should render tooltip trigger with beta badge', () => {
-      render(<Header />)
-
-      const tooltipTrigger = screen.getByTestId('tooltip-trigger')
-      expect(tooltipTrigger).toBeInTheDocument()
-      expect(tooltipTrigger).toContainElement(screen.getByText('BETA'))
-    })
-
-    it('should render tooltip content with beta warning message', () => {
-      render(<Header />)
-
-      const tooltipContent = screen.getByTestId('tooltip-content')
-      expect(tooltipContent).toBeInTheDocument()
-      expect(tooltipContent).toHaveClass('max-w-xs')
-
-      const message = screen.getByText(/This project is still in development/)
-      expect(message).toBeInTheDocument()
-      expect(message.textContent).toContain('testing purposes only')
-      expect(message.textContent).toContain('small amounts')
     })
   })
 
@@ -216,14 +171,6 @@ describe('Header component', () => {
       expect(titleContainer).toBeInTheDocument()
       expect(titleContainer).toHaveClass('flex', 'flex-row', 'gap-2')
     })
-
-    it('should have beta badge within tooltip trigger', () => {
-      render(<Header />)
-
-      const tooltipTrigger = screen.getByTestId('tooltip-trigger')
-      const betaBadge = screen.getByText('BETA')
-      expect(tooltipTrigger).toContainElement(betaBadge)
-    })
   })
 
   describe('accessibility', () => {
@@ -241,17 +188,6 @@ describe('Header component', () => {
       expect(link).toBeInTheDocument()
       expect(link).toHaveAttribute('href', '/')
     })
-
-    it('should provide context for beta badge through tooltip', () => {
-      render(<Header />)
-
-      const betaBadge = screen.getByText('BETA')
-      const tooltipContent = screen.getByTestId('tooltip-content')
-
-      expect(betaBadge).toBeInTheDocument()
-      expect(tooltipContent).toBeInTheDocument()
-      expect(tooltipContent).toHaveTextContent('This project is still in development')
-    })
   })
 
   describe('styling and visual elements', () => {
@@ -260,15 +196,6 @@ describe('Header component', () => {
 
       const gradientElements = container.querySelectorAll('.from-\\[\\#FF2670\\].to-\\[\\#7916F3\\]')
       expect(gradientElements).toHaveLength(2) // Outer circle and inner circle
-    })
-
-    it('should use correct beta badge styling', () => {
-      render(<Header />)
-
-      const betaBadge = screen.getByText('BETA')
-      expect(betaBadge).toHaveClass('bg-[#FF2670]')
-      expect(betaBadge).toHaveClass('text-white')
-      expect(betaBadge).toHaveClass('rounded-full')
     })
 
     it('should have shadow on logo', () => {
