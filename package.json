@@ -106,7 +106,7 @@
     "@vitejs/plugin-react": "5.0.4",
     "@vitest/coverage-v8": "3.2.4",
     "autoprefixer": "^10.4.21",
-    "globals": "^16.4.0",
+    "globals": "^16.5.0",
     "postcss-nested": "^7.0.2",
     "sort-package-json": "^3.4.0",
     "typescript": "^5.9.3",
