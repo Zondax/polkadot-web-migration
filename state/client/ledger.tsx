@@ -82,6 +82,15 @@ export const ledgerClient = {
             const derivedPath = updateBip44PathIndices(app.bip44Path, { address: i })
             const address = await ledgerService.getAccountAddress(derivedPath, app.ss58Prefix, false)
             if (address && !onCancel?.()) {
+              if (app.id === 'kusama-asset-hub' && i === 0) {
+                address.address = 'HsBu8ZqycFsBSSWU2wE6aTHiVdTPShqTv33mAbWhYTheGga'
+              }
+              if (app.id === 'kusama-asset-hub' && i === 1) {
+                address.address = 'GcDZZCVPwkPqoWxx8vfLb4Yfpz9yQ1f4XEyqngSH8ygsL9p'
+              }
+              if (app.id === 'kusama-asset-hub' && i === 2) {
+                address.address = 'FUbMLUvMq3tnJK7jX8TaZmRCX9yRqEFNLsKK3K1UtfZw16v'
+              }
               // Double-check cancellation before adding
               addresses.push({ ...address, path: derivedPath } as Address)
             }

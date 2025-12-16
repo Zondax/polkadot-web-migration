@@ -10,11 +10,15 @@
   --text-xxs: 0.625rem;
 
   --color-polkadot-pink: #ff2670;
+  --color-polkadot-magenta: #ff2670;
   --color-polkadot-violet: #7916f3;
   --color-polkadot-lime: #e4ff07;
+  --color-polkadot-lime-dark: #99b300;
   --color-polkadot-cyan: #07ffff;
+  --color-polkadot-cyan-dark: #00a5a5;
   --color-polkadot-cyan-light: #07ffff1a;
   --color-polkadot-green: #2cdaa0;
+  --color-polkadot-green-dark: #1a9b73;
   --color-storm-200: #dce2e9;
   --color-storm-400: #aeb7cb;
   --color-storm-700: #6e7391;

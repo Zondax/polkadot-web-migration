@@ -100,6 +100,7 @@ describe('SynchronizedAccountsTable component', () => {
     polkadotAddresses: [TEST_ADDRESSES.ADDRESS2],
     appId: 'polkadot' as const,
     updateTransaction: vi.fn(),
+    toggleAccountSelection: vi.fn(),
   }
 
   beforeEach(() => {
@@ -112,10 +113,7 @@ describe('SynchronizedAccountsTable component', () => {
 
       expect(screen.getByText('Source Address')).toBeInTheDocument()
       expect(screen.getByText('Destination Address')).toBeInTheDocument()
-      expect(screen.getByText('Total Balance')).toBeInTheDocument()
-      expect(screen.getByText('Transferable')).toBeInTheDocument()
-      expect(screen.getByText('Staked')).toBeInTheDocument()
-      expect(screen.getByText('Reserved')).toBeInTheDocument()
+      expect(screen.getByText('Balance')).toBeInTheDocument()
       expect(screen.getByText('Actions')).toBeInTheDocument()
     })
 
