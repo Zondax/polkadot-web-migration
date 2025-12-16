@@ -2,7 +2,6 @@
 
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 export function Header() {
   return (
@@ -23,19 +22,6 @@ export function Header() {
             <span className="font-bold text-lg text-white">Polkadot Ledger Migration Assistant</span>
           </div>
         </Link>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger>
-              <span className="text-xs px-2 py-0.5 bg-[#FF2670] text-white rounded-full">BETA</span>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xs">
-              <p>
-                This project is still in development. For now, we recommend to use it for testing purposes only. The transactions will
-                consist of small amounts.
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
       </motion.div>
       <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
         {/* <User /> */}

@@ -4,9 +4,9 @@ import { motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
 
-import { Button } from '@/components/ui/button'
-
+import { FaGithub } from 'react-icons/fa'
 import { GradientBackground } from '../migrate/background'
+import { ActionButton } from './action-buttons'
 
 interface HomePageProps {
   title?: string
@@ -20,11 +20,11 @@ export function HomePage({
   animationSpeed = 1,
 }: HomePageProps) {
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden">
+    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden py-20 px-4">
       {/* Background with gradient and animations */}
       <GradientBackground showBlobs={false} showPaths={true} animationSpeed={animationSpeed} />
 
-      <div className="relative z-20 container mx-auto px-4 md:px-6 text-center">
+      <div className="relative z-20 container mx-auto  text-center">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -65,10 +65,19 @@ export function HomePage({
               delay: 1.6 / animationSpeed,
               duration: 1 / animationSpeed,
             }}
-            className="mb-6"
+            className="mb-8"
           >
-            <div className="inline-block px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-xs border border-white/20">
-              <span className="text-sm text-white/80 italic ">Beta: This project is still in development</span>
+            <div className="flex flex-row items-center justify-center gap-2">
+              <p className="text-white/80">by</p>
+              <Link href="https://zondax.ch" target="_blank" rel="noopener noreferrer">
+                <Image
+                  src="/assets/zondax-white.svg"
+                  alt="Zondax Logo"
+                  width={105}
+                  height={48}
+                  className="hover:opacity-80 transition-opacity duration-300"
+                />
+              </Link>
             </div>
           </motion.div>
 
@@ -79,47 +88,20 @@ export function HomePage({
               delay: 1.8 / animationSpeed,
               duration: 1 / animationSpeed,
             }}
-            className="mb-8"
           >
-            <div className="flex flex-row items-center justify-center gap-2">
-              <p className="text-white/80">by</p>
-              <Image src="/assets/zondax-white.svg" alt="Zondax Logo" width={105} height={48} />
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              delay: 2 / animationSpeed,
-              duration: 1 / animationSpeed,
-            }}
-          >
-            <div
-              className="inline-block group relative p-px rounded-2xl backdrop-blur-lg 
-                      overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300"
-              style={{
-                background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1))',
-              }}
-            >
-              <Link href="/migrate">
-                <Button
-                  variant="ghost"
-                  className="rounded-[1.15rem] px-8 py-6 text-lg font-semibold backdrop-blur-md 
-                          bg-white/95 hover:bg-white 
-                          border border-white/20 hover:shadow-md
-                          group-hover:-translate-y-0.5 transition-all duration-300"
-                  style={{ color: '#FF2670' }}
-                >
-                  <span className="opacity-90 group-hover:opacity-100 transition-opacity">Start Migration</span>
-                  <span
-                    className="ml-3 opacity-70 group-hover:opacity-100 group-hover:translate-x-1.5 
-                            transition-all duration-300"
-                  >
-                    →
-                  </span>
-                </Button>
-              </Link>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <div className="w-full sm:w-auto order-2 sm:order-1">
+                <ActionButton
+                  href="https://github.com/Zondax/polkadot-web-migration"
+                  label="GitHub"
+                  variant="secondary"
+                  icon={<FaGithub className="h-5 w-5" />}
+                  external
+                />
+              </div>
+              <div className="w-full sm:w-auto order-1 sm:order-2">
+                <ActionButton href="/migrate" label="Start Migration" variant="primary" />
+              </div>
             </div>
           </motion.div>
         </motion.div>
