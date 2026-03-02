@@ -8,6 +8,21 @@ import { BalanceType } from '../balance-visualizations'
 
 // Mock dependencies
 vi.mock('lucide-react', () => ({
+  ArrowRightLeft: vi.fn(({ className }) => (
+    <div data-testid="arrow-right-left" className={className}>
+      ArrowRightLeft
+    </div>
+  )),
+  BarChart: vi.fn(({ className }) => (
+    <div data-testid="bar-chart" className={className}>
+      BarChart
+    </div>
+  )),
+  Group: vi.fn(({ className }) => (
+    <div data-testid="group" className={className}>
+      Group
+    </div>
+  )),
   Info: vi.fn(({ className }) => (
     <div data-testid="info-icon" className={className}>
       Info
