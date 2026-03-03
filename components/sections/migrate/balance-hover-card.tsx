@@ -8,8 +8,9 @@ import { BN } from '@polkadot/util'
 import { Info } from 'lucide-react'
 import { useMemo } from 'react'
 import type { Collections } from 'state/ledger'
+import { BalanceType } from './balance-config'
 import BalanceGallery from './balance-gallery'
-import { BalanceType, NativeBalanceVisualization } from './balance-visualizations'
+import { NativeBalanceVisualization } from './balance-visualizations'
 import NftCircles from './nft-circles'
 
 interface BalanceHoverCardProps {
