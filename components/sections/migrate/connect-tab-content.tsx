@@ -1,21 +1,22 @@
 'use client'
 
-import { useConnection } from '@/components/hooks/useConnection'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
 import { motion } from 'framer-motion'
 import { Info } from 'lucide-react'
 import Link from 'next/link'
 import { useCallback } from 'react'
+import { useConnection } from '@/components/hooks/useConnection'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 
 interface ConnectTabContentProps {
   onContinue: () => void
 }
 
 export function ConnectTabContent({ onContinue }: ConnectTabContentProps) {
-  const { isLedgerConnected, isAppOpen, connectDevice } = useConnection()
+  const { isLedgerConnected, isAppOpen, isConnecting, connectDevice } = useConnection()
 
   const handleConnect = useCallback(async () => {
+    if (isConnecting) return
     try {
       const connected = await connectDevice()
       if (connected) {
@@ -24,7 +25,7 @@ export function ConnectTabContent({ onContinue }: ConnectTabContentProps) {
     } catch (error) {
       console.error('Failed to connect device:', error)
     }
-  }, [connectDevice, onContinue])
+  }, [connectDevice, isConnecting, onContinue])
 
   // Step data for the grid
   const steps = [
@@ -118,9 +119,10 @@ export function ConnectTabContent({ onContinue }: ConnectTabContentProps) {
         className="mt-2 px-8 py-3 rounded-md text-lg font-semibold bg-[#7916F3] hover:bg-[#6B46C1] text-white shadow-lg"
         onClick={handleConnect}
         size="lg"
+        disabled={isConnecting}
         data-testid="connect-ledger-button"
       >
-        <span className="flex items-center gap-2">Connect</span>
+        <span className="flex items-center gap-2">{isConnecting ? 'Connecting…' : 'Connect'}</span>
       </Button>
     </div>
   )

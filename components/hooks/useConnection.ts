@@ -1,7 +1,7 @@
-import { use$, useObservable } from '@legendapp/state/react'
+import { use$ } from '@legendapp/state/react'
 import { useCallback } from 'react'
 import { isSafari } from '@/lib/utils'
-import { ledgerState$ } from '@/state/ledger'
+import { AppStatus, ledgerState$ } from '@/state/ledger'
 import { notifications$ } from '@/state/notifications'
 
 interface UseConnectionReturn {
@@ -9,18 +9,26 @@ interface UseConnectionReturn {
   disconnectDevice: () => void
   isLedgerConnected: boolean
   isAppOpen: boolean
+  isConnecting: boolean
 }
 
 /**
  * A hook that provides functionality for synchronizing and managing Ledger accounts
  */
 export const useConnection = (): UseConnectionReturn => {
-  const isLedgerConnected$ = useObservable(() =>
-    Boolean(ledgerState$.device.connection?.transport.get() && ledgerState$.device.connection?.genericApp.get())
-  )
+  // Subscribe to the whole `connection` object so reactivity also fires when
+  // it transitions to/from undefined. Reading nested `.get()` through optional
+  // chaining (the previous pattern) registers no subscription when the parent
+  // is undefined, so disconnects never propagated to the UI.
+  const connection = use$(ledgerState$.device.connection)
+  const isLedgerConnected = Boolean(connection?.transport && connection?.genericApp)
+  const isAppOpen = connection?.isAppOpen ?? false
 
-  const isLedgerConnected = use$(isLedgerConnected$)
-  const isAppOpen = ledgerState$.device.connection?.get()?.isAppOpen ?? false
+  // True while a connect attempt or an app sync is in flight.
+  const isConnecting = use$(() => {
+    const appsStatus = ledgerState$.apps.status.get()
+    return Boolean(ledgerState$.device.isLoading.get()) || appsStatus === AppStatus.LOADING || appsStatus === AppStatus.ADDRESSES_FETCHED
+  })
 
   // Handle device connection
   const connectDevice = useCallback(async () => {
@@ -32,6 +40,14 @@ export const useConnection = (): UseConnectionReturn => {
         type: 'warning',
         autoHideDuration: 6000,
       })
+      return false
+    }
+    // Guard against re-entry while a connect or sync is already in flight.
+    if (
+      ledgerState$.device.isLoading.get() ||
+      ledgerState$.apps.status.get() === AppStatus.LOADING ||
+      ledgerState$.apps.status.get() === AppStatus.ADDRESSES_FETCHED
+    ) {
       return false
     }
     const result = await ledgerState$.connectLedger()
@@ -54,5 +70,6 @@ export const useConnection = (): UseConnectionReturn => {
     disconnectDevice,
     isLedgerConnected,
     isAppOpen,
+    isConnecting,
   }
 }

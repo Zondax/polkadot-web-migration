@@ -98,18 +98,30 @@ describe('LedgerService', () => {
       expect(result).toBe(mockTransport)
     })
 
-    it('should call onDisconnect callback when transport disconnects', async () => {
+    it('should call onDisconnect callback when transport disconnects (no HID api available)', async () => {
       const TransportWebUSB = await import('@ledgerhq/hw-transport-webhid')
       const onDisconnectCallback = vi.fn()
       vi.mocked(TransportWebUSB.default.create).mockResolvedValueOnce(mockTransport)
 
-      await ledgerService.initializeTransport(onDisconnectCallback)
+      // Ensure navigator.hid is not available in this test (default in jsdom)
+      const navWithHid = navigator as Navigator & { hid?: unknown }
+      const originalHid = navWithHid.hid
+      // @ts-expect-error — intentionally clear hid
+      delete navWithHid.hid
 
-      // Simulate transport disconnect
-      const disconnectHandler = vi.mocked(mockTransport.on).mock.calls[0][1]
-      disconnectHandler()
+      try {
+        await ledgerService.initializeTransport(onDisconnectCallback)
 
-      expect(onDisconnectCallback).toHaveBeenCalled()
+        // Simulate transport disconnect
+        const disconnectHandler = vi.mocked(mockTransport.on).mock.calls[0][1] as () => Promise<void>
+        await disconnectHandler()
+
+        // After the 500ms debounce completes, with no HID api to consult, the
+        // handler falls through and calls onDisconnect.
+        expect(onDisconnectCallback).toHaveBeenCalled()
+      } finally {
+        if (originalHid !== undefined) navWithHid.hid = originalHid
+      }
     })
 
     it('should handle transport initialization failure', async () => {
@@ -119,6 +131,112 @@ describe('LedgerService', () => {
       )
 
       await expect(ledgerService.initializeTransport()).rejects.toThrow(ResponseError)
+    })
+
+    describe('disconnect handler — app-switch vs real unplug', () => {
+      // Ledger transports fire `disconnect` on both real unplugs AND on device
+      // app-switches (the device reboots between dashboard and an app, which
+      // re-enumerates HID). The handler must distinguish them via
+      // `navigator.hid.getDevices()` so we don't wipe `device.connection` on
+      // every app-switch.
+
+      const LEDGER_VENDOR_ID = 0x2c97
+
+      const stubHid = (devices: Array<{ vendorId: number }>) => {
+        const navWithHid = navigator as Navigator & { hid?: { getDevices: () => Promise<unknown> } }
+        const originalHid = navWithHid.hid
+        navWithHid.hid = { getDevices: vi.fn().mockResolvedValue(devices) }
+        return () => {
+          if (originalHid === undefined) {
+            // @ts-expect-error — restore by deleting
+            delete navWithHid.hid
+          } else {
+            navWithHid.hid = originalHid
+          }
+        }
+      }
+
+      it('does NOT call onDisconnect when the Ledger is still listed (app-switch reboot)', async () => {
+        const TransportWebUSB = await import('@ledgerhq/hw-transport-webhid')
+        const onDisconnectCallback = vi.fn()
+        vi.mocked(TransportWebUSB.default.create).mockResolvedValueOnce(mockTransport)
+
+        const restoreHid = stubHid([{ vendorId: LEDGER_VENDOR_ID }])
+        try {
+          await ledgerService.initializeTransport(onDisconnectCallback)
+
+          const disconnectHandler = vi.mocked(mockTransport.on).mock.calls[0][1] as () => Promise<void>
+          await disconnectHandler()
+
+          expect(onDisconnectCallback).not.toHaveBeenCalled()
+        } finally {
+          restoreHid()
+        }
+      })
+
+      it('calls onDisconnect when the Ledger is gone from the HID list (real unplug)', async () => {
+        const TransportWebUSB = await import('@ledgerhq/hw-transport-webhid')
+        const onDisconnectCallback = vi.fn()
+        vi.mocked(TransportWebUSB.default.create).mockResolvedValueOnce(mockTransport)
+
+        // Empty device list = no Ledger present anymore
+        const restoreHid = stubHid([])
+        try {
+          await ledgerService.initializeTransport(onDisconnectCallback)
+
+          const disconnectHandler = vi.mocked(mockTransport.on).mock.calls[0][1] as () => Promise<void>
+          await disconnectHandler()
+
+          expect(onDisconnectCallback).toHaveBeenCalled()
+        } finally {
+          restoreHid()
+        }
+      })
+
+      it('ignores a non-Ledger HID device when deciding whether to clear', async () => {
+        const TransportWebUSB = await import('@ledgerhq/hw-transport-webhid')
+        const onDisconnectCallback = vi.fn()
+        vi.mocked(TransportWebUSB.default.create).mockResolvedValueOnce(mockTransport)
+
+        // Only some other vendor still attached
+        const restoreHid = stubHid([{ vendorId: 0x1234 }])
+        try {
+          await ledgerService.initializeTransport(onDisconnectCallback)
+
+          const disconnectHandler = vi.mocked(mockTransport.on).mock.calls[0][1] as () => Promise<void>
+          await disconnectHandler()
+
+          expect(onDisconnectCallback).toHaveBeenCalled()
+        } finally {
+          restoreHid()
+        }
+      })
+
+      it('falls through to onDisconnect if navigator.hid.getDevices throws', async () => {
+        const TransportWebUSB = await import('@ledgerhq/hw-transport-webhid')
+        const onDisconnectCallback = vi.fn()
+        vi.mocked(TransportWebUSB.default.create).mockResolvedValueOnce(mockTransport)
+
+        const navWithHid = navigator as Navigator & { hid?: { getDevices: () => Promise<unknown> } }
+        const originalHid = navWithHid.hid
+        navWithHid.hid = { getDevices: vi.fn().mockRejectedValue(new Error('HID error')) }
+
+        try {
+          await ledgerService.initializeTransport(onDisconnectCallback)
+
+          const disconnectHandler = vi.mocked(mockTransport.on).mock.calls[0][1] as () => Promise<void>
+          await disconnectHandler()
+
+          expect(onDisconnectCallback).toHaveBeenCalled()
+        } finally {
+          if (originalHid === undefined) {
+            // @ts-expect-error — restore by deleting
+            delete navWithHid.hid
+          } else {
+            navWithHid.hid = originalHid
+          }
+        }
+      })
     })
   })
 
@@ -241,13 +359,24 @@ describe('LedgerService', () => {
       vi.mocked(TransportWebUSB.default.create).mockResolvedValueOnce(mockTransport)
       vi.mocked(mockGenericApp.getVersion).mockResolvedValueOnce('1.0.0')
 
-      await ledgerService.connectDevice(onDisconnectCallback)
+      // Ensure no navigator.hid api so the handler falls through to onDisconnect
+      const navWithHid = navigator as Navigator & { hid?: unknown }
+      const originalHid = navWithHid.hid
+      // @ts-expect-error — intentionally clear hid
+      delete navWithHid.hid
 
-      // Verify the callback was passed through by simulating a disconnect
-      const disconnectHandler = vi.mocked(mockTransport.on).mock.calls[0][1]
-      disconnectHandler()
+      try {
+        await ledgerService.connectDevice(onDisconnectCallback)
 
-      expect(onDisconnectCallback).toHaveBeenCalled()
+        // Verify the callback was passed through by simulating a disconnect.
+        // The handler is now async (500ms debounce + HID check), so await it.
+        const disconnectHandler = vi.mocked(mockTransport.on).mock.calls[0][1] as () => Promise<void>
+        await disconnectHandler()
+
+        expect(onDisconnectCallback).toHaveBeenCalled()
+      } finally {
+        if (originalHid !== undefined) navWithHid.hid = originalHid
+      }
     })
   })
 
@@ -436,14 +565,24 @@ describe('LedgerService', () => {
       vi.mocked(mockGenericApp.getVersion).mockResolvedValueOnce('1.0.0')
       await ledgerService.connectDevice()
 
-      // Simulate transport disconnect event
-      const disconnectHandler = vi.mocked(mockTransport.on).mock.calls[0][1]
-      disconnectHandler()
+      // Ensure no navigator.hid api so the debounced handler falls through
+      const navWithHid = navigator as Navigator & { hid?: unknown }
+      const originalHid = navWithHid.hid
+      // @ts-expect-error — intentionally clear hid
+      delete navWithHid.hid
 
-      // Verify connection is cleared by trying to get an address (should fail)
-      await expect(ledgerService.getAccountAddress("m/44'/354'/0'/0'/0'", 0, false)).rejects.toThrow(
-        new ResponseError(LedgerError.UnknownTransportError, 'Transport not available')
-      )
+      try {
+        // Simulate transport disconnect event — handler is async (500ms debounce)
+        const disconnectHandler = vi.mocked(mockTransport.on).mock.calls[0][1] as () => Promise<void>
+        await disconnectHandler()
+
+        // Verify connection is cleared by trying to get an address (should fail)
+        await expect(ledgerService.getAccountAddress("m/44'/354'/0'/0'/0'", 0, false)).rejects.toThrow(
+          new ResponseError(LedgerError.UnknownTransportError, 'Transport not available')
+        )
+      } finally {
+        if (originalHid !== undefined) navWithHid.hid = originalHid
+      }
     })
   })
 
