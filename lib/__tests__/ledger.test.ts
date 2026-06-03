@@ -79,20 +79,48 @@ describe('LedgerService', () => {
       // Spy on handleDisconnect to verify it's called
       const handleDisconnectSpy = vi.spyOn(ledgerService as any, 'handleDisconnect')
 
-      const transport = await ledgerService.initializeTransport(onDisconnect)
+      // Ensure no navigator.hid api so the debounced handler falls through to
+      // calling handleDisconnect/onDisconnect.
+      const navWithHid = navigator as Navigator & { hid?: unknown }
+      const originalHid = navWithHid.hid
+      delete navWithHid.hid
 
-      // Verify transport is returned
-      expect(transport).toBe(mockTransport)
+      try {
+        const transport = await ledgerService.initializeTransport(onDisconnect)
 
-      // Verify transport is stored in deviceConnection
-      expect(ledgerService.deviceConnection.transport).toBe(mockTransport)
+        // Verify transport is returned
+        expect(transport).toBe(mockTransport)
 
-      // Simulate disconnect
-      transport.emit('disconnect')
+        // Verify transport is stored in deviceConnection
+        expect(ledgerService.deviceConnection.transport).toBe(mockTransport)
 
-      // Verify both handlers are called
-      expect(handleDisconnectSpy).toHaveBeenCalled()
-      expect(onDisconnect).toHaveBeenCalled()
+        // Capture the registered handler so we can await its promise — the
+        // handler is now async (500ms debounce + HID check) and emit() does
+        // not await it.
+        const onCalls = (mockTransport.on as unknown as { mock?: { calls?: unknown[][] } }).mock?.calls
+        let handlerPromise: Promise<void> | undefined
+        if (onCalls) {
+          for (const call of onCalls) {
+            if (call[0] === 'disconnect' && typeof call[1] === 'function') {
+              handlerPromise = (call[1] as () => Promise<void>)()
+              break
+            }
+          }
+        }
+        if (!handlerPromise) {
+          // Fallback: emit and give the handler a chance to run.
+          transport.emit('disconnect')
+          await new Promise(resolve => setTimeout(resolve, 600))
+        } else {
+          await handlerPromise
+        }
+
+        // Verify both handlers are called
+        expect(handleDisconnectSpy).toHaveBeenCalled()
+        expect(onDisconnect).toHaveBeenCalled()
+      } finally {
+        if (originalHid !== undefined) navWithHid.hid = originalHid
+      }
     })
 
     it('should handle transport creation failure', async () => {
