@@ -43,6 +43,9 @@ export class LedgerService implements ILedgerService {
 
   private call: (reason?: any) => void = () => {}
 
+  // Callback invoked when the device disconnects (set during transport init)
+  private onDisconnect?: () => void
+
   // Handles transport disconnection
   private handleDisconnect = () => {
     this.deviceConnection = {
@@ -94,6 +97,7 @@ export class LedgerService implements ILedgerService {
       console.debug('[ledgerService] Initializing transport')
       const transport = await TransportWebUSB.create()
       this.deviceConnection.transport = transport
+      this.onDisconnect = onDisconnect
 
       const handleDisconnect = () => {
         this.handleDisconnect()
@@ -141,7 +145,7 @@ export class LedgerService implements ILedgerService {
       if (!isAppOpen && transport) {
         console.debug('[ledgerService] App not open, attempting to open automatically')
         try {
-          openApp(transport, 'Polkadot Migration')
+          await openApp(transport, 'Polkadot Migration')
           // Check again if app is open after attempting to open it
           isAppOpen = await this.isAppOpen(genericApp)
         } catch (openAppError) {
@@ -296,10 +300,18 @@ export class LedgerService implements ILedgerService {
    */
   disconnect() {
     console.debug('[ledgerService] Disconnecting device')
+    const onDisconnect = this.onDisconnect
     if (this.deviceConnection?.transport) {
       this.deviceConnection.transport.close()
-      this.deviceConnection.transport.emit('disconnect')
     }
+    // An explicit, user-initiated disconnect must always reset the internal
+    // state. We call handleDisconnect() directly instead of emitting
+    // 'disconnect', because the transport's 'disconnect' handler defers and
+    // checks `navigator.hid` to distinguish app-switches from unplugs — on an
+    // explicit disconnect the device is still plugged in, so that heuristic
+    // would early-return and leave a stale, closed transport behind.
+    this.handleDisconnect()
+    onDisconnect?.()
   }
 
   /**

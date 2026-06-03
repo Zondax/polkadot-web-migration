@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { MultisigCall, MultisigMember } from '@/state/types/ledger'
-import { callDataValidationMessages, getRemainingInternalSigners, validateCallData } from '../multisig'
+import type { MultisigAddress, MultisigCall, MultisigMember } from '@/state/types/ledger'
+import { callDataValidationMessages, canMultisigBeSelectedForMigration, getRemainingInternalSigners, validateCallData } from '../multisig'
 
 // Mock the ledger client
 vi.mock('@/state/client/ledger', () => ({
@@ -258,6 +258,78 @@ describe('Multisig Utilities', () => {
       const result = getRemainingInternalSigners(pendingCall, members)
 
       expect(result).toEqual([createMultisigMember('Alice', true), createMultisigMember('bob', true)])
+    })
+  })
+
+  describe('canMultisigBeSelectedForMigration', () => {
+    // Shared with the per-row `isMultisigNotReadyToMigrate` predicate; the
+    // select-all handler also reads this so the two surfaces can't drift.
+    const makeMultisig = (overrides: Partial<MultisigAddress> = {}): MultisigAddress =>
+      ({
+        address: 'multisig-address',
+        path: '//0',
+        pubKey: '0x00',
+        threshold: 2,
+        members: [
+          { address: 'internal', internal: true, path: '//0' },
+          { address: 'external', internal: false },
+        ],
+        pendingMultisigCalls: [],
+        ...overrides,
+      }) as unknown as MultisigAddress
+
+    it('returns true when there are no pending calls', () => {
+      expect(canMultisigBeSelectedForMigration(makeMultisig())).toBe(true)
+    })
+
+    it('returns true when a pending call still has an internal signer who has not approved', () => {
+      const account = makeMultisig({
+        pendingMultisigCalls: [
+          {
+            callHash: '0xcall',
+            deposit: 0 as unknown as MultisigCall['deposit'],
+            depositor: 'external',
+            signatories: ['external'], // internal has NOT approved yet
+          },
+        ],
+      })
+      expect(canMultisigBeSelectedForMigration(account)).toBe(true)
+    })
+
+    it('returns false when all pending calls have had every internal signer approve', () => {
+      const account = makeMultisig({
+        pendingMultisigCalls: [
+          {
+            callHash: '0xcall',
+            deposit: 0 as unknown as MultisigCall['deposit'],
+            depositor: 'internal',
+            signatories: ['internal'], // internal already signed — no internal remaining
+          },
+        ],
+      })
+      expect(canMultisigBeSelectedForMigration(account)).toBe(false)
+    })
+
+    it('returns true if at least one pending call still has a remaining internal signer', () => {
+      // Two pending calls: one with the internal already signed, one not. The
+      // account is still actionable on the second call.
+      const account = makeMultisig({
+        pendingMultisigCalls: [
+          {
+            callHash: '0xcall1',
+            deposit: 0 as unknown as MultisigCall['deposit'],
+            depositor: 'internal',
+            signatories: ['internal'],
+          },
+          {
+            callHash: '0xcall2',
+            deposit: 0 as unknown as MultisigCall['deposit'],
+            depositor: 'external',
+            signatories: ['external'],
+          },
+        ],
+      })
+      expect(canMultisigBeSelectedForMigration(account)).toBe(true)
     })
   })
 })

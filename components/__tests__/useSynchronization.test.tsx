@@ -1,9 +1,9 @@
-import type { AppId } from '@/config/apps'
-import type { App } from '@/state/ledger'
-import type { Address, MultisigAddress } from '@/state/types/ledger'
 import { computed, observable } from '@legendapp/state'
 import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { AppId } from '@/config/apps'
+import type { App } from '@/state/ledger'
+import type { Address, MultisigAddress } from '@/state/types/ledger'
 
 // Mock the ledger state
 vi.mock('@/state/ledger', () => {
@@ -271,6 +271,143 @@ describe('useSynchronization hook', () => {
       // Verify only accounts from apps without errors are selected
       expect(ledgerState$.apps.apps[0].accounts[0].selected.get()).toBe(false) // Should remain false due to app error
       expect(ledgerState$.apps.apps[1].accounts[0].selected.get()).toBe(true)
+    })
+
+    it('does NOT select a multisig with pending calls and no remaining internal signers', () => {
+      // Regression: toggleAllAccounts used to select every multisig
+      // unconditionally. A multisig with a pending call that no internal
+      // member can still sign is "not ready to migrate" — its per-row
+      // checkbox is disabled, and select-all must honor that.
+      const blockedMultisig: Partial<MultisigAddress> = {
+        address: 'multisig-blocked',
+        path: '//0',
+        pubKey: '0xaaa',
+        selected: false,
+        threshold: 2,
+        members: [
+          { address: 'internal-member', internal: true, path: '//0' },
+          { address: 'external-member', internal: false },
+        ],
+        // The internal member has already approved the pending call, so no
+        // internal signer remains. Per-row predicate disables the checkbox.
+        pendingMultisigCalls: [
+          {
+            callHash: '0xcall',
+            deposit: 0 as unknown as MultisigAddress['pendingMultisigCalls'][number]['deposit'],
+            depositor: 'internal-member',
+            signatories: ['internal-member'],
+          },
+        ],
+      }
+
+      const testApps: Partial<App>[] = [
+        {
+          id: 'polkadot' as AppId,
+          name: 'Polkadot',
+          accounts: [{ address: 'normal-address', path: '//0', pubKey: '0x111', selected: false } as Address],
+          multisigAccounts: [blockedMultisig as MultisigAddress],
+          error: undefined,
+        },
+      ]
+
+      ledgerState$.apps.apps.set(testApps as App[])
+
+      const { result } = renderHook(() => useSynchronization())
+
+      act(() => {
+        result.current.toggleAllAccounts(true)
+      })
+
+      // Regular account: selected.
+      expect(ledgerState$.apps.apps[0].accounts[0].selected.get()).toBe(true)
+      // Blocked multisig: still NOT selected — must match the disabled-checkbox UX.
+      expect(ledgerState$.apps.apps[0].multisigAccounts[0].selected.get()).toBe(false)
+    })
+
+    it('selects a multisig that still has a remaining internal signer', () => {
+      // Sanity: a multisig with a pending call whose internal signer has not
+      // approved yet IS migratable and select-all should pick it up.
+      const eligibleMultisig: Partial<MultisigAddress> = {
+        address: 'multisig-eligible',
+        path: '//0',
+        pubKey: '0xbbb',
+        selected: false,
+        threshold: 2,
+        members: [
+          { address: 'internal-member', internal: true, path: '//0' },
+          { address: 'external-member', internal: false },
+        ],
+        // Only the external member has signed — the internal member still
+        // can approve, so this multisig is selectable.
+        pendingMultisigCalls: [
+          {
+            callHash: '0xcall',
+            deposit: 0 as unknown as MultisigAddress['pendingMultisigCalls'][number]['deposit'],
+            depositor: 'external-member',
+            signatories: ['external-member'],
+          },
+        ],
+      }
+
+      const testApps: Partial<App>[] = [
+        {
+          id: 'polkadot' as AppId,
+          name: 'Polkadot',
+          multisigAccounts: [eligibleMultisig as MultisigAddress],
+          error: undefined,
+        },
+      ]
+
+      ledgerState$.apps.apps.set(testApps as App[])
+
+      const { result } = renderHook(() => useSynchronization())
+
+      act(() => {
+        result.current.toggleAllAccounts(true)
+      })
+
+      expect(ledgerState$.apps.apps[0].multisigAccounts[0].selected.get()).toBe(true)
+    })
+
+    it('select-all with checked=false still deselects blocked multisigs', () => {
+      // The selectability gate only applies when *selecting*. Deselecting
+      // everything must still flip every selected multisig to false — the
+      // user clicking "Deselect all" should clear the entire state.
+      const blockedMultisig: Partial<MultisigAddress> = {
+        address: 'multisig-blocked',
+        path: '//0',
+        pubKey: '0xaaa',
+        selected: true, // somehow already selected
+        threshold: 2,
+        members: [{ address: 'internal-member', internal: true, path: '//0' }],
+        pendingMultisigCalls: [
+          {
+            callHash: '0xcall',
+            deposit: 0 as unknown as MultisigAddress['pendingMultisigCalls'][number]['deposit'],
+            depositor: 'internal-member',
+            signatories: ['internal-member'],
+          },
+        ],
+      }
+
+      const testApps: Partial<App>[] = [
+        {
+          id: 'polkadot' as AppId,
+          name: 'Polkadot',
+          multisigAccounts: [blockedMultisig as MultisigAddress],
+          error: undefined,
+        },
+      ]
+
+      ledgerState$.apps.apps.set(testApps as App[])
+
+      const { result } = renderHook(() => useSynchronization())
+
+      act(() => {
+        result.current.toggleAllAccounts(false)
+      })
+
+      expect(ledgerState$.apps.apps[0].multisigAccounts[0].selected.get()).toBe(false)
     })
   })
 })

@@ -822,7 +822,7 @@ describe('prepareTransactionPayload', () => {
 
     const mockApi = {
       query: {
-        system: { account: vi.fn().mockResolvedValue({ toHuman: () => ({ nonce: 0 }) }) },
+        system: { account: vi.fn().mockResolvedValue({ nonce: { toNumber: () => 0 } }) },
       },
       call: {
         metadata: {
@@ -845,7 +845,7 @@ describe('prepareTransactionPayload', () => {
     const mockMetadata = new Uint8Array([1, 2, 3, 4])
     const mockApi = {
       query: {
-        system: { account: vi.fn().mockResolvedValue({ toHuman: () => ({ nonce: 5 }) }) },
+        system: { account: vi.fn().mockResolvedValue({ nonce: { toNumber: () => 5 } }) },
       },
       call: {
         metadata: {

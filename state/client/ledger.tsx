@@ -1,7 +1,17 @@
+import type { SubmittableExtrinsic } from '@polkadot/api/types'
+import type { Multisig } from '@polkadot/types/interfaces'
+import type { ISubmittableResult } from '@polkadot/types/types/extrinsic'
+import type { Option } from '@polkadot/types-codec'
+import { BN } from '@polkadot/util'
+import { type AppConfig, type AppId, appsConfigs } from 'config/apps'
+import { maxAddressesToFetch } from 'config/config'
+import { InternalErrorType } from 'config/errors'
 import {
   createSignedExtrinsic,
+  disconnectSafely,
   getApiAndProvider,
   getTxFee,
+  type PreparedTransactionPayload,
   prepareApproveAsMultiTx,
   prepareAsMultiTx,
   prepareNestedAsMultiTx,
@@ -16,33 +26,24 @@ import {
   prepareUnstakeTransaction,
   prepareWithdrawTransaction,
   submitAndHandleTransaction,
-  validateCallDataMatchesHash,
-  type PreparedTransactionPayload,
   type UpdateTransactionStatus,
+  validateCallDataMatchesHash,
 } from '@/lib/account'
 import { ledgerService } from '@/lib/ledger/ledgerService'
 import type { ConnectionResponse } from '@/lib/ledger/types'
 import { InternalError, withErrorHandling } from '@/lib/utils'
 import { updateBip44PathIndices } from '@/lib/utils/address'
 import { getAccountTransferableBalance } from '@/lib/utils/balance'
-import type { SubmittableExtrinsic } from '@polkadot/api/types'
-import type { Option } from '@polkadot/types-codec'
-import type { Multisig } from '@polkadot/types/interfaces'
-import type { ISubmittableResult } from '@polkadot/types/types/extrinsic'
-import { BN } from '@polkadot/util'
-import { appsConfigs, type AppConfig, type AppId } from 'config/apps'
-import { maxAddressesToFetch } from 'config/config'
-import { InternalErrorType } from 'config/errors'
 import {
-  TransactionStatus,
   type Address,
   type GovernanceDeposit,
   type MultisigAddress,
   type PreTxInfo,
   type TransactionDetails,
+  TransactionStatus,
   type UpdateMigratedStatusFn,
 } from '../types/ledger'
-import { validateApproveAsMultiParams, validateAsMultiParams, validateMigrationParams, type ValidateApproveAsMultiResult } from './helpers'
+import { type ValidateApproveAsMultiResult, validateApproveAsMultiParams, validateAsMultiParams, validateMigrationParams } from './helpers'
 
 export const ledgerClient = {
   // Device operations
@@ -180,63 +181,73 @@ export const ledgerClient = {
     return withErrorHandling(
       async () => {
         const { balances, senderAddress, senderPath, appConfig, multisigInfo, accountType } = validation
-        const { api } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
+        const { api, provider } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
         if (!api) {
           throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
 
-        updateStatus(appConfig.id, accountType, account.address, { status: TransactionStatus.PREPARING_TX })
+        // submitAndHandleTransaction takes ownership of the api lifecycle once submission starts (it disconnects internally).
+        // Until then, tear down the connection on any early return or thrown error.
+        let submitted = false
+        try {
+          updateStatus(appConfig.id, accountType, account.address, { status: TransactionStatus.PREPARING_TX })
 
-        // Get the transferable balance
-        const transferableBalance = getAccountTransferableBalance(account)
+          // Get the transferable balance
+          const transferableBalance = getAccountTransferableBalance(account)
 
-        // Prepare transaction with the specific asset type
-        const preparedTx = await prepareTransaction(api, senderAddress, balances, transferableBalance, appConfig, multisigInfo)
-        if (!preparedTx) {
-          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
-        }
-        const { transfer, payload, metadataHash, nonce, proof1, payloadBytes, callData, estimatedFee, nativeAmount } = preparedTx
+          // Prepare transaction with the specific asset type
+          const preparedTx = await prepareTransaction(api, senderAddress, balances, transferableBalance, appConfig, multisigInfo)
+          if (!preparedTx) {
+            throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
+          }
+          const { transfer, payload, metadataHash, nonce, proof1, payloadBytes, callData, estimatedFee, nativeAmount } = preparedTx
 
-        // Get chain ID from app config
-        const chainId = appConfig.token.symbol.toLowerCase()
+          // Get chain ID from app config
+          const chainId = appConfig.token.symbol.toLowerCase()
 
-        updateStatus(appConfig.id, accountType, account.address, {
-          status: TransactionStatus.SIGNING,
-          estimatedFee,
-          nativeAmount,
-          callData,
-        })
-
-        // Sign transaction with Ledger
-        const { signature } = await ledgerService.signTransaction(senderPath, payloadBytes, chainId, proof1)
-        if (!signature) {
-          throw new InternalError(InternalErrorType.SIGN_TX_ERROR)
-        }
-
-        // Create signed extrinsic
-        createSignedExtrinsic(api, transfer, senderAddress, signature, payload, nonce, metadataHash)
-
-        const updateTransactionStatus = (
-          status: TransactionStatus,
-          message?: string,
-          dispatchError?: string,
-          txDetails?: TransactionDetails
-        ) => {
-          updateStatus(appConfig.id, accountType, account.address, { status, statusMessage: message, dispatchError, ...txDetails })
-        }
-
-        if (callData) {
-          updateTransactionStatus(TransactionStatus.IS_LOADING, 'Transaction is loading', undefined, {
+          updateStatus(appConfig.id, accountType, account.address, {
+            status: TransactionStatus.SIGNING,
+            estimatedFee,
+            nativeAmount,
             callData,
           })
+
+          // Sign transaction with Ledger
+          const { signature } = await ledgerService.signTransaction(senderPath, payloadBytes, chainId, proof1)
+          if (!signature) {
+            throw new InternalError(InternalErrorType.SIGN_TX_ERROR)
+          }
+
+          // Create signed extrinsic
+          createSignedExtrinsic(api, transfer, senderAddress, signature, payload, nonce, metadataHash)
+
+          const updateTransactionStatus = (
+            status: TransactionStatus,
+            message?: string,
+            dispatchError?: string,
+            txDetails?: TransactionDetails
+          ) => {
+            updateStatus(appConfig.id, accountType, account.address, { status, statusMessage: message, dispatchError, ...txDetails })
+          }
+
+          if (callData) {
+            updateTransactionStatus(TransactionStatus.IS_LOADING, 'Transaction is loading', undefined, {
+              callData,
+            })
+          }
+
+          updateStatus(appConfig.id, accountType, account.address, { status: TransactionStatus.SUBMITTING })
+
+          const txPromise = submitAndHandleTransaction(transfer, updateTransactionStatus, api)
+          submitted = true
+
+          // Create and wait for transaction to be submitted
+          return { txPromise }
+        } finally {
+          if (!submitted) {
+            await disconnectSafely(api, provider)
+          }
         }
-
-        updateStatus(appConfig.id, accountType, account.address, { status: TransactionStatus.SUBMITTING })
-
-        const txPromise = submitAndHandleTransaction(transfer, updateTransactionStatus, api)
-
-        // Create and wait for transaction to be submitted
-        return { txPromise }
       },
       { errorCode: InternalErrorType.MIGRATION_ERROR, operation: 'migrateAccount', context: { appId, account } }
     )
@@ -250,44 +261,48 @@ export const ledgerClient = {
 
     return withErrorHandling(
       async () => {
-        const { api } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
+        const { api, provider } = await getApiAndProvider(appConfig.rpcEndpoints ?? [])
         if (!api) {
           throw new InternalError(InternalErrorType.BLOCKCHAIN_CONNECTION_ERROR)
         }
 
-        updateTxStatus(TransactionStatus.PREPARING_TX)
+        try {
+          updateTxStatus(TransactionStatus.PREPARING_TX)
 
-        const unstakeTx = await prepareUnstakeTransaction(api, amount)
+          const unstakeTx = await prepareUnstakeTransaction(api, amount)
 
-        if (!unstakeTx) {
-          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
+          if (!unstakeTx) {
+            throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
+          }
+
+          // Prepare transaction payload
+          const preparedTx = await prepareTransactionPayload(api, address, appConfig, unstakeTx)
+          if (!preparedTx) {
+            throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
+          }
+          const { transfer, payload, metadataHash, nonce, proof1, payloadBytes } = preparedTx
+
+          // Get chain ID from app config
+          const chainId = appConfig.token.symbol.toLowerCase()
+
+          updateTxStatus(TransactionStatus.SIGNING)
+
+          // Sign transaction with Ledger
+          const { signature } = await ledgerService.signTransaction(path, payloadBytes, chainId, proof1)
+          if (!signature) {
+            throw new InternalError(InternalErrorType.SIGN_TX_ERROR)
+          }
+
+          // Create signed extrinsic
+          createSignedExtrinsic(api, transfer, address, signature, payload, nonce, metadataHash)
+
+          updateTxStatus(TransactionStatus.SUBMITTING)
+
+          // Create and wait for transaction to be submitted
+          await submitAndHandleTransaction(transfer, updateTxStatus, api)
+        } finally {
+          await disconnectSafely(api, provider)
         }
-
-        // Prepare transaction payload
-        const preparedTx = await prepareTransactionPayload(api, address, appConfig, unstakeTx)
-        if (!preparedTx) {
-          throw new InternalError(InternalErrorType.PREPARE_TX_ERROR)
-        }
-        const { transfer, payload, metadataHash, nonce, proof1, payloadBytes } = preparedTx
-
-        // Get chain ID from app config
-        const chainId = appConfig.token.symbol.toLowerCase()
-
-        updateTxStatus(TransactionStatus.SIGNING)
-
-        // Sign transaction with Ledger
-        const { signature } = await ledgerService.signTransaction(path, payloadBytes, chainId, proof1)
-        if (!signature) {
-          throw new InternalError(InternalErrorType.SIGN_TX_ERROR)
-        }
-
-        // Create signed extrinsic
-        createSignedExtrinsic(api, transfer, address, signature, payload, nonce, metadataHash)
-
-        updateTxStatus(TransactionStatus.SUBMITTING)
-
-        // Create and wait for transaction to be submitted
-        await submitAndHandleTransaction(transfer, updateTxStatus, api)
       },
       { errorCode: InternalErrorType.UNSTAKE_ERROR, operation: 'unstakeBalance', context: { appId, address, path, amount } }
     )

@@ -41,7 +41,8 @@ export function parseIndexConfig(scanType: ScanType, singleValue: string, rangeS
 
   const start = Number.parseInt(rangeStart, 10)
   const end = Number.parseInt(rangeEnd, 10)
-  if (Number.isNaN(start) || Number.isNaN(end) || start < SCAN_LIMITS.MIN_INDEX || end < start) return null
+  if (Number.isNaN(start) || Number.isNaN(end) || start < SCAN_LIMITS.MIN_INDEX || end < start || end - start >= SCAN_LIMITS.MAX_RANGE)
+    return null
 
   return { type: ScanTypeEnum.RANGE, start, end }
 }
