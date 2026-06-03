@@ -1,6 +1,11 @@
 [tools]
-node = "22"
-pnpm = "9"
+# Explicit github backend — mise's default `pnpm` resolves to
+# aqua:pnpm/pnpm, whose registry expects `pnpm-<os>-<arch>.tar.gz`
+# while pnpm v10 ships raw binaries (`pnpm-linux-x64`, no extension),
+# so aqua install fails with "no asset found". The github backend
+# handles raw binaries and is the supported successor to ubi.
+"github:pnpm/pnpm" = "10"
+node = "24"
 
 [tasks.ci_postinstall]
 description = "Install dependencies for CI"
