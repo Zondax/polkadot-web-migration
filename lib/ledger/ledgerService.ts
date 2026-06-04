@@ -7,6 +7,9 @@ import type { ConnectionResponse, DeviceConnectionProps } from '@/lib/ledger/typ
 import { addressCache } from '@/state/stores'
 import { openApp } from './openApp'
 
+// Ledger's USB/HID vendor ID, used to identify Ledger devices during enumeration.
+export const LEDGER_USB_VENDOR_ID = 0x2c97
+
 /**
  * Interface for the Ledger service that manages device interaction
  */
@@ -106,8 +109,7 @@ export class LedgerService implements ILedgerService {
         if (hid) {
           try {
             const devices = await hid.getDevices()
-            // 0x2c97 is Ledger's vendorId
-            if (devices.some(device => device.vendorId === 0x2c97)) {
+            if (devices.some(device => device.vendorId === LEDGER_USB_VENDOR_ID)) {
               console.debug('[ledgerService] HID disconnect appears to be an app-switch, keeping connection')
               return
             }

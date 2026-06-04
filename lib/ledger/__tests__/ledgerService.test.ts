@@ -2,7 +2,7 @@ import { TransportError } from '@ledgerhq/hw-transport'
 import { LedgerError, ResponseError } from '@zondax/ledger-js'
 import { PolkadotGenericApp } from '@zondax/ledger-substrate'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { LedgerService } from '../ledgerService'
+import { LEDGER_USB_VENDOR_ID, LedgerService } from '../ledgerService'
 
 // Mock external dependencies
 vi.mock('@ledgerhq/hw-transport-webhid', () => ({
@@ -140,8 +140,6 @@ describe('LedgerService', () => {
       // `navigator.hid.getDevices()` so we don't wipe `device.connection` on
       // every app-switch.
 
-      const LEDGER_VENDOR_ID = 0x2c97
-
       const stubHid = (devices: Array<{ vendorId: number }>) => {
         const navWithHid = navigator as Navigator & { hid?: { getDevices: () => Promise<unknown> } }
         const originalHid = navWithHid.hid
@@ -161,7 +159,7 @@ describe('LedgerService', () => {
         const onDisconnectCallback = vi.fn()
         vi.mocked(TransportWebUSB.default.create).mockResolvedValueOnce(mockTransport)
 
-        const restoreHid = stubHid([{ vendorId: LEDGER_VENDOR_ID }])
+        const restoreHid = stubHid([{ vendorId: LEDGER_USB_VENDOR_ID }])
         try {
           await ledgerService.initializeTransport(onDisconnectCallback)
 
