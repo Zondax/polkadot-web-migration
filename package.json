@@ -110,6 +110,6 @@
     "postcss-nested": "^7.0.2",
     "sort-package-json": "^3.6.1",
     "typescript": "^5.9.3",
-    "vitest": "3.2.4"
+    "vitest": "4.1.0"
   }
 }
