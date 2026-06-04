@@ -451,7 +451,7 @@ describe('LedgerService', () => {
   })
 
   describe('disconnect', () => {
-    it('should close transport and emit disconnect event', () => {
+    it('should close transport and reset connection state', () => {
       const ledgerService = new LedgerService()
       const mockTransport = new MockTransport(createMockResponse(0x9000))
 
@@ -468,9 +468,14 @@ describe('LedgerService', () => {
 
       ledgerService.disconnect()
 
-      // Verify transport is closed and disconnect event is emitted
+      // An explicit disconnect closes the transport and resets the internal state directly
+      // (via handleDisconnect) rather than emitting 'disconnect', which would route through the
+      // HID app-switch heuristic and leave a stale, closed transport behind.
       expect(closeSpy).toHaveBeenCalled()
-      expect(emitSpy).toHaveBeenCalledWith('disconnect')
+      expect(emitSpy).not.toHaveBeenCalledWith('disconnect')
+      expect(ledgerService.deviceConnection.transport).toBeUndefined()
+      expect(ledgerService.deviceConnection.genericApp).toBeUndefined()
+      expect(ledgerService.deviceConnection.isAppOpen).toBe(false)
     })
 
     it('should not throw error when transport is undefined', () => {

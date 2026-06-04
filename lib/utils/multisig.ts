@@ -1,6 +1,6 @@
 import type { AppId } from '@/config/apps'
 import { ledgerClient } from '@/state/client/ledger'
-import type { MultisigCall, MultisigMember } from '@/state/types/ledger'
+import type { MultisigAddress, MultisigCall, MultisigMember } from '@/state/types/ledger'
 
 export const callDataValidationMessages = {
   correct: 'Call data matches the expected hash ✓',
@@ -94,6 +94,23 @@ export const getRemainingInternalSigners = (pendingCall: MultisigCall, members: 
 export const getRemainingSigners = (pendingCall: MultisigCall, members: MultisigMember[]): MultisigMember[] => {
   const existingApprovals = pendingCall.signatories
   return members.filter(member => !existingApprovals?.includes(member.address))
+}
+
+/**
+ * Determines whether a multisig account can be selected for migration.
+ *
+ * A multisig is blocked from selection when it has pending calls AND none of
+ * those calls still has an internal signer available to approve. In that case
+ * the user can't progress the multisig, so it must not be selected — neither
+ * by the per-row checkbox nor by the "select all" handler.
+ *
+ * The synchronized-account-row's `isMultisigNotReadyToMigrate` predicate must
+ * stay in sync with this helper.
+ */
+export const canMultisigBeSelectedForMigration = (account: MultisigAddress): boolean => {
+  const pendingCalls = account.pendingMultisigCalls
+  if (!pendingCalls || pendingCalls.length === 0) return true
+  return pendingCalls.some(call => getRemainingInternalSigners(call, account.members).length > 0)
 }
 
 /**

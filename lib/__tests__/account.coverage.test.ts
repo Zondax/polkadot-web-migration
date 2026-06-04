@@ -74,7 +74,7 @@ describe('Account Module - Coverage Tests', () => {
 
       const mockApi = {
         query: {
-          system: { account: vi.fn().mockResolvedValue({ toHuman: () => ({ nonce: 0 }) }) },
+          system: { account: vi.fn().mockResolvedValue({ nonce: { toNumber: () => 0 } }) },
         },
         call: {
           metadata: {

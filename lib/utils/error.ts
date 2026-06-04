@@ -1,5 +1,5 @@
-import { ResponseError, type LedgerError } from '@zondax/ledger-js'
-import { InternalErrorType, errorDetails, ledgerErrorToInternalErrorMap } from 'config/errors'
+import { type LedgerError, ResponseError } from '@zondax/ledger-js'
+import { errorDetails, InternalErrorType, ledgerErrorToInternalErrorMap } from 'config/errors'
 import { Bip44PathError } from './address'
 
 /**
@@ -39,7 +39,7 @@ export class InternalError extends Error {
     this.errorType = errorType
 
     // Use provided details or fallback to errorDetails mapping
-    const errorDetail = errorDetails[errorType]
+    const errorDetail = errorDetails[errorType] ?? errorDetails[InternalErrorType.UNKNOWN_ERROR]
     this.title = errorDetail.title
     this.description = errorDetail.description
 
@@ -86,7 +86,7 @@ export function interpretUnknownError(error: unknown, defaultError: InternalErro
  * @returns The detailed error object.
  */
 export function interpretLedgerJsError(error: ResponseError): InternalError {
-  const internalErrorType = ledgerErrorToInternalErrorMap[error.returnCode as LedgerError]
+  const internalErrorType = ledgerErrorToInternalErrorMap[error.returnCode as LedgerError] ?? InternalErrorType.LEDGER_UNKNOWN_ERROR
   return new InternalError(internalErrorType)
 }
 

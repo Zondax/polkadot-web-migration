@@ -517,7 +517,7 @@ describe('LedgerService', () => {
   })
 
   describe('disconnect', () => {
-    it('should close transport and emit disconnect when transport exists', async () => {
+    it('should close transport and reset connection state when transport exists', async () => {
       // Set up a connected device
       const TransportWebUSB = await import('@ledgerhq/hw-transport-webhid')
       vi.mocked(TransportWebUSB.default.create).mockResolvedValueOnce(mockTransport)
@@ -526,8 +526,10 @@ describe('LedgerService', () => {
 
       ledgerService.disconnect()
 
+      // An explicit disconnect closes the transport and resets state directly (via handleDisconnect),
+      // rather than emitting 'disconnect' which would route through the HID app-switch heuristic.
       expect(mockTransport.close).toHaveBeenCalled()
-      expect(mockTransport.emit).toHaveBeenCalledWith('disconnect')
+      expect(mockTransport.emit).not.toHaveBeenCalledWith('disconnect')
     })
 
     it('should be safe to call when no transport exists', () => {
@@ -549,9 +551,9 @@ describe('LedgerService', () => {
         ledgerService.disconnect()
       }).not.toThrow()
 
-      // Each call should attempt to close and emit (the transport reference doesn't get cleared in disconnect)
-      expect(mockTransport.close).toHaveBeenCalledTimes(3)
-      expect(mockTransport.emit).toHaveBeenCalledTimes(3)
+      // The first disconnect closes the transport and clears the connection (handleDisconnect resets
+      // transport to undefined), so subsequent calls are safe no-ops that don't re-close a dead transport.
+      expect(mockTransport.close).toHaveBeenCalledTimes(1)
     })
   })
 

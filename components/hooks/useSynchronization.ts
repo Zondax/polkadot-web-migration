@@ -1,6 +1,6 @@
 import { use$, useObservable } from '@legendapp/state/react'
 import { useCallback, useState } from 'react'
-import { AppStatus, allApps$, ledgerState$, type App } from 'state/ledger'
+import { type App, AppStatus, allApps$, ledgerState$ } from 'state/ledger'
 
 import type { AppId } from '@/config/apps'
 import type { AppDisplayInfo, DeepScanAppDisplayInfo } from '@/lib/types/app-display'
@@ -11,6 +11,7 @@ import {
   prepareDeepScanDisplayApps,
   prepareDisplayApps,
 } from '@/lib/utils'
+import { canMultisigBeSelectedForMigration } from '@/lib/utils/multisig'
 import { AccountType, type Address, type MultisigAddress, type SyncProgress, type TransactionSettings } from '@/state/types/ledger'
 
 export type UpdateTransaction = (
@@ -222,24 +223,35 @@ export const useSynchronization = (): UseSynchronizationReturn => {
   )
 
   /**
-   * Set selection state for all accounts
+   * Set selection state for all accounts.
+   *
+   * Honors the same per-row selectability predicate that
+   * synchronized-account-row uses to disable individual checkboxes: multisig
+   * accounts with pending calls and no remaining internal signers can't be
+   * progressed, so they must not be selected by "Select All" either.
    */
   const toggleAllAccounts = useCallback(
     (checked: boolean) => {
       const currentApps = apps$.get()
 
       currentApps.forEach((app, i) => {
-        if (!app.error) {
-          if (app.accounts) {
-            apps$[i].accounts.forEach((_, j) => {
-              apps$[i].accounts[j].selected.set(checked)
-            })
-          }
-          if (app.multisigAccounts) {
-            apps$[i].multisigAccounts.forEach((_, j) => {
-              apps$[i].multisigAccounts[j].selected.set(checked)
-            })
-          }
+        if (app.error) return
+        if (app.accounts) {
+          apps$[i].accounts.forEach((_, j) => {
+            apps$[i].accounts[j].selected.set(checked)
+          })
+        }
+        if (app.multisigAccounts) {
+          app.multisigAccounts.forEach((multisigAccount, j) => {
+            // Selecting a not-ready multisig would be immediately undone by
+            // the row's own deselect effect — but the underlying state would
+            // still flicker. Skip them up front to match the disabled-checkbox
+            // affordance the user sees on each row.
+            if (checked && !canMultisigBeSelectedForMigration(multisigAccount)) {
+              return
+            }
+            apps$[i].multisigAccounts[j].selected.set(checked)
+          })
         }
       })
     },

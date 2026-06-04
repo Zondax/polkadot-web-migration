@@ -1,5 +1,20 @@
 import { mockAcalaAppConfig, mockKusamaAppConfig, mockPolkadotAppConfigs } from '../mocks/apps'
 
+// Stub the blockchain connection so the account-processing phase never opens a real
+// WebSocket to the (real) RPC endpoints in the mocked app configs. The connection is left
+// pending (never resolving) on purpose: it suspends synchronization at the same point the
+// slow real network previously did, keeping the page in its "scanning" state so the sync
+// grid stays visible for this test. Without the stub, the real socket's handshake resolves
+// asynchronously after the test ends and undici's `instanceof Event` check fails against
+// jsdom's global Event, surfacing as an unhandled error in whichever test is running then.
+vi.mock('@/lib/account', async () => {
+  const actual = await vi.importActual('@/lib/account')
+  return {
+    ...actual,
+    getApiAndProvider: vi.fn().mockReturnValue(new Promise(() => {})),
+  }
+})
+
 // Mock the apps config module before tests
 vi.mock('@/config/apps', async () => {
   return {

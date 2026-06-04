@@ -92,6 +92,15 @@ export const useMigration = (): UseMigrationReturn => {
     return currentItem
   })
 
+  // The verification observables are module-scoped, so they persist across unmount/remount and are
+  // shared by every consumer. Reset them on mount of the migrate flow so stale 'verified'/'failed'
+  // statuses (and a stuck 'verifying' flag from an interrupted loop) cannot gate the Migrate button
+  // open without a fresh on-device verification in the new session.
+  useEffect(() => {
+    destinationAddressesStatus$.set({})
+    isVerifying$.set(false)
+  }, [])
+
   // Initialize or update the observable with the latest data from destinationAddressesByApp
   useEffect(() => {
     // Get current apps in the status observable
@@ -106,11 +115,22 @@ export const useMigration = (): UseMigrationReturn => {
 
     // Update the observable with the latest data for all apps
     for (const [appId, addresses] of Object.entries(destinationAddressesByApp)) {
-      if (
-        !destinationAddressesStatus$[appId as AppId].peek() ||
-        destinationAddressesStatus$[appId as AppId].peek()?.length !== addresses.length
-      ) {
-        destinationAddressesStatus$[appId as AppId].set(addresses)
+      const stored = destinationAddressesStatus$[appId as AppId].peek()
+
+      // Reconcile by content (address + path), not just length, so a same-count change of the
+      // destination set invalidates stale statuses instead of preserving them.
+      const hasChanged =
+        !stored ||
+        stored.length !== addresses.length ||
+        stored.some((a, i) => a.address !== addresses[i].address || a.path !== addresses[i].path)
+
+      if (hasChanged) {
+        // Preserve the prior status only for entries whose address+path are unchanged.
+        const reconciled = addresses.map(addr => {
+          const prior = stored?.find(a => a.address === addr.address && a.path === addr.path)
+          return prior ? { ...addr, status: prior.status } : addr
+        })
+        destinationAddressesStatus$[appId as AppId].set(reconciled)
       }
     }
   }, [destinationAddressesByApp])
@@ -121,15 +141,24 @@ export const useMigration = (): UseMigrationReturn => {
    * Verify a single address with the Ledger device
    */
   const verifyAddress = useCallback(async (appId: AppId, addressIndex: number): Promise<void> => {
-    const address = destinationAddressesStatus$[appId][addressIndex].peek()
+    const address = destinationAddressesStatus$[appId]?.[addressIndex]?.peek()
+
+    // The status array may have been reconciled (replaced) since the index was captured.
+    if (!address) return
 
     // Update the verification status to 'verifying'
     destinationAddressesStatus$[appId][addressIndex].status.set(VerificationStatus.VERIFYING)
 
     const response = await ledgerState$.verifyDestinationAddresses(appId, address.address, address.path)
 
+    // Re-resolve the index by address+path after the await: the array may have been replaced while
+    // the Ledger round-trip was in flight, so the captured index could now point at a different entry.
+    const current = destinationAddressesStatus$[appId]?.peek() || []
+    const targetIndex = current.findIndex(a => a.address === address.address && a.path === address.path)
+    if (targetIndex === -1) return
+
     // The property is spelled 'isVerified' in the API response
-    destinationAddressesStatus$[appId][addressIndex].status.set(
+    destinationAddressesStatus$[appId][targetIndex].status.set(
       response.isVerified ? VerificationStatus.VERIFIED : VerificationStatus.FAILED
     )
   }, [])
