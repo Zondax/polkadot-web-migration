@@ -2425,7 +2425,8 @@ export async function getConvictionVotingInfo(address: string, api: ApiPromise):
             // For finished referenda, calculate when tokens can be unlocked.
             // The lock duration is convictionLockPeriods * VoteLockingPeriod (pallet-conviction-voting),
             // not referenda.undecidingTimeout (which governs how long a referendum may stay undecided).
-            const voteLockingPeriod = (api.consts.convictionVoting?.voteLockingPeriod as any)?.toNumber() || DEFAULT_VOTE_LOCKING_PERIOD_BLOCKS
+            const voteLockingPeriod =
+              (api.consts.convictionVoting?.voteLockingPeriod as any)?.toNumber() || DEFAULT_VOTE_LOCKING_PERIOD_BLOCKS
             unlockAt = currentBlockNumber + convictionLockPeriods * voteLockingPeriod
           }
 
