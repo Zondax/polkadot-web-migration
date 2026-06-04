@@ -1,9 +1,10 @@
 'use client'
 
+import { use$ } from '@legendapp/state/react'
 import { migrationTabs } from 'config/ui'
 import { motion, useAnimation } from 'framer-motion'
 import { Check } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 // Import section components
 import { useLoadIcons } from '@/components/hooks/loadIcons'
 import { useConnection } from '@/components/hooks/useConnection'
@@ -12,6 +13,7 @@ import { GradientBackground } from '@/components/sections/migrate/background'
 import { Header } from '@/components/sections/migrate/header'
 import Notifications from '@/components/sections/migrate/notifications'
 import { Tabs } from '@/components/Tabs'
+import { AppStatus, ledgerState$ } from '@/state/ledger'
 
 type TabProps = { onContinue: () => void } | { onBack: () => void }
 
@@ -26,6 +28,7 @@ export default function MigratePage() {
     tabs: migrationTabs,
   })
   const { isLedgerConnected, isAppOpen } = useConnection()
+  const appsStatus = use$(ledgerState$.apps.status)
 
   // State to track tabs with completion status and disabled state
   const [tabsWithStatus, setTabsWithStatus] = useState(() =>
@@ -57,15 +60,33 @@ export default function MigratePage() {
     })
   }, [controls])
 
-  // Effect to handle device connection status and redirect to first tab if needed
+  const syncInFlight = appsStatus === AppStatus.LOADING || appsStatus === AppStatus.ADDRESSES_FETCHED
+  const isFullyConnected = isLedgerConnected && isAppOpen
+
+  // Edge-triggered effects: each fires only on the transition into the relevant
+  // state, not while the state is held. This is what prevents the two effects
+  // from ping-ponging activeTab between 0 and 1 (which crashes React with
+  // "Maximum update depth exceeded").
+  const prevConnectedRef = useRef(isFullyConnected)
+  const prevSyncInFlightRef = useRef(syncInFlight)
+
+  // Reset to the first tab on the *transition* connected → disconnected.
   useEffect(() => {
-    // If we're not on the first tab (Connect tab) and either the device is not connected
-    // or the app is not open, go back to the first tab
-    if (activeTab !== 0 && (!isLedgerConnected || !isAppOpen)) {
-      // Reset to the first tab
+    const justDisconnected = prevConnectedRef.current && !isFullyConnected
+    prevConnectedRef.current = isFullyConnected
+    if (justDisconnected && activeTab !== 0) {
       handleTabChange(0)
     }
-  }, [isLedgerConnected, isAppOpen, activeTab, handleTabChange])
+  }, [isFullyConnected, activeTab, handleTabChange])
+
+  // Advance to the Synchronize tab on the *transition* idle → sync-in-flight.
+  useEffect(() => {
+    const justStartedSync = !prevSyncInFlightRef.current && syncInFlight
+    prevSyncInFlightRef.current = syncInFlight
+    if (justStartedSync && activeTab === 0) {
+      handleTabChange(1)
+    }
+  }, [syncInFlight, activeTab, handleTabChange])
 
   // Prepare props for each tab component
   const connectProps: TabProps = {

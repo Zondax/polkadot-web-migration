@@ -1,29 +1,29 @@
+import { computed, observable } from '@legendapp/state'
+import type { BN } from '@polkadot/util'
+import { type AppId, appsConfigs, polkadotAppConfig } from 'config/apps'
+import { errorDetails, InternalErrorType } from 'config/errors'
 import type { MultisigCallFormData } from '@/components/sections/migrate/dialogs/approve-multisig-call-dialog'
 import type { Token } from '@/config/apps'
 import { getApiAndProvider, getBalance, type UpdateTransactionStatus } from '@/lib/account'
 import type { DeviceConnectionProps } from '@/lib/ledger/types'
 import { deepScanAllApps, getAppsToSkipMigration, synchronizeAllApps, synchronizeAppAccounts } from '@/lib/services/synchronization.service'
-import { interpretError, type InternalError } from '@/lib/utils'
+import { type InternalError, interpretError } from '@/lib/utils'
 import { isMultisigAddress } from '@/lib/utils/address'
 import { canAccountBeMigrated } from '@/lib/utils/ledger'
-import { computed, observable } from '@legendapp/state'
-import type { BN } from '@polkadot/util'
-import { appsConfigs, polkadotAppConfig, type AppId } from 'config/apps'
-import { InternalErrorType, errorDetails } from 'config/errors'
 import { ledgerClient } from './client/ledger'
 import { errorsToStopSync } from './config/ledger'
 import { notifications$ } from './notifications'
 import {
   AccountType,
-  AddressStatus,
-  FetchingAddressesPhase,
-  TransactionStatus,
   type Address,
+  AddressStatus,
   type Collection,
+  FetchingAddressesPhase,
   type GovernanceDeposit,
   type MigratingItem,
   type MultisigAddress,
   type SyncProgress,
+  TransactionStatus,
   type UpdateMigratedStatusFn,
 } from './types/ledger'
 
@@ -330,7 +330,17 @@ export const ledgerState$ = observable({
         // Check connection again after attempting to open the app
         const checkResult = await ledgerClient.checkConnection()
         if (checkResult) {
-          // If app is now open, update the connection state
+          // The app is now open — write that back into the state observable
+          // so subscribers (UI components, page-level effects) see the new
+          // isAppOpen value. Without this, state.connection.isAppOpen stays
+          // `false` forever and downstream booleans never flip true.
+          const currentConnection = ledgerState$.device.connection.get()
+          if (currentConnection) {
+            ledgerState$.device.connection.set({
+              ...currentConnection,
+              isAppOpen: true,
+            })
+          }
           return { connected: isDeviceConnected, isAppOpen: true }
         }
       }
@@ -368,11 +378,13 @@ export const ledgerState$ = observable({
   // Clear connection data
   clearConnection() {
     console.debug('[ledgerState$] Clearing connection data')
-    ledgerState$.device.assign({
-      connection: undefined,
-      error: undefined,
-      isLoading: false,
-    })
+    // Use .set() per-field (matching how connectLedger sets `connection`) so
+    // every observer of `device.connection` gets a change notification.
+    // `device.assign({connection: undefined})` does not reliably notify nested
+    // observers in Legend State.
+    ledgerState$.device.connection.set(undefined)
+    ledgerState$.device.error.set(undefined)
+    ledgerState$.device.isLoading.set(false)
   },
 
   // Clear synchronization data
@@ -459,6 +471,13 @@ export const ledgerState$ = observable({
 
   // Synchronize Accounts
   async synchronizeAccounts(): Promise<void> {
+    // Don't start a new sync if one is already in progress
+    const currentStatus = ledgerState$.apps.status.get()
+    if (currentStatus === AppStatus.LOADING || currentStatus === AppStatus.ADDRESSES_FETCHED) {
+      console.debug('[synchronizeAccounts] sync already in progress, skipping')
+      return
+    }
+
     ledgerState$.apps.isSyncCancelRequested.set(false)
 
     try {
@@ -562,6 +581,16 @@ export const ledgerState$ = observable({
           type: 'info',
           autoHideDuration: 5000,
         })
+      } else {
+        // If sync exited without setting a terminal status (e.g., it errored
+        // out, or the device was unplugged mid-flight), clear the status here
+        // so consumers like `isConnecting` recover. Without this, status stays
+        // at LOADING/ADDRESSES_FETCHED forever and the Connect button remains
+        // stuck on "Connecting…".
+        const finalStatus = ledgerState$.apps.status.get()
+        if (finalStatus === AppStatus.LOADING || finalStatus === AppStatus.ADDRESSES_FETCHED) {
+          ledgerState$.apps.status.set(undefined)
+        }
       }
     }
   },

@@ -7,6 +7,9 @@ import type { ConnectionResponse, DeviceConnectionProps } from '@/lib/ledger/typ
 import { addressCache } from '@/state/stores'
 import { openApp } from './openApp'
 
+// Ledger's USB/HID vendor ID, used to identify Ledger devices during enumeration.
+export const LEDGER_USB_VENDOR_ID = 0x2c97
+
 /**
  * Interface for the Ledger service that manages device interaction
  */
@@ -95,7 +98,25 @@ export class LedgerService implements ILedgerService {
       const transport = await TransportWebUSB.create()
       this.deviceConnection.transport = transport
 
-      const handleDisconnect = () => {
+      // The transport fires `disconnect` on both real unplugs AND on device
+      // app-switches (Ledger reboots between dashboard and an app, which
+      // re-enumerates the HID interface). To tell them apart, defer the
+      // clear, then check `navigator.hid` for the Ledger device — if it's
+      // still listed, it's an app-switch and we keep the connection state.
+      const handleDisconnect = async () => {
+        await new Promise(resolve => setTimeout(resolve, 500))
+        const hid = (navigator as Navigator & { hid?: { getDevices: () => Promise<Array<{ vendorId: number }>> } }).hid
+        if (hid) {
+          try {
+            const devices = await hid.getDevices()
+            if (devices.some(device => device.vendorId === LEDGER_USB_VENDOR_ID)) {
+              console.debug('[ledgerService] HID disconnect appears to be an app-switch, keeping connection')
+              return
+            }
+          } catch (error) {
+            console.warn('[ledgerService] Failed to check HID devices after disconnect:', error)
+          }
+        }
         this.handleDisconnect()
         onDisconnect?.()
       }

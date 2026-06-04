@@ -40,6 +40,9 @@ const mockUseConnectionReturn = {
   get isAppOpen() {
     return mockIsAppOpen
   },
+  get isConnecting() {
+    return mockIsConnecting
+  },
   connectDevice: mockConnectDevice,
 }
 
@@ -50,8 +53,8 @@ vi.mock('@/components/hooks/useConnection', () => ({
 
 // Mock Button component
 vi.mock('@/components/ui/button', () => ({
-  Button: ({ children, onClick, className, size, ...props }: any) => (
-    <button className={className} onClick={onClick} data-size={size} data-testid="connect-ledger-button" {...props}>
+  Button: ({ children, onClick, className, size, disabled, ...props }: any) => (
+    <button className={className} onClick={onClick} data-size={size} data-testid="connect-ledger-button" disabled={disabled} {...props}>
       {children}
     </button>
   ),
@@ -60,6 +63,7 @@ vi.mock('@/components/ui/button', () => ({
 // Create mock variables that can be updated
 let mockIsLedgerConnected = false
 let mockIsAppOpen = false
+let mockIsConnecting = false
 
 const mockOnContinue = vi.fn()
 
@@ -68,6 +72,7 @@ describe('ConnectTabContent', () => {
     vi.clearAllMocks()
     mockIsLedgerConnected = false
     mockIsAppOpen = false
+    mockIsConnecting = false
     mockConnectDevice.mockResolvedValue(false)
   })
 
@@ -275,6 +280,49 @@ describe('ConnectTabContent', () => {
       expect(mockOnContinue).not.toHaveBeenCalled()
 
       consoleErrorSpy.mockRestore()
+    })
+
+    describe('isConnecting state', () => {
+      // Guards against the second-click race: while a connect/sync is in flight,
+      // the Connect button must be disabled and clicking it must be a no-op.
+
+      it('disables the Connect button and shows "Connecting…" while isConnecting', () => {
+        mockIsConnecting = true
+
+        render(<ConnectTabContent onContinue={mockOnContinue} />)
+
+        const connectButton = screen.getByTestId('connect-ledger-button')
+        expect(connectButton).toBeDisabled()
+        expect(connectButton).toHaveTextContent('Connecting…')
+      })
+
+      it('enables the Connect button and shows "Connect" when not connecting', () => {
+        mockIsConnecting = false
+
+        render(<ConnectTabContent onContinue={mockOnContinue} />)
+
+        const connectButton = screen.getByTestId('connect-ledger-button')
+        expect(connectButton).not.toBeDisabled()
+        expect(connectButton).toHaveTextContent('Connect')
+      })
+
+      it('handleConnect guards re-entry: does not call connectDevice when isConnecting', async () => {
+        mockIsConnecting = true
+
+        render(<ConnectTabContent onContinue={mockOnContinue} />)
+
+        const connectButton = screen.getByTestId('connect-ledger-button')
+        // The browser would not fire onClick on a disabled <button>, but in JSDOM
+        // we can still dispatch the event programmatically. The handler itself
+        // must also bail out.
+        fireEvent.click(connectButton)
+
+        // Give the microtask queue a chance to flush
+        await new Promise(resolve => setTimeout(resolve, 20))
+
+        expect(mockConnectDevice).not.toHaveBeenCalled()
+        expect(mockOnContinue).not.toHaveBeenCalled()
+      })
     })
   })
 
