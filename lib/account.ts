@@ -1,8 +1,6 @@
-import { merkleizeMetadata } from '@polkadot-api/merkleize-metadata'
 import { ApiPromise, WsProvider } from '@polkadot/api'
 import type { SubmittableExtrinsic } from '@polkadot/api/types'
 import type { GenericExtrinsicPayload } from '@polkadot/types'
-import type { Option, Vec, u128, u32 } from '@polkadot/types-codec'
 import type {
   AccountId32,
   Balance,
@@ -14,23 +12,24 @@ import type {
   StakingLedger,
 } from '@polkadot/types/interfaces'
 import type { ExtrinsicPayloadValue, ISubmittableResult } from '@polkadot/types/types/extrinsic'
+import type { Option, u32, u128, Vec } from '@polkadot/types-codec'
 import { BN, hexToU8a, u8aToBn } from '@polkadot/util'
 import { decodeAddress } from '@polkadot/util-crypto'
+import { merkleizeMetadata } from '@polkadot-api/merkleize-metadata'
 import type { AppConfig, AppId } from 'config/apps'
 import { DEFAULT_ERA_TIME_IN_HOURS, getEraTimeByAppId } from 'config/apps'
-import { MULTISIG_WEIGHT_BUFFER, defaultWeights } from 'config/config'
-import { InternalErrorType, errorDetails } from 'config/errors'
+import { defaultWeights, MULTISIG_WEIGHT_BUFFER } from 'config/config'
+import { errorDetails, InternalErrorType } from 'config/errors'
 import { errorAddresses, mockBalances } from 'config/mockData'
 import { getMultisigInfo, getReferendumIndices } from 'lib/subscan'
 import {
-  BalanceType,
-  Conviction,
-  TransactionStatus,
   type AccountIndex,
   type AccountProxy,
   type Address,
   type AddressBalance,
+  BalanceType,
   type Collection,
+  Conviction,
   type ConvictionVotingInfo,
   type DelegationInfo,
   type GovernanceDeposit,
@@ -43,6 +42,7 @@ import {
   type Staking,
   type SubIdentities,
   type TransactionDetails,
+  TransactionStatus,
 } from 'state/types/ledger'
 import { InternalError } from './utils'
 import { getActualTransferAmount, isFullMigration as isFullMigrationFn, isNativeBalance } from './utils/balance'
@@ -56,14 +56,6 @@ interface AccountData {
   free: { toString(): string }
   reserved: { toString(): string }
   frozen: { toString(): string }
-}
-
-/**
- * AccountInfo interface for system.account query result
- */
-interface AccountInfo {
-  nonce: number | string
-  data: AccountData
 }
 
 /**
@@ -87,6 +79,10 @@ interface DispatchError {
 }
 
 const HOURS_IN_A_DAY = 24
+
+// Fallback VoteLockingPeriod (in blocks) when the chain doesn't expose
+// `convictionVoting.voteLockingPeriod`. 403200 ≈ 28 days at 6s block times.
+const DEFAULT_VOTE_LOCKING_PERIOD_BLOCKS = 403200
 
 // Get API and Provider
 const MAX_CONNECTION_RETRIES = 3
@@ -336,7 +332,9 @@ export async function prepareTransactionPayload(
   transfer: SubmittableExtrinsic<'promise', ISubmittableResult>
 ): Promise<PreparedTransactionPayload | undefined> {
   const nonceResp = await api.query.system.account(senderAddress)
-  const { nonce } = nonceResp.toHuman() as unknown as AccountInfo
+  // Read the nonce as a real number from the codec. toHuman() formats values >= 1000 with thousands
+  // separators (e.g. "1,234"), which would encode an invalid nonce when fed back into createType.
+  const nonceNumber = (nonceResp as unknown as { nonce: { toNumber: () => number } }).nonce.toNumber()
 
   const metadataV15 = await api.call.metadata.metadataAtVersion<Option<OpaqueMetadata>>(15).then(m => {
     if (!m.isNone) {
@@ -351,7 +349,6 @@ export async function prepareTransactionPayload(
   })
 
   const metadataHash = merkleizedMetadata.digest()
-  const nonceNumber = nonce as unknown as number
 
   // Get current block to create mortal transaction
   // For mortal transactions, we need the current block hash AND number
@@ -659,7 +656,16 @@ export async function submitAndHandleTransaction(
   api: ApiPromise
 ): Promise<void> {
   return new Promise<void>((resolve, reject) => {
+    // Guard against the subscription callback racing the timeout: once the promise has settled
+    // (via timeout or a terminal status), short-circuit further callbacks before touching `api`.
+    let settled = false
+    // Unsubscribe function returned by transfer.send(); captured so we can stop further callbacks.
+    let unsubscribe: (() => void) | undefined
+
     const timeoutId = setTimeout(() => {
+      if (settled) return
+      settled = true
+      unsubscribe?.()
       updateStatus(TransactionStatus.UNKNOWN, 'Transaction timed out, check the transaction status in the explorer.')
       api.disconnect().catch(console.error)
       reject(new Error('Transaction timed out'))
@@ -667,6 +673,8 @@ export async function submitAndHandleTransaction(
 
     transfer
       .send(async (status: ISubmittableResult) => {
+        if (settled) return
+
         let blockNumber: string | undefined
         let blockHash: string | undefined
         let txHash: string | undefined
@@ -682,7 +690,9 @@ export async function submitAndHandleTransaction(
           })
         }
         if (status.isFinalized) {
+          settled = true
           clearTimeout(timeoutId)
+          unsubscribe?.()
           blockHash = status.status.asFinalized.toHex()
           txHash = status.txHash.toHex()
           blockNumber = 'blockNumber' in status ? Number(status.blockNumber).toString() : undefined
@@ -742,7 +752,9 @@ export async function submitAndHandleTransaction(
             )
           }
         } else if (status.isError) {
+          settled = true
           clearTimeout(timeoutId)
+          unsubscribe?.()
           updateStatus(TransactionStatus.FAILED, 'Transaction failed', status.dispatchError?.toString())
           api.disconnect().catch(console.error)
           reject(
@@ -763,7 +775,17 @@ export async function submitAndHandleTransaction(
           })
         }
       })
+      .then((unsub: () => void) => {
+        // If the promise already settled (e.g. the timeout fired before send() resolved), unsubscribe now.
+        if (settled) {
+          unsub()
+          return
+        }
+        unsubscribe = unsub
+      })
       .catch((error: any) => {
+        if (settled) return
+        settled = true
         clearTimeout(timeoutId)
         updateStatus(TransactionStatus.FAILED, 'Transaction failed', error.message)
         api.disconnect().catch(console.error)
@@ -1792,11 +1814,13 @@ export async function prepareAsMultiTx(
   // Decode the call data to get the actual call
   const call = api.createType('Call', callData)
 
-  // Create a temporary extrinsic to estimate weight
-  const tempExtrinsic = api.createType('Call', call) as unknown as SubmittableExtrinsic<'promise', ISubmittableResult>
-
-  // Estimate the weight for this asMulti operation
-  const estimatedWeight = estimateMultisigWeight(tempExtrinsic, threshold, otherSignatories)
+  // Derive the real dispatch weight from the runtime (asMulti's max_weight must be >= the actual call
+  // weight or the dispatch fails). Fall back to the heuristic estimate only if the runtime API is unavailable.
+  let estimatedWeight = await getRealCallWeight(api, call)
+  if (!estimatedWeight) {
+    const tempExtrinsic = api.createType('Call', call) as unknown as SubmittableExtrinsic<'promise', ISubmittableResult>
+    estimatedWeight = estimateMultisigWeight(tempExtrinsic, threshold, otherSignatories)
+  }
 
   // Create the final asMulti transaction with the actual call and estimated weight
   const finalMultisigTx = api.tx.multisig.asMulti(
@@ -1850,7 +1874,8 @@ export async function prepareNestedAsMultiTx(
   if (innerTimepoint) {
     // If there's already a timepoint, we need to use asMulti with the call data
     const call = api.createType('Call', outerCallData)
-    const estimatedWeight = estimateMultisigWeight(outerCall, innerThreshold, otherInnerSignatories)
+    // Prefer the real runtime-derived weight; fall back to the heuristic estimate if unavailable.
+    const estimatedWeight = (await getRealCallWeight(api, call)) ?? estimateMultisigWeight(outerCall, innerThreshold, otherInnerSignatories)
 
     return api.tx.multisig.asMulti(innerThreshold, otherInnerSignatories, innerTimepoint, call, estimatedWeight) as SubmittableExtrinsic<
       'promise',
@@ -2007,6 +2032,37 @@ export function convertToPolkadotWeight(weightNs: number): { refTime: number; pr
   return {
     refTime: weightNs,
     proofSize: 65536, // Default proof size (64KB)
+  }
+}
+
+/**
+ * Derives the real dispatch weight of an inner multisig call from the runtime via
+ * TransactionPaymentCallApi.queryCallInfo, applying MULTISIG_WEIGHT_BUFFER as a safety margin.
+ *
+ * This is preferred over estimateMultisigWeight's hardcoded constants because asMulti's max_weight
+ * must be >= the actual call weight or the dispatch fails. Returns undefined when the runtime API is
+ * unavailable so callers can fall back to the heuristic estimate.
+ *
+ * @param api - The API instance
+ * @param call - The decoded inner Call to be executed by asMulti
+ * @returns Weight object with buffer applied, or undefined if the runtime API is unavailable
+ */
+export async function getRealCallWeight(api: ApiPromise, call: any): Promise<{ refTime: number; proofSize: number } | undefined> {
+  try {
+    const queryCallInfo = api.call?.transactionPaymentCallApi?.queryCallInfo
+    if (!queryCallInfo) return undefined
+
+    const encodedCall = call.toU8a()
+    const dispatchInfo: any = await queryCallInfo(call, encodedCall.length)
+    const weight = dispatchInfo?.weight
+    if (!weight) return undefined
+
+    const refTime = Math.floor(Number(weight.refTime.toString()) * MULTISIG_WEIGHT_BUFFER)
+    const proofSize = Math.floor(Number(weight.proofSize.toString()) * MULTISIG_WEIGHT_BUFFER)
+    return { refTime, proofSize }
+  } catch (error) {
+    console.debug('[getRealCallWeight] Failed to derive real call weight, falling back to estimate:', error)
+    return undefined
   }
 }
 
@@ -2366,9 +2422,12 @@ export async function getConvictionVotingInfo(address: string, api: ApiPromise):
           let unlockAt: number | undefined
 
           if (!isOngoing && convictionLockPeriods > 0) {
-            // For finished referenda, calculate when tokens can be unlocked
-            const enactmentPeriod = (api.consts.referenda?.undecidingTimeout as any)?.toNumber() || 28800 // Default ~28 days at 6s blocks
-            unlockAt = currentBlockNumber + convictionLockPeriods * enactmentPeriod
+            // For finished referenda, calculate when tokens can be unlocked.
+            // The lock duration is convictionLockPeriods * VoteLockingPeriod (pallet-conviction-voting),
+            // not referenda.undecidingTimeout (which governs how long a referendum may stay undecided).
+            const voteLockingPeriod =
+              (api.consts.convictionVoting?.voteLockingPeriod as any)?.toNumber() || DEFAULT_VOTE_LOCKING_PERIOD_BLOCKS
+            unlockAt = currentBlockNumber + convictionLockPeriods * voteLockingPeriod
           }
 
           convictionVotingInfo.votes.push({

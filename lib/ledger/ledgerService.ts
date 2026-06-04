@@ -7,6 +7,9 @@ import type { ConnectionResponse, DeviceConnectionProps } from '@/lib/ledger/typ
 import { addressCache } from '@/state/stores'
 import { openApp } from './openApp'
 
+// Ledger's USB/HID vendor ID, used to identify Ledger devices during enumeration.
+export const LEDGER_USB_VENDOR_ID = 0x2c97
+
 /**
  * Interface for the Ledger service that manages device interaction
  */
@@ -42,6 +45,9 @@ export class LedgerService implements ILedgerService {
   }
 
   private call: (reason?: any) => void = () => {}
+
+  // Callback invoked when the device disconnects (set during transport init)
+  private onDisconnect?: () => void
 
   // Handles transport disconnection
   private handleDisconnect = () => {
@@ -94,8 +100,27 @@ export class LedgerService implements ILedgerService {
       console.debug('[ledgerService] Initializing transport')
       const transport = await TransportWebUSB.create()
       this.deviceConnection.transport = transport
+      this.onDisconnect = onDisconnect
 
-      const handleDisconnect = () => {
+      // The transport fires `disconnect` on both real unplugs AND on device
+      // app-switches (Ledger reboots between dashboard and an app, which
+      // re-enumerates the HID interface). To tell them apart, defer the
+      // clear, then check `navigator.hid` for the Ledger device — if it's
+      // still listed, it's an app-switch and we keep the connection state.
+      const handleDisconnect = async () => {
+        await new Promise(resolve => setTimeout(resolve, 500))
+        const hid = (navigator as Navigator & { hid?: { getDevices: () => Promise<Array<{ vendorId: number }>> } }).hid
+        if (hid) {
+          try {
+            const devices = await hid.getDevices()
+            if (devices.some(device => device.vendorId === LEDGER_USB_VENDOR_ID)) {
+              console.debug('[ledgerService] HID disconnect appears to be an app-switch, keeping connection')
+              return
+            }
+          } catch (error) {
+            console.warn('[ledgerService] Failed to check HID devices after disconnect:', error)
+          }
+        }
         this.handleDisconnect()
         onDisconnect?.()
       }
@@ -141,7 +166,7 @@ export class LedgerService implements ILedgerService {
       if (!isAppOpen && transport) {
         console.debug('[ledgerService] App not open, attempting to open automatically')
         try {
-          openApp(transport, 'Polkadot Migration')
+          await openApp(transport, 'Polkadot Migration')
           // Check again if app is open after attempting to open it
           isAppOpen = await this.isAppOpen(genericApp)
         } catch (openAppError) {
@@ -296,10 +321,18 @@ export class LedgerService implements ILedgerService {
    */
   disconnect() {
     console.debug('[ledgerService] Disconnecting device')
+    const onDisconnect = this.onDisconnect
     if (this.deviceConnection?.transport) {
       this.deviceConnection.transport.close()
-      this.deviceConnection.transport.emit('disconnect')
     }
+    // An explicit, user-initiated disconnect must always reset the internal
+    // state. We call handleDisconnect() directly instead of emitting
+    // 'disconnect', because the transport's 'disconnect' handler defers and
+    // checks `navigator.hid` to distinguish app-switches from unplugs — on an
+    // explicit disconnect the device is still plugged in, so that heuristic
+    // would early-return and leave a stale, closed transport behind.
+    this.handleDisconnect()
+    onDisconnect?.()
   }
 
   /**

@@ -1,11 +1,11 @@
-import { InternalErrorType } from '@/config/errors'
-import { mockAddress1 } from '@/lib/__tests__/utils/__mocks__/mockData'
-import type { DeviceConnectionProps } from '@/lib/ledger/types'
-import { InternalError } from '@/lib/utils/error'
 import { BN } from '@polkadot/util'
 import type { Transport } from '@zondax/ledger-js'
 import type { PolkadotGenericApp } from '@zondax/ledger-substrate'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { InternalErrorType } from '@/config/errors'
+import { mockAddress1 } from '@/lib/__tests__/utils/__mocks__/mockData'
+import type { DeviceConnectionProps } from '@/lib/ledger/types'
+import { InternalError } from '@/lib/utils/error'
 import { AppStatus, ledgerState$ } from '../ledger'
 import { AccountType } from '../types/ledger'
 
@@ -207,6 +207,33 @@ describe('Ledger State', () => {
       expect(result.isAppOpen).toBe(false)
     })
 
+    it('writes isAppOpen=true into state.connection when checkConnection succeeds after app open', async () => {
+      // Regression: previously, when the device app was closed and connectLedger
+      // successfully opened it, the function returned {isAppOpen: true} but never
+      // updated `device.connection.isAppOpen` in state. Subscribers to the
+      // connection observable kept seeing `false` and downstream effects (e.g.,
+      // the reset-on-disconnect transition) never fired.
+      const mockConnection: DeviceConnectionProps = {
+        transport: mockTransport as Transport,
+        genericApp: mockGenericApp as PolkadotGenericApp,
+        isAppOpen: false,
+      }
+      const { ledgerClient } = await import('../client/ledger')
+
+      vi.mocked(ledgerClient.connectDevice).mockResolvedValueOnce({
+        connection: mockConnection,
+        error: undefined,
+      })
+      vi.mocked(ledgerClient.checkConnection).mockResolvedValueOnce(true)
+
+      const result = await ledgerState$.connectLedger()
+
+      expect(result.connected).toBe(true)
+      expect(result.isAppOpen).toBe(true)
+      // The state observable must also reflect isAppOpen=true so subscribers fire.
+      expect(ledgerState$.device.connection.get()?.isAppOpen).toBe(true)
+    })
+
     it('should handle connection exception', async () => {
       const { ledgerClient } = await import('../client/ledger')
       const { notifications$ } = await import('../notifications')
@@ -223,6 +250,28 @@ describe('Ledger State', () => {
           autoHideDuration: 5000,
         })
       )
+    })
+  })
+
+  describe('clearConnection', () => {
+    it('notifies subscribers of device.connection on clear', () => {
+      // Regression: previously, clearConnection used `device.assign({connection: undefined})`
+      // which did not reliably notify nested `device.connection` subscribers in
+      // Legend State. Now it uses `connection.set(undefined)` per-field, which fires.
+      ledgerState$.device.connection.set({ isAppOpen: true })
+
+      const observed: Array<unknown> = []
+      const unsubscribe = ledgerState$.device.connection.onChange(({ value }) => {
+        observed.push(value)
+      })
+
+      ledgerState$.clearConnection()
+      unsubscribe()
+
+      expect(observed).toContain(undefined)
+      expect(ledgerState$.device.connection.get()).toBeUndefined()
+      expect(ledgerState$.device.isLoading.get()).toBe(false)
+      expect(ledgerState$.device.error.get()).toBeUndefined()
     })
   })
 
@@ -557,6 +606,84 @@ describe('Ledger State', () => {
       // Method should exist and be callable
       expect(typeof ledgerState$.synchronizeAccounts).toBe('function')
       // Should not throw during execution
+    })
+
+    it('returns early when a sync is already in flight (status=LOADING)', async () => {
+      // Idempotency guard: a second sync call while one is already running
+      // must not start another. This prevents the transport-busy race that
+      // surfaces as "we can't connect with the ledger device" when the user
+      // clicks Connect twice quickly.
+      const { ledgerClient } = await import('../client/ledger')
+      const { synchronizeAllApps } = await import('@/lib/services/synchronization.service')
+
+      ledgerState$.device.connection.set({ isAppOpen: true })
+      ledgerState$.apps.status.set(AppStatus.LOADING)
+      vi.mocked(ledgerClient.checkConnection).mockResolvedValue(true)
+
+      await ledgerState$.synchronizeAccounts()
+
+      expect(synchronizeAllApps).not.toHaveBeenCalled()
+    })
+
+    it('returns early when sync is in the ADDRESSES_FETCHED phase', async () => {
+      const { ledgerClient } = await import('../client/ledger')
+      const { synchronizeAllApps } = await import('@/lib/services/synchronization.service')
+
+      ledgerState$.device.connection.set({ isAppOpen: true })
+      ledgerState$.apps.status.set(AppStatus.ADDRESSES_FETCHED)
+      vi.mocked(ledgerClient.checkConnection).mockResolvedValue(true)
+
+      await ledgerState$.synchronizeAccounts()
+
+      expect(synchronizeAllApps).not.toHaveBeenCalled()
+    })
+
+    it('clears status when sync throws while in LOADING phase', async () => {
+      // Regression: when the device was unplugged mid-sync, sync's await
+      // rejected (transport gone), the catch ran, but the finally only
+      // reset status on cancellation. Status stayed at LOADING forever,
+      // which kept `isConnecting` true and froze the Connect button on
+      // "Connecting…" even after the page reset to step 0.
+      const { ledgerClient } = await import('../client/ledger')
+      const { synchronizeAllApps } = await import('@/lib/services/synchronization.service')
+
+      // Reset sync state — beforeEach only clears the device connection, not
+      // apps.status, which can leak from a previous test and trip the
+      // idempotency guard at the top of synchronizeAccounts.
+      ledgerState$.clearSynchronization()
+      ledgerState$.device.connection.set({ isAppOpen: true })
+      vi.mocked(ledgerClient.checkConnection).mockResolvedValue(true)
+
+      // Simulate the in-flight sync rejecting (e.g., transport disconnect).
+      vi.mocked(synchronizeAllApps).mockRejectedValueOnce(new Error('Transport disconnected'))
+
+      await ledgerState$.synchronizeAccounts()
+
+      // After the abnormal exit, status must have moved out of LOADING/
+      // ADDRESSES_FETCHED so that `isConnecting` flips back to false.
+      expect(ledgerState$.apps.status.get()).toBeUndefined()
+    })
+
+    it('clears status when synchronizeAllApps returns success=false', async () => {
+      const { ledgerClient } = await import('../client/ledger')
+      const { synchronizeAllApps } = await import('@/lib/services/synchronization.service')
+
+      ledgerState$.clearSynchronization()
+      ledgerState$.device.connection.set({ isAppOpen: true })
+      vi.mocked(ledgerClient.checkConnection).mockResolvedValue(true)
+
+      // synchronizeAllApps reports failure (throws inside the try, caught by
+      // the outer catch). Status should still be normalized in finally.
+      vi.mocked(synchronizeAllApps).mockResolvedValueOnce({
+        success: false,
+        apps: [],
+        polkadotApp: undefined,
+        error: 'Boom',
+      } as unknown as Awaited<ReturnType<typeof synchronizeAllApps>>)
+
+      await ledgerState$.synchronizeAccounts()
+
+      expect(ledgerState$.apps.status.get()).toBeUndefined()
     })
   })
 

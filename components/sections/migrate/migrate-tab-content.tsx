@@ -40,13 +40,16 @@ export function MigrateTabContent({ onBack }: MigrateTabContentProps) {
     if (migratingItem && !userDismissedDialog.current) {
       setShowMigrationProgressDialog(true)
     } else if (!migratingItem) {
+      // Close the dialog between items, but keep the user's dismissal sticky for the whole run.
+      // Resetting the flag here would re-open the dialog when the next account starts (currentMigratedItem
+      // transiently flips truthy -> undefined -> truthy between accounts in a batch migration).
       setShowMigrationProgressDialog(false)
-      // Reset the flag when there are no loading items
-      userDismissedDialog.current = false
     }
   }, [migratingItem])
 
   const handleMigrate = async () => {
+    // Start a fresh run, so a dismissal from a previous migration does not suppress this one.
+    userDismissedDialog.current = false
     setMigrationStatus('loading')
     await migrateSelected()
     setShowSuccessDialog(true)

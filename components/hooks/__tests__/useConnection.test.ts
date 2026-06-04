@@ -3,6 +3,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock the state modules
 vi.mock('@/state/ledger', () => ({
+  AppStatus: {
+    MIGRATED: 'migrated',
+    SYNCHRONIZED: 'synchronized',
+    LOADING: 'loading',
+    ADDRESSES_FETCHED: 'addresses_fetched',
+    ERROR: 'error',
+    RESCANNING: 'rescanning',
+    NO_NEED_MIGRATION: 'no_need_migration',
+  },
   ledgerState$: {
     device: {
       connection: {
@@ -10,6 +19,10 @@ vi.mock('@/state/ledger', () => ({
         genericApp: { get: vi.fn() },
         get: vi.fn(),
       },
+      isLoading: { get: vi.fn() },
+    },
+    apps: {
+      status: { get: vi.fn() },
     },
     connectLedger: vi.fn(),
     disconnectLedger: vi.fn(),
@@ -55,18 +68,48 @@ describe('useConnection hook', () => {
       expect(result.current.isAppOpen).toBe(false)
       expect(typeof result.current.connectDevice).toBe('function')
       expect(typeof result.current.disconnectDevice).toBe('function')
+      expect(result.current.isConnecting).toBe(false)
     })
 
     it('should return connected state when transport and app are available', () => {
       // Mock connected state
       vi.mocked(ledgerState$.device.connection.transport.get).mockReturnValue({ id: 'transport' })
       vi.mocked(ledgerState$.device.connection.genericApp.get).mockReturnValue({ id: 'app' })
-      vi.mocked(ledgerState$.device.connection.get).mockReturnValue({ isAppOpen: true })
+      vi.mocked(ledgerState$.device.connection.get).mockReturnValue({
+        transport: { id: 'transport' },
+        genericApp: { id: 'app' },
+        isAppOpen: true,
+      })
 
       const { result } = renderHook(() => useConnection())
 
       expect(result.current.isLedgerConnected).toBe(true)
       expect(result.current.isAppOpen).toBe(true)
+    })
+
+    it('derives isLedgerConnected/isAppOpen from the whole connection object (subscribes via use$)', () => {
+      // Regression: useConnection previously read nested observables through
+      // optional chaining (`connection?.transport.get()`). When `connection`
+      // was undefined, `?.` short-circuited before .get() was reached, so no
+      // subscription was ever registered on the parent path and disconnects
+      // never propagated. Now we subscribe to `connection` itself.
+      vi.mocked(ledgerState$.device.connection.get).mockReturnValue({
+        transport: { id: 't' },
+        genericApp: { id: 'a' },
+        isAppOpen: true,
+      })
+
+      const { result } = renderHook(() => useConnection())
+
+      expect(result.current.isLedgerConnected).toBe(true)
+      expect(result.current.isAppOpen).toBe(true)
+
+      // Simulate the connection observable transitioning to undefined.
+      vi.mocked(ledgerState$.device.connection.get).mockReturnValue(undefined)
+      const { result: result2 } = renderHook(() => useConnection())
+
+      expect(result2.current.isLedgerConnected).toBe(false)
+      expect(result2.current.isAppOpen).toBe(false)
     })
   })
 
@@ -141,6 +184,52 @@ describe('useConnection hook', () => {
       expect(connected).toBe(false)
       expect(ledgerState$.connectLedger).toHaveBeenCalled()
       expect(ledgerState$.synchronizeAccounts).not.toHaveBeenCalled()
+    })
+
+    describe('re-entry guard', () => {
+      // Guard prevents a second connect attempt while a connect/sync is in flight.
+      // Without it, clicking Connect twice quickly produces "we can't connect with
+      // the ledger device" because the transport is busy from the first call.
+
+      it('skips connectLedger when device.isLoading is true', async () => {
+        vi.mocked(ledgerState$.device.isLoading.get).mockReturnValue(true)
+
+        const { result } = renderHook(() => useConnection())
+
+        const connected = await act(async () => {
+          return await result.current.connectDevice()
+        })
+
+        expect(connected).toBe(false)
+        expect(ledgerState$.connectLedger).not.toHaveBeenCalled()
+        expect(ledgerState$.synchronizeAccounts).not.toHaveBeenCalled()
+      })
+
+      it('skips connectLedger when apps.status is LOADING', async () => {
+        vi.mocked(ledgerState$.apps.status.get).mockReturnValue('loading')
+
+        const { result } = renderHook(() => useConnection())
+
+        const connected = await act(async () => {
+          return await result.current.connectDevice()
+        })
+
+        expect(connected).toBe(false)
+        expect(ledgerState$.connectLedger).not.toHaveBeenCalled()
+      })
+
+      it('skips connectLedger when apps.status is ADDRESSES_FETCHED', async () => {
+        vi.mocked(ledgerState$.apps.status.get).mockReturnValue('addresses_fetched')
+
+        const { result } = renderHook(() => useConnection())
+
+        const connected = await act(async () => {
+          return await result.current.connectDevice()
+        })
+
+        expect(connected).toBe(false)
+        expect(ledgerState$.connectLedger).not.toHaveBeenCalled()
+      })
     })
   })
 

@@ -8,6 +8,7 @@ import { ledgerClient } from '../ledger'
 // Mock all dependencies
 vi.mock('@/lib/account', () => ({
   getApiAndProvider: vi.fn(),
+  disconnectSafely: vi.fn(),
   prepareTransaction: vi.fn(),
   prepareTransactionPayload: vi.fn(),
   createSignedExtrinsic: vi.fn(),

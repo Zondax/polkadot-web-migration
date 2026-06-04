@@ -34,7 +34,7 @@ describe('prepareTransaction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockApi.query.system.account = vi.fn(() => ({
-      toHuman: () => ({ nonce: 0 }),
+      nonce: { toNumber: () => 0 },
     }))
     mockApi.call = {
       metadata: {
