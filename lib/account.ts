@@ -80,6 +80,10 @@ interface DispatchError {
 
 const HOURS_IN_A_DAY = 24
 
+// Fallback VoteLockingPeriod (in blocks) when the chain doesn't expose
+// `convictionVoting.voteLockingPeriod`. 403200 ≈ 28 days at 6s block times.
+const DEFAULT_VOTE_LOCKING_PERIOD_BLOCKS = 403200
+
 // Get API and Provider
 const MAX_CONNECTION_RETRIES = 3
 const AUTO_CONNECT_MS = 5
@@ -2421,7 +2425,7 @@ export async function getConvictionVotingInfo(address: string, api: ApiPromise):
             // For finished referenda, calculate when tokens can be unlocked.
             // The lock duration is convictionLockPeriods * VoteLockingPeriod (pallet-conviction-voting),
             // not referenda.undecidingTimeout (which governs how long a referendum may stay undecided).
-            const voteLockingPeriod = (api.consts.convictionVoting?.voteLockingPeriod as any)?.toNumber() || 403200 // Default ~28 days at 6s blocks
+            const voteLockingPeriod = (api.consts.convictionVoting?.voteLockingPeriod as any)?.toNumber() || DEFAULT_VOTE_LOCKING_PERIOD_BLOCKS
             unlockAt = currentBlockNumber + convictionLockPeriods * voteLockingPeriod
           }
 
