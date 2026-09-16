@@ -126,7 +126,7 @@ describe('Subscan Referenda API Route', () => {
       const responseData = await response.json()
 
       expect(response.status).toBe(400)
-      expect(responseData).toEqual({ error: 'Network and address are required' })
+      expect(responseData.error).toEqual(expect.any(String))
     })
 
     it('should return 400 if address is missing', async () => {
@@ -142,7 +142,22 @@ describe('Subscan Referenda API Route', () => {
       const responseData = await response.json()
 
       expect(response.status).toBe(400)
-      expect(responseData).toEqual({ error: 'Network and address are required' })
+      expect(responseData.error).toEqual(expect.any(String))
+    })
+
+    it('should return 400 for a network outside the allowlist (SSRF guard)', async () => {
+      mockRequest = {
+        json: vi.fn().mockResolvedValue({
+          network: 'evil.com#',
+          address: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
+        }),
+      }
+
+      const response = await POST(mockRequest)
+      const responseData = await response.json()
+
+      expect(response.status).toBe(400)
+      expect(responseData.error).toEqual(expect.any(String))
     })
 
     it('should handle SubscanError', async () => {

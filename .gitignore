@@ -48,3 +48,7 @@ TODO.md
 # vitest
 /html/
 /playwright-report
+
+# Next.js auto-generated agent rule files (created by `next build`)
+/AGENTS.md
+/CLAUDE.md
