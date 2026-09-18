@@ -94,7 +94,7 @@ const MigratedAccountRows = ({ app, multisigAddresses, destinationAddressesStatu
       <TableRow key={`${app.id}-${account.address}-${accountIndex}`}>
         {/* App Icon */}
         <TableCell className="px-2 hidden sm:table-cell">
-          <div className="max-h-8 overflow-hidden [&_svg]:max-h-8 [&_svg]:w-8 flex justify-center items-center">
+          <div aria-hidden="true" className="max-h-8 overflow-hidden [&_svg]:max-h-8 [&_svg]:w-8 flex justify-center items-center">
             {icon && muifyHtml(icon)}
           </div>
         </TableCell>

@@ -3,6 +3,7 @@ import type { Transaction } from 'state/types/ledger'
 
 import { CustomTooltip } from '@/components/CustomTooltip'
 import { ExplorerLink } from '@/components/ExplorerLink'
+import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import type { AppId } from '@/config/apps'
 import { ExplorerItemType } from '@/config/explorers'
@@ -20,7 +21,9 @@ function TransactionDropdown({ transaction, appId }: TransactionDropdownProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <ChevronDown className="h-4 w-4 text-muted-foreground cursor-pointer" />
+        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground" aria-label="Transaction details">
+          <ChevronDown className="h-4 w-4" />
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="min-w-[300px]">
         {/* Transaction Details */}

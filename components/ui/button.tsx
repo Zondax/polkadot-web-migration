@@ -4,7 +4,7 @@ import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
-export type ButtonVariant = 'default' | 'destructive' | 'outline-solid' | 'secondary' | 'ghost' | 'link' | 'gray' | 'purple'
+export type ButtonVariant = 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link' | 'gray' | 'purple'
 export type ButtonSize = 'default' | 'xs' | 'sm' | 'lg' | 'icon' | 'wide'
 
 const buttonVariants = cva(

@@ -8,6 +8,9 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(({ className, type, error, helperText, ...props }, ref) => {
+  const generatedId = React.useId()
+  const helperId = helperText ? `${props.id ?? generatedId}-helper` : undefined
+  const describedBy = [props['aria-describedby'], helperId].filter(Boolean).join(' ') || undefined
   return (
     <div>
       <input
@@ -20,10 +23,14 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({ className, type,
           className
         )}
         ref={ref}
+        aria-invalid={error || undefined}
         {...props}
+        aria-describedby={describedBy}
       />
       {helperText && (
-        <div className={cn('mt-1 text-xs', error ? 'text-red-500' : 'text-muted-foreground')}>{helperText}</div>
+        <div id={helperId} className={cn('mt-1 text-xs', error ? 'text-red-500' : 'text-muted-foreground')}>
+          {helperText}
+        </div>
       )}
     </div>
   )

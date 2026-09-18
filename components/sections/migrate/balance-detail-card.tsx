@@ -79,7 +79,7 @@ const NativeTokensDetailCard = ({ balance, token, isMigration }: NativeTokensDet
         <CardHeader className="p-0">
           <CardTitle className="text-base flex items-center gap-2">
             {token.symbol}
-            <span className="bg-font-semibold text-white text-[10px] px-2 py-0 rounded-full">NATIVE</span>
+            <span className="bg-primary text-primary-foreground font-semibold text-[10px] px-2 py-0 rounded-full">NATIVE</span>
             <span className="ml-auto font-medium font-mono">{total}</span>
           </CardTitle>
         </CardHeader>
