@@ -147,6 +147,23 @@ export const appsConfigs = new Map<AppId, AppConfig>(apps.map(app => [app.id, ap
 export const appsConfigsObj = Object.fromEntries(appsConfigs)
 
 /**
+ * Allowlist of Subscan network identifiers derived from the app configs.
+ * Used to validate the untrusted `network` value received by the Subscan API
+ * routes before it is interpolated into the outbound request host, preventing
+ * SSRF and leakage of the server-side Subscan API key to arbitrary hosts.
+ */
+export const subscanNetworks: ReadonlySet<string> = new Set(
+  [polkadotAppConfig, ...apps].flatMap(app => (app.explorer?.id === 'subscan' && app.explorer.network ? [app.explorer.network] : []))
+)
+
+/**
+ * Type guard: whether the given value is a known Subscan network identifier.
+ */
+export function isValidSubscanNetwork(network: unknown): network is string {
+  return typeof network === 'string' && subscanNetworks.has(network)
+}
+
+/**
  * Get an app configuration by ID
  * @param id App ID
  * @returns App configuration or undefined if not found

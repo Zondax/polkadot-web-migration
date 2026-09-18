@@ -1,5 +1,6 @@
 import PQueue from 'p-queue'
 import pRetry from 'p-retry'
+import { isValidSubscanNetwork } from '@/config/apps'
 
 interface SubscanClientConfig {
   network: string
@@ -147,6 +148,12 @@ export class SubscanClient {
   }
 
   constructor(config: SubscanClientConfig) {
+    // Defense-in-depth: `network` is interpolated into the request host below.
+    // Rejecting any value outside the allowlist prevents SSRF and leaking the
+    // API key to an attacker-controlled host, regardless of the caller.
+    if (!isValidSubscanNetwork(config.network)) {
+      throw new SubscanError(`Unsupported network: ${config.network}`, 10001, 400)
+    }
     this.baseUrl = `https://${config.network}.api.subscan.io/api`
     this.headers = {
       'Content-Type': 'application/json',
