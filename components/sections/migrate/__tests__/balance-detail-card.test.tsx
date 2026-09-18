@@ -257,7 +257,15 @@ describe('Balance Detail Card Components', () => {
       render(<NativeTokensDetailCard balance={mockBalance} token={mockToken} />)
 
       const nativeBadge = screen.getByText('NATIVE')
-      expect(nativeBadge).toHaveClass('bg-primary', 'text-primary-foreground', 'font-semibold', 'text-[10px]', 'px-2', 'py-0', 'rounded-full')
+      expect(nativeBadge).toHaveClass(
+        'bg-primary',
+        'text-primary-foreground',
+        'font-semibold',
+        'text-[10px]',
+        'px-2',
+        'py-0',
+        'rounded-full'
+      )
     })
 
     it('should format balance as number', () => {

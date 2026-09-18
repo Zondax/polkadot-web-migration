@@ -21,7 +21,7 @@ function TransactionDropdown({ transaction, appId }: TransactionDropdownProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground" aria-label="Transaction details">
+        <Button variant="ghost" size="sm" className="h-6 w-6 min-w-0 p-0 text-muted-foreground" aria-label="Transaction details">
           <ChevronDown className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
