@@ -27,7 +27,11 @@ const NotificationToast = ({
     <div className="w-full">
       <div className="flex justify-between items-start">
         <div className="text-base font-semibold">{title}</div>
-        {appIcon && <div className="ml-2 overflow-hidden [&_svg]:max-h-8 [&_svg]:w-8">{appIcon}</div>}
+        {appIcon && (
+          <div aria-hidden="true" className="ml-2 overflow-hidden [&_svg]:max-h-8 [&_svg]:w-8">
+            {appIcon}
+          </div>
+        )}
       </div>
       <div className="text-sm text-muted-foreground">{time}</div>
       <div className="border-t border-gray-300 my-2" />
@@ -35,7 +39,7 @@ const NotificationToast = ({
         <div className="text-sm text-muted-foreground mb-2">{description}</div>
       </div>
       <div className="flex justify-end">
-        <Button aria-haspopup="true" variant="outline" size="sm" onClick={onDismiss}>
+        <Button variant="outline" size="sm" onClick={onDismiss}>
           Dismiss
         </Button>
       </div>

@@ -19,7 +19,7 @@ export function Tabs<T = string>({ activeTab, tabs, onTabChange }: TabsProps<T>)
 
   return (
     <div>
-      <div className="flex border-b border-gray-200">
+      <div className="flex border-b border-gray-200" role="tablist">
         {tabs.map((tab, index) => {
           const isActive = activeTab === index
           const isDisabled = tab.disabled
@@ -29,8 +29,10 @@ export function Tabs<T = string>({ activeTab, tabs, onTabChange }: TabsProps<T>)
               data-testid={`tab-${tab.label.toLowerCase().replace(' ', '-')}`}
               key={typeof tab.value === 'string' || typeof tab.value === 'number' ? tab.value : tab.label}
               type="button"
+              role="tab"
+              aria-selected={isActive}
               onClick={() => !isDisabled && onTabChange(index)}
-              className={`px-6 py-3 text-sm font-medium transition-colors flex items-center gap-2 ${
+              className={`px-6 py-3 text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
                 isActive ? 'bg-white text-gray-900' : 'text-gray-500 hover:text-gray-700'
               }`}
               disabled={isDisabled}
