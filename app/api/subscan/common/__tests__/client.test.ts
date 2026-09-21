@@ -29,6 +29,13 @@ describe('SubscanClient', () => {
       })
       expect(client).toBeInstanceOf(SubscanClient)
     })
+
+    it('should reject a network outside the allowlist (SSRF guard)', () => {
+      // A crafted network must not build an attacker-controlled request host
+      // that would receive the server-side API key.
+      expect(() => new SubscanClient({ network: 'evil.com#', apiKey: 'test-key' })).toThrow(SubscanError)
+      expect(() => new SubscanClient({ network: 'unknown-chain' })).toThrow(SubscanError)
+    })
   })
 
   describe('request', () => {
@@ -261,7 +268,7 @@ describe('SubscanClient', () => {
         json: vi.fn().mockResolvedValue(mockResponse),
       } as any)
 
-      const networks = ['polkadot', 'kusama', 'westend', 'acala', 'moonbeam']
+      const networks = ['polkadot', 'kusama', 'acala', 'astar', 'karura']
 
       for (const network of networks) {
         // Use API key to avoid slow queue interval (500ms -> 1s with higher concurrency)

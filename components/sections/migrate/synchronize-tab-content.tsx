@@ -304,7 +304,7 @@ export function SynchronizeTabContent({ onContinue }: SynchronizeTabContentProps
 
       {/* Show apps scanning status */}
       {isLoading && (
-        <div className="space-y-2 mb-4">
+        <div className="space-y-2 mb-4" aria-live="polite" aria-busy={isLoading}>
           <div className="flex justify-between items-center">
             <span className="text-sm text-gray-600" data-testid="">
               {syncStatusLabel}

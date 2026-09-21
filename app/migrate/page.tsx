@@ -130,7 +130,8 @@ export default function MigratePage() {
       {/* Background */}
       <GradientBackground showBlobs={true} animationSpeed={0.8} />
 
-      <div className="container mx-auto px-4 py-8 relative z-10">
+      <main id="main-content" className="container mx-auto px-4 py-8 relative z-10">
+        <h1 className="sr-only">Polkadot Ledger Migration Assistant</h1>
         {/* Header */}
         <Header />
 
@@ -149,7 +150,7 @@ export default function MigratePage() {
             </div>
           </div>
         </motion.div>
-      </div>
+      </main>
 
       <Notifications />
     </div>

@@ -17,12 +17,13 @@ export const verifyTabsRendered = () => {
 export const verifyConnectTabActive = () => {
   try {
     // Check that Connect Device tab is active
-    const connectTab = screen.getByRole('button', { name: TEXT.TABS.CONNECT })
+    const connectTab = screen.getByRole('tab', { name: TEXT.TABS.CONNECT })
     expect(connectTab).toHaveAttribute('data-state', 'active')
+    expect(connectTab).toHaveAttribute('aria-selected', 'true')
 
     // Check that other tabs are not active
-    const syncTab = screen.getByRole('button', { name: TEXT.TABS.SYNCHRONIZE })
-    const migrateTab = screen.getByRole('button', { name: TEXT.TABS.MIGRATE })
+    const syncTab = screen.getByRole('tab', { name: TEXT.TABS.SYNCHRONIZE })
+    const migrateTab = screen.getByRole('tab', { name: TEXT.TABS.MIGRATE })
     expect(syncTab).not.toHaveAttribute('data-state', 'active')
     expect(migrateTab).not.toHaveAttribute('data-state', 'active')
   } catch (error: unknown) {

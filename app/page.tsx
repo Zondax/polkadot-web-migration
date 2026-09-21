@@ -7,7 +7,7 @@ import SolutionSection from '@/components/sections/home/solution-section'
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen">
+    <main id="main-content" className="min-h-screen">
       {/* Hero Section */}
       <HomePage
         title="Welcome to the Polkadot Ledger Migration Assistant"

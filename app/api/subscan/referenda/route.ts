@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { SubscanClient, SubscanError } from '../common/client'
+import { parseRequestBody, referendaRequestSchema } from '../common/validation'
 
 /**
  * Referenda API endpoint
@@ -8,11 +9,12 @@ import { SubscanClient, SubscanError } from '../common/client'
  */
 export async function POST(request: NextRequest) {
   try {
-    const { network, page = 0, row = 100, address } = await request.json()
-
-    if (!network || !address) {
-      return NextResponse.json({ error: 'Network and address are required' }, { status: 400 })
+    const parsed = parseRequestBody(referendaRequestSchema, await request.json())
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.errors.join(', ') }, { status: 400 })
     }
+
+    const { network, page = 0, row = 100, address } = parsed.data
 
     const client = new SubscanClient({
       network,

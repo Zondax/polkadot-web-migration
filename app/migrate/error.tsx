@@ -2,37 +2,29 @@
 
 import { useEffect } from 'react'
 
+import { Button } from '@/components/ui/button'
+
 interface ErrorPageProps {
   error: Error & { digest?: string }
   reset: () => void
 }
 
-export default function ErrorPage({ error, reset: _reset }: ErrorPageProps) {
+export default function ErrorPage({ error, reset }: ErrorPageProps) {
   useEffect(() => {
     // Log the error to an error reporting service
     console.error(error)
   }, [error])
 
   return (
-    <main className="p-4 md:p-6">
-      <div className="mb-8 space-y-4">
-        <h1 className="font-semibold text-lg md:text-2xl">Please complete setup</h1>
-        <p>Inside the Vercel Postgres dashboard, create a table based on the schema defined in this repository.</p>
-        <pre className="my-4 px-3 py-4 bg-black text-white rounded-lg max-w-2xl overflow-scroll flex text-wrap">
-          <code>
-            {`CREATE TABLE users (
-  id SERIAL PRIMARY KEY,
-  email VARCHAR(255) NOT NULL,
-  name VARCHAR(255),
-  username VARCHAR(255)
-);`}
-          </code>
-        </pre>
-        <p>Insert a row for testing:</p>
-        <pre className="my-4 px-3 py-4 bg-black text-white rounded-lg max-w-2xl overflow-scroll flex text-wrap">
-          <code>{`INSERT INTO users (id, email, name, username) VALUES (1, 'me@site.com', 'Me', 'username');`}</code>
-        </pre>
-      </div>
+    <main id="main-content" className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-6 text-center">
+      <h1 className="font-semibold text-lg md:text-2xl">Something went wrong</h1>
+      <p className="max-w-md text-muted-foreground">
+        We couldn&apos;t load the migration flow. This is usually temporary — please try again. If the problem persists, reconnect your
+        device and refresh the page.
+      </p>
+      <Button variant="purple" onClick={() => reset()}>
+        Try again
+      </Button>
     </main>
   )
 }

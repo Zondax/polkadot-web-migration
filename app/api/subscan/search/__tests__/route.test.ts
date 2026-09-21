@@ -53,7 +53,7 @@ describe('/api/subscan/search/route', () => {
       const data = await response.json()
 
       expect(response.status).toBe(400)
-      expect(data.error).toBe('Network and address are required')
+      expect(data.error).toEqual(expect.any(String))
     })
 
     it('should return 400 when address is missing', async () => {
@@ -63,7 +63,7 @@ describe('/api/subscan/search/route', () => {
       const data = await response.json()
 
       expect(response.status).toBe(400)
-      expect(data.error).toBe('Network and address are required')
+      expect(data.error).toEqual(expect.any(String))
     })
 
     it('should return 400 when both network and address are missing', async () => {
@@ -73,7 +73,17 @@ describe('/api/subscan/search/route', () => {
       const data = await response.json()
 
       expect(response.status).toBe(400)
-      expect(data.error).toBe('Network and address are required')
+      expect(data.error).toEqual(expect.any(String))
+    })
+
+    it('should return 400 for a network outside the allowlist (SSRF guard)', async () => {
+      const request = mockNextRequest({ network: 'evil.com#', address: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY' })
+
+      const response = await POST(request)
+      const data = await response.json()
+
+      expect(response.status).toBe(400)
+      expect(data.error).toEqual(expect.any(String))
     })
 
     it('should successfully process valid request', async () => {
@@ -251,7 +261,7 @@ describe('/api/subscan/search/route', () => {
           }) as any
       )
 
-      const testCases = ['polkadot', 'kusama', 'westend', 'acala']
+      const testCases = ['polkadot', 'kusama', 'astar', 'acala']
 
       for (const network of testCases) {
         const request = mockNextRequest({

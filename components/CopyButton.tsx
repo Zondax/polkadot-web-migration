@@ -23,7 +23,7 @@ export function CopyButton({ value, size = 'sm' }: CopyButtonProps) {
   )
 
   return (
-    <Button type="button" variant="ghost" size={size} className={'p-0'} onClick={handleCopy}>
+    <Button type="button" variant="ghost" size={size} className={'p-0'} onClick={handleCopy} aria-label={copied ? 'Copied' : 'Copy'}>
       {copied ? <Check /> : <Copy />}
     </Button>
   )
