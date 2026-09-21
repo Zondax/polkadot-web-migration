@@ -71,7 +71,11 @@ export const AddressVerificationDialog = ({ open, onClose }: AddressVerification
               return (
                 <li key={appId} className={'flex flex-col p-2 rounded border bg-white'}>
                   <div className="font-medium text-sm mb-2 flex items-center gap-2">
-                    {icon && <div className="max-h-5 overflow-hidden [&_svg]:max-h-5 [&_svg]:w-5 flex items-center">{muifyHtml(icon)}</div>}
+                    {icon && (
+                      <div aria-hidden="true" className="max-h-5 overflow-hidden [&_svg]:max-h-5 [&_svg]:w-5 flex items-center">
+                        {muifyHtml(icon)}
+                      </div>
+                    )}
                     <span>{appName}</span>
                   </div>
                   <div className="flex flex-col">

@@ -83,7 +83,7 @@ function SynchronizedApp({
         disabled={!isAccountsNotEmpty}
       >
         <div className="flex items-center gap-4">
-          <div className="max-h-8 w-8 h-8 overflow-hidden flex items-center justify-center">
+          <div aria-hidden="true" className="max-h-8 w-8 h-8 overflow-hidden flex items-center justify-center">
             {/* Icon */}
             {icon ? muifyHtml(icon) : null}
           </div>
