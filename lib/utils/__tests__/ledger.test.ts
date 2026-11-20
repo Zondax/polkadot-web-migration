@@ -9,6 +9,8 @@ import {
   type MultisigAddress,
   type NativeBalance,
 } from '@/state/types/ledger'
+import { readdirSync } from 'node:fs'
+import { join } from 'node:path'
 import { BN } from '@polkadot/util'
 import axios from 'axios'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -20,6 +22,7 @@ import {
   filterValidSelectedAccountsForMigration,
   filterValidSyncedAppsWithBalances,
   getAppLightIcon,
+  LOCAL_CHAIN_LOGOS,
   getAppTotalAccounts,
   hasAccountsWithErrors,
   hasAppAccounts,
@@ -123,6 +126,28 @@ describe('ledger utilities', () => {
   }
 
   describe('getAppLightIcon', () => {
+    it('should load chains with a bundled logo locally, without calling the hub', async () => {
+      vi.mocked(global.fetch).mockResolvedValueOnce({
+        ok: true,
+        text: async () => '<svg>people kusama</svg>',
+      } as Response)
+
+      const result = await getAppLightIcon('people-kusama')
+
+      expect(result).toEqual({ data: '<svg>people kusama</svg>', error: undefined })
+      expect(global.fetch).toHaveBeenCalledWith('/logos/chains/people-kusama.svg')
+      expect(axios.get).not.toHaveBeenCalled()
+    })
+
+    it('should list exactly the logos bundled in public/logos/chains', () => {
+      const bundled = readdirSync(join(process.cwd(), 'public/logos/chains'))
+        .filter(name => name.endsWith('.svg'))
+        .map(name => name.replace(/\.svg$/, ''))
+        .sort()
+
+      expect([...LOCAL_CHAIN_LOGOS].sort()).toEqual(bundled)
+    })
+
     it('should fetch icon from API successfully', async () => {
       const mockIconData = '<svg>icon</svg>'
       vi.mocked(axios.get).mockResolvedValueOnce({ data: mockIconData })
