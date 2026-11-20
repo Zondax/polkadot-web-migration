@@ -39,11 +39,12 @@
       // cutover. Turn off once Vercel is gone.
       "workers_dev": true,
       "preview_urls": false,
-      "vars": { "DEPLOYMENT_ENV": "production" }
-      // Cutover (separate draft PR): polkadot.zondax.ch is a proxied record in the Cloudflare zondax.ch zone (it
-      // answers from Cloudflare and forwards to Vercel), so a deploy carrying this route takes production traffic at
-      // once. Keep it commented out until then.
-      // "routes": [{ "pattern": "polkadot.zondax.ch/*", "zone_name": "zondax.ch" }],
+      "vars": { "DEPLOYMENT_ENV": "production" },
+      // A zone route (not a custom domain), as for beryx.io and hub.zondax.ch: polkadot.zondax.ch is a proxied record
+      // in the Cloudflare zondax.ch zone (forwarding to Vercel), so this route takes its traffic as soon as a deploy
+      // carries it. Rollback: delete the route in the dashboard (Workers Routes on zondax.ch); traffic falls back to
+      // Vercel at once.
+      "routes": [{ "pattern": "polkadot.zondax.ch/*", "zone_name": "zondax.ch" }]
     }
   }
 }
