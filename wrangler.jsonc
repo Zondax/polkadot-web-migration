@@ -3,7 +3,7 @@
 // CLOUDFLARE_ENV=pro; it repeats every field because Wrangler does not inherit vars/routes/bindings into environments.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  // https://web-migration-dev.<account subdomain>.workers.dev, private behind Zondax Access (tools/access.json, CI PR).
+  // https://web-migration-dev.<account subdomain>.workers.dev, private behind Zondax Access (tools/access.json).
   "name": "web-migration-dev",
   "main": "vinext/server/app-router-entry",
   "compatibility_date": "2026-09-21",
