@@ -52,3 +52,10 @@ TODO.md
 # Next.js auto-generated agent rule files (created by `next build`)
 /AGENTS.md
 /CLAUDE.md
+
+# Cloudflare Workers (vinext, wrangler)
+/dist
+.wrangler
+.dev.vars
+.dev.vars*
+.vinext
