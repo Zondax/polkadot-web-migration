@@ -27,5 +27,15 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", ".next/dev/types/**/*.ts"],
-  "exclude": ["node_modules", "**/__tests__/**", "**/*.test.ts", "**/*.test.tsx", "tests/**", "e2e/**"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".wrangler",
+    "worker-configuration.d.ts",
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "tests/**",
+    "e2e/**"
+  ]
 }
