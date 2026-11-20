@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { muifyHtml } from '../html'
 
 // Mock DOMPurify
-vi.mock('isomorphic-dompurify', () => ({
+vi.mock('dompurify', () => ({
   default: {
     sanitize: vi.fn(),
   },
@@ -18,7 +18,7 @@ vi.mock('html-react-parser', () => ({
 
 import HTMLReactParser from 'html-react-parser'
 // Import mocked modules
-import DOMPurify from 'isomorphic-dompurify'
+import DOMPurify from 'dompurify'
 
 const mockSanitize = DOMPurify.sanitize as MockedFunction<typeof DOMPurify.sanitize>
 const mockHTMLReactParser = HTMLReactParser as MockedFunction<typeof HTMLReactParser>
