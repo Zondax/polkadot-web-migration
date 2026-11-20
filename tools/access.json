@@ -1,0 +1,9 @@
+{
+  "accountId": "556ea0147c469e38591bdc721cbbd13a",
+  "applicationId": "eebc6f4d-0515-4cd0-b4e0-4d67cf7ad484",
+  "workerName": "web-migration-dev",
+  "identityProviderId": "6a380b7a-4215-4048-922c-bec1d5ec1952",
+  "organization": "Zondax",
+  "authDomain": "zondax.cloudflareaccess.com",
+  "probePaths": ["/", "/api/health", "/migrate"]
+}

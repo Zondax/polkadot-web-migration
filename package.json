@@ -19,6 +19,7 @@
     "deps:update": "pnpm exec npm-check-updates -u -t semver && pnpm install",
     "dev": "NEXT_PUBLIC_NODE_ENV=development NEXT_PUBLIC_NATIVE_TRANSFER_AMOUNT=100 next dev --turbo",
     "dev:full-amount": "NEXT_PUBLIC_NODE_ENV=development next dev",
+    "e2e:worker": "MIGRATION_TARGET=worker playwright test e2e --project=chromium",
     "env:init": "cp .env.backup .env",
     "format": "biome format --write . && sort-package-json",
     "format:check": "biome format . && sort-package-json -c",
@@ -37,7 +38,8 @@
     "test:e2e:sharding": "playwright test e2e -x --reporter=list --output=playwright-report --shard=$PLAYWRIGHT_SHARD",
     "test:e2e:ui": "playwright test e2e --ui",
     "test:patterns": "./tests/lint-test-patterns.sh",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:worker": "node tools/check-worker.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
