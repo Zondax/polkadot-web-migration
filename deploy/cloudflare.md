@@ -17,6 +17,8 @@ building and serving with `next build` until the cutover. A Vercel build does no
 ```bash
 pnpm build:cloudflare   # vinext build → dist/
 pnpm preview:cf         # serve dist/ in workerd on http://127.0.0.1:3300
+pnpm test:worker        # parity smoke against it (any base URL as argument)
+pnpm e2e:worker         # Playwright (chromium) against the Worker build
 pnpm check:compat       # vinext compatibility report
 pnpm cf:types           # regenerate worker-configuration.d.ts after changing wrangler.jsonc
 ```
@@ -50,6 +52,40 @@ rejects unauthenticated calls, so those routes answer 400 without it. Set it as 
 `vars.CLOUDFLARE_ACCOUNT_ID`). The token needs Account → Workers Scripts: Edit and Access: Apps and Policies: Read (for
 the Access check below). For the production route it also needs Zone `zondax.ch` → Workers Routes: Edit.
 
+## CI (`.github/workflows/ci-cloudflare.yml`)
+
+| Event      | What runs                                                                                                                                         |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PR         | job `checks` (no secrets): vinext build, `vinext check`, parity smoke on the Worker **and** on Next, Playwright (chromium) on the Worker; job `dev`: preview version `pr-<n>` of `web-migration-dev`, same-repo PRs only |
+| push `dev` | the same checks, then deploy `web-migration-dev` and verify Access                                                                                |
+| push `main`| deploy `web-migration-pro` once the repository variable `CLOUDFLARE_PRODUCTION_ENABLED` is `true`; the health check asserts `env: production`      |
+| manual run | deploy `web-migration-pro` from the chosen branch (cutover, hotfix)                                                                               |
+
+**Fork PRs (this repository is public):** the `checks` job uses no secrets and no environment, and for fork PRs it
+runs on `ubuntu-latest` instead of the self-hosted `zondax-runners`. The `dev` job (environment `cloudflare-dev`,
+Cloudflare token, `SUBSCAN_API_KEY`) only runs for same-repo PRs and pushes; the head repository is checked explicitly,
+not only through GitHub withholding secrets from forks. The workflow never uses `pull_request_target`.
+
+- **Parity smoke** (`pnpm test:worker <url>`, `tools/check-worker.mjs`): every page under `app/`, unknown routes,
+  the security headers from `next.config.ts` (pages and `public/` files), client assets, `/api/health`, and the input
+  validation of `/api/subscan/*` (so the SSRF allowlist holds on both builds). The same checks run against
+  `next start`, so a difference between the builds fails CI.
+- **Playwright on the Worker** (`pnpm e2e:worker`, `MIGRATION_TARGET=worker`): the existing `e2e/` suite plus
+  `e2e/worker-smoke.spec.ts`, which walks `/` → "Start Migration" → `/migrate` → "Connect" and fails on any console
+  error. `PLAYWRIGHT_BASE_URL` targets an already running server instead.
+
+## Private dev Worker (Cloudflare Access)
+
+`web-migration-dev` and all its preview URLs sit behind the shared Zondax-only Access application that beryx, the hub
+and kunobi-web's private Workers use (`tools/access.json`): only members of the Zondax GitHub organization, no service
+tokens. After each deploy or preview upload, `tools/check-worker-access.mjs` checks the policy through the API and
+that an unauthenticated request is redirected to `zondax.cloudflareaccess.com`.
+
+One-time setup: in Zero Trust → Access → Applications, open the shared application
+(`eebc6f4d-0515-4cd0-b4e0-4d67cf7ad484`) and add the Worker `web-migration-dev` as a destination (no path overrides).
+The Worker must exist first, so the Access check of the first dev deploy fails until this is done; rerun the job
+afterwards. `web-migration-pro` stays public.
+
 ## vinext specifics we rely on
 
 - **App Router on workerd:** `cloudflare({ viteEnvironment: { name: 'rsc', childEnvironments: ['ssr'] } })`, entry
@@ -81,7 +117,9 @@ the Access check below). For the production route it also needs Zone `zondax.ch`
 
 1. Create the GitHub environments `cloudflare-dev` and `cloudflare-production` with `CLOUDFLARE_API_TOKEN` (secret),
    `CLOUDFLARE_ACCOUNT_ID` and `NEXT_PUBLIC_HUB_BACKEND_URL` (variables), and `SUBSCAN_API_KEY` (secret).
-   Restrict `cloudflare-production` to `main` (deployment branches) and `cloudflare-dev` to `dev` plus pull requests.
+   Do not restrict `cloudflare-dev` by branch: same-repo PR runs (preview uploads) use `refs/pull/*`, and fork PRs never
+   reach it. If you restrict `cloudflare-production`, allow `main` and `dev` (the pre-cutover manual run deploys from
+   `dev`), or add required reviewers instead.
 2. Push to `dev`: `web-migration-dev` is deployed. Add it to the shared Access application (above) and rerun the job.
 3. Check the dev Worker end to end with a real Ledger: connect, synchronize, migrate on a test account.
 
