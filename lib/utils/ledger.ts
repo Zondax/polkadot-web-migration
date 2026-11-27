@@ -14,28 +14,38 @@ import {
 import { hasAddressBalance, hasBalance } from './balance'
 
 /**
- * Retrieves a light icon for a given app from the Hub backend.
+ * Chains whose logo ships in public/logos/chains (a test keeps this in sync with
+ * the directory). The hub has no icon for them and answers 404 without CORS
+ * headers, which the browser reports as a console error, so they are loaded
+ * locally without asking the hub first.
+ */
+export const LOCAL_CHAIN_LOGOS: ReadonlySet<string> = new Set(['kusama-asset-hub', 'people-kusama'])
+
+/**
+ * Retrieves a light icon for a given app: the bundled logo when there is one,
+ * otherwise the Hub backend, falling back to a local image.
  *
  * @param appId - The ID of the app to retrieve the icon for.
  * @returns The icon data and any error that occurred.
  */
 export const getAppLightIcon = async (appId: string) => {
   try {
-    // First try to fetch from API
     const hubUrl = process.env.NEXT_PUBLIC_HUB_BACKEND_URL
 
     if (!hubUrl) {
       return { data: undefined, error: 'Hub URL not configured' }
     }
 
-    try {
-      const response = await axios.get(`${hubUrl}/app/${appId}/icon/light`)
-      return { data: response.data, error: undefined }
-    } catch (_apiError) {
-      // API call failed, try local image as fallback
+    if (!LOCAL_CHAIN_LOGOS.has(appId)) {
+      try {
+        const response = await axios.get(`${hubUrl}/app/${appId}/icon/light`)
+        return { data: response.data, error: undefined }
+      } catch (_apiError) {
+        // API call failed, try local image as fallback
+      }
     }
 
-    // If API fetch fails, check if the image exists locally
+    // Bundled logo, or fallback when the API fetch failed
     const localImagePath = `/logos/chains/${appId}.svg`
 
     try {

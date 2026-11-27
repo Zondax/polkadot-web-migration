@@ -1,5 +1,5 @@
 import HTMLReactParser, { type DOMNode, domToReact, type HTMLReactParserOptions } from 'html-react-parser'
-import DOMPurify from 'isomorphic-dompurify'
+import DOMPurify from 'dompurify'
 
 /**
  * Configuration options for HTML to React transformation
@@ -45,6 +45,11 @@ const htmlToReactOptions: HTMLReactParserOptions = {
  * @returns The transformed React elements
  */
 export function muifyHtml(input: string) {
+  // DOMPurify needs a DOM, which SSR (Node or Cloudflare Workers) does not have:
+  // without one it returns its input unsanitized. The inputs (hub API icons) are
+  // only fetched on the client, so the server renders nothing rather than
+  // unsanitized HTML.
+  if (typeof window === 'undefined') return null
   const purified = DOMPurify.sanitize(input)
   const output = HTMLReactParser(purified, htmlToReactOptions)
   return output

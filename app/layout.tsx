@@ -1,7 +1,7 @@
 import './globals.css'
 
-import { Analytics } from '@vercel/analytics/react'
 import { MotionProvider } from '@/components/MotionProvider'
+import { VercelAnalytics } from '@/components/VercelAnalytics'
 
 export const metadata = {
   title: 'Polkadot Migration',
@@ -20,7 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </a>
         <MotionProvider>{children}</MotionProvider>
       </body>
-      <Analytics />
+      <VercelAnalytics />
     </html>
   )
 }
