@@ -16,6 +16,8 @@
       "!**/package.json",
       "!**/public",
       "!**/dist",
+      "!**/.wrangler",
+      "!worker-configuration.d.ts",
       "!**/playwright-report",
       "!**/pnpm-lock.yaml",
       "!**/components/ui/**",

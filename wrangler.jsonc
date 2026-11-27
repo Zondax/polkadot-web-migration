@@ -1,0 +1,49 @@
+// The migration app as a Cloudflare Worker, built by vinext (`pnpm build:cloudflare`). See deploy/cloudflare.md.
+// Top level = dev Worker (deployed from `dev`). `env.pro` is the production Worker, selected at build time with
+// CLOUDFLARE_ENV=pro; it repeats every field because Wrangler does not inherit vars/routes/bindings into environments.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // https://web-migration-dev.<account subdomain>.workers.dev, private behind Zondax Access (tools/access.json, CI PR).
+  "name": "web-migration-dev",
+  "main": "vinext/server/app-router-entry",
+  "compatibility_date": "2026-09-21",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // Everything but the hashed build output goes through the Worker (vinext's default), so next.config.ts headers()
+  // (CSP and the other security headers) also apply to public/ files, as on Next.
+  "assets": {
+    "directory": "dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "none",
+    "run_worker_first": ["/*", "!/_next/static/*"]
+  },
+  "observability": { "enabled": true },
+  "workers_dev": true,
+  "preview_urls": true,
+  // Runtime secret (pushed by CI with `wrangler deploy --secrets-file`, never committed): SUBSCAN_API_KEY. Subscan
+  // rejects unauthenticated calls, so /api/subscan/* answer 400 without it.
+  "vars": { "DEPLOYMENT_ENV": "preview" },
+  "env": {
+    "pro": {
+      "name": "web-migration-pro",
+      "main": "vinext/server/app-router-entry",
+      "compatibility_date": "2026-09-21",
+      "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+      "assets": {
+        "directory": "dist/client",
+        "binding": "ASSETS",
+        "not_found_handling": "none",
+        "run_worker_first": ["/*", "!/_next/static/*"]
+      },
+      "observability": { "enabled": true },
+      // web-migration-pro.<account subdomain>.workers.dev: smoke-test the production build before and during the
+      // cutover. Turn off once Vercel is gone.
+      "workers_dev": true,
+      "preview_urls": false,
+      "vars": { "DEPLOYMENT_ENV": "production" }
+      // Cutover (separate draft PR): polkadot.zondax.ch is a proxied record in the Cloudflare zondax.ch zone (it
+      // answers from Cloudflare and forwards to Vercel), so a deploy carrying this route takes production traffic at
+      // once. Keep it commented out until then.
+      // "routes": [{ "pattern": "polkadot.zondax.ch/*", "zone_name": "zondax.ch" }],
+    }
+  }
+}
